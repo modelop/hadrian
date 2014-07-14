@@ -1,0 +1,261 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <name>hadrian</name>
+  <description>JVM (Scala) implementation of Portable Format for Analytics (PFA): consumer with dynamic compilation.</description>
+  <inceptionYear>2014</inceptionYear>
+
+  <groupId>com.opendatagroup</groupId>
+  <artifactId>hadrian</artifactId>
+  <version>0.2-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <licenses>
+    <license>
+      <name>Hadrian Personal Use and Educational License (PUEL)</name>
+      <url>http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <properties>
+    <maven.compiler.source>1.7</maven.compiler.source>
+    <maven.compiler.target>1.7</maven.compiler.target>
+    <scala.tools.version>2.10</scala.tools.version>
+    <scala.version>2.10.3</scala.version>
+    <encoding>UTF-8</encoding>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencies>
+    <!-- Real dependencies for the jar: 11 MB -->
+
+    <!-- avro-1.7.6.jar -->
+    <!-- commons-compiler-2.7.4.jar -->
+    <!-- commons-compress-1.4.1.jar -->
+    <!-- commons-lang3-3.2.1.jar -->
+    <!-- ejml-0.24.jar -->
+    <!-- jackson-core-asl-1.9.13.jar -->
+    <!-- jackson-mapper-asl-1.9.13.jar -->
+    <!-- janino-2.7.4.jar -->
+    <!-- paranamer-2.3.jar -->
+    <!-- scala-library-2.10.3.jar -->
+    <!-- slf4j-api-1.6.4.jar -->
+    <!-- snakeyaml-1.13.jar -->
+    <!-- snappy-java-1.0.5.jar -->
+    <!-- xz-1.0.jar -->
+
+    <dependency>
+      <groupId>org.scala-lang</groupId>
+      <artifactId>scala-library</artifactId>
+      <version>${scala.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.avro</groupId>
+      <artifactId>avro</artifactId>
+      <version>1.7.6</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-core-asl</artifactId>
+      <version>1.9.13</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.codehaus.jackson</groupId>
+      <artifactId>jackson-mapper-asl</artifactId>
+      <version>1.9.13</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.yaml</groupId>
+      <artifactId>snakeyaml</artifactId>
+      <version>1.13</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>3.2.1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.codehaus.janino</groupId>
+      <artifactId>commons-compiler</artifactId>
+      <version>2.7.4</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.codehaus.janino</groupId>
+      <artifactId>janino</artifactId>
+      <version>2.7.4</version>
+    </dependency>
+
+    <dependency>
+        <groupId>com.googlecode.efficient-java-matrix-library</groupId>
+        <artifactId>ejml</artifactId>
+        <version>0.24</version>
+    </dependency>
+
+    <!-- Dependencies for testing only: 7 MB -->
+
+    <!-- hamcrest-core-1.3.jar -->
+    <!-- junit-4.11.jar -->
+    <!-- scalatest_2.10-2.0.M6-SNAP36.jar -->
+
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.11</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest_2.10</artifactId>
+      <version>2.0.M6-SNAP36</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <repositories>
+  </repositories>
+
+  <build>
+    <plugins>
+
+      <plugin>
+        <!-- see http://davidb.github.com/scala-maven-plugin -->
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+        <version>3.1.3</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>compile</goal>
+              <goal>testCompile</goal>
+            </goals>
+            <configuration>
+              <args>
+                <arg>-Dscalac.patmat.analysisBudget=512</arg>
+                <arg>-deprecation</arg>
+                <arg>-feature</arg>
+                <arg>-unchecked</arg>
+                <!-- <arg>-make:transitive</arg>   (is an unsupported option) -->
+                <arg>-dependencyfile</arg>
+                <arg>${project.build.directory}/.scala_dependencies</arg>
+              </args>
+              <recompileMode>incremental</recompileMode>
+              <useZincServer>true</useZincServer>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.4</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>com.opendatagroup.hadrian.Main</mainClass>
+              <addClasspath>true</addClasspath>
+              <classpathPrefix>./lib</classpathPrefix>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.scalatest</groupId>
+        <artifactId>scalatest-maven-plugin</artifactId>
+        <version>1.0-RC2</version>
+        <configuration>
+          <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
+          <junitxml>.</junitxml>
+
+<tagsToInclude>
+    Lib1LA,
+    MakeDocsLatex,
+    Lib1StatSample
+</tagsToInclude>
+
+<tagsToExclude>
+    AstToJson,
+    Data,
+    DataType,
+    JsonToAst,
+    JVMCompilation,
+    Lib1Array,
+    Lib1Bytes,
+    Lib1Core,
+    Lib1Enum,
+    Lib1Fixed,
+    Lib1Impute,
+
+    Lib1Map,
+    Lib1Math,
+    Lib1Metric,
+    Lib1ModelCluster,
+    Lib1ModelTree,
+    Lib1ProbDist,
+    Lib1Record,
+    Lib1StatChange,
+
+    Lib1String,
+
+    MultiThreaded,
+    RandomJson,
+    Shared,
+    SignatureMatch,
+    Speed,
+    TypeCheck,
+    Yaml
+</tagsToExclude>
+
+        </configuration>
+        <executions>
+          <execution>
+            <id>test</id>
+            <goals>
+              <goal>test</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>
+                target/lib
+              </outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+    </plugins>
+
+    <resources>
+    </resources>
+
+    <testResources>
+      <testResource>
+        <directory>src/test/resources</directory>
+        <targetPath>resources</targetPath>
+      </testResource>
+    </testResources>
+  </build>
+</project>

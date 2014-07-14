@@ -1,0 +1,10 @@
+*~
+*.pyc
+*.class
+target/
+build/
+*.aux
+*.log
+*.out
+*.toc
+PFA.pdf

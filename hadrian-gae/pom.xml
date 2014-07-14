@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <name>hadrian-gae</name>
+  <description>Google App Engine envelope for Hadrian</description>
+
+  <groupId>com.opendatagroup</groupId>
+  <artifactId>hadrian-gae</artifactId>
+  <version>0.1</version>
+  <packaging>pom</packaging>
+  
+  <licenses>
+    <license>
+      <name>Hadrian Personal Use and Educational License (PUEL)</name>
+      <url>http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <properties>
+    <appengine.target.version>1.9.3</appengine.target.version>
+    <maven.compiler.source>1.7</maven.compiler.source>
+    <maven.compiler.target>1.7</maven.compiler.target>
+    <scala.tools.version>2.10</scala.tools.version>
+    <scala.version>2.10.3</scala.version>
+    <encoding>UTF-8</encoding>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+
+        <plugin>
+          <groupId>com.google.appengine</groupId>
+          <artifactId>appengine-maven-plugin</artifactId>
+          <version>${appengine.target.version}</version>
+        </plugin>
+
+      </plugins>
+    </pluginManagement>
+  </build>
+
+  <modules>
+    <module>hadrian-gae-war</module>
+    <module>hadrian-gae-ear</module>
+  </modules>
+
+</project>

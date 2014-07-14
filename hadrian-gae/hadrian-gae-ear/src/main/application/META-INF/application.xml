@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<application xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/application_5.xsd" version="5">
+  <display-name>appengine-modules-ear</display-name>
+  <module>
+    <web>
+      <web-uri>hadrian-gae-war-0.1.war</web-uri>
+      <context-root>/hadrian-gae-war</context-root>
+    </web>
+  </module>
+  <library-directory>lib</library-directory>
+</application>
