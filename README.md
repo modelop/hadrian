@@ -9,3 +9,5 @@ This repository contains two implementations of PFA (see http://scoringengine.or
 It also contains an envelope for embedding PFA.
 
   * hadrian-gae: for running Hadrian on Google App Engine
+
+They are all licensed under the Hadrian Personal Use and Evaluation License (PUEL).
