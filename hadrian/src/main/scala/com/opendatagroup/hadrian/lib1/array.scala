@@ -1,3 +1,21 @@
+// Copyright (C) 2014  Open Data ("Open Data" refers to
+// one or more of the following companies: Open Data Partners LLC,
+// Open Data Research LLC, or Open Data Capital LLC.)
+// 
+// This file is part of Hadrian.
+// 
+// Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.opendatagroup.hadrian.lib1
 
 import scala.annotation.tailrec
@@ -1451,6 +1469,18 @@ package object array {
     def apply[X, Y](a: PFAArray[X], fcn: X => Y): PFAArray[Y] = PFAArray.fromVector(a.toVector.map(fcn))
   }
   provide(MapApply)
+
+  ////   mapIndex (MapIndex)
+  object MapIndex extends LibFcn {
+    val name = prefix + "mapIndex"
+    val sig = Sig(List("a" -> P.Array(P.Wildcard("A")), "fcn" -> P.Fcn(List(P.Int, P.Wildcard("A")), P.Wildcard("B"))), P.Array(P.Wildcard("B")))
+    val doc =
+      <doc>
+        <desc>Apply <p>fcn</p> to index, element pairs from <p>a</p> and return an array of the results.</desc>{orderNotGuaranteed}
+      </doc>
+    def apply[X, Y](a: PFAArray[X], fcn: (Int, X) => Y): PFAArray[Y] = PFAArray.fromVector(a.toVector.zipWithIndex map {case (x, i) => fcn(i, x)})
+  }
+  provide(MapIndex)
 
   ////   filter (Filter)
   object Filter extends LibFcn {

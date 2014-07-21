@@ -1,3 +1,21 @@
+// Copyright (C) 2014  Open Data ("Open Data" refers to
+// one or more of the following companies: Open Data Partners LLC,
+// Open Data Research LLC, or Open Data Capital LLC.)
+// 
+// This file is part of Hadrian.
+// 
+// Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package test.scala.lib1.stat.sample
 
 import scala.collection.JavaConversions._
@@ -21,17 +39,16 @@ input: double
 output: double
 cells:
   state:
-    type: ["null", {type: record, name: State, fields: [{name: count, type: double}]}]
-    init: null
+    type: {type: record, name: State, fields: [{name: count, type: double}]}
+    init: {count: 0}
 action:
-  - cell: state
+  attr:
+    cell: state
     to:
-      params: [{state: ["null", State]}]
+      params: [{state: State}]
       ret: State
       do: {stat.sample.update: [input, 1.0, state]}
-  - ifnotnull: {x: {cell: state}}
-    then: {attr: x, path: [[count]]}
-    else: -999
+  path: [[count]]
 """).head
 
     engine.action(java.lang.Double.valueOf(1)).asInstanceOf[Double] should be (1.0 +- 0.01)
@@ -39,28 +56,6 @@ action:
     engine.action(java.lang.Double.valueOf(1)).asInstanceOf[Double] should be (3.0 +- 0.01)
     engine.action(java.lang.Double.valueOf(1)).asInstanceOf[Double] should be (4.0 +- 0.01)
     engine.action(java.lang.Double.valueOf(1)).asInstanceOf[Double] should be (5.0 +- 0.01)
-
-    val engine2 = PFAEngine.fromYaml("""
-input: double
-output: double
-cells:
-  state:
-    type: {type: record, name: State, fields: [{name: count, type: double}]}
-    init: {"count": 0.0}
-action:
-  - cell: state
-    to:
-      params: [{state: State}]
-      ret: State
-      do: {stat.sample.update: [input, 1.0, state]}
-  - {cell: state, path: [[count]]}
-""").head
-
-    engine2.action(java.lang.Double.valueOf(1)).asInstanceOf[Double] should be (1.0 +- 0.01)
-    engine2.action(java.lang.Double.valueOf(1)).asInstanceOf[Double] should be (2.0 +- 0.01)
-    engine2.action(java.lang.Double.valueOf(1)).asInstanceOf[Double] should be (3.0 +- 0.01)
-    engine2.action(java.lang.Double.valueOf(1)).asInstanceOf[Double] should be (4.0 +- 0.01)
-    engine2.action(java.lang.Double.valueOf(1)).asInstanceOf[Double] should be (5.0 +- 0.01)
   }
 
   it must "accumulate a mean" taggedAs(Lib1, Lib1StatSample) in {
@@ -168,21 +163,145 @@ action:
 
     val engine = PFAEngine.fromYaml("""
 input: "null"
-output: "null"
+output: double
 cells:
   state:
-    type: ["null", {type: record, name: State, fields: [{name: count, type: double}, {name: mean, type: double}, {name: variance, type: double}, {name: hello, type: double}]}]
-    init: null
+    type: {type: record, name: State, fields: [{name: count, type: double}, {name: mean, type: double}, {name: variance, type: double}, {name: hello, type: double}]}
+    init: {count: 0, mean: 0, variance: 0, hello: 12}
 action:
-  - cell: state
+  attr:
+    cell: state
     to:
-      params: [{state: ["null", State]}]
+      params: [{state: State}]
       ret: State
       do: {stat.sample.update: [1.0, 1.0, state]}
-  - null
+  path: [[hello]]
 """).head
 
-    evaluating { engine.action(null) } should produce [PFARuntimeException]
+    engine.action(null) should be (12.0)
+  }
+
+  "updateCovariance" must "accumulate a covariance using arrays" taggedAs(Lib1, Lib1StatSample) in {
+    val engine = PFAEngine.fromYaml("""
+input: {type: array, items: double}
+output: double
+cells:
+  state:
+    type:
+      type: record
+      name: State
+      fields:
+        - {name: count, type: double}
+        - {name: mean, type: {type: array, items: double}}
+        - {name: covariance, type: {type: array, items: {type: array, items: double}}}
+    init:
+      count: 0
+      mean: [0, 0]
+      covariance: [[0, 0], [0, 0]]
+action:
+  attr:
+    cell: state
+    to:
+      params: [{state: State}]
+      ret: State
+      do:
+        stat.sample.updateCovariance:
+          - input
+          - 1.0
+          - state
+  path: [{string: covariance}, 0, 1]
+""").head
+
+    engine.action(engine.fromJson("""[12, 85]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (0.00 +- 0.01)
+    engine.action(engine.fromJson("""[32, 40]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-225.00 +- 0.01)
+    engine.action(engine.fromJson("""[4, 90]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-260.00 +- 0.01)
+    engine.action(engine.fromJson("""[3, 77]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01)
+    engine.action(engine.fromJson("""[7, 87]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-179.28 +- 0.01)
+    engine.action(engine.fromJson("""[88, 2]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-932.50 +- 0.01)
+    engine.action(engine.fromJson("""[56, 5]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
+  }
+
+  it must "accumulate a covariance using maps" taggedAs(Lib1, Lib1StatSample) in {
+    val engine = PFAEngine.fromYaml("""
+input: {type: map, values: double}
+output: double
+cells:
+  state:
+    type:
+      type: record
+      name: State
+      fields:
+        - {name: count, type: {type: map, values: {type: map, values: double}}}
+        - {name: mean, type: {type: map, values: double}}
+        - {name: covariance, type: {type: map, values: {type: map, values: double}}}
+    init:
+      count: {x: {x: 0, y: 0}, y: {x: 0, y: 0}}
+      mean: {x: 0, y: 0}
+      covariance: {x: {x: 0, y: 0}, y: {x: 0, y: 0}}
+action:
+  attr:
+    cell: state
+    to:
+      params: [{state: State}]
+      ret: State
+      do:
+        stat.sample.updateCovariance:
+          - input
+          - 1.0
+          - state
+  path: [{string: covariance}, {string: x}, {string: y}]
+""").head
+
+    engine.action(engine.fromJson("""{"x": 12, "y": 85}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (0.00 +- 0.01)   
+    engine.action(engine.fromJson("""{"x": 32, "y": 40}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-225.00 +- 0.01)
+    engine.action(engine.fromJson("""{"x": 4, "y": 90}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-260.00 +- 0.01) 
+    engine.action(engine.fromJson("""{"x": 3, "y": 77}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
+    engine.action(engine.fromJson("""{"x": 7, "y": 87}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-179.28 +- 0.01) 
+    engine.action(engine.fromJson("""{"x": 88, "y": 2}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-932.50 +- 0.01) 
+    engine.action(engine.fromJson("""{"x": 56, "y": 5}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
+
+    val engine2 = PFAEngine.fromYaml("""
+input: {type: map, values: double}
+output: double
+cells:
+  state:
+    type:
+      type: record
+      name: State
+      fields:
+        - {name: count, type: {type: map, values: {type: map, values: double}}}
+        - {name: mean, type: {type: map, values: double}}
+        - {name: covariance, type: {type: map, values: {type: map, values: double}}}
+    init:
+      count: {}
+      mean: {}
+      covariance: {}
+action:
+  attr:
+    cell: state
+    to:
+      params: [{state: State}]
+      ret: State
+      do:
+        stat.sample.updateCovariance:
+          - input
+          - 1.0
+          - state
+  path: [{string: covariance}, {string: x}, {string: y}]
+""").head
+
+    engine2.action(engine.fromJson("""{"x": 12, "y": 85}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (0.00 +- 0.01)   
+    engine2.action(engine.fromJson("""{"x": 32, "y": 40}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-225.00 +- 0.01)
+    engine2.action(engine.fromJson("""{"x": 4, "y": 90}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-260.00 +- 0.01) 
+    engine2.action(engine.fromJson("""{"x": 3, "y": 77}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
+    engine2.action(engine.fromJson("""{"w": 999, "z": 999}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
+    engine2.action(engine.fromJson("""{"w": 999, "z": 999}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
+    engine2.action(engine.fromJson("""{"w": 999, "z": 999}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
+    engine2.action(engine.fromJson("""{"x": 7, "y": 87}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-179.28 +- 0.01) 
+    engine2.action(engine.fromJson("""{"x": 88, "y": 2}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-932.50 +- 0.01) 
+    engine2.action(engine.fromJson("""{"x": 56, "y": 5}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
+    engine2.action(engine.fromJson("""{"w": 999, "z": 999}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
+    engine2.action(engine.fromJson("""{"w": 999, "z": 999}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
   }
 
   "updateWindow" must "accumulate a counter" taggedAs(Lib1, Lib1StatSample) in {

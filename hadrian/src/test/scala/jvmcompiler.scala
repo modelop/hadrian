@@ -1,3 +1,21 @@
+// Copyright (C) 2014  Open Data ("Open Data" refers to
+// one or more of the following companies: Open Data Partners LLC,
+// Open Data Research LLC, or Open Data Capital LLC.)
+// 
+// This file is part of Hadrian.
+// 
+// Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package test.scala.jvmcompiler
 
 import scala.collection.JavaConversions._
@@ -2896,6 +2914,113 @@ pools:
     try { engineRB.action(java.lang.Boolean.valueOf(true)) } catch { case err: PFAUserException => }
     engineRB.action(java.lang.Boolean.valueOf(false)) should be (4)
     engineRB.action(java.lang.Boolean.valueOf(false)) should be (5)
+  }
+
+  "call user function" must "work" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input:
+  type: enum
+  name: Input
+  symbols: [one, two, three]
+output: double
+action:
+  call: input
+  args: [100.0]
+fcns:
+  one:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.1]}
+  two:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.2]}
+  three:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.3]}
+""").head
+    engine.action(engine.fromJson(""""one"""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (100.1 +- 0.01)
+    engine.action(engine.fromJson(""""two"""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (100.2 +- 0.01)
+    engine.action(engine.fromJson(""""three"""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (100.3 +- 0.01)
+
+    engine.callGraph("(action)") should be (Set("u.one", "u.two", "u.three"))
+
+    val engine2 = PFAEngine.fromYaml("""
+input:
+  type: enum
+  name: Input
+  symbols: [one, two, three]
+output: [double, string]
+action:
+  call: input
+  args: [100.0]
+fcns:
+  one:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.1]}
+  two:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.2]}
+  three:
+    params: [{x: double}]
+    ret: string
+    do: {string: hello}
+""").head
+    engine2.action(engine2.fromJson(""""one"""", engine2.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (100.1 +- 0.01)
+    engine2.action(engine2.fromJson(""""two"""", engine2.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (100.2 +- 0.01)
+    engine2.action(engine2.fromJson(""""three"""", engine2.inputType)) should be ("hello")
+
+    evaluating { PFAEngine.fromYaml("""
+input:
+  type: enum
+  name: Input
+  symbols: [one, two, three]
+output: double
+action:
+  call: input
+  args: [100.0]
+fcns:
+  one:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.1]}
+  two:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.2]}
+  three:
+    params: [{x: double}]
+    ret: string
+    do: {string: hello}
+""") } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+input:
+  type: enum
+  name: Input
+  symbols: [one, two, three]
+output: double
+action:
+  call: input
+  args: [100.0]
+fcns:
+  one:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.1]}
+  two:
+    params: [{x: string}]
+    ret: double
+    do: 999.9
+  three:
+    params: [{x: double}]
+    ret: string
+    do: {string: hello}
+""") } should produce [PFASemanticException]
+
   }
 
 }

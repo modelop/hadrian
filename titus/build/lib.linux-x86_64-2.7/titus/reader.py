@@ -1,5 +1,23 @@
 #!/usr/bin/env python
 
+# Copyright (C) 2014  Open Data ("Open Data" refers to
+# one or more of the following companies: Open Data Partners LLC,
+# Open Data Research LLC, or Open Data Capital LLC.)
+# 
+# This file is part of Hadrian.
+# 
+# Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import json
 import base64
 
@@ -23,6 +41,7 @@ from titus.ast import RecordIndex
 from titus.ast import HasPath
 from titus.ast import FcnDef
 from titus.ast import FcnRef
+from titus.ast import CallUserFcn
 from titus.ast import Call
 from titus.ast import Ref
 from titus.ast import LiteralNull
@@ -513,6 +532,8 @@ def _readArgument(data, dot, avroTypeBuilder):
                     _log = [_readExpression(data[key], dot + "." + key, avroTypeBuilder)]
             elif key == "path":
                 _path = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+            elif key == "args":
+                _callwithargs = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
 
             elif key == "attr": _attr = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
             elif key == "if": _ifPredicate = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
@@ -537,6 +558,7 @@ def _readArgument(data, dot, avroTypeBuilder):
             elif key == "cast": _cast = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
             elif key == "upcast": _upcast = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
             elif key == "init": _init = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
+            elif key == "call": _callwith = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
 
             elif key == "seq": _seq = _readBoolean(data[key], dot + "." + key)
             elif key == "partial": _partial = _readBoolean(data[key], dot + "." + key)
@@ -632,12 +654,13 @@ def _readArgument(data, dot, avroTypeBuilder):
 
         elif keys == set(["params", "ret", "do"]):           return FcnDef(_params, _ret, _body, pos(dot, at))
         elif keys == set(["fcnref"]):                        return FcnRef(_fcnref, pos(dot, at))
+        elif keys == set(["call", "args"]):                  return CallUserFcn(_callwith, _callwithargs, pos(dot, at))
 
         elif len(keys) == 1 and list(keys)[0] not in \
-             set(["as", "base64", "cases", "cast", "cell", "code", "cond", "do", "doc", "double", "else", "error", "fcnref",
-                  "float", "for", "foreach", "forkey", "forval", "if", "ifnotnull", "in", "init", "int", "let", "log", "long",
-                  "namespace", "new", "params", "partial", "path", "pool", "ret", "seq", "set", "step", "string", "then",
-                  "to", "type", "upcast", "until", "value", "while"]):
+             set(["args", "as", "attr", "base64", "call", "cases", "cast", "cell", "code", "cond", "do", "doc", "double", "else",
+                  "error", "fcnref", "float", "for", "foreach", "forkey", "forval", "if", "ifnotnull", "in", "init",
+                  "int", "let", "log", "long", "namespace", "new", "params", "partial", "path", "pool", "ret", "seq",
+                  "set", "step", "string", "then", "to", "type", "until", "upcast", "value", "while"]):
                                                              return Call(_callName, _callArgs, pos(dot, at))
 
         else: raise PFASyntaxException("unrecognized special form: {} (not enough arguments? too many?)".format(", ".join(keys)), pos(dot, at))

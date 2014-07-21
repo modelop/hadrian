@@ -1,5 +1,23 @@
 #!/usr/bin/env python
 
+# Copyright (C) 2014  Open Data ("Open Data" refers to
+# one or more of the following companies: Open Data Partners LLC,
+# Open Data Research LLC, or Open Data Capital LLC.)
+# 
+# This file is part of Hadrian.
+# 
+# Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
 from titus.signature import Sig
@@ -42,7 +60,7 @@ class UpdateMeanVariance(LibFcn):
 
 class Update(UpdateMeanVariance):
     name = prefix + "update"
-    sig = Sig([{"x": P.Double()}, {"w": P.Double()}, {"state": P.Union([P.Null(), P.WildRecord("A", {"count": P.Double()})])}], P.Wildcard("A"))
+    sig = Sig([{"x": P.Double()}, {"w": P.Double()}, {"state": P.WildRecord("A", {"count": P.Double()})}], P.Wildcard("A"))
     def _getRecord(self, paramType):
         if isinstance(paramType, AvroUnion):
             for t in paramType.types:
@@ -52,38 +70,98 @@ class Update(UpdateMeanVariance):
             return paramType
 
     def __call__(self, state, scope, paramTypes, x, w, theState, level):
-        if theState is None:
-            out = {}
-            paramType = state.parser.getAvroType(paramTypes[2])
-            for field in self._getRecord(paramType).fields:
-                if field.name == "count":
-                    out["count"] = w
-                elif field.name == "mean":
-                    out["mean"] = x
-                elif field.name == "variance":
-                    out["variance"] = 0.0
-                else:
-                    raise PFARuntimeException("cannot initialize unrecognized fields")
-            return out
-        
+        originalCount = theState["count"]
+        count = originalCount + w
+        if level == 0:
+            return dict(theState, count=count)
         else:
-            originalCount = theState["count"]
-            count = originalCount + w
-            if level == 0:
-                return dict(theState, count=count)
+            mean = theState["mean"]
+            delta = x - mean
+            shift = div(delta * w, count)
+            mean += shift
+            if level == 1:
+                return dict(theState, count=count, mean=mean)
             else:
-                mean = theState["mean"]
-                delta = x - mean
-                shift = div(delta * w, count)
-                mean += shift
-                if level == 1:
-                    return dict(theState, count=count, mean=mean)
-                else:
-                    varianceTimesCount = theState["variance"] * originalCount
-                    varianceTimesCount += originalCount * delta * shift
-                    return dict(theState, count=count, mean=mean, variance=div(varianceTimesCount, count))
+                varianceTimesCount = theState["variance"] * originalCount
+                varianceTimesCount += originalCount * delta * shift
+                return dict(theState, count=count, mean=mean, variance=div(varianceTimesCount, count))
 
 provide(Update())
+
+class UpdateCovariance(LibFcn):
+    name = prefix + "updateCovariance"
+    sig = Sigs([Sig([{"x": P.Array(P.Double())}, {"w": P.Double()}, {"state": P.WildRecord("A", {"count": P.Double(), "mean": P.Array(P.Double()), "covariance": P.Array(P.Array(P.Double()))})}], P.Wildcard("A")),
+                Sig([{"x": P.Map(P.Double())}, {"w": P.Double()}, {"state": P.WildRecord("A", {"count": P.Map(P.Map(P.Double())), "mean": P.Map(P.Double()), "covariance": P.Map(P.Map(P.Double()))})}], P.Wildcard("A"))])
+
+    def __call__(self, state, scope, paramTypes, x, w, theState):
+        size = len(x)
+        if size < 2:
+            raise PFARuntimeException("too few components")
+
+        if paramTypes[0]["type"] == "map":
+            oldCount = theState["count"]
+            oldMean = theState["mean"]
+            oldCovariance = theState["covariance"]
+
+            countKeys = set(oldCount.keys()).union(reduce(lambda a, b: a.union(b), (set(v.keys()) for v in oldCount.values()), set()))
+            covarKeys = set(oldCovariance.keys()).union(reduce(lambda a, b: a.union(b), (set(v.keys()) for v in oldCovariance.values()), set()))
+            keys = set(x.keys()).union(countKeys).union(covarKeys)
+
+            newCount = {}
+            for i in keys:
+                row = {}
+                for j in keys:
+                    old = oldCount.get(i, {}).get(j, 0.0)
+                    if (i in x) and (j in x):
+                        row[j] = old + w
+                    else:
+                        row[j] = old
+                newCount[i] = row
+
+            newMean = {}
+            for i in keys:
+                old = oldMean.get(i, 0.0)
+                if i in x:
+                    newMean[i] = old + ((x[i] - old) * w / newCount[i][i])
+                else:
+                    newMean[i] = old
+
+            newCovariance = {}
+            for i in keys:
+                row = {}
+                for j in keys:
+                    oldCov = oldCovariance.get(i, {}).get(j, 0.0)
+                    if (i in x) and (j in x):
+                        oldC = oldCount.get(i, {}).get(j, 0.0)
+                        oldMi = oldMean.get(i, 0.0)
+                        oldMj = oldMean.get(j, 0.0)
+                        row[j] = ((oldCov*oldC) + ((x[i] - oldMi) * (x[j] - oldMj) * w*oldC/newCount[i][j])) / newCount[i][j]
+                    else:
+                        row[j] = oldCov
+                newCovariance[i] = row
+
+            return dict(theState, count=newCount, mean=newMean, covariance=newCovariance)
+
+        else:
+            oldCount = theState["count"]
+            oldMean = theState["mean"]
+            oldCovariance = theState["covariance"]
+
+            if (size != len(oldMean) or size != len(oldCovariance) or any(size != len(xi) for xi in oldCovariance)):
+                raise PFARuntimeException("unequal length arrays")
+
+            newCount = oldCount + w
+            newMean = [oldm + ((x[i] - oldm) * w / newCount) for i, oldm in enumerate(oldMean)]
+            newCovariance = []
+            for i in xrange(size):
+                row = []
+                for j in xrange(size):
+                    row.append(((oldCovariance[i][j]*oldCount) + ((x[i] - oldMean[i]) * (x[j] - oldMean[j]) * w*oldCount/newCount)) / newCount)
+                newCovariance.append(row)
+
+            return dict(theState, count=newCount, mean=newMean, covariance=newCovariance)
+
+provide(UpdateCovariance())
 
 class UpdateWindow(UpdateMeanVariance):
     name = prefix + "updateWindow"

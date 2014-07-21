@@ -1,3 +1,21 @@
+// Copyright (C) 2014  Open Data ("Open Data" refers to
+// one or more of the following companies: Open Data Partners LLC,
+// Open Data Research LLC, or Open Data Capital LLC.)
+// 
+// This file is part of Hadrian.
+// 
+// Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.opendatagroup.hadrian
 
 import java.lang.StringBuilder
@@ -24,6 +42,7 @@ import com.opendatagroup.hadrian.ast.Expression
 import com.opendatagroup.hadrian.ast.LiteralValue
 import com.opendatagroup.hadrian.ast.FcnDef
 import com.opendatagroup.hadrian.ast.FcnRef
+import com.opendatagroup.hadrian.ast.CallUserFcn
 import com.opendatagroup.hadrian.ast.Call
 import com.opendatagroup.hadrian.ast.Ref
 import com.opendatagroup.hadrian.ast.LiteralNull
@@ -586,7 +605,8 @@ package reader {
         var _thenClause: Seq[Expression] = null
         var _elseClause: Seq[Expression] = null
         var _log: Seq[Expression] = null
-        var _path: Seq[Expression] = Nil
+        var _path: Seq[Expression] = Nil   // important: must be Nil instead of null because some forms have an empty list as default
+        var _callwithargs: Seq[Expression] = null
 
         var _attr: Expression = null
         var _ifPredicate: Expression = null
@@ -607,6 +627,7 @@ package reader {
         var _cast: Expression = null
         var _upcast: Expression = null
         var _init: Option[Expression] = None
+        var _callwith: Expression = null
 
         var _seq: Boolean = false
         var _partial: Boolean = false
@@ -667,6 +688,7 @@ package reader {
                 case x => _log = List(readExpression(parser, x, dot + "." + key, _at, avroTypeBuilder))
               }
               case "path" =>      _path = readExpressionArray(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+              case "args" =>      _callwithargs = readExpressionArray(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
 
               case "attr" =>      _attr = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
               case "if" =>        _ifPredicate = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
@@ -692,6 +714,7 @@ package reader {
               case "cast" =>      _cast = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
               case "upcast" =>    _upcast = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
               case "init" =>      _init = Some(readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder))
+              case "call" =>      _callwith = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
 
               case "seq" =>       _seq = readBoolean(parser, parser.nextToken(), dot + "." + key, _at)
               case "partial" =>   _partial = readBoolean(parser, parser.nextToken(), dot + "." + key, _at)
@@ -788,14 +811,15 @@ package reader {
         else if (keys == Set("params", "ret", "do"))                 FcnDef(_params, _ret, _body, Some(pos(dot, _at)))
         else if (keys == Set("fcnref"))                              FcnRef(_fcnref, Some(pos(dot, _at)))
 
+        else if (keys == Set("call", "args"))                        CallUserFcn(_callwith, _callwithargs, Some(pos(dot, _at)))
+
         // function call is anything else
         else if (keys.size == 1  &&
-                 !Set("as", "base64", "cases", "cast", "cell", "code", "cond", "do", "doc", "double", "else", "error", "fcnref",
-                      "float", "for", "foreach", "forkey", "forval", "if", "ifnotnull", "in", "init", "int", "let", "log", "long",
-                      "namespace", "new", "params", "partial", "path", "pool", "ret", "seq", "set", "step", "string", "then",
-                      "to", "type", "upcast", "until", "value", "while").contains(keys.head))
+                 !Set("args", "as", "attr", "base64", "call", "cases", "cast", "cell", "code", "cond", "do", "doc", "double", "else",
+                      "error", "fcnref", "float", "for", "foreach", "forkey", "forval", "if", "ifnotnull", "in", "init",
+                      "int", "let", "log", "long", "namespace", "new", "params", "partial", "path", "pool", "ret", "seq",
+                      "set", "step", "string", "then", "to", "type", "until", "upcast", "value", "while").contains(keys.head))
                                                                      Call(_callName, _callArgs, Some(pos(dot, _at)))
-
         else throw new PFASyntaxException("unrecognized special form: %s (not enough arguments? too many?)".format(keys.mkString(" ")), Some(pos(dot, _at)))
       }
       case x => throw new PFASyntaxException("expected expression, found %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos(dot, at)))

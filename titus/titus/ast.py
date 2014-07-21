@@ -1,5 +1,23 @@
 #!/usr/bin/env python
 
+# Copyright (C) 2014  Open Data ("Open Data" refers to
+# one or more of the following companies: Open Data Partners LLC,
+# Open Data Research LLC, or Open Data Capital LLC.)
+# 
+# This file is part of Hadrian.
+# 
+# Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import base64
 import json
 import re
@@ -640,6 +658,72 @@ class FcnRef(Argument):
     @titus.util.case
     class Context(AstContext):
         def __init__(self, fcnType, calls, fcn): pass
+
+@titus.util.case
+class CallUserFcn(Expression):
+    def __init__(self, name, args, pos=None): pass
+
+    def collect(self, pf):
+        return super(CallUserFcn, self).collect(pf) + \
+               self.name.collect(pf) + \
+               titus.util.flatten(x.collect(pf) for x in self.args)
+
+    def walk(self, task, symbolTable, functionTable):
+        nameScope = symbolTable.newScope(True, True)
+        nameContext, nameResult = self.name.walk(task, nameScope, functionTable)
+        if isinstance(nameContext.retType, AvroEnum):
+            fcnNames = nameContext.retType.symbols
+        else:
+            raise PFASemanticException("\"call\" name should be an enum, but is " + str(nameContext.retType), self.pos)
+        nameToNum = dict((x, i) for i, x in enumerate(fcnNames))
+
+        scope = symbolTable.newScope(True, True)
+        argResults = [x.walk(task, scope, functionTable) for x in self.args]
+
+        calls = set("u." + x for x in fcnNames)
+        argTypes = []
+        for ctx, res in argResults:
+            if isinstance(ctx, ExpressionContext):
+                calls = calls.union(ctx.calls)
+                argTypes.append(ctx.retType)
+            else:
+                raise Exception
+
+        nameToFcn = {}
+        nameToParamTypes = {}
+        nameToRetTypes = {}
+        retTypes = []
+        for n in fcnNames:
+            fcn = functionTable.functions.get("u." + n, None)
+            if fcn is None:
+                raise PFASemanticException("unknown function \"{}\" in enumeration type".format(n), self.pos)
+            if not isinstance(fcn, UserFcn):
+                raise PFASemanticException("function \"{}\" is not a user function".format(n), self.pos)
+            sigres = fcn.sig.accepts(argTypes)
+            if sigres is not None:
+                paramTypes, retType = sigres
+                nameToFcn[n] = fcn
+                nameToParamTypes[n] = paramTypes
+                nameToRetTypes[n] = retType
+                retTypes.append(retType)
+            else:
+                raise PFASemanticException("parameters of function \"{}\" (in enumeration type) do not accept [{}]".format(self.name, ",".join(map(repr, argTypes))), self.pos)
+
+        try:
+            retType = LabelData.broadestType(retTypes)
+        except IncompatibleTypes as err:
+            raise PFASemanticException(str(err))
+
+        context = self.Context(retType, calls, nameResult, nameToNum, nameToFcn, [x[1] for x in argResults], [x[0] for x in argResults], nameToParamTypes, nameToRetTypes)
+        return context, task(context)
+
+    @property
+    def jsonNode(self):
+        return {"call": self.name.jsonNode, "args": [x.jsonNode for x in self.args]}
+
+    @titus.util.case
+    class Context(ExpressionContext):
+        def __init__(self, retType, calls, name, nameToNum, nameToFcn, args, argContext, nameToParamTypes, nameToRetTypes): pass
 
 @titus.util.case
 class Call(Expression):

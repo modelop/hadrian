@@ -1,5 +1,23 @@
 #!/usr/bin/env python
 
+# Copyright (C) 2014  Open Data ("Open Data" refers to
+# one or more of the following companies: Open Data Partners LLC,
+# Open Data Research LLC, or Open Data Capital LLC.)
+# 
+# This file is part of Hadrian.
+# 
+# Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import json
 import unittest
 
@@ -3334,6 +3352,115 @@ pools:
             pass
         self.assertEqual(engine.action(False), 4)
         self.assertEqual(engine.action(False), 5)
+
+    def testCallUserFunction(self):
+        engine, = PFAEngine.fromYaml('''
+input:
+  type: enum
+  name: Input
+  symbols: [one, two, three]
+output: double
+action:
+  call: input
+  args: [100.0]
+fcns:
+  one:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.1]}
+  two:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.2]}
+  three:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.3]}
+''')
+        self.assertAlmostEqual(engine.action("one"), 100.1, places=2)
+        self.assertAlmostEqual(engine.action("two"), 100.2, places=2)
+        self.assertAlmostEqual(engine.action("three"), 100.3, places=2)
+
+        self.assertEqual(engine.callGraph["(action)"], set(["u.one", "u.two", "u.three", "(double)"]))
+
+        engine, = PFAEngine.fromYaml('''
+input:
+  type: enum
+  name: Input
+  symbols: [one, two, three]
+output: [double, string]
+action:
+  call: input
+  args: [100.0]
+fcns:
+  one:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.1]}
+  two:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.2]}
+  three:
+    params: [{x: double}]
+    ret: string
+    do: {string: hello}
+''')
+        self.assertAlmostEqual(engine.action("one"), 100.1, places=2)
+        self.assertAlmostEqual(engine.action("two"), 100.2, places=2)
+        self.assertEqual(engine.action("three"), "hello")
+
+        def bad():
+            PFAEngine.fromYaml('''
+input:
+  type: enum
+  name: Input
+  symbols: [one, two, three]
+output: double
+action:
+  call: input
+  args: [100.0]
+fcns:
+  one:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.1]}
+  two:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.2]}
+  three:
+    params: [{x: double}]
+    ret: string
+    do: {string: hello}
+''')
+        self.assertRaises(PFASemanticException, bad)
+
+        def bad():
+            PFAEngine.fromYaml('''
+input:
+  type: enum
+  name: Input
+  symbols: [one, two, three]
+output: double
+action:
+  call: input
+  args: [100.0]
+fcns:
+  one:
+    params: [{x: double}]
+    ret: double
+    do: {+: [x, 0.1]}
+  two:
+    params: [{x: string}]
+    ret: double
+    do: 999.9
+  three:
+    params: [{x: double}]
+    ret: string
+    do: {string: hello}
+''')
+        self.assertRaises(PFASemanticException, bad)
 
 if __name__ == "__main__":
     unittest.main()

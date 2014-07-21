@@ -17,3 +17,17 @@
   * Fixed collections of scoring engines with shared cells/pools: they now share memory even if not given an explicit SharedMemory object (Hadrian only).
 
   * Added metric.simpleEuclidean not just as a convenience in clustering, but for linear algebra as well (Hadrian, Titus, and PFA).
+
+  * Fixed a bug in the reader's identification of non-special forms (Hadrian and Titus).
+
+  * Added stat.sample.updateCovariance to accumulate a covariance matrix as a list of lists or a map of maps (Hadrian, Titus, and PFA).
+
+  * Removed null-handling from stat.sample functions that don't need it: update, updateCovariance.  The EWMA and HoltWinters functions do need it, however, because otherwise there wouldn't be a way to express an initial state that has no impact on subsequent values (Hadrian, Titus, and PFA).
+
+  * Added a.mapIndex to provide indexes to map functions (Hadrian, Titus, and PFA).
+
+  * Added call-args special form for calling (user-defined) functions identified at runtime (Hadrian, Titus, and PFA).
+
+  * Added la.* linear algebra module (Hadrian, _____, and  _____).    NOT FINISHED!
+
+  * Added model.reg.* regression module (_____, _____, and  _____).    NOT STARTED!

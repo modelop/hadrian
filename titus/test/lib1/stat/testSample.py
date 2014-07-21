@@ -1,5 +1,23 @@
 #!/usr/bin/env python
 
+# Copyright (C) 2014  Open Data ("Open Data" refers to
+# one or more of the following companies: Open Data Partners LLC,
+# Open Data Research LLC, or Open Data Capital LLC.)
+# 
+# This file is part of Hadrian.
+# 
+# Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import unittest
 
 from titus.genpy import PFAEngine
@@ -12,38 +30,16 @@ input: double
 output: double
 cells:
   state:
-    type: ["null", {type: record, name: State, fields: [{name: count, type: double}]}]
-    init: null
-action:
-  - cell: state
-    to:
-      params: [{state: ["null", State]}]
-      ret: State
-      do: {stat.sample.update: [input, 1.0, state]}
-  - ifnotnull: {x: {cell: state}}
-    then: {attr: x, path: [[count]]}
-    else: -999
-''')
-        self.assertAlmostEqual(engine.action(1.0), 1.0, places=2)
-        self.assertAlmostEqual(engine.action(1.0), 2.0, places=2)
-        self.assertAlmostEqual(engine.action(1.0), 3.0, places=2)
-        self.assertAlmostEqual(engine.action(1.0), 4.0, places=2)
-        self.assertAlmostEqual(engine.action(1.0), 5.0, places=2)
-
-        engine, = PFAEngine.fromYaml('''
-input: double
-output: double
-cells:
-  state:
     type: {type: record, name: State, fields: [{name: count, type: double}]}
-    init: {"count": 0.0}
+    init: {count: 0}
 action:
-  - cell: state
+  attr:
+    cell: state
     to:
       params: [{state: State}]
       ret: State
       do: {stat.sample.update: [input, 1.0, state]}
-  - {cell: state, path: [[count]]}
+  path: [[count]]
 ''')
         self.assertAlmostEqual(engine.action(1.0), 1.0, places=2)
         self.assertAlmostEqual(engine.action(1.0), 2.0, places=2)
@@ -158,20 +154,139 @@ action:
 
         engine, = PFAEngine.fromYaml('''
 input: "null"
-output: "null"
+output: double
 cells:
   state:
-    type: ["null", {type: record, name: State, fields: [{name: count, type: double}, {name: mean, type: double}, {name: variance, type: double}, {name: hello, type: double}]}]
-    init: null
+    type: {type: record, name: State, fields: [{name: count, type: double}, {name: mean, type: double}, {name: variance, type: double}, {name: hello, type: double}]}
+    init: {count: 0, mean: 0, variance: 0, hello: 12}
 action:
-  - cell: state
+  attr:
+    cell: state
     to:
-      params: [{state: ["null", State]}]
+      params: [{state: State}]
       ret: State
       do: {stat.sample.update: [1.0, 1.0, state]}
-  - null
+  path: [[hello]]
 ''')
-        self.assertRaises(PFARuntimeException, lambda: engine.action(None))
+        self.assertEqual(engine.action(None), 12.0)
+
+    def testUpdateCovarianceAccumulateUsingArrays(self):
+        engine, = PFAEngine.fromYaml('''
+input: {type: array, items: double}
+output: double
+cells:
+  state:
+    type:
+      type: record
+      name: State
+      fields:
+        - {name: count, type: double}
+        - {name: mean, type: {type: array, items: double}}
+        - {name: covariance, type: {type: array, items: {type: array, items: double}}}
+    init:
+      count: 0
+      mean: [0, 0]
+      covariance: [[0, 0], [0, 0]]
+action:
+  attr:
+    cell: state
+    to:
+      params: [{state: State}]
+      ret: State
+      do:
+        stat.sample.updateCovariance:
+          - input
+          - 1.0
+          - state
+  path: [{string: covariance}, 0, 1]
+''')
+        self.assertAlmostEqual(engine.action([12.0, 85.0]), 0.00, places=2)
+        self.assertAlmostEqual(engine.action([32.0, 40.0]), -225.00, places=2)
+        self.assertAlmostEqual(engine.action([4.0, 90.0]), -260.00, places=2)
+        self.assertAlmostEqual(engine.action([3.0, 77.0]), -208.00, places=2)
+        self.assertAlmostEqual(engine.action([7.0, 87.0]), -179.28, places=2)
+        self.assertAlmostEqual(engine.action([88.0, 2.0]), -932.50, places=2)
+        self.assertAlmostEqual(engine.action([56.0, 5.0]), -1026.12, places=2)
+
+    def testUpdateCovarianceAccumulateUsingMaps(self):
+        engine, = PFAEngine.fromYaml('''
+input: {type: map, values: double}
+output: double
+cells:
+  state:
+    type:
+      type: record
+      name: State
+      fields:
+        - {name: count, type: {type: map, values: {type: map, values: double}}}
+        - {name: mean, type: {type: map, values: double}}
+        - {name: covariance, type: {type: map, values: {type: map, values: double}}}
+    init:
+      count: {x: {x: 0, y: 0}, y: {x: 0, y: 0}}
+      mean: {x: 0, y: 0}
+      covariance: {x: {x: 0, y: 0}, y: {x: 0, y: 0}}
+action:
+  attr:
+    cell: state
+    to:
+      params: [{state: State}]
+      ret: State
+      do:
+        stat.sample.updateCovariance:
+          - input
+          - 1.0
+          - state
+  path: [{string: covariance}, {string: x}, {string: y}]
+''')
+        self.assertAlmostEqual(engine.action({"x": 12.0, "y": 85.0}), 0.00, places=2)
+        self.assertAlmostEqual(engine.action({"x": 32.0, "y": 40.0}), -225.00, places=2)
+        self.assertAlmostEqual(engine.action({"x": 4.0, "y": 90.0}), -260.00, places=2)
+        self.assertAlmostEqual(engine.action({"x": 3.0, "y": 77.0}), -208.00, places=2)
+        self.assertAlmostEqual(engine.action({"x": 7.0, "y": 87.0}), -179.28, places=2)
+        self.assertAlmostEqual(engine.action({"x": 88.0, "y": 2.0}), -932.50, places=2)
+        self.assertAlmostEqual(engine.action({"x": 56.0, "y": 5.0}), -1026.12, places=2)
+
+        engine, = PFAEngine.fromYaml('''
+input: {type: map, values: double}
+output: double
+cells:
+  state:
+    type:
+      type: record
+      name: State
+      fields:
+        - {name: count, type: {type: map, values: {type: map, values: double}}}
+        - {name: mean, type: {type: map, values: double}}
+        - {name: covariance, type: {type: map, values: {type: map, values: double}}}
+    init:
+      count: {}
+      mean: {}
+      covariance: {}
+action:
+  attr:
+    cell: state
+    to:
+      params: [{state: State}]
+      ret: State
+      do:
+        stat.sample.updateCovariance:
+          - input
+          - 1.0
+          - state
+  path: [{string: covariance}, {string: x}, {string: y}]
+''')
+        self.assertAlmostEqual(engine.action({"x": 12.0, "y": 85.0}), 0.00, places=2)
+        self.assertAlmostEqual(engine.action({"x": 32.0, "y": 40.0}), -225.00, places=2)
+        self.assertAlmostEqual(engine.action({"x": 4.0, "y": 90.0}), -260.00, places=2)
+        self.assertAlmostEqual(engine.action({"x": 3.0, "y": 77.0}), -208.00, places=2)
+        self.assertAlmostEqual(engine.action({"w": 999.0, "z": 999.0}), -208.00, places=2)
+        self.assertAlmostEqual(engine.action({"w": 999.0, "z": 999.0}), -208.00, places=2)
+        self.assertAlmostEqual(engine.action({"w": 999.0, "z": 999.0}), -208.00, places=2)
+        self.assertAlmostEqual(engine.action({"x": 7.0, "y": 87.0}), -179.28, places=2)
+        self.assertAlmostEqual(engine.action({"x": 88.0, "y": 2.0}), -932.50, places=2)
+        self.assertAlmostEqual(engine.action({"x": 56.0, "y": 5.0}), -1026.12, places=2)
+        self.assertAlmostEqual(engine.action({"w": 999.0, "z": 999.0}), -1026.12, places=2)
+        self.assertAlmostEqual(engine.action({"w": 999.0, "z": 999.0}), -1026.12, places=2)
 
     def testUpdateWindowAccumulateACounter(self):
         engine, = PFAEngine.fromYaml('''

@@ -1,3 +1,21 @@
+// Copyright (C) 2014  Open Data ("Open Data" refers to
+// one or more of the following companies: Open Data Partners LLC,
+// Open Data Research LLC, or Open Data Capital LLC.)
+// 
+// This file is part of Hadrian.
+// 
+// Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.opendatagroup.hadrian
 
 import scala.collection.mutable
@@ -682,6 +700,87 @@ package ast {
   }
   object FcnRef {
     case class Context(fcnType: FcnType, calls: Set[String], fcn: Fcn) extends AstContext
+  }
+
+  case class CallUserFcn(name: Expression, args: Seq[Expression], pos: Option[String] = None) extends Expression {
+    override def equals(other: Any): Boolean = other match {
+      case that: CallUserFcn => this.name == that.name  &&  this.args == that.args  // but not pos
+      case _ => false
+    }
+    override def hashCode(): Int = ScalaRunTime._hashCode((name, args))
+
+    override def collect[X](pf: PartialFunction[Ast, X]): Seq[X] =
+      super.collect(pf) ++
+        name.collect(pf) ++
+        args.flatMap(_.collect(pf))
+
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable): (AstContext, TaskResult) = {
+      val nameScope = symbolTable.newScope(true, true)
+      val (nameContext: ExpressionContext, nameResult) = name.walk(task, nameScope, functionTable)
+      val fcnNames = nameContext.retType match {
+        case x: AvroEnum => x.symbols
+        case _ => throw new PFASemanticException("\"call\" name should be an enum, but is " + nameContext.retType, pos)
+      }
+      val nameToNum = fcnNames map {x => (x, nameContext.retType.schema.getEnumOrdinal(x))} toMap
+
+      val scope = symbolTable.newScope(true, true)
+      val argResults: Seq[(ExpressionContext, TaskResult)] = args.map(_.walk(task, scope, functionTable)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+
+      val calls = mutable.Set[String]((fcnNames map {"u." + _}): _*)
+      val argTypes: Seq[AvroType] =
+        for ((exprCtx, res) <- argResults) yield {
+          calls ++ exprCtx.calls
+          exprCtx.retType
+        }
+
+      val nameToFcn = mutable.Map[String, Fcn]()
+      val nameToParamTypes = mutable.Map[String, Seq[Type]]()
+      val nameToRetTypes = mutable.Map[String, AvroType]()
+      var retTypes: List[AvroType] = Nil
+      for (n <- fcnNames) {
+        val fcn = functionTable.functions.get("u." + n) match {
+          case Some(x: UserFcn) => x
+          case Some(x) => throw new PFASemanticException("function \"%s\" is not a user function".format(n), pos)
+          case None => throw new PFASemanticException("unknown function \"%s\" in enumeration type".format(n), pos)
+        }
+        fcn.sig.accepts(argTypes) match {
+          case Some((paramTypes, retType)) => {
+            nameToFcn(n) = fcn
+            nameToParamTypes(n) = paramTypes
+            nameToRetTypes(n) = retType
+            retTypes = retType :: retTypes
+          }
+          case None =>
+            throw new PFASemanticException("parameters of function \"%s\" (in enumeration type) do not accept [%s]".format(n, argTypes.mkString(",")), pos)
+        }
+      }
+      val retType =
+        try {
+          P.mustBeAvro(LabelData.broadestType(retTypes))
+        }
+        catch {
+          case err: IncompatibleTypes => throw new PFASemanticException(err.getMessage, pos)
+        }
+
+      val context = CallUserFcn.Context(retType, calls.toSet, nameResult, nameToNum, nameToFcn.toMap, argResults map { _._2 }, argResults map { _._1 }, nameToParamTypes.toMap, nameToRetTypes.toMap)
+      (context, task(context))
+    }
+
+    override def jsonNode: JsonNode = {
+      val factory = JsonNodeFactory.instance
+      val out = factory.objectNode
+      out.put("call", name.jsonNode)
+
+      val jsonArgs = factory.arrayNode
+      for (expr <- args)
+        jsonArgs.add(expr.jsonNode)
+      out.put("args", jsonArgs)
+
+      out
+    }
+  }
+  object CallUserFcn {
+    case class Context(retType: AvroType, calls: Set[String], name: TaskResult, nameToNum: Map[String, Int], nameToFcn: Map[String, Fcn], args: Seq[TaskResult], argContext: Seq[AstContext], nameToParamTypes: Map[String, Seq[Type]], nameToRetTypes: Map[String, AvroType]) extends ExpressionContext
   }
 
   case class Call(name: String, args: Seq[Argument], pos: Option[String] = None) extends Expression {

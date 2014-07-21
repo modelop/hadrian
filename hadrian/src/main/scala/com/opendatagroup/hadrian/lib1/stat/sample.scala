@@ -1,3 +1,21 @@
+// Copyright (C) 2014  Open Data ("Open Data" refers to
+// one or more of the following companies: Open Data Partners LLC,
+// Open Data Research LLC, or Open Data Capital LLC.)
+// 
+// This file is part of Hadrian.
+// 
+// Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.opendatagroup.hadrian.lib1.stat
 
 import scala.annotation.tailrec
@@ -59,19 +77,18 @@ package object sample {
   ////   update (Update)
   object Update extends LibFcn {
     val name = prefix + "update"
-    val sig = Sig(List("x" -> P.Double, "w" -> P.Double, "state" -> P.Union(List(P.Null, P.WildRecord("A", ListMap("count" -> P.Double))))), P.Wildcard("A"))
+    val sig = Sig(List("x" -> P.Double, "w" -> P.Double, "state" -> P.WildRecord("A", ListMap("count" -> P.Double))), P.Wildcard("A"))
     val doc =
       <doc>
         <desc>Update the state of a counter, a counter and a mean, or a counter, mean, and variance.</desc>
         <param name="x">Sample value.</param>
         <param name="w">Sample weight; set to 1 for no weights.</param>
-        <param name="state">Record of the previous <pf>count</pf>, <pf>mean</pf>, and/or <pf>variance</pf>, or <c>null</c> to start a new sample.
+        <param name="state">Record of the previous <pf>count</pf>, <pf>mean</pf>, and/or <pf>variance</pf>.
           <paramField name="count">The sum of weights <p>w</p>.</paramField>
           <paramField name="mean">The mean of <p>x</p>, weighted by <p>w</p>.  This field is optional, but if provided, it must be a <c>double</c>.</paramField>
           <paramField name="variance">The variance of <m>{"""x - \mbox{mean}"""}</m>, weighted by <p>w</p>.  This field is optional, but if it is provided, it must be a <c>double</c>, and there must be a <pf>mean</pf> as well.  No attempt is made to unbias the estimator, so multiply this by <m>{"""\mbox{count}/(\mbox{count} - 1)"""}</m> to correct for the bias due to centering on the mean.</paramField>
         </param>
-        <ret>If <p>state</p> is <c>null</c>, a new record is created with <pf>count</pf> = <p>w</p>, <pf>mean</pf> = <p>x</p>, and/or <pf>variance</pf> = 0.  If <p>state</p> is a record, then this function returns an updated version of that record.  If the input <p>state</p> has fields other than <pf>count</pf>, <pf>mean</pf>, and <pf>variance</pf>, they are copied unaltered to the output state.</ret>
-        <error>If <p>state</p> is <c>null</c> and the record type has fields other than <pf>count</pf>, <pf>mean</pf>, and <pf>variance</pf>, then a "cannot initialize unrecognized fields" error is raised.  Unrecognized fields are only allowed if an initial record is provided.</error>
+        <ret>Returns an updated version of <p>state</p> with <pf>count</pf> incremented by <p>w</p>, <pf>mean</pf> updated to the current mean of all <p>x</p>, and <pf>variance</pf> updated to the current variance of all <p>x</p>.  If the <p>state</p> has fields other than <pf>count</pf>, <pf>mean</pf>, and <pf>variance</pf>, they are copied unaltered to the output state.</ret>
     </doc>
 
     override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
@@ -102,50 +119,33 @@ package object sample {
         case (false, true) => throw new PFASemanticException(prefix + "update with \"variance\" must also have \"mean\" in the state record type", None)
       }
 
-      val hasOthers = !(record.fields.map(_.name).toSet subsetOf Set("count", "mean", "variance"))
-
-      JavaCode("%s.MODULE$.apply(%s, %s, %s, thisEngineBase, %s, %s, %s)",
+      JavaCode("%s.MODULE$.apply(%s, %s, %s, %s)",
         this.getClass.getName,
         wrapArg(0, args, paramTypes, true),
         wrapArg(1, args, paramTypes, true),
         wrapArg(2, args, paramTypes, true),
-        javaSchema(retType, false),
-        level.toString,
-        (if (hasOthers) "true" else "false"))
+        level.toString)
     }
 
-    def apply(x: Double, w: Double, state: AnyRef, pfaEngineBase: PFAEngineBase, schema: Schema, level: Int, hasOthers: Boolean): PFARecord = {
-      if (state == null) {
-        if (hasOthers)
-          throw new PFARuntimeException("cannot initialize unrecognized fields")
-        level match {
-          case 0 => pfaEngineBase.fromJson("""{"count": %s}""".format(w), schema).asInstanceOf[PFARecord]
-          case 1 => pfaEngineBase.fromJson("""{"count": %s, "mean": %s}""".format(w, x), schema).asInstanceOf[PFARecord]
-          case 2 => pfaEngineBase.fromJson("""{"count": %s, "mean": %s, "variance": 0.0}""".format(w, x), schema).asInstanceOf[PFARecord]
-        }
-      }
-
+    def apply(x: Double, w: Double, state: AnyRef, level: Int): PFARecord = {
+      val record = state.asInstanceOf[PFARecord]
+      val originalCount = record.get("count").asInstanceOf[java.lang.Number].doubleValue
+      val count = originalCount + w
+      if (level == 0)
+        record.multiUpdate(Array("count"), Array(count))
       else {
-        val record = state.asInstanceOf[PFARecord]
-        val originalCount = record.get("count").asInstanceOf[java.lang.Number].doubleValue
-        val count = originalCount + w
-        if (level == 0)
-          record.multiUpdate(Array("count"), Array(count))
+        var mean = record.get("mean").asInstanceOf[java.lang.Number].doubleValue
+        val delta = x - mean
+        val shift = delta * w / count
+        mean += shift
+        if (level == 1)
+          record.multiUpdate(Array("count", "mean"), Array(count, mean))
         else {
-          var mean = record.get("mean").asInstanceOf[java.lang.Number].doubleValue
-          val delta = x - mean
-          val shift = delta * w / count
-          mean += shift
-          if (level == 1)
-            record.multiUpdate(Array("count", "mean"), Array(count, mean))
-          else {
-            var varianceTimesCount = record.get("variance").asInstanceOf[java.lang.Number].doubleValue * originalCount
-            varianceTimesCount += originalCount * delta * shift
-            record.multiUpdate(Array("count", "mean", "variance"), Array(count, mean, varianceTimesCount / count))
-          }
+          var varianceTimesCount = record.get("variance").asInstanceOf[java.lang.Number].doubleValue * originalCount
+          varianceTimesCount += originalCount * delta * shift
+          record.multiUpdate(Array("count", "mean", "variance"), Array(count, mean, varianceTimesCount / count))
         }
       }
-
     }
   }
   provide(Update)
@@ -153,19 +153,19 @@ package object sample {
   ////   updateCovariance (UpdateCovariance)
   object UpdateCovariance extends LibFcn {
     val name = prefix + "updateCovariance"
-    val sig = Sigs(List(Sig(List("x" -> P.Array(P.Double), "w" -> P.Double, "state" -> P.Union(List(P.Null, P.WildRecord("A", ListMap("count" -> P.Double, "mean" -> P.Array(P.Double), "covariance" -> P.Array(P.Array(P.Double))))))), P.Wildcard("A")),
-                        Sig(List("x" -> P.Map(P.Double), "w" -> P.Double, "state" -> P.Union(List(P.Null, P.WildRecord("A", ListMap("count" -> P.Map(P.Map(P.Double)), "mean" -> P.Map(P.Double), "covariance" -> P.Map(P.Map(P.Double))))))), P.Wildcard("A"))))
+    val sig = Sigs(List(Sig(List("x" -> P.Array(P.Double), "w" -> P.Double, "state" -> P.WildRecord("A", ListMap("count" -> P.Double, "mean" -> P.Array(P.Double), "covariance" -> P.Array(P.Array(P.Double))))), P.Wildcard("A")),
+                        Sig(List("x" -> P.Map(P.Double), "w" -> P.Double, "state" -> P.WildRecord("A", ListMap("count" -> P.Map(P.Map(P.Double)), "mean" -> P.Map(P.Double), "covariance" -> P.Map(P.Map(P.Double))))), P.Wildcard("A"))))
     val doc =
       <doc>
         <desc>Update the state of a covariance calculation.</desc>
         <param name="x">Sample vector, expressed as an array or map; must have at least two components.</param>
         <param name="w">Sample weight; set to 1 for no weights.</param>
-        <param name="state">Record of the previous <pf>count</pf>, <pf>mean</pf>, and <pf>covariance</pf>, or <c>null</c> to start a new sample.
-          <paramField name="count">The sum of weights <p>w</p>.</paramField>
+        <param name="state">Record of the previous <pf>count</pf>, <pf>mean</pf>, and <pf>covariance</pf>.
+          <paramField name="count">The sum of weights <p>w</p>.  If <p>x</p> is an array, then <pf>count</pf> is a single value representing the sum of weights for all records seen so far.  If <p>x</p> is a map, then <pf>count</pf> is a matrix in which entry <m>i</m>, <m>j</m> is the sum of weights for records in which key <m>i</m> and key <m>j</m> both appear in <p>x</p>.</paramField>
           <paramField name="mean">The componentwise mean of <p>x</p>, weighted by <p>w</p>.</paramField>
-          <paramField name="covariance">The covariance matrix of all pairs of components of <p>x</p>, weighted by <p>w</p>.</paramField>
+          <paramField name="covariance">The covariance matrix of all pairs of components of <p>x</p>, weighted by <p>w</p>.  If <p>x</p> is an array, this matrix is represented by a list of lists.  If <p>x</p> is a map, this matrix is represented by a map of maps.</paramField>
         </param>
-        <ret>If the <p>state</p> is <c>null</c>, a new record is created with <pf>count</pf> = <p>w</p>, <pf>mean</pf> = <pf>x</pf>, and all <pf>covariance</pf> = 0.  If <p>state</p> is a record, then this function returns an updated version of that record.  If the input <p>state</p> has fields other than <pf>count</pf>, <pf>mean</pf>, and <pf>covariance</pf>, they are copied unaltered into the output state.</ret>
+        <ret>Returns an updated version of <p>state</p> with <pf>count</pf> incremented by <p>w</p>, <pf>mean</pf> updated to the current componentwise mean of all <p>x</p>, and <pf>covariance</pf> updated to the current covariance matrix of all <p>x</p>.  If the <p>state</p> has fields other than <pf>count</pf>, <pf>mean</pf>, and <pf>covariance</pf>, they are copied unaltered to the output state.</ret>
         <detail>Like most functions that deal with matrices, this function has an array signature and a map signature.  In the array signature, indexes of <p>x</p> correspond to the same indexes of <pf>mean</pf> and rows and columns of <pf>covariance</pf>, where a row is an index of <pf>covariance</pf> and a column is an index of an element of <pf>covariance</pf>.  In the map signature, keys of <p>x</p> correspond to the same keys of <pf>mean</pf>, as well as rows and columns of <pf>count</pf> and <pf>covariance</pf>, where a row is a key of the object and a column is a key of a value of the object.  In the array signature, all arrays must have equal length (including the nested arrays within <pf>covariance</pf>) and all components are updated with each call.  In the map signature, a previously unseen key in <p>x</p> creates a new key in <pf>mean</pf> with value <p>x</p>, a new row and column in <pf>count</pf> with value <p>w</p> for all key pairs existing in <p>x</p> and zero for key pairs not in <p>x</p>, as well as a new row and column in <pf>covariance</pf> filled with zeros.</detail>
         <detail>In the map signature, missing keys in <p>x</p> are equivalent to contributions with zero weight.</detail>
         <error>If <p>state</p> is <c>null</c> and the record type has fields other than <pf>count</pf>, <pf>mean</pf>, and <pf>covariance</pf>, then a "cannot initialize unrecognized fields" error is raised.  Unrecognized fields are only allowed if an initial record is provided.</error>
@@ -173,114 +173,87 @@ package object sample {
         <error>If <p>x</p>, <pf>mean</pf>, and <pf>covariance</pf> are arrays with unequal lengths, an "unequal length arrays" error is raised.</error>
       </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
-      val record = retType.asInstanceOf[AvroRecord]
-      val hasOthers = !(record.fields.map(_.name).toSet subsetOf Set("count", "mean", "covariance"))
-      JavaCode("%s.MODULE$.apply(%s, %s, %s, thisEngineBase, %s, %s)",
-        this.getClass.getName,
-        wrapArg(0, args, paramTypes, true),
-        wrapArg(1, args, paramTypes, true),
-        wrapArg(2, args, paramTypes, true),
-        javaSchema(retType, false),
-        (if (hasOthers) "true" else "false"))
-    }
-
-    def apply(x: PFAArray[Double], w: Double, state: PFARecord, pfaEngineBase: PFAEngineBase, schema: Schema, hasOthers: Boolean): PFARecord = {
+    def apply(x: PFAArray[Double], w: Double, state: PFARecord): PFARecord = {
       val xvector = x.toVector
       val size = xvector.size
       if (size < 2)
         throw new PFARuntimeException("too few components")
 
-      if (state == null) {
-        if (hasOthers)
-          throw new PFARuntimeException("cannot initialize unrecognized fields")
-        val out = pfaEngineBase.fromJson("""{"count": %s, "mean": [], "covariance": []}""".format(w), schema).asInstanceOf[PFARecord]
-        out.multiUpdate(Array("mean", "covariance"), Array(x, PFAArray.fromVector(Vector.fill(size)(PFAArray.fromVector(Vector.fill(size)(0.0))))))
-      }
+      val record = state.asInstanceOf[PFARecord]
+      val oldCount = record.get("count").asInstanceOf[Double]
+      val oldMean = record.get("mean").asInstanceOf[PFAArray[Double]].toVector
+      val oldCovariance = record.get("covariance").asInstanceOf[PFAArray[PFAArray[Double]]].toVector map {_.toVector}
 
-      else {
-        val record = state.asInstanceOf[PFARecord]
-        val oldCount = record.get("count").asInstanceOf[Double]
-        val oldMean = record.get("mean").asInstanceOf[PFAArray[Double]].toVector
-        val oldCovariance = record.get("covariance").asInstanceOf[PFAArray[PFAArray[Double]]].toVector map {_.toVector}
+      if ((size != oldMean.size)  ||  (size != oldCovariance.size)  ||  (oldCovariance exists {size != _.size}))
+        throw new PFARuntimeException("unequal length arrays")
 
-        if ((size != oldMean.size)  ||  (size != oldCovariance.size)  ||  (oldCovariance exists {size != _.size}))
-          throw new PFARuntimeException("unequal length arrays")
+      val newCount = oldCount + w
+      val newMean = PFAArray.fromVector(oldMean.zipWithIndex map {case (oldm, i) => oldm + ((x(i) - oldm) * w / newCount)})
+      val newCovariance =
+        PFAArray.fromVector(
+          (for (i <- 0 until size) yield
+            PFAArray.fromVector(
+              (for (j <- 0 until size) yield
+                ((oldCovariance(i)(j)*oldCount) + ((x(i) - oldMean(i)) * (x(j) - oldMean(j)) * w*oldCount/newCount)) / newCount).toVector)).toVector)
 
-        val newCount = oldCount + w
-        val newMean = oldMean.zipWithIndex map {case (oldm, i) => (x(i) - oldm) * w / newCount}
-        val newCovariance =
-          for (i <- 0 until size) yield
-            for (j <- 0 until size) yield
-              ((oldCovariance(i)(j)*oldCount) + ((x(i) - oldMean(i)) * (x(j) - oldMean(j)) * w*oldCount/newCount)) / newCount
-
-        record.multiUpdate(Array("count", "mean", "covariance"), Array(newCount, newMean, newCovariance))
-      }
+      record.multiUpdate(Array("count", "mean", "covariance"), Array(newCount, newMean, newCovariance))
     }
 
-    def apply(x: PFAMap[java.lang.Double], w: Double, state: PFARecord, pfaEngineBase: PFAEngineBase, schema: Schema, hasOthers: Boolean): PFARecord = {
+    def apply(x: PFAMap[java.lang.Double], w: Double, state: PFARecord): PFARecord = {
       val xmap = x.toMap map {case (k, v) => (k, v.doubleValue)}
       val xkeys = xmap.keySet
       if (xkeys.size < 2)
         throw new PFARuntimeException("too few components")
 
-      if (state == null) {
-        if (hasOthers)
-          throw new PFARuntimeException("cannot initialize unrecognized fields")
-        val out = pfaEngineBase.fromJson("""{"count": {}, "mean": {}, "covariance": {}}""", schema).asInstanceOf[PFARecord]
-        out.multiUpdate(Array("count", "mean", "covariance"), Array(
-          PFAMap.fromMap(xkeys map {k => (k, PFAMap.fromMap(xkeys map {(_, java.lang.Double.valueOf(w))} toMap))} toMap),
-          x,
-          PFAMap.fromMap(xkeys map {k => (k, PFAMap.fromMap(xkeys map {(_, java.lang.Double.valueOf(0.0))} toMap))} toMap)))
-      }
+      val record = state.asInstanceOf[PFARecord]
+      val oldCount: Map[String, Map[String, Double]] =
+        record.get("count").asInstanceOf[PFAMap[PFAMap[java.lang.Double]]].toMap map {case (k, v) => (k, v.toMap map {case (kk, vv) => (kk, vv.doubleValue)})}
+      val oldMean: Map[String, Double] =
+        record.get("mean").asInstanceOf[PFAMap[java.lang.Double]].toMap map {case (k, v) => (k, v.doubleValue)}
+      val oldCovariance: Map[String, Map[String, Double]] =
+        record.get("covariance").asInstanceOf[PFAMap[PFAMap[java.lang.Double]]].toMap map {case (k, v) => (k, v.toMap map {case (kk, vv) => (kk, vv.doubleValue)})}
 
-      else {
-        val record = state.asInstanceOf[PFARecord]
-        val oldCount: Map[String, Map[String, Double]] =
-          record.get("count").asInstanceOf[PFAMap[PFAMap[java.lang.Double]]].toMap map {case (k, v) => (k, v.toMap map {case (kk, vv) => (kk, vv.doubleValue)})}
-        val oldMean: Map[String, Double] =
-          record.get("mean").asInstanceOf[PFAMap[java.lang.Double]].toMap map {case (k, v) => (k, v.doubleValue)}
-        val oldCovariance: Map[String, Map[String, Double]] =
-          record.get("covariance").asInstanceOf[PFAMap[PFAMap[java.lang.Double]]].toMap map {case (k, v) => (k, v.toMap map {case (kk, vv) => (kk, vv.doubleValue)})}
+      val countKeys = oldCount.keySet union (if (oldCount.isEmpty) Set[String]() else (oldCount.values map {_.keySet} reduce {_ union _}))
+      val covarKeys = oldCovariance.keySet union (if (oldCovariance.isEmpty) Set[String]() else (oldCovariance.values map {_.keySet} reduce {_ union _}))
+      val keys = xkeys union countKeys union covarKeys
 
-        val countKeys = oldCount.keySet union (oldCount.values map {_.keySet} reduce {_ union _})
-        val covarKeys = oldCovariance.keySet union (oldCovariance.values map {_.keySet} reduce {_ union _})
-        val keys = xkeys union countKeys union covarKeys
-
-        val newCount: Map[String, Map[String, Double]] =
-          (for (i <- keys) yield
-            (i, (for (j <- keys) yield {
-              val old = oldCount.getOrElse(i, Map[String, Double]()).getOrElse(j, 0.0)
-              if ((xkeys contains i)  &&  (xkeys contains j))
-                (j, old + w)
-              else
-                (j, old)
-            }).toMap)).toMap
-
-        val newMean: Map[String, Double] =
-          (for (i <- keys) yield {
-            val old = oldMean.getOrElse(i, 0.0)
-            if (xkeys contains i)
-              (i, (xmap(i) - old) * w / newCount(i)(i))
+      val newCount: Map[String, Map[String, Double]] =
+        (for (i <- keys) yield
+          (i, (for (j <- keys) yield {
+            val old = oldCount.getOrElse(i, Map[String, Double]()).getOrElse(j, 0.0)
+            if ((xkeys contains i)  &&  (xkeys contains j))
+              (j, old + w)
             else
-              (i, old)
-          }).toMap
+              (j, old)
+          }).toMap)).toMap
 
-        val newCovariance: Map[String, Map[String, Double]] =
-          (for (i <- keys) yield
-            (i, (for (j <- keys) yield {
-              val old = oldCovariance.getOrElse(i, Map[String, Double]()).getOrElse(j, 0.0)
-              if ((xkeys contains i)  &&  (xkeys contains j))
-                (j, ((old*oldCount(i)(j)) + ((xmap(i) - oldMean(i)) * (xmap(j) - oldMean(j)) * w*oldCount(i)(j)/newCount(i)(j))) / newCount(i)(j))
-              else
-                (j, old)
-            }).toMap)).toMap
+      val newMean: Map[String, Double] =
+        (for (i <- keys) yield {
+          val old = oldMean.getOrElse(i, 0.0)
+          if (xkeys contains i)
+            (i, old + ((xmap(i) - old) * w / newCount(i)(i)))
+          else
+            (i, old)
+        }).toMap
 
-        record.multiUpdate(Array("count", "mean", "covariance"), Array(
-          PFAMap.fromMap(newCount map {case (k, v) => (k, PFAMap.fromMap(v map {case (kk, vv) => (kk, java.lang.Double.valueOf(vv))}))}),
-          PFAMap.fromMap(newMean map {case (k, v) => (k, java.lang.Double.valueOf(v))}),
-          PFAMap.fromMap(newCovariance map {case (k, v) => (k, PFAMap.fromMap(v map {case (kk, vv) => (kk, java.lang.Double.valueOf(vv))}))})))
-      }
+      val newCovariance: Map[String, Map[String, Double]] =
+        (for (i <- keys) yield
+          (i, (for (j <- keys) yield {
+            val oldCov = oldCovariance.getOrElse(i, Map[String, Double]()).getOrElse(j, 0.0)
+            if ((xkeys contains i)  &&  (xkeys contains j)) {
+              val oldC = oldCount.getOrElse(i, Map[String, Double]()).getOrElse(j, 0.0)
+              val oldMi = oldMean.getOrElse(i, 0.0)
+              val oldMj = oldMean.getOrElse(j, 0.0)
+              (j, ((oldCov*oldC) + ((xmap(i) - oldMi) * (xmap(j) - oldMj) * w*oldC/newCount(i)(j))) / newCount(i)(j))
+            }
+            else
+              (j, oldCov)
+          }).toMap)).toMap
+
+      record.multiUpdate(Array("count", "mean", "covariance"), Array(
+        PFAMap.fromMap(newCount map {case (k, v) => (k, PFAMap.fromMap(v map {case (kk, vv) => (kk, java.lang.Double.valueOf(vv))}))}),
+        PFAMap.fromMap(newMean map {case (k, v) => (k, java.lang.Double.valueOf(v))}),
+        PFAMap.fromMap(newCovariance map {case (k, v) => (k, PFAMap.fromMap(v map {case (kk, vv) => (kk, java.lang.Double.valueOf(vv))}))})))
     }
   }
   provide(UpdateCovariance)

@@ -1,3 +1,21 @@
+// Copyright (C) 2014  Open Data ("Open Data" refers to
+// one or more of the following companies: Open Data Partners LLC,
+// Open Data Research LLC, or Open Data Capital LLC.)
+// 
+// This file is part of Hadrian.
+// 
+// Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package test.scala.lib1.array
 
 import scala.collection.JavaConversions._
@@ -1172,6 +1190,25 @@ fcns:
     ret: long
     do: {"*": [x, {long: 2}]}
 """).head.action(null).asInstanceOf[PFAArray[Long]].toVector should be (Vector(0, 2, 4, 6, 8, 10))
+  }
+
+  it must "mapIndex" taggedAs(Lib1, Lib1Array) in {
+    val x = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: double}
+action:
+  a.mapIndex:
+    - {value: [0.0, 1.1, 2.2, 3.3, 4.4, 5.5], type: {type: array, items: double}}
+    - params: [{i: int}, {x: double}]
+      ret: double
+      do: {"-": [x, i]}
+""").head.action(null).asInstanceOf[PFAArray[Double]].toVector
+    x(0) should be (0.00 +- 0.01)
+    x(1) should be (0.10 +- 0.01)
+    x(2) should be (0.20 +- 0.01)
+    x(3) should be (0.30 +- 0.01)
+    x(4) should be (0.40 +- 0.01)
+    x(5) should be (0.50 +- 0.01)
   }
 
   it must "filter" taggedAs(Lib1, Lib1Array) in {

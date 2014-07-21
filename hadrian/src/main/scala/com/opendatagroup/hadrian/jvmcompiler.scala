@@ -1,3 +1,21 @@
+// Copyright (C) 2014  Open Data ("Open Data" refers to
+// one or more of the following companies: Open Data Partners LLC,
+// Open Data Research LLC, or Open Data Capital LLC.)
+// 
+// This file is part of Hadrian.
+// 
+// Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// 
+//     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+// 
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package com.opendatagroup.hadrian
 
 import scala.collection.mutable
@@ -46,6 +64,7 @@ import com.opendatagroup.hadrian.ast.MapIndex
 import com.opendatagroup.hadrian.ast.RecordIndex
 import com.opendatagroup.hadrian.ast.FcnDef
 import com.opendatagroup.hadrian.ast.FcnRef
+import com.opendatagroup.hadrian.ast.CallUserFcn
 import com.opendatagroup.hadrian.ast.Call
 import com.opendatagroup.hadrian.ast.Ref
 import com.opendatagroup.hadrian.ast.LiteralNull
@@ -1334,6 +1353,23 @@ checkClock();
       case FcnRef.Context(_, _, fcn) => resolvedType match {
         case Some(x: FcnType) => fcn.javaRef(x)
         case _ => JavaCode("").setAsPlaceholder()
+      }
+
+      case CallUserFcn.Context(retType, _, name, nameToNum, nameToFcn, args, argContext, nameToParamTypes, nameToRetTypes) => {
+        val cases =
+          for ((n, fcn) <- nameToFcn) yield
+            """        case %s: return %s;""".format(nameToNum(n), fcn.javaCode(args.collect({case x: JavaCode => x}), argContext, nameToParamTypes(n), nameToRetTypes(n)))
+
+        JavaCode("""(new Object() {
+public %s apply() {
+    switch (%s.value()) {
+%s
+        default: throw new RuntimeException("");
+    }
+} }).apply()""",
+              javaType(retType, false, true, true),
+              name.toString,
+              cases.mkString("\n"))
       }
 
       case Call.Context(retType, _, fcn, args, argContext, paramTypes) => fcn.javaCode(args.collect({case x: JavaCode => x}), argContext, paramTypes, retType)
