@@ -27,7 +27,7 @@ limitations under the License.
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian</artifactId>
-  <version>TRUNK</version>
+  <version>0.5</version>
   <packaging>jar</packaging>
 
   <licenses>
