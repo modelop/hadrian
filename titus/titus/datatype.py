@@ -147,7 +147,10 @@ class AvroType(Type):
     # other == "writer" (the given fact, argument to be accepted or rejected)
     # the special cases handle situations in which Python-Avro fails to be fully covariant
     def accepts(self, other, memo=None, checkRecord=True):
-        if isinstance(self, AvroNull) and isinstance(other, AvroNull):
+        if isinstance(other, ExceptionType):
+            return False
+
+        elif isinstance(self, AvroNull) and isinstance(other, AvroNull):
             return True
         elif isinstance(self, AvroBoolean) and isinstance(other, AvroBoolean):
             return True
@@ -231,6 +234,15 @@ class AvroRaw(AvroType): pass
 class AvroIdentifier(AvroType): pass
 class AvroContainer(AvroType): pass
 class AvroMapping(AvroType): pass
+
+class ExceptionType(AvroType):
+    def accepts(self, other):
+        return isinstance(other, ExceptionType)
+    def __repr__(self):
+        return '{"type":"exception"}'
+    @property
+    def schema(self):
+        return AvroNull().schema
 
 ######################################################### Avro type wrappers
 

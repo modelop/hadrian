@@ -27,7 +27,7 @@ limitations under the License.
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian</artifactId>
-  <version>0.2-SNAPSHOT</version>
+  <version>TRUNK</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -50,7 +50,7 @@ limitations under the License.
   <dependencies>
     <!-- Real dependencies for the jar: 11 MB -->
 
-    <!-- avro-1.7.6.jar -->
+    <!-- avro-1.7.7.jar -->
     <!-- commons-compiler-2.7.4.jar -->
     <!-- commons-compress-1.4.1.jar -->
     <!-- commons-lang3-3.2.1.jar -->
@@ -74,7 +74,7 @@ limitations under the License.
     <dependency>
       <groupId>org.apache.avro</groupId>
       <artifactId>avro</artifactId>
-      <version>1.7.6</version>
+      <version>1.7.7</version>
     </dependency>
 
     <dependency>
@@ -93,6 +93,12 @@ limitations under the License.
       <groupId>org.yaml</groupId>
       <artifactId>snakeyaml</artifactId>
       <version>1.13</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-math3</artifactId>
+      <version>3.3</version>
     </dependency>
 
     <dependency>
@@ -199,7 +205,6 @@ limitations under the License.
           <junitxml>.</junitxml>
 
 <tagsToInclude>
-    JVMCompilation
 </tagsToInclude>
 
 <tagsToExclude>
@@ -207,7 +212,7 @@ limitations under the License.
     Data,
     DataType,
     JsonToAst,
-
+    JVMCompilation,
     Lib1Array,
     Lib1Bytes,
     Lib1Core,
@@ -220,6 +225,7 @@ limitations under the License.
     Lib1Metric,
     Lib1ModelCluster,
     Lib1ModelTree,
+    Lib1Parse,
     Lib1ProbDist,
     Lib1Record,
     Lib1StatChange,
@@ -231,6 +237,7 @@ limitations under the License.
     Shared,
     SignatureMatch,
     Speed,
+    ThreadSafety,
     TypeCheck,
     Yaml
 </tagsToExclude>

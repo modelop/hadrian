@@ -95,6 +95,7 @@ package datatype {
     // this == "reader" (the anticipated signature, pattern to be matched),
     // that == "writer" (the given fact, argument to be accepted or rejected)
     def accepts(that: Type): Boolean = that match {
+      case exceptionThat: ExceptionType => false
       case avroThat: AvroType =>
         checkReaderWriterCompatibility(this.schema, avroThat.schema).getType == SchemaCompatibilityType.COMPATIBLE
       case _ => false
@@ -124,6 +125,14 @@ package datatype {
   }
   object AvroIdentifier {
     def unapply(x: AvroIdentifier): Boolean = true
+  }
+
+  // exception types are not part of Avro; this is a placeholder used by exceptions
+  // (which must return a bottom type, a type that can have no value)
+  private[hadrian] case class ExceptionType() extends AvroType {
+    override def accepts(that: Type): Boolean = that.isInstanceOf[ExceptionType]
+    override def toString() = """{"type":"exception"}"""
+    def schema: Schema = AvroNull().schema
   }
 
   ///////////////////////////////////////////////////////// Avro type wrappers

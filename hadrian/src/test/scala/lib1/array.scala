@@ -270,7 +270,7 @@ output: int
 action:
   a.count:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
-    - {fcnref: u.even}
+    - {fcn: u.even}
 fcns:
   even:
     params: [{x: int}]
@@ -284,7 +284,7 @@ output: int
 action:
   a.count:
     - {value: [1, 3, 5, 7, 9], type: {type: array, items: int}}
-    - {fcnref: u.even}
+    - {fcn: u.even}
 fcns:
   even:
     params: [{x: int}]
@@ -573,7 +573,7 @@ output: {type: array, items: int}
 action:
   a.sortLT:
     - {value: [6, 2, 4, 6, 4, 5], type: {type: array, items: int}}
-    - {fcnref: u.mylt}
+    - {fcn: u.mylt}
 fcns:
   mylt:
     params: [{a: int}, {b: int}]
@@ -655,7 +655,7 @@ output: double
 action:
   - a.maxLT:
       - {value: [5.5, 2.2, 7.7, 4.4, 6.6, 2.2, 7.6], type: {type: array, items: double}}
-      - {fcnref: u.mylt}
+      - {fcn: u.mylt}
 fcns:
   mylt:
     params: [{a: double}, {b: double}]
@@ -680,7 +680,7 @@ output: double
 action:
   - a.minLT:
       - {value: [5.5, 2.2, 7.7, 4.4, 6.6, 2.2, 7.6], type: {type: array, items: double}}
-      - {fcnref: u.mylt}
+      - {fcn: u.mylt}
 fcns:
   mylt:
     params: [{a: double}, {b: double}]
@@ -740,7 +740,7 @@ action:
   - a.maxNLT: 
       - {value: [5.5, 2.2, 7.7, 4.4, 6.6, 2.2, 7.6], type: {type: array, items: double}}
       - 3
-      - {fcnref: u.mylt}
+      - {fcn: u.mylt}
 fcns:
   mylt:
     params: [{a: double}, {b: double}]
@@ -767,7 +767,7 @@ action:
   - a.minNLT: 
       - {value: [5.5, 2.2, 7.7, 4.4, 6.6, 2.2, 7.6], type: {type: array, items: double}}
       - 3
-      - {fcnref: u.mylt}
+      - {fcn: u.mylt}
 fcns:
   mylt:
     params: [{a: double}, {b: double}]
@@ -827,7 +827,7 @@ output: int
 action:
   - a.argmaxLT:
       - {value: [5.5, 2.2, 7.7, 4.4, 6.6, 2.2, 7.6], type: {type: array, items: double}}
-      - {fcnref: u.mylt}
+      - {fcn: u.mylt}
 fcns:
   mylt:
     params: [{a: double}, {b: double}]
@@ -852,7 +852,7 @@ output: int
 action:
   - a.argminLT:
       - {value: [5.5, 2.2, 7.7, 4.4, 6.6, 2.2, 7.6], type: {type: array, items: double}}
-      - {fcnref: u.mylt}
+      - {fcn: u.mylt}
 fcns:
   mylt:
     params: [{a: double}, {b: double}]
@@ -912,7 +912,7 @@ action:
   - a.argmaxNLT: 
       - {value: [5.5, 2.2, 7.7, 4.4, 6.6, 2.2, 7.6], type: {type: array, items: double}}
       - 3
-      - {fcnref: u.mylt}
+      - {fcn: u.mylt}
 fcns:
   mylt:
     params: [{a: double}, {b: double}]
@@ -939,7 +939,7 @@ action:
   - a.argminNLT: 
       - {value: [5.5, 2.2, 7.7, 4.4, 6.6, 2.2, 7.6], type: {type: array, items: double}}
       - 3
-      - {fcnref: u.mylt}
+      - {fcn: u.mylt}
 fcns:
   mylt:
     params: [{a: double}, {b: double}]
@@ -1183,7 +1183,7 @@ output: {type: array, items: long}
 action:
   a.map:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
-    - {fcnref: u.double}
+    - {fcn: u.double}
 fcns:
   double:
     params: [{x: int}]
@@ -1229,7 +1229,7 @@ output: {type: array, items: int}
 action:
   a.filter:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
-    - {fcnref: u.even}
+    - {fcn: u.even}
 fcns:
   even:
     params: [{x: int}]
@@ -1259,7 +1259,7 @@ output: {type: array, items: long}
 action:
   a.filtermap:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
-    - {fcnref: u.maybeten}
+    - {fcn: u.maybeten}
 fcns:
   maybeten:
     params: [{x: int}]
@@ -1289,7 +1289,7 @@ output: {type: array, items: long}
 action:
   a.flatmap:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
-    - {fcnref: u.stutter}
+    - {fcn: u.stutter}
 fcns:
   stutter:
     params: [{x: int}]
@@ -1316,7 +1316,7 @@ output: string
 action:
   a.reduce:
     - {value: ["a", "b", "c", "d", "e"], type: {type: array, items: string}}
-    - {fcnref: u.monoid}
+    - {fcn: u.monoid}
 fcns:
   monoid:
     params: [{tally: string}, {x: string}]
@@ -1341,7 +1341,7 @@ output: string
 action:
   a.reduceright:
     - {value: ["a", "b", "c", "d", "e"], type: {type: array, items: string}}
-    - {fcnref: u.monoid}
+    - {fcn: u.monoid}
 fcns:
   monoid:
     params: [{x: string}, {tally: string}]
@@ -1370,7 +1370,7 @@ action:
   a.fold:
     - {value: ["a", "b", "c", "d", "e"], type: {type: array, items: string}}
     - {string: ""}
-    - {fcnref: u.monoid}
+    - {fcn: u.monoid}
 fcns:
   monoid:
     params: [{tally: string}, {x: string}]
@@ -1397,7 +1397,7 @@ action:
   a.foldright:
     - {value: ["a", "b", "c", "d", "e"], type: {type: array, items: string}}
     - {string: ""}
-    - {fcnref: u.monoid}
+    - {fcn: u.monoid}
 fcns:
   monoid:
     params: [{x: string}, {tally: string}]

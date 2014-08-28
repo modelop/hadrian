@@ -18,6 +18,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
+
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
 from titus.signature import Sig
@@ -51,3 +53,54 @@ class DefaultOnNull(LibFcn):
         else:
             return x
 provide(DefaultOnNull())
+
+class IsNan(LibFcn):
+    name = prefix + "isnan"
+    sig = Sigs([Sig([{"x": P.Float()}], P.Boolean()),
+                Sig([{"x": P.Double()}], P.Boolean())])
+    def __call__(self, state, scope, paramTypes, x):
+        return math.isnan(x)
+provide(IsNan())
+
+class IsInf(LibFcn):
+    name = prefix + "isinf"
+    sig = Sigs([Sig([{"x": P.Float()}], P.Boolean()),
+                Sig([{"x": P.Double()}], P.Boolean())])
+    def __call__(self, state, scope, paramTypes, x):
+        return math.isinf(x)
+provide(IsInf())
+
+class IsNum(LibFcn):
+    name = prefix + "isnum"
+    sig = Sigs([Sig([{"x": P.Float()}], P.Boolean()),
+                Sig([{"x": P.Double()}], P.Boolean())])
+    def __call__(self, state, scope, paramTypes, x):
+        return not math.isnan(x) and not math.isinf(x)
+provide(IsNum())
+
+class ErrorOnNonNum(LibFcn):
+    name = prefix + "errorOnNonNum"
+    sig = Sigs([Sig([{"x": P.Float()}], P.Float()),
+                Sig([{"x": P.Double()}], P.Double())])
+    def __call__(self, state, scope, paramTypes, x):
+        if math.isnan(x):
+            raise PFARuntimeException("encountered nan")
+        elif math.isinf(x):
+            if x > 0.0:
+                raise PFARuntimeException("encountered +inf")
+            else:
+                raise PFARuntimeException("encountered -inf")
+        else:
+            return x
+provide(ErrorOnNonNum())
+
+class DefaultOnNonNum(LibFcn):
+    name = prefix + "defaultOnNonNum"
+    sig = Sigs([Sig([{"x": P.Float()}, {"default": P.Float()}], P.Float()),
+                Sig([{"x": P.Double()}, {"default": P.Double()}], P.Double())])
+    def __call__(self, state, scope, paramTypes, x, default):
+        if math.isnan(x) or math.isinf(x):
+            return default
+        else:
+            return x
+provide(DefaultOnNonNum())

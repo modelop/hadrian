@@ -32,6 +32,7 @@ package test.scala {
 
   object Speed extends Tag("Speed")
   object MultiThreaded extends Tag("MultiThreaded")
+  object ThreadSafety extends Tag("ThreadSafety")
 
   object MakeDocsLatex extends Tag("MakeDocsLatex")
 
@@ -46,6 +47,7 @@ package test.scala {
   object Lib1Map extends Tag("Lib1Map")
   object Lib1Math extends Tag("Lib1Math")
   object Lib1Metric extends Tag("Lib1Metric")
+  object Lib1Parse extends Tag("Lib1Parse")
   object Lib1Record extends Tag("Lib1Record")
   object Lib1String extends Tag("Lib1String")
 

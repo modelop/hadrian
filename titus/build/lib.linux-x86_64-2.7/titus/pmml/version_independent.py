@@ -138,7 +138,8 @@ class PMML(PmmlBinding):
             pools=context.pools,
             randseed=options.get("engine.randseed", None),
             doc=options.get("engine.doc", None),
-            metadata=options.get("engine.metadata", None),
+            version=options.get("engine.version", None),
+            metadata=options.get("engine.metadata", {}),
             options=options.get("engine.options", {}))
 
 class ARIMA(PmmlBinding):

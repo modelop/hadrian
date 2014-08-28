@@ -599,6 +599,132 @@ action:
     engine3.action(java.lang.Double.valueOf(52.4)).asInstanceOf[Double] should be (2.766 +- 0.01)
     engine3.action(java.lang.Double.valueOf(53.6)).asInstanceOf[Double] should be (3.117 +- 0.01)
     engine3.action(java.lang.Double.valueOf(52.1)).asInstanceOf[Double] should be (2.187 +- 0.01)
+
+    val engine4 = PFAEngine.fromYaml("""
+input: double
+output: double
+pools:
+  state:
+    type: {type: record, name: State, fields: [{name: mean, type: double}, {name: variance, type: double}]}
+    init: {}
+action:
+  - pool: state
+    path: [{string: dummy}]
+    to:
+      params: [{state: State}]
+      ret: State
+      do: {stat.sample.updateEWMA: [input, 0.3, state]}
+    init:
+      new: {mean: input, variance: 0.0}
+      type: State
+  - pool: state
+    path: [{string: dummy}, {string: mean}]
+""").head
+
+    engine4.action(java.lang.Double.valueOf(50.0)).asInstanceOf[Double] should be (50.00 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(52.0)).asInstanceOf[Double] should be (50.60 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(47.0)).asInstanceOf[Double] should be (49.52 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(53.0)).asInstanceOf[Double] should be (50.56 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(49.3)).asInstanceOf[Double] should be (50.18 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(50.1)).asInstanceOf[Double] should be (50.16 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(47.0)).asInstanceOf[Double] should be (49.21 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(51.0)).asInstanceOf[Double] should be (49.75 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(50.1)).asInstanceOf[Double] should be (49.85 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(51.2)).asInstanceOf[Double] should be (50.26 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(50.5)).asInstanceOf[Double] should be (50.33 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(49.6)).asInstanceOf[Double] should be (50.11 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(47.6)).asInstanceOf[Double] should be (49.36 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(49.9)).asInstanceOf[Double] should be (49.52 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(51.3)).asInstanceOf[Double] should be (50.05 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(47.8)).asInstanceOf[Double] should be (49.38 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(51.2)).asInstanceOf[Double] should be (49.92 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(52.6)).asInstanceOf[Double] should be (50.73 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(52.4)).asInstanceOf[Double] should be (51.23 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(53.6)).asInstanceOf[Double] should be (51.94 +- 0.01)
+    engine4.action(java.lang.Double.valueOf(52.1)).asInstanceOf[Double] should be (51.99 +- 0.01)
+
+    val engineVar = PFAEngine.fromYaml("""
+input: double
+output: double
+cells:
+  state:
+    type: ["null", {type: record, name: State, fields: [{name: mean, type: double}, {name: variance, type: double}]}]
+    init: null
+action:
+  - cell: state
+    to:
+      params: [{state: ["null", State]}]
+      ret: State
+      do: {stat.sample.updateEWMA: [input, 0.3, state]}
+  - ifnotnull: {x: {cell: state}}
+    then: {attr: x, path: [[variance]]}
+    else: -999
+""").head
+
+    engineVar.action(java.lang.Double.valueOf(50.0)).asInstanceOf[Double] should be (0.000 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(52.0)).asInstanceOf[Double] should be (0.840 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(47.0)).asInstanceOf[Double] should be (3.310 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(53.0)).asInstanceOf[Double] should be (4.860 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(49.3)).asInstanceOf[Double] should be (3.737 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(50.1)).asInstanceOf[Double] should be (2.618 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(47.0)).asInstanceOf[Double] should be (3.929 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(51.0)).asInstanceOf[Double] should be (3.422 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(50.1)).asInstanceOf[Double] should be (2.421 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(51.2)).asInstanceOf[Double] should be (2.075 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(50.5)).asInstanceOf[Double] should be (1.465 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(49.6)).asInstanceOf[Double] should be (1.138 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(47.6)).asInstanceOf[Double] should be (2.121 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(49.9)).asInstanceOf[Double] should be (1.546 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(51.3)).asInstanceOf[Double] should be (1.747 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(47.8)).asInstanceOf[Double] should be (2.290 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(51.2)).asInstanceOf[Double] should be (2.300 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(52.6)).asInstanceOf[Double] should be (3.113 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(52.4)).asInstanceOf[Double] should be (2.767 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(53.6)).asInstanceOf[Double] should be (3.117 +- 0.01)
+    engineVar.action(java.lang.Double.valueOf(52.1)).asInstanceOf[Double] should be (2.187 +- 0.01)
+
+    val engine4Var = PFAEngine.fromYaml("""
+input: double
+output: double
+pools:
+  state:
+    type: {type: record, name: State, fields: [{name: mean, type: double}, {name: variance, type: double}]}
+    init: {}
+action:
+  - pool: state
+    path: [{string: dummy}]
+    to:
+      params: [{state: State}]
+      ret: State
+      do: {stat.sample.updateEWMA: [input, 0.3, state]}
+    init:
+      new: {mean: input, variance: 0.0}
+      type: State
+  - pool: state
+    path: [{string: dummy}, {string: variance}]
+""").head
+
+    engine4Var.action(java.lang.Double.valueOf(50.0)).asInstanceOf[Double] should be (0.000 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(52.0)).asInstanceOf[Double] should be (0.840 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(47.0)).asInstanceOf[Double] should be (3.310 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(53.0)).asInstanceOf[Double] should be (4.860 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(49.3)).asInstanceOf[Double] should be (3.737 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(50.1)).asInstanceOf[Double] should be (2.618 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(47.0)).asInstanceOf[Double] should be (3.929 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(51.0)).asInstanceOf[Double] should be (3.422 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(50.1)).asInstanceOf[Double] should be (2.421 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(51.2)).asInstanceOf[Double] should be (2.075 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(50.5)).asInstanceOf[Double] should be (1.465 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(49.6)).asInstanceOf[Double] should be (1.138 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(47.6)).asInstanceOf[Double] should be (2.121 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(49.9)).asInstanceOf[Double] should be (1.546 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(51.3)).asInstanceOf[Double] should be (1.747 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(47.8)).asInstanceOf[Double] should be (2.290 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(51.2)).asInstanceOf[Double] should be (2.300 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(52.6)).asInstanceOf[Double] should be (3.113 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(52.4)).asInstanceOf[Double] should be (2.767 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(53.6)).asInstanceOf[Double] should be (3.117 +- 0.01)
+    engine4Var.action(java.lang.Double.valueOf(52.1)).asInstanceOf[Double] should be (2.187 +- 0.01)
   }
 
   "Holt-Winters" must "accumulate a trend" taggedAs(Lib1, Lib1StatSample) in {

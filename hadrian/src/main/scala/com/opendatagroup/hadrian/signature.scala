@@ -23,6 +23,7 @@ import scala.language.postfixOps
 
 import com.opendatagroup.hadrian.datatype.Type
 import com.opendatagroup.hadrian.datatype.FcnType
+import com.opendatagroup.hadrian.datatype.ExceptionType
 import com.opendatagroup.hadrian.datatype.AvroType
 import com.opendatagroup.hadrian.datatype.AvroCompiled
 import com.opendatagroup.hadrian.datatype.AvroNull
@@ -121,6 +122,7 @@ package signature {
       case AvroRecord(fields, name, None, _, _) => Record(scala.collection.immutable.Map[String, Pattern](), Some(name))
 
       case FcnType(params, ret) => Fcn(params.map(fromType).toList, fromType(ret))
+      case _: ExceptionType => throw new IncompatibleTypes("exception type cannot be used in argument patterns")
     }
 
     def mustBeAvro(t: Type): AvroType = t match {
@@ -154,82 +156,86 @@ package signature {
     }
 
     def broadestType(candidates: List[Type]): Type = {
+      val realCandidates = candidates filter {!_.isInstanceOf[ExceptionType]}
+
       if (candidates.isEmpty)
         throw new IncompatibleTypes("empty list of types")
+      else if (realCandidates.isEmpty)
+        throw new IncompatibleTypes("list of types consists only of exception type")
 
-      else if (candidates forall {case _: AvroNull => true; case _ => false})
-        candidates.head
-      else if (candidates forall {case _: AvroBoolean => true; case _ => false})
-        candidates.head
+      else if (realCandidates forall {case _: AvroNull => true; case _ => false})
+        realCandidates.head
+      else if (realCandidates forall {case _: AvroBoolean => true; case _ => false})
+        realCandidates.head
 
-      else if (candidates forall {case _: AvroInt => true; case _ => false})
-        candidates.head
-      else if (candidates forall {case _: AvroInt | _: AvroLong => true; case _ => false})
-        candidates collectFirst {case x: AvroLong => x} get
-      else if (candidates forall {case _: AvroInt | _: AvroLong | _: AvroFloat => true; case _ => false})
-        candidates collectFirst {case x: AvroFloat => x} get
-      else if (candidates forall {case _: AvroInt | _: AvroLong | _: AvroFloat | _: AvroDouble => true; case _ => false})
-        candidates collectFirst {case x: AvroDouble => x} get
+      else if (realCandidates forall {case _: AvroInt => true; case _ => false})
+        realCandidates.head
+      else if (realCandidates forall {case _: AvroInt | _: AvroLong => true; case _ => false})
+        realCandidates collectFirst {case x: AvroLong => x} get
+      else if (realCandidates forall {case _: AvroInt | _: AvroLong | _: AvroFloat => true; case _ => false})
+        realCandidates collectFirst {case x: AvroFloat => x} get
+      else if (realCandidates forall {case _: AvroInt | _: AvroLong | _: AvroFloat | _: AvroDouble => true; case _ => false})
+        realCandidates collectFirst {case x: AvroDouble => x} get
 
-      else if (candidates forall {case _: AvroBytes => true; case _ => false})
-        candidates.head
-      else if (candidates forall {case _: AvroString => true; case _ => false})
-        candidates.head
+      else if (realCandidates forall {case _: AvroBytes => true; case _ => false})
+        realCandidates.head
+      else if (realCandidates forall {case _: AvroString => true; case _ => false})
+        realCandidates.head
 
-      else if (candidates forall {case _: AvroArray => true; case _ => false})
-        AvroArray(P.mustBeAvro(broadestType(candidates map {case AvroArray(items) => items})))
+      else if (realCandidates forall {case _: AvroArray => true; case _ => false})
+        AvroArray(P.mustBeAvro(broadestType(realCandidates map {case AvroArray(items) => items})))
 
-      else if (candidates forall {case _: AvroMap => true; case _ => false})
-        AvroMap(P.mustBeAvro(broadestType(candidates map {case AvroMap(values) => values})))
+      else if (realCandidates forall {case _: AvroMap => true; case _ => false})
+        AvroMap(P.mustBeAvro(broadestType(realCandidates map {case AvroMap(values) => values})))
 
-      else if (candidates forall {case _: AvroUnion => true; case _ => false})
-        AvroUnion(distinctTypes(candidates flatMap {case AvroUnion(types) => types}).map(P.mustBeAvro))
+      else if (realCandidates forall {case _: AvroUnion => true; case _ => false})
+        AvroUnion(distinctTypes(realCandidates flatMap {case AvroUnion(types) => types}).map(P.mustBeAvro))
 
-      else if (candidates forall {case _: AvroFixed => true; case _ => false}) {
-        val fullName = candidates.head.asInstanceOf[AvroFixed].fullName
-        if (candidates.tail forall {case x: AvroFixed => x.fullName == fullName})
-          candidates.head
+      else if (realCandidates forall {case _: AvroFixed => true; case _ => false}) {
+        val fullName = realCandidates.head.asInstanceOf[AvroFixed].fullName
+        if (realCandidates.tail forall {case x: AvroFixed => x.fullName == fullName})
+          realCandidates.head
         else
-          throw new IncompatibleTypes("incompatible fixed types: " + candidates.mkString(" "))
+          throw new IncompatibleTypes("incompatible fixed types: " + realCandidates.mkString(" "))
       }
 
-      else if (candidates forall {case _: AvroEnum => true; case _ => false}) {
-        val fullName = candidates.head.asInstanceOf[AvroEnum].fullName
-        if (candidates.tail forall {case x: AvroEnum => x.fullName == fullName})
-          candidates.head
+      else if (realCandidates forall {case _: AvroEnum => true; case _ => false}) {
+        val fullName = realCandidates.head.asInstanceOf[AvroEnum].fullName
+        if (realCandidates.tail forall {case x: AvroEnum => x.fullName == fullName})
+          realCandidates.head
         else
-          throw new IncompatibleTypes("incompatible enum types: " + candidates.mkString(" "))
+          throw new IncompatibleTypes("incompatible enum types: " + realCandidates.mkString(" "))
       }
 
-      else if (candidates forall {case _: AvroRecord => true; case _ => false}) {
-        val fullName = candidates.head.asInstanceOf[AvroRecord].fullName
-        if (candidates.tail forall {case x: AvroRecord => x.fullName == fullName})
-          candidates.head
+      else if (realCandidates forall {case _: AvroRecord => true; case _ => false}) {
+        val fullName = realCandidates.head.asInstanceOf[AvroRecord].fullName
+        if (realCandidates.tail forall {case x: AvroRecord => x.fullName == fullName})
+          realCandidates.head
         else
-          AvroUnion(distinctTypes(candidates).map(P.mustBeAvro))
+          AvroUnion(distinctTypes(realCandidates).map(P.mustBeAvro))
       }
 
-      else if (candidates forall {case _: FcnType => true; case _ => false}) {
-        val params = candidates.head.asInstanceOf[FcnType].params
-        val ret = candidates.head.asInstanceOf[FcnType].ret
+      else if (realCandidates forall {case _: FcnType => true; case _ => false}) {
+        val params = realCandidates.head.asInstanceOf[FcnType].params
+        val ret = realCandidates.head.asInstanceOf[FcnType].ret
 
-        if (candidates.tail forall {case FcnType(p, r) => p == params  &&  r == ret})
-          candidates.head
+        if (realCandidates.tail forall {case FcnType(p, r) => p == params  &&  r == ret})
+          realCandidates.head
         else
-          throw new IncompatibleTypes("incompatible function types: " + candidates.mkString(" "))
+          throw new IncompatibleTypes("incompatible function types: " + realCandidates.mkString(" "))
       }
 
-      else if (!(candidates exists {case _: FcnType => true; case _ => false})) {
-        val types = distinctTypes(candidates).map(P.mustBeAvro)
+      else if (!(realCandidates exists {case _: FcnType => true; case _ => false})) {
+        val types = distinctTypes(realCandidates).map(P.mustBeAvro)
         if ((types collect {case _: AvroFixed => true} size) > 1)
-          throw new IncompatibleTypes("incompatible fixed types: " + (candidates collect {case x: AvroFixed => x} mkString(" ")))
+          throw new IncompatibleTypes("incompatible fixed types: " + (realCandidates collect {case x: AvroFixed => x} mkString(" ")))
         if ((types collect {case _: AvroEnum => true} size) > 1)
-          throw new IncompatibleTypes("incompatible enum types: " + (candidates collect {case x: AvroEnum => x} mkString(" ")))
+          throw new IncompatibleTypes("incompatible enum types: " + (realCandidates collect {case x: AvroEnum => x} mkString(" ")))
         AvroUnion(types)
       }
 
       else
-        throw new IncompatibleTypes("incompatible function/non-function types: " + candidates.mkString(" "))
+        throw new IncompatibleTypes("incompatible function/non-function types: " + realCandidates.mkString(" "))
     }
   }
 
@@ -283,6 +289,8 @@ package signature {
     }
 
     private def check(pat: Pattern, arg: Type, labelData: mutable.Map[String, LabelData], strict: Boolean, reversed: Boolean): Boolean = (pat, arg) match {
+      case (_, _: ExceptionType) => false
+
       case (P.Null, AvroNull()) => true
       case (P.Boolean, AvroBoolean()) => true
 

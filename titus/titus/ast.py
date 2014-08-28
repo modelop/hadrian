@@ -28,9 +28,11 @@ import titus.lib1.core
 import titus.lib1.enum
 import titus.lib1.fixed
 import titus.lib1.impute
+import titus.lib1.la
 import titus.lib1.map
 import titus.lib1.metric
 import titus.lib1.pfamath
+import titus.lib1.parse
 import titus.lib1.record
 import titus.lib1.pfastring
 import titus.lib1.prob.dist
@@ -49,6 +51,7 @@ from titus.signature import IncompatibleTypes
 from titus.signature import LabelData
 from titus.signature import Sig
 from titus.datatype import *
+import titus.options
 
 def inferType(expr, symbols=None, cells=None, pools=None, fcns=None):
     if symbols is None:
@@ -64,7 +67,7 @@ def inferType(expr, symbols=None, cells=None, pools=None, fcns=None):
     functionTable = FunctionTable.blank()
     functionTable.functions.update(fcns)
 
-    context, result = expr.walk(NoTask(), symbolTable, functionTable)
+    context, result = expr.walk(NoTask(), symbolTable, functionTable, titus.options.EngineOptions(None, None))
     return context.retType
 
 ############################################################ symbols
@@ -200,12 +203,14 @@ class FunctionTable(object):
         functions.update(titus.lib1.enum.provides)
         functions.update(titus.lib1.fixed.provides)
         functions.update(titus.lib1.impute.provides)
+        functions.update(titus.lib1.la.provides)
         functions.update(titus.lib1.map.provides)
         functions.update(titus.lib1.metric.provides)
         functions.update(titus.lib1.pfamath.provides)
+        functions.update(titus.lib1.parse.provides)
+        functions.update(titus.lib1.prob.dist.provides)
         functions.update(titus.lib1.record.provides)
         functions.update(titus.lib1.pfastring.provides)
-        functions.update(titus.lib1.prob.dist.provides)
         functions.update(titus.lib1.stat.change.provides)
         functions.update(titus.lib1.stat.sample.provides)
         functions.update(titus.lib1.model.tree.provides)
@@ -218,20 +223,24 @@ class FunctionTable(object):
 ############################################################ type-checking and transforming ASTs
 
 class AstContext(object): pass
-class ExpressionContext(object):
+class ArgumentContext(AstContext):
+    def calls(self):
+        raise NotImplementedError
+class ExpressionContext(ArgumentContext):
     def retType(self):
         raise NotImplementedError
-    def calls(self):
+class FcnContext(ArgumentContext):
+    def fcnType(self):
         raise NotImplementedError
 class TaskResult(object): pass
 
 class Task(object):
-    def __call__(self, astContext, resoledType=None):
+    def __call__(self, astContext, engineOptions, resoledType=None):
         raise NotImplementedError
 
 class NoTask(Task):
     class EmptyResult(TaskResult): pass
-    def __call__(self, astContext, resolvedType=None):
+    def __call__(self, astContext, engineOptions, resolvedType=None):
         return self.EmptyResult()
 
 ############################################################ AST nodes
@@ -243,9 +252,9 @@ class Ast(object):
         else:
             return []
 
-    def walk(self, task, symbolTable=None, functionTable=None):
-        if symbolTable is None and functionTable is None:
-            self.walk(task, SymbolTable.blank, FunctionTable.blank)
+    def walk(self, task, symbolTable=None, functionTable=None, engineOptions=None):
+        if symbolTable is None and functionTable is None and engineOptions is None:
+            self.walk(task, SymbolTable.blank, FunctionTable.blank, titus.options.EngineOptions(None, None))
         else:
             raise NotImplementedError
 
@@ -277,6 +286,7 @@ class EngineConfig(Ast):
                  pools,
                  randseed,
                  doc,
+                 version,
                  metadata,
                  options,
                  pos=None):
@@ -297,6 +307,7 @@ class EngineConfig(Ast):
     pools={pools},
     randseed={randseed},
     doc={doc},
+    version={version},
     metadata={metadata},
     options={options})'''.format(name=self.name,
                          method=self.method,
@@ -311,6 +322,7 @@ class EngineConfig(Ast):
                          pools=self.pools,
                          randseed=self.randseed,
                          doc=self.doc,
+                         version=self.version,
                          metadata=self.metadata,
                          options=self.options)
 
@@ -331,7 +343,7 @@ class EngineConfig(Ast):
                titus.util.flatten(x.collect(pf) for x in self.cells.values()) + \
                titus.util.flatten(x.collect(pf) for x in self.pools.values())
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         topWrapper = SymbolTable(symbolTable, {}, self.cells, self.pools, True, False)
 
         userFunctions = {}
@@ -352,27 +364,48 @@ class EngineConfig(Ast):
         for fname, fcnDef in self.fcns.items():
             ufname = "u." + fname
             scope = topWrapper.newScope(True, False)
-            fcnContext, fcnResult = fcnDef.walk(task, scope, withUserFunctions)
+            fcnContext, fcnResult = fcnDef.walk(task, scope, withUserFunctions, engineOptions)
             userFcnContexts.append((ufname, fcnContext))
 
-        beginScope = topWrapper.newScope(True, False)
-        beginContextResults = [x.walk(task, beginScope, withUserFunctions) for x in self.begin]
+        beginScopeWrapper = topWrapper.newScope(True, False)
+        beginScopeWrapper.put("name", AvroString())
+        if self.version is not None:
+            beginScopeWrapper.put("version", AvroInt())
+        beginScopeWrapper.put("metadata", AvroMap(AvroString()))
+        beginScope = beginScopeWrapper.newScope(True, False)
+
+        beginContextResults = [x.walk(task, beginScope, withUserFunctions, engineOptions) for x in self.begin]
         beginResults = [x[1] for x in beginContextResults]
         beginCalls = set(titus.util.flatten([x[0].calls for x in beginContextResults]))
 
-        endScope = topWrapper.newScope(True, False)
-        endContextResults = [x.walk(task, endScope, withUserFunctions) for x in self.end]
+        # this will go into end and action, but not begin
+        if self.method == Method.FOLD:
+            topWrapper.put("tally", self.output)
+
+        endScopeWrapper = topWrapper.newScope(True, False)
+        endScopeWrapper.put("name", AvroString())
+        if self.version is not None:
+            endScopeWrapper.put("version", AvroInt())
+        endScopeWrapper.put("metadata", AvroMap(AvroString()))
+        endScopeWrapper.put("actionsStarted", AvroLong())
+        endScopeWrapper.put("actionsFinished", AvroLong())
+        endScope = endScopeWrapper.newScope(True, False)
+
+        endContextResults = [x.walk(task, endScope, withUserFunctions, engineOptions) for x in self.end]
         endResults = [x[1] for x in endContextResults]
         endCalls = set(titus.util.flatten([x[0].calls for x in endContextResults]))
 
-        # it is important for action to be checked after all functions, begin, and end: see comment below
         actionScopeWrapper = topWrapper.newScope(True, False)
         actionScopeWrapper.put("input", self.input)
-        if self.method == Method.FOLD:
-            topWrapper.put("tally", self.output)  # note that this is after all user functions are defined, which keeps "tally" out of the user functions' scopes
+        actionScopeWrapper.put("name", AvroString())
+        if self.version is not None:
+            actionScopeWrapper.put("version", AvroInt())
+        actionScopeWrapper.put("metadata", AvroMap(AvroString()))
+        actionScopeWrapper.put("actionsStarted", AvroLong())
+        actionScopeWrapper.put("actionsFinished", AvroLong())
         actionScope = actionScopeWrapper.newScope(True, False)
 
-        actionContextResults = [x.walk(task, actionScope, withUserFunctions) for x in self.action]
+        actionContextResults = [x.walk(task, actionScope, withUserFunctions, engineOptions) for x in self.action]
         actionCalls = set(titus.util.flatten([x[0].calls for x in actionContextResults]))
 
         if self.method == Method.MAP or self.method == Method.FOLD:
@@ -386,13 +419,13 @@ class EngineConfig(Ast):
             self.output,
             self.inputPlaceholder.parser.compiledTypes,
             (beginResults,
-             beginScope.inThisScope,
+             dict(list(beginScopeWrapper.inThisScope.items()) + list(beginScope.inThisScope.items())),
              beginCalls),
             ([x[1] for x in actionContextResults],
              dict(list(actionScopeWrapper.inThisScope.items()) + list(actionScope.inThisScope.items())),
              actionCalls),
             (endResults,
-             endScope.inThisScope,
+             dict(list(endScopeWrapper.inThisScope.items()) + list(endScope.inThisScope.items())),
              endCalls),
             userFcnContexts,
             self.zero,
@@ -400,10 +433,11 @@ class EngineConfig(Ast):
             self.pools,
             self.randseed,
             self.doc,
+            self.version,
             self.metadata,
             self.options,
             self.inputPlaceholder.parser)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -411,10 +445,7 @@ class EngineConfig(Ast):
                "method": self.method,
                "input": json.loads(repr(self.inputPlaceholder)),
                "output": json.loads(repr(self.outputPlaceholder)),
-               "action": [x.jsonNode for x in self.action],
-               "cells": dict((k, v.jsonNode) for k, v in self.cells.items()),
-               "pools": dict((k, v.jsonNode) for k, v in self.pools.items()),
-               "options": dict((k, v) for k, v in self.options.items())}
+               "action": [x.jsonNode for x in self.action]}
 
         if len(self.begin) > 0:
             out["begin"] = [x.jsonNode for x in self.begin]
@@ -425,6 +456,12 @@ class EngineConfig(Ast):
         if len(self.fcns) > 0:
             out["fcns"] = dict((k, v.jsonNode) for k, v in self.fcns.items())
 
+        if len(self.cells) > 0:
+            out["cells"] = dict((k, v.jsonNode) for k, v in self.cells.items())
+
+        if len(self.pools) > 0:
+            out["pools"] = dict((k, v.jsonNode) for k, v in self.pools.items())
+
         if self.zero is not None:
             out["zero"] = json.loads(self.zero)
 
@@ -434,8 +471,14 @@ class EngineConfig(Ast):
         if self.doc is not None:
             out["doc"] = self.doc
 
-        if self.metadata is not None:
-            out["metadata"] = self.metadata
+        if self.version is not None:
+            out["version"] = self.version
+
+        if len(self.metadata) > 0:
+            out["metadata"] = dict(self.metadata)
+
+        if len(self.options) > 0:
+            out["options"] = dict(self.options.items())
 
         return out
 
@@ -456,6 +499,7 @@ class EngineConfig(Ast):
                      pools,
                      randseed,
                      doc,
+                     version,
                      metadata,
                      options,
                      parser): pass
@@ -479,9 +523,9 @@ class Cell(Ast):
     def avroType(self):
         return self.avroPlaceholder.avroType
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context()
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -510,9 +554,9 @@ class Pool(Ast):
     def avroType(self):
         return self.avroPlaceholder.avroType
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context()
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -538,14 +582,14 @@ class RecordIndex(PathIndex):
     def __init__(self, f, t): pass
 
 class HasPath(object):
-    def walkPath(self, avroType, task, symbolTable, functionTable):
+    def walkPath(self, avroType, task, symbolTable, functionTable, engineOptions):
         calls = set()
         scope = symbolTable.newScope(True, True)
         walkingType = avroType
 
         pathIndexes = []
         for indexIndex, expr in enumerate(self.path):
-            exprContext, exprResult = expr.walk(task, scope, functionTable)
+            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions)
             calls = calls.union(exprContext.calls)
             
             if isinstance(walkingType, AvroArray):
@@ -607,7 +651,7 @@ class FcnDef(Argument):
         return super(FcnDef, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         if len(self.paramsPlaceholder) > 22:
             raise PFASemanticException("function can have at most 22 parameters", self.pos)
 
@@ -617,47 +661,109 @@ class FcnDef(Argument):
                 raise PFASemanticException("\"{}\" is not a valid parameter name".format(name), self.pos)
             scope.put(name, avroType)
 
-        results = [x.walk(task, scope, functionTable) for x in self.body]
+        results = [x.walk(task, scope, functionTable, engineOptions) for x in self.body]
 
-        if not self.ret.accepts(results[-1][0].retType):
+        inferredRetType = results[-1][0].retType
+        if not isinstance(inferredRetType, ExceptionType) and not self.ret.accepts(inferredRetType):
             raise PFASemanticException("function's inferred return type is {} but its declared return type is {}".format(results[-1][0].retType, self.ret), self.pos)
 
         context = self.Context(FcnType([self.params[k] for k in self.paramNames], self.ret), set(titus.util.flatten([x[0].calls for x in results])), self.paramNames, self.params, self.ret, scope.inThisScope, [x[1] for x in results])
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
         return {"params": [{x.keys()[0]: json.loads(repr(x.values()[0]))} for x in self.paramsPlaceholder], "ret": json.loads(repr(self.retPlaceholder)), "do": [x.jsonNode for x in self.body]}
 
     @titus.util.case
-    class Context(AstContext):
+    class Context(FcnContext):
         def __init__(self, fcnType, calls, paramNames, params, ret, symbols, exprs): pass
 
 @titus.util.case
 class FcnRef(Argument):
     def __init__(self, name, pos=None): pass
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         fcn = functionTable.functions.get(self.name, None)
         if fcn is None:
-            raise PFASemanticException("unknown function \"{}\"".format(self.name), self.pos)
+            raise PFASemanticException("unknown function \"{}\" (be sure to include \"u.\" to reference user functions)".format(self.name), self.pos)
 
-        if isinstance(fcn.sig, Sig):
-            params, ret = fcn.sig.params, fcn.sig.ret
-            fcnType = FcnType([P.toType(p.values()[0]) for p in params], P.mustBeAvro(P.toType(ret)))
-        else:
+        try:
+            if isinstance(fcn.sig, Sig):
+                params, ret = fcn.sig.params, fcn.sig.ret
+                fcnType = FcnType([P.toType(p.values()[0]) for p in params], P.mustBeAvro(P.toType(ret)))
+            else:
+                raise IncompatibleTypes()
+        except IncompatibleTypes:
             raise PFASemanticException("only one-signature functions without constraints can be referenced (wrap \"{}\" in a function definition with the desired signature)".format(self.name), self.pos)
 
         context = FcnRef.Context(fcnType, set([self.name]), fcn)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
-        return {"fcnref": self.name}
+        return {"fcn": self.name}
 
     @titus.util.case
-    class Context(AstContext):
+    class Context(FcnContext):
         def __init__(self, fcnType, calls, fcn): pass
+
+@titus.util.case
+class FcnRefFill(Argument):
+    def __init__(self, name, fill, pos=None):
+        if len(self.fill) < 1:
+            raise PFASyntaxException("\"fill\" must contain at least one parameter name-argument mapping", self.pos)
+
+    def collect(self, pf):
+        return super(FcnRefFill, self).collect(pf) + \
+               titus.util.flatten(x.collect(pf) for x in self.fill.values())
+
+    def walk(self, task, symbolTable, functionTable, engineOptions):
+        calls = set([self.name])
+
+        fcn = functionTable.functions.get(self.name, None)
+        if fcn is None:
+            raise PFASemanticException("unknown function \"{}\" (be sure to include \"u.\" to reference user functions)".format(self.name), self.pos)
+
+        fillScope = symbolTable.newScope(True, True)
+        argTypeResult = {}
+        for name, arg in self.fill.items():
+            argCtx, argRes = arg.walk(task, fillScope, functionTable, engineOptions)
+
+            calls = calls.union(argCtx.calls)
+
+            if isinstance(argCtx, FcnContext):
+                argTypeResult[name] = (argCtx.fcnType, argRes)
+            elif isinstance(argCtx, ExpressionContext):
+                argTypeResult[name] = (argCtx.retType, argRes)
+            else:
+                raise Exception
+
+        try:
+            if isinstance(fcn.sig, Sig):
+                params, ret = fcn.sig.params, fcn.sig.ret
+
+                originalParamNames = [x.keys()[0] for x in params]
+                fillNames = set(argTypeResult.keys())
+
+                if not fillNames.issubset(set(originalParamNames)):
+                    raise PFASemanticException("fill argument names (\"{}\") are not a subset of function \"{}\" parameter names (\"{}\")".format("\", \"".join(sorted(fillNames)), self.name, "\", \"".join(originalParamNames)), self.pos)
+
+                fcnType = FcnType([P.mustBeAvro(P.toType(p.values()[0])) for p in params if p.keys()[0] not in fillNames], P.mustBeAvro(P.toType(ret)))
+            else:
+                raise IncompatibleTypes()
+        except IncompatibleTypes:
+            raise PFASemanticException("only one-signature functions without constraints can be referenced (wrap \"{}\" in a function definition with the desired signature)".format(self.name), self.pos)
+
+        context = self.Context(fcnType, calls, fcn, originalParamNames, argTypeResult)
+        return context, task(context, engineOptions)
+
+    @property
+    def jsonNode(self):
+        return {"fcn": self.name, "fill": dict((k, v.jsonNode()) for k, v in fill.items())}
+
+    @titus.util.case
+    class Context(FcnContext):
+        def __init__(self, fcnType, calls, fcn, originalParamNames, argTypeResult): pass
 
 @titus.util.case
 class CallUserFcn(Expression):
@@ -668,9 +774,9 @@ class CallUserFcn(Expression):
                self.name.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.args)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         nameScope = symbolTable.newScope(True, True)
-        nameContext, nameResult = self.name.walk(task, nameScope, functionTable)
+        nameContext, nameResult = self.name.walk(task, nameScope, functionTable, engineOptions)
         if isinstance(nameContext.retType, AvroEnum):
             fcnNames = nameContext.retType.symbols
         else:
@@ -678,7 +784,7 @@ class CallUserFcn(Expression):
         nameToNum = dict((x, i) for i, x in enumerate(fcnNames))
 
         scope = symbolTable.newScope(True, True)
-        argResults = [x.walk(task, scope, functionTable) for x in self.args]
+        argResults = [x.walk(task, scope, functionTable, engineOptions) for x in self.args]
 
         calls = set("u." + x for x in fcnNames)
         argTypes = []
@@ -696,7 +802,7 @@ class CallUserFcn(Expression):
         for n in fcnNames:
             fcn = functionTable.functions.get("u." + n, None)
             if fcn is None:
-                raise PFASemanticException("unknown function \"{}\" in enumeration type".format(n), self.pos)
+                raise PFASemanticException("unknown function \"{}\" in enumeration type (be sure to include \"u.\" to reference user functions)".format(n), self.pos)
             if not isinstance(fcn, UserFcn):
                 raise PFASemanticException("function \"{}\" is not a user function".format(n), self.pos)
             sigres = fcn.sig.accepts(argTypes)
@@ -715,7 +821,7 @@ class CallUserFcn(Expression):
             raise PFASemanticException(str(err))
 
         context = self.Context(retType, calls, nameResult, nameToNum, nameToFcn, [x[1] for x in argResults], [x[0] for x in argResults], nameToParamTypes, nameToRetTypes)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -733,13 +839,13 @@ class Call(Expression):
         return super(Call, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.args)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         fcn = functionTable.functions.get(self.name, None)
         if fcn is None:
-            raise PFASemanticException("unknown function \"{}\"".format(self.name), self.pos)
+            raise PFASemanticException("unknown function \"{}\" (be sure to include \"u.\" to reference user functions)".format(self.name), self.pos)
 
         scope = symbolTable.newScope(True, True)
-        argResults = [x.walk(task, scope, functionTable) for x in self.args]
+        argResults = [x.walk(task, scope, functionTable, engineOptions) for x in self.args]
 
         calls = set([self.name])
         argTypes = []
@@ -753,6 +859,9 @@ class Call(Expression):
             elif isinstance(ctx, FcnRef.Context):
                 calls = calls.union(ctx.calls)
                 argTypes.append(ctx.fcnType)
+            elif isinstance(ctx, FcnRefFill.Context):
+                calls = calls.union(ctx.calls)
+                argTypes.append(ctx.fcnType)
 
         sigres = fcn.sig.accepts(argTypes)
         if sigres is not None:
@@ -764,14 +873,14 @@ class Call(Expression):
             # Two-parameter task?
             # for i, a in enumerate(self.args):
             #     if isinstance(a, FcnRef):
-            #         argTaskResults[i] = task(argContexts[i], paramTypes[i])
+            #         argTaskResults[i] = task(argContexts[i], engineOptions, paramTypes[i])
 
             context = self.Context(retType, calls, fcn, argTaskResults, argContexts, paramTypes)
 
         else:
             raise PFASemanticException("parameters of function \"{}\" do not accept [{}]".format(self.name, ",".join(map(repr, argTypes))), self.pos)
 
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -785,11 +894,11 @@ class Call(Expression):
 class Ref(Expression):
     def __init__(self, name, pos=None): pass
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         if symbolTable.get(self.name) is None:
             raise PFASemanticException("unknown symbol \"{}\"".format(self.name), self.pos)
         context = self.Context(symbolTable(self.name), set(), self.name)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -803,9 +912,9 @@ class Ref(Expression):
 class LiteralNull(LiteralValue):
     def __init__(self, pos=None): pass
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroNull(), set([self.desc]))
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -821,9 +930,9 @@ class LiteralNull(LiteralValue):
 class LiteralBoolean(LiteralValue):
     def __init__(self, value, pos=None): pass
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroBoolean(), set([self.desc]), self.value)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -839,9 +948,9 @@ class LiteralBoolean(LiteralValue):
 class LiteralInt(LiteralValue):
     def __init__(self, value, pos=None): pass
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroInt(), set([self.desc]), self.value)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -857,9 +966,9 @@ class LiteralInt(LiteralValue):
 class LiteralLong(LiteralValue):
     def __init__(self, value, pos=None): pass
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroLong(), set([self.desc]), self.value)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -875,9 +984,9 @@ class LiteralLong(LiteralValue):
 class LiteralFloat(LiteralValue):
     def __init__(self, value, pos=None): pass
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroFloat(), set([self.desc]), self.value)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -893,9 +1002,9 @@ class LiteralFloat(LiteralValue):
 class LiteralDouble(LiteralValue):
     def __init__(self, value, pos=None): pass
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroDouble(), set([self.desc]), self.value)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -911,9 +1020,9 @@ class LiteralDouble(LiteralValue):
 class LiteralString(LiteralValue):
     def __init__(self, value, pos=None): pass
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroString(), set([self.desc]), self.value)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -929,9 +1038,9 @@ class LiteralString(LiteralValue):
 class LiteralBase64(LiteralValue):
     def __init__(self, value, pos=None): pass
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroBytes(), set([self.desc]), self.value)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -960,9 +1069,9 @@ class Literal(LiteralValue):
     def avroType(self):
         return self.avroPlaceholder.avroType
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(self.avroType, set([self.desc]), self.value)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -995,13 +1104,13 @@ class NewObject(Expression):
         return super(NewObject, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.fields.values())
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
         fieldNameTypeExpr = []
         scope = symbolTable.newScope(True, True)
         for name, expr in self.fields.items():
-            exprContext, exprResult = expr.walk(task, scope, functionTable)
+            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions)
             calls = calls.union(exprContext.calls)
             fieldNameTypeExpr.append((name, exprContext.retType, exprResult))
 
@@ -1026,7 +1135,7 @@ class NewObject(Expression):
             raise PFASemanticException("object constructed with \"new\" must have record or map type, not {}".format(self.avroType), self.pos)
 
         context = self.Context(retType, calls.union(set([self.desc])), dict((x[0], x[2]) for x in fieldNameTypeExpr))
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1059,13 +1168,13 @@ class NewArray(Expression):
         return super(NewArray, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.items)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
         scope = symbolTable.newScope(True, True)
         itemTypeExpr = []
         for expr in self.items:
-            exprContext, exprResult = expr.walk(task, scope, functionTable)
+            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions)
             calls = calls.union(exprContext.calls)
             itemTypeExpr.append((exprContext.retType, exprResult))
 
@@ -1082,7 +1191,7 @@ class NewArray(Expression):
             raise PFASemanticException("array constructed with \"new\" must have array type, not {}".format(self.avroType), self.pos)
 
         context = self.Context(retType, calls.union(set([self.desc])), [x[1] for x in itemTypeExpr])
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1104,11 +1213,16 @@ class Do(Expression):
         return super(Do, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         scope = symbolTable.newScope(False, False)
-        results = [x.walk(task, scope, functionTable) for x in self.body]
-        context = self.Context(results[-1][0].retType, set(titus.util.flatten([x[0].calls for x in results])).union(set([self.desc])), scope.inThisScope, [x[1] for x in results])
-        return context, task(context)
+        results = [x.walk(task, scope, functionTable, engineOptions) for x in self.body]
+
+        inferredType = results[-1][0].retType
+        if isinstance(inferredType, ExceptionType):
+            inferredType = AvroNull()
+
+        context = self.Context(inferredType, set(titus.util.flatten([x[0].calls for x in results])).union(set([self.desc])), scope.inThisScope, [x[1] for x in results])
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1130,7 +1244,7 @@ class Let(Expression):
         return super(Let, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.values.values())
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         if symbolTable.sealedWithin:
             raise PFASemanticException("new variable bindings are forbidden in this scope, but you can wrap your expression with \"do\" to make temporary variables", self.pos)
 
@@ -1147,8 +1261,11 @@ class Let(Expression):
                 raise PFASemanticException("\"{}\" is not a valid symbol name".format(name), self.pos)
 
             scope = symbolTable.newScope(True, True)
-            exprContext, exprResult = expr.walk(task, scope, functionTable)
+            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions)
             calls = calls.union(exprContext.calls)
+
+            if isinstance(exprContext.retType, ExceptionType):
+                raise PFASemanticException("cannot declare a variable with exception type", self.pos)
 
             newSymbols[name] = exprContext.retType
 
@@ -1158,7 +1275,7 @@ class Let(Expression):
             symbolTable.put(name, avroType)
 
         context = self.Context(AvroNull(), calls.union(set([self.desc])), nameTypeExpr)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1180,7 +1297,7 @@ class SetVar(Expression):
         return super(SetVar, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.values.values())
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
         nameTypeExpr = []
@@ -1191,7 +1308,7 @@ class SetVar(Expression):
                 raise PFASemanticException("symbol \"{}\" belongs to a sealed enclosing scope; it cannot be modified within this block)".format(name), self.pos)
 
             scope = symbolTable.newScope(True, True)
-            exprContext, exprResult = expr.walk(task, scope, functionTable)
+            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions)
             calls = calls.union(exprContext.calls)
 
             if not symbolTable(name).accepts(exprContext.retType):
@@ -1200,7 +1317,7 @@ class SetVar(Expression):
             nameTypeExpr.append((name, symbolTable(name), exprResult))
 
         context = self.Context(AvroNull(), calls.union(set([self.desc])), nameTypeExpr)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1223,16 +1340,16 @@ class AttrGet(Expression, HasPath):
                self.expr.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         exprScope = symbolTable.newScope(True, True)
-        exprContext, exprResult = self.expr.walk(task, exprScope, functionTable)
+        exprContext, exprResult = self.expr.walk(task, exprScope, functionTable, engineOptions)
 
         if not isinstance(exprContext.retType, (AvroArray, AvroMap, AvroRecord)):
             raise PFASemanticException("expression is not an array, map, or record", self.pos)
 
-        retType, calls, pathResult = self.walkPath(exprContext.retType, task, symbolTable, functionTable)
+        retType, calls, pathResult = self.walkPath(exprContext.retType, task, symbolTable, functionTable, engineOptions)
         context = self.Context(retType, calls.union(set([self.desc])), exprResult, exprContext.retType, pathResult)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1256,16 +1373,16 @@ class AttrTo(Expression, HasPath):
                titus.util.flatten(x.collect(pf) for x in self.path) + \
                self.to.collect(pf)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         exprScope = symbolTable.newScope(True, True)
-        exprContext, exprResult = self.expr.walk(task, exprScope, functionTable)
+        exprContext, exprResult = self.expr.walk(task, exprScope, functionTable, engineOptions)
 
         if not isinstance(exprContext.retType, (AvroArray, AvroMap, AvroRecord)):
             raise PFASemanticException("expression is not an array, map, or record", self.pos)
 
-        setType, calls, pathResult = self.walkPath(exprContext.retType, task, symbolTable, functionTable)
+        setType, calls, pathResult = self.walkPath(exprContext.retType, task, symbolTable, functionTable, engineOptions)
 
-        toContext, toResult = self.to.walk(task, symbolTable, functionTable)
+        toContext, toResult = self.to.walk(task, symbolTable, functionTable, engineOptions)
 
         if isinstance(toContext, ExpressionContext):
             if not setType.accepts(toContext.retType):
@@ -1280,9 +1397,14 @@ class AttrTo(Expression, HasPath):
         elif isinstance(toContext, FcnRef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("attr-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
-            context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, task(toContext), toContext.fcnType)   # Two-parameter task?  task(toContext, toContext.fcnType)
+            context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType)   # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
-        return context, task(context)
+        elif isinstance(toContext, FcnRefFill.Context):
+            if not FcnType([setType], setType).accepts(toContext.fcnType):
+                raise PFASemanticException("attr-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
+            context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType)   # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
+
+        return context, task(context, engineOptions)
         
     @property
     def jsonNode(self):
@@ -1302,15 +1424,15 @@ class CellGet(Expression, HasPath):
         return super(CellGet, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         c = symbolTable.cell(self.cell)
         if c is None:
             raise PFASemanticException("no cell named \"{}\"".format(self.cell), self.pos)
         cellType, shared = c.avroType, c.shared
 
-        retType, calls, pathResult = self.walkPath(cellType, task, symbolTable, functionTable)
+        retType, calls, pathResult = self.walkPath(cellType, task, symbolTable, functionTable, engineOptions)
         context = self.Context(retType, calls.union(set([self.desc])), self.cell, cellType, pathResult, shared)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1334,15 +1456,15 @@ class CellTo(Expression, HasPath):
                titus.util.flatten(x.collect(pf) for x in self.path) + \
                self.to.collect(pf)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         c = symbolTable.cell(self.cell)
         if c is None:
             raise PFASemanticException("no cell named \"{}\"".format(self.cell), self.pos)
         cellType, shared = c.avroType, c.shared
 
-        setType, calls, pathResult = self.walkPath(cellType, task, symbolTable, functionTable)
+        setType, calls, pathResult = self.walkPath(cellType, task, symbolTable, functionTable, engineOptions)
 
-        toContext, toResult = self.to.walk(task, symbolTable, functionTable)
+        toContext, toResult = self.to.walk(task, symbolTable, functionTable, engineOptions)
 
         if isinstance(toContext, ExpressionContext):
             if not setType.accepts(toContext.retType):
@@ -1357,9 +1479,14 @@ class CellTo(Expression, HasPath):
         elif isinstance(toContext, FcnRef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("cell-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
-            context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, task(toContext), toContext.fcnType, shared)  # Two-parameter task?  task(toContext, toContext.fcnType)
+            context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, shared)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
-        return context, task(context)
+        elif isinstance(toContext, FcnRefFill.Context):
+            if not FcnType([setType], setType).accepts(toContext.fcnType):
+                raise PFASemanticException("cell-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
+            context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, shared)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
+
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1384,15 +1511,15 @@ class PoolGet(Expression, HasPath):
         return super(PoolGet, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         p = symbolTable.pool(self.pool)
         if p is None:
             raise PFASemanticException("no pool named \"{}\"".format(self.pool), self.pos)
         poolType, shared = p.avroType, p.shared
 
-        retType, calls, pathResult = self.walkPath(AvroMap(poolType), task, symbolTable, functionTable)
+        retType, calls, pathResult = self.walkPath(AvroMap(poolType), task, symbolTable, functionTable, engineOptions)
         context = self.Context(retType, calls.union(set([self.desc])), self.pool, pathResult, shared)
-        return context, task(context)
+        return context, task(context, engineOptions)
         
     @property
     def jsonNode(self):
@@ -1414,46 +1541,43 @@ class PoolTo(Expression, HasPath):
         return super(PoolTo, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path) + \
                self.to.collect(pf) + \
-               (self.init.collect(pf) if self.init is not None else [])
+               self.init.collect(pf)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         p = symbolTable.pool(self.pool)
         if p is None:
             raise PFASemanticException("no pool named \"{}\"".format(self.pool), self.pos)
         poolType, shared = p.avroType, p.shared
 
-        setType, calls, pathResult = self.walkPath(AvroMap(poolType), task, symbolTable, functionTable)
+        setType, calls, pathResult = self.walkPath(AvroMap(poolType), task, symbolTable, functionTable, engineOptions)
 
-        toContext, toResult = self.to.walk(task, symbolTable, functionTable)
+        toContext, toResult = self.to.walk(task, symbolTable, functionTable, engineOptions)
+
+        initContext, initResult = self.init.walk(task, symbolTable, functionTable, engineOptions)
+        if not poolType.accepts(initContext.retType):
+            raise PFASemanticException("pool has type {} but attempting to init with type {}".format(repr(poolType), repr(initContext.retType)), self.pos)
 
         if isinstance(toContext, ExpressionContext):
             if not setType.accepts(toContext.retType):
                 raise PFASemanticException("pool-and-path has type {} but attempting to assign with type {}".format(repr(setType), repr(toContext.retType)), self.pos)
-            if self.init is not None:
-                raise PFASemanticException("if \"to\" is an expression, \"init\" is not allowed", self.pos)
-            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, toResult, toContext.retType, toResult, shared)
+            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, toResult, toContext.retType, initResult, shared)
 
         elif isinstance(toContext, FcnDef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("pool-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
-            if self.init is None:
-                raise PFASemanticException("if \"to\" is a function, \"init\" must be provided", self.pos)
-            initContext, initResult = self.init.walk(task, symbolTable, functionTable)
-            if not setType.accepts(initContext.retType):
-                raise PFASemanticException("pool-and-path has type {} but attempting to init with type {}".format(repr(setType), repr(initContext.retType)), self.pos)
             context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, toResult, toContext.fcnType, initResult, shared)
 
         elif isinstance(toContext, FcnRef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("pool-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
-            if self.init is None:
-                raise PFASemanticException("if \"to\" is a function, \"init\" must be provided", self.pos)
-            initContext, initResult = self.init.walk(task, symbolTable, functionTable)
-            if not setType.accepts(initContext.retType):
-                raise PFASemanticException("pool-and-path has type {} but attempting to init with type {}".format(repr(setType), repr(initContext.retType)), self.pos)
-            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, task(toContext), toContext.fcnType, initResult, shared)  # Two-parameter task?  task(toContext, toContext.fcnType)
+            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, initResult, shared)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
-        return context, task(context)
+        elif isinstance(toContext, FcnRefFill.Context):
+            if not FcnType([setType], setType).accepts(toContext.fcnType):
+                raise PFASemanticException("pool-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
+            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, initResult, shared)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
+
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1483,40 +1607,43 @@ class If(Expression):
                titus.util.flatten(x.collect(pf) for x in self.thenClause) + \
                (titus.util.flatten(x.collect(pf) for x in self.elseClause) if self.elseClause is not None else [])
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
         predScope = symbolTable.newScope(True, True)
-        predContext, predResult = self.predicate.walk(task, predScope, functionTable)
+        predContext, predResult = self.predicate.walk(task, predScope, functionTable, engineOptions)
         if not AvroBoolean().accepts(predContext.retType):
             raise PFASemanticException("\"if\" predicate should be boolean, but is " + repr(predContext.retType), self.pos)
         calls = calls.union(predContext.calls)
 
         thenScope = symbolTable.newScope(False, False)
-        thenResults = [x.walk(task, thenScope, functionTable) for x in self.thenClause]
+        thenResults = [x.walk(task, thenScope, functionTable, engineOptions) for x in self.thenClause]
         for exprCtx, exprRes in thenResults:
             calls = calls.union(exprCtx.calls)
 
         if self.elseClause is not None:
             elseScope = symbolTable.newScope(False, False)
 
-            elseResults = [x.walk(task, elseScope, functionTable) for x in self.elseClause]
+            elseResults = [x.walk(task, elseScope, functionTable, engineOptions) for x in self.elseClause]
             for exprCtx, exprRes in elseResults:
                 calls = calls.union(exprCtx.calls)
 
             thenType = thenResults[-1][0].retType
             elseType = elseResults[-1][0].retType
-            try:
-                retType = LabelData.broadestType([thenType, elseType])
-            except IncompatibleTypes as err:
-                raise PFASemanticException(str(err))
+            if isinstance(thenType, ExceptionType) and isinstance(elseType, ExceptionType):
+                retType = AvroNull()
+            else:
+                try:
+                    retType = P.mustBeAvro(LabelData.broadestType([thenType, elseType]))
+                except IncompatibleTypes as err:
+                    raise PFASemanticException(str(err))
 
             retType, elseTaskResults, elseSymbols = retType, [x[1] for x in elseResults], elseScope.inThisScope
         else:
             retType, elseTaskResults, elseSymbols = AvroNull(), None, None
 
         context = self.Context(retType, calls.union(set([self.desc])), thenScope.inThisScope, predResult, [x[1] for x in thenResults], elseSymbols, elseTaskResults)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1549,7 +1676,7 @@ class Cond(Expression):
                titus.util.flatten(x.collect(pf) for x in self.ifthens) + \
                (titus.util.flatten(x.collect(pf) for x in self.elseClause) if self.elseClause is not None else [])
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
         walkBlocks = []
@@ -1559,13 +1686,13 @@ class Cond(Expression):
             ifpos = ifthen.pos
 
             predScope = symbolTable.newScope(True, True)
-            predContext, predResult = predicate.walk(task, predScope, functionTable)
+            predContext, predResult = predicate.walk(task, predScope, functionTable, engineOptions)
             if not AvroBoolean().accepts(predContext.retType):
                 raise PFASemanticException("\"if\" predicate should be boolean, but is " + predContext.retType, ifpos)
             calls = calls.union(predContext.calls)
 
             thenScope = symbolTable.newScope(False, False)
-            thenResults = [x.walk(task, thenScope, functionTable) for x in thenClause]
+            thenResults = [x.walk(task, thenScope, functionTable, engineOptions) for x in thenClause]
             for exprCtx, exprRes in thenResults:
                 calls = calls.union(exprCtx.calls)
 
@@ -1574,7 +1701,7 @@ class Cond(Expression):
         if self.elseClause is not None:
             elseScope = symbolTable.newScope(False, False)
 
-            elseResults = [x.walk(task, elseScope, functionTable) for x in self.elseClause]
+            elseResults = [x.walk(task, elseScope, functionTable, engineOptions) for x in self.elseClause]
             for exprCtx, exprRes in elseResults:
                 calls = calls.union(exprCtx.calls)
 
@@ -1583,13 +1710,17 @@ class Cond(Expression):
         if self.elseClause is None:
             retType = AvroNull()
         else:
-            try:
-                retType = LabelData.broadestType([x.retType for x in walkBlocks])
-            except IncompatibleTypes as err:
-                raise PFASemanticException(str(err))
+            walkTypes = [x.retType for x in walkBlocks]
+            if all(isinstance(x, ExceptionType) for x in walkTypes):
+                retType = AvroNull()
+            else:
+                try:
+                    retType = LabelData.broadestType(walkTypes)
+                except IncompatibleTypes as err:
+                    raise PFASemanticException(str(err))
 
         context = self.Context(retType, calls.union(set([self.desc])), (self.elseClause is not None), walkBlocks)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1617,22 +1748,22 @@ class While(Expression):
                self.predicate.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
         loopScope = symbolTable.newScope(False, False)
         predScope = loopScope.newScope(True, True)
 
-        predContext, predResult = self.predicate.walk(task, predScope, functionTable)
+        predContext, predResult = self.predicate.walk(task, predScope, functionTable, engineOptions)
         if not AvroBoolean().accepts(predContext.retType):
             raise PFASemanticException("\"while\" predicate should be boolean, but is " + repr(predContext.retType), self.pos)
         calls = calls.union(predContext.calls)
 
-        loopResults = [x.walk(task, loopScope, functionTable) for x in self.body]
+        loopResults = [x.walk(task, loopScope, functionTable, engineOptions) for x in self.body]
         for exprCtx, exprRes in loopResults:
             calls = calls.union(exprCtx.calls)
 
         context = self.Context(AvroNull(), calls.union(set([self.desc])), loopScope.inThisScope, predResult, [x[1] for x in loopResults])
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1653,22 +1784,22 @@ class DoUntil(Expression):
                titus.util.flatten(x.collect(pf) for x in self.body) + \
                self.predicate.collect(pf)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
         loopScope = symbolTable.newScope(False, False)
         predScope = loopScope.newScope(True, True)
 
-        loopResults = [x.walk(task, loopScope, functionTable) for x in self.body]
+        loopResults = [x.walk(task, loopScope, functionTable, engineOptions) for x in self.body]
         for exprCtx, exprRes in loopResults:
             calls = calls.union(exprCtx.calls)
 
-        predContext, predResult = self.predicate.walk(task, predScope, functionTable)
+        predContext, predResult = self.predicate.walk(task, predScope, functionTable, engineOptions)
         if not AvroBoolean().accepts(predContext.retType):
             raise PFASemanticException("\"until\" predicate should be boolean, but is " + repr(predContext.retType), self.pos)
         calls = calls.union(predContext.calls)
 
         context = self.Context(AvroNull(), calls.union(set([self.desc])), loopScope.inThisScope, [x[1] for x in loopResults], predResult)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1699,7 +1830,7 @@ class For(Expression):
                titus.util.flatten(x.collect(pf) for x in self.step.values()) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
         loopScope = symbolTable.newScope(False, False)
 
@@ -1714,7 +1845,7 @@ class For(Expression):
                 raise PFASemanticException("\"{}\" is not a valid symbol name".format(name), self.pos)
 
             initScope = loopScope.newScope(True, True)
-            exprContext, exprResult = expr.walk(task, initScope, functionTable)
+            exprContext, exprResult = expr.walk(task, initScope, functionTable, engineOptions)
             calls = calls.union(exprContext.calls)
 
             newSymbols[name] = exprContext.retType
@@ -1725,7 +1856,7 @@ class For(Expression):
             loopScope.put(name, avroType)
 
         predicateScope = loopScope.newScope(True, True)
-        predicateContext, predicateResult = self.predicate.walk(task, predicateScope, functionTable)
+        predicateContext, predicateResult = self.predicate.walk(task, predicateScope, functionTable, engineOptions)
         if not AvroBoolean().accepts(predicateContext.retType):
             raise PFASemanticException("predicate should be boolean, but is " + repr(predicateContext.retType), self.pos)
         calls = calls.union(predicateContext.calls)
@@ -1738,7 +1869,7 @@ class For(Expression):
                 raise PFASemanticException("symbol \"{}\" belongs to a sealed enclosing scope; it cannot be modified within this block".format(name), self.pos)
 
             stepScope = loopScope.newScope(True, True)
-            exprContext, exprResult = expr.walk(task, stepScope, functionTable)
+            exprContext, exprResult = expr.walk(task, stepScope, functionTable, engineOptions)
             calls = calls.union(exprContext.calls)
 
             if not loopScope(name).accepts(exprContext.retType):
@@ -1747,12 +1878,12 @@ class For(Expression):
             stepNameTypeExpr.append((name, loopScope(name), exprResult))
 
         bodyScope = loopScope.newScope(False, False)
-        bodyResults = [x.walk(task, bodyScope, functionTable) for x in self.body]
+        bodyResults = [x.walk(task, bodyScope, functionTable, engineOptions) for x in self.body]
         for exprCtx, exprRes in bodyResults:
             calls = calls.union(exprCtx.calls)
 
         context = self.Context(AvroNull(), calls.union(set([self.desc])), dict(list(bodyScope.inThisScope.items()) + list(loopScope.inThisScope.items())), initNameTypeExpr, predicateResult, [x[1] for x in bodyResults], stepNameTypeExpr)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1775,7 +1906,7 @@ class Foreach(Expression):
                self.array.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
         loopScope = symbolTable.newScope(not self.seq, False)
 
@@ -1786,7 +1917,7 @@ class Foreach(Expression):
             raise PFASemanticException("\"{}\" is not a valid symbol name".format(self.name), self.pos)
 
         objScope = loopScope.newScope(True, True)
-        objContext, objResult = self.array.walk(task, objScope, functionTable)
+        objContext, objResult = self.array.walk(task, objScope, functionTable, engineOptions)
         calls = calls.union(objContext.calls)
 
         if not isinstance(objContext.retType, AvroArray):
@@ -1796,12 +1927,12 @@ class Foreach(Expression):
         loopScope.put(self.name, elementType)
 
         bodyScope = loopScope.newScope(False, False)
-        bodyResults = [x.walk(task, bodyScope, functionTable) for x in self.body]
+        bodyResults = [x.walk(task, bodyScope, functionTable, engineOptions) for x in self.body]
         for exprCtx, exprRes in bodyResults:
             calls = calls.union(exprCtx.calls)
 
         context = self.Context(AvroNull(), calls.union(set([self.desc])), dict(list(bodyScope.inThisScope.items()) + list(loopScope.inThisScope.items())), objContext.retType, objResult, elementType, self.name, [x[1] for x in bodyResults])
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1824,7 +1955,7 @@ class Forkeyval(Expression):
                self.map.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
         loopScope = symbolTable.newScope(False, False)
 
@@ -1839,7 +1970,7 @@ class Forkeyval(Expression):
             raise PFASemanticException("\"{}\" is not a valid symbol name".format(self.forval), self.pos)
 
         objScope = loopScope.newScope(True, True)
-        objContext, objResult = self.map.walk(task, objScope, functionTable)
+        objContext, objResult = self.map.walk(task, objScope, functionTable, engineOptions)
         calls = calls.union(objContext.calls)
 
         if not isinstance(objContext.retType, AvroMap):
@@ -1850,12 +1981,12 @@ class Forkeyval(Expression):
         loopScope.put(self.forval, elementType)
 
         bodyScope = loopScope.newScope(False, False)
-        bodyResults = [x.walk(task, bodyScope, functionTable) for x in self.body]
+        bodyResults = [x.walk(task, bodyScope, functionTable, engineOptions) for x in self.body]
         for exprCtx, exprRes in bodyResults:
             calls = calls.union(exprCtx.calls)
 
         context = self.Context(AvroNull(), calls.union([self.desc]), dict(list(bodyScope.inThisScope.items()) + list(loopScope.inThisScope.items())), objContext.retType, objResult, elementType, self.forkey, self.forval, [x[1] for x in bodyResults])
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1884,13 +2015,13 @@ class CastCase(Ast):
         return super(CastCase, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         scope = symbolTable.newScope(False, False)
         scope.put(self.named, self.avroType)
 
-        results = [x.walk(task, scope, functionTable) for x in self.body]
+        results = [x.walk(task, scope, functionTable, engineOptions) for x in self.body]
         context = self.Context(results[-1][0].retType, self.named, self.avroType, set(titus.util.flatten([x[0].calls for x in results])), scope.inThisScope, [x[1] for x in results])
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1909,11 +2040,11 @@ class CastBlock(Expression):
                self.expr.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.castCases)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
         exprScope = symbolTable.newScope(True, True)
-        exprContext, exprResult = self.expr.walk(task, exprScope, functionTable)
+        exprContext, exprResult = self.expr.walk(task, exprScope, functionTable, engineOptions)
         calls = calls.union(exprContext.calls)
 
         exprType = exprContext.retType
@@ -1924,7 +2055,7 @@ class CastBlock(Expression):
             if not exprType.accepts(t):
                 raise PFASemanticException("\"cast\" of expression with type {} can never satisfy case {}".format(exprType, t), self.pos)
 
-        cases = [x.walk(task, symbolTable, functionTable) for x in self.castCases]
+        cases = [x.walk(task, symbolTable, functionTable, engineOptions) for x in self.castCases]
         for castCtx, castRes in cases:
             calls = calls.union(castCtx.calls)
 
@@ -1947,7 +2078,7 @@ class CastBlock(Expression):
                 raise PFASemanticException(str(err))
 
         context = self.Context(retType, calls.union(set([self.desc])), exprType, exprResult, cases, self.partial)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1971,15 +2102,15 @@ class Upcast(Expression):
         return super(Upcast, self).collect(pf) + \
                self.expr.collect(pf)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         scope = symbolTable.newScope(True, True)
-        exprContext, exprResult = self.expr.walk(task, scope, functionTable)
+        exprContext, exprResult = self.expr.walk(task, scope, functionTable, engineOptions)
 
         if not self.avroType.accepts(exprContext.retType):
             raise PFASemanticException("expression results in {}; cannot expand (\"upcast\") to {}".format(exprContext.retType, self.avroType), self.pos)
 
         context = self.Context(self.avroType, exprContext.calls.union(set([self.desc])), exprResult)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -1995,7 +2126,7 @@ class Upcast(Expression):
 class IfNotNull(Expression):
     def __init__(self, exprs, thenClause, elseClause, pos=None):
         if len(self.exprs) < 1:
-            raise PFASyntaxException("\"then\" clause must contain at least one expression", self.pos)
+            raise PFASyntaxException("\"ifnotnull\" must contain at least one symbol-expression mapping", self.pos)
 
         if len(self.thenClause) < 1:
             raise PFASyntaxException("\"then\" clause must contain at least one expression", self.pos)
@@ -2009,7 +2140,7 @@ class IfNotNull(Expression):
                titus.util.flatten(x.collect(pf) for x in self.thenClause) + \
                (titus.util.flatten(x.collect(pf) for x in self.elseClause) if self.elseClause is not None else [])
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
         exprArgsScope = symbolTable.newScope(True, True)
@@ -2020,7 +2151,7 @@ class IfNotNull(Expression):
             if not validSymbolName(name):
                 raise PFASemanticException("\"{}\" is not a valid symbol name".format(name), self.pos)
 
-            exprCtx, exprRes = expr.walk(task, exprArgsScope, functionTable)
+            exprCtx, exprRes = expr.walk(task, exprArgsScope, functionTable, engineOptions)
 
             avroType = None
             if isinstance(exprCtx.retType, AvroUnion) and any(isinstance(x, AvroNull) for x in exprCtx.retType.types):
@@ -2028,8 +2159,9 @@ class IfNotNull(Expression):
                     avroType = AvroUnion([x for x in exprCtx.retType.types if not isinstance(x, AvroNull)])
                 elif len(exprCtx.retType.types) > 1:
                     avroType = [x for x in exprCtx.retType.types if not isinstance(x, AvroNull)][0]
+
             if avroType is None:
-                raise PFASemanticException("\"ifnotnull\" expressions must all be unions of something and null; case \"{}\" has type {}".format(name, exprCtx.retType))
+                raise PFASemanticException("\"ifnotnull\" expressions must all be unions of something and null; case \"{}\" has type {}".format(name, exprCtx.retType), self.pos)
 
             assignmentScope.put(name, avroType)
 
@@ -2038,14 +2170,14 @@ class IfNotNull(Expression):
             symbolTypeResult.append((name, avroType, exprRes))
 
         thenScope = assignmentScope.newScope(False, False)
-        thenResults = [x.walk(task, thenScope, functionTable) for x in self.thenClause]
+        thenResults = [x.walk(task, thenScope, functionTable, engineOptions) for x in self.thenClause]
         for exprCtx, exprRes in thenResults:
             calls = calls.union(exprCtx.calls)
 
         if self.elseClause is not None:
             elseScope = symbolTable.newScope(False, False)
 
-            elseResults = [x.walk(task, elseScope, functionTable) for x in self.elseClause]
+            elseResults = [x.walk(task, elseScope, functionTable, engineOptions) for x in self.elseClause]
             for exprCtx, exprRes in elseResults:
                 calls = calls.union(exprCtx.calls)
 
@@ -2061,7 +2193,7 @@ class IfNotNull(Expression):
             retType, elseTaskResults, elseSymbols = AvroNull(), None, None
 
         context = self.Context(retType, calls.union(set([self.desc])), symbolTypeResult, thenScope.inThisScope, [x[1] for x in thenResults], elseSymbols, elseTaskResults)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -2083,9 +2215,9 @@ class IfNotNull(Expression):
 class Doc(Expression):
     def __init__(self, comment, pos=None): pass
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroNull(), set([self.desc]))
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -2101,9 +2233,9 @@ class Doc(Expression):
 class Error(Expression):
     def __init__(self, message, code, pos=None): pass
 
-    def walk(self, task, symbolTable, functionTable):
-        context = self.Context(AvroNull(), set([self.desc]), self.message, self.code)
-        return context, task(context)
+    def walk(self, task, symbolTable, functionTable, engineOptions):
+        context = self.Context(ExceptionType(), set([self.desc]), self.message, self.code)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):
@@ -2126,11 +2258,11 @@ class Log(Expression):
         return super(Log, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.exprs)
 
-    def walk(self, task, symbolTable, functionTable):
+    def walk(self, task, symbolTable, functionTable, engineOptions):
         scope = symbolTable.newScope(True, True)
-        results = [x.walk(task, scope, functionTable) for x in self.exprs]
+        results = [x.walk(task, scope, functionTable, engineOptions) for x in self.exprs]
         context = self.Context(AvroNull(), set(titus.util.flatten([x[0].calls for x in results])).union(set([self.desc])), scope.inThisScope, results, self.namespace)
-        return context, task(context)
+        return context, task(context, engineOptions)
 
     @property
     def jsonNode(self):

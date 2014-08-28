@@ -64,6 +64,7 @@ import com.opendatagroup.hadrian.ast.MapIndex
 import com.opendatagroup.hadrian.ast.RecordIndex
 import com.opendatagroup.hadrian.ast.FcnDef
 import com.opendatagroup.hadrian.ast.FcnRef
+import com.opendatagroup.hadrian.ast.FcnRefFill
 import com.opendatagroup.hadrian.ast.CallUserFcn
 import com.opendatagroup.hadrian.ast.Call
 import com.opendatagroup.hadrian.ast.Ref
@@ -104,6 +105,7 @@ import com.opendatagroup.hadrian.ast.Log
 
 import com.opendatagroup.hadrian.datatype.Type
 import com.opendatagroup.hadrian.datatype.FcnType
+import com.opendatagroup.hadrian.datatype.ExceptionType
 import com.opendatagroup.hadrian.datatype.AvroType
 import com.opendatagroup.hadrian.datatype.AvroCompiled
 import com.opendatagroup.hadrian.datatype.AvroNumber
@@ -130,6 +132,7 @@ import com.opendatagroup.hadrian.datatype.ForwardDeclarationParser
 
 import com.opendatagroup.hadrian.data.PFADatumReader
 import com.opendatagroup.hadrian.data.PFADatumWriter
+import com.opendatagroup.hadrian.data.PFAMap
 import com.opendatagroup.hadrian.data.PFASpecificData
 import com.opendatagroup.hadrian.errors.PFAInitializationException
 import com.opendatagroup.hadrian.errors.PFARuntimeException
@@ -141,6 +144,8 @@ import com.opendatagroup.hadrian.reader.jsonToAst
 import com.opendatagroup.hadrian.shared.SharedMap
 import com.opendatagroup.hadrian.shared.SharedMapInMemory
 import com.opendatagroup.hadrian.shared.SharedState
+import com.opendatagroup.hadrian.signature.P
+import com.opendatagroup.hadrian.signature.Sig
 import com.opendatagroup.hadrian.yaml.yamlToJson
 
 package object jvmcompiler {
@@ -385,6 +390,12 @@ package jvmcompiler {
     private var _typeParser: ForwardDeclarationParser = null
     def typeParser: ForwardDeclarationParser = _typeParser
 
+    var _metadata: PFAMap[String] = null
+    var _actionsStarted: Long = 0L
+    var _actionsFinished: Long = 0L
+    def actionsStarted: Long = _actionsStarted
+    def actionsFinished: Long = _actionsFinished
+
     def calledBy(fcnName: String, exclude: Set[String] = Set[String]()): Set[String] =
       if (exclude.contains(fcnName))
         Set[String]()
@@ -447,9 +458,15 @@ package jvmcompiler {
 
       _typeParser = context.parser
 
+      _metadata = PFAMap.fromMap(config.metadata)
+
       // make sure that functions used in CellTo and PoolTo do not themselves call CellTo or PoolTo (which could lead to deadlock)
       config collect {
         case CellTo(_, _, FcnRef(x, _), _) =>
+          if (hasSideEffects(x))
+            throw new PFAInitializationException("cell-to references function \"%s\", which has side-effects".format(x))
+
+        case CellTo(_, _, FcnRefFill(x, _, _), _) =>
           if (hasSideEffects(x))
             throw new PFAInitializationException("cell-to references function \"%s\", which has side-effects".format(x))
 
@@ -465,6 +482,10 @@ package jvmcompiler {
           }
 
         case PoolTo(_, _, FcnRef(x, _), _, _) =>
+          if (hasSideEffects(x))
+            throw new PFAInitializationException("cell-to references function \"%s\", which has side-effects".format(x))
+
+        case PoolTo(_, _, FcnRefFill(x, _, _), _, _) =>
           if (hasSideEffects(x))
             throw new PFAInitializationException("cell-to references function \"%s\", which has side-effects".format(x))
 
@@ -763,7 +784,7 @@ package jvmcompiler {
       val engineOptions = new EngineOptions(engineConfig.options, options)
 
       val (context: EngineConfig.Context, code) =
-        engineConfig.walk(new JVMCompiler, SymbolTable.blank, FunctionTable.blank)
+        engineConfig.walk(new JVMCompiler, SymbolTable.blank, FunctionTable.blank, engineOptions)
 
       val javaCode = code.asInstanceOf[JavaCode]
       val engineName = javaCode.name.get
@@ -878,9 +899,9 @@ package jvmcompiler {
       case RecordIndex(name, t) => """new com.opendatagroup.hadrian.shared.R("%s")""".format(StringEscapeUtils.escapeJava(name))
     }).mkString(", ")
 
-    def apply(astContext: AstContext, resolvedType: Option[Type] = None): TaskResult = astContext match {
+    def apply(astContext: AstContext, engineOptions: EngineOptions, resolvedType: Option[Type] = None): TaskResult = astContext match {
       case EngineConfig.Context(
-        name: String,
+        engineName: String,
         method: Method.Method,
         input: AvroType,
         output: AvroType,
@@ -900,18 +921,24 @@ package jvmcompiler {
         pools: Map[String, Pool],
         randseed: Option[Long],
         doc: Option[String],
-        metadata: Option[JsonNode],
+        version: Option[Int],
+        metadata: Map[String, String],
         options: Map[String, JsonNode],
         parser: ForwardDeclarationParser) => {
 
-        val thisClassName = "PFA_" + name
+        val thisClassName = "PFA_" + engineName
 
         val dependencyBuilder = Map.newBuilder[String, JavaCode]
         dependencyBuilder.sizeHint(compiledTypes.size)
         for (avroCompiled <- compiledTypes) avroCompiled match {
           case AvroRecord(fields, name, namespace, _, _) => {
+            val interfaces = engineOptions.data_pfarecord_interface match {
+              case Some(x) => " implements " + x
+              case None => ""
+            }
+
             dependencyBuilder += (t(namespace, name, true) -> JavaCode("""%s
-public class %s extends com.opendatagroup.hadrian.data.PFARecord {
+public class %s extends com.opendatagroup.hadrian.data.PFARecord%s {
     public static final org.apache.avro.Schema SCHEMA$ = %s;
     public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
     public org.apache.avro.Schema getSchema() { return SCHEMA$; }
@@ -983,6 +1010,7 @@ return out;
 }
 """,          namespace map {"package " + _ + ";"} mkString(""),
               t(namespace, name, false),
+              interfaces,
               javaSchema(avroCompiled, true),
               fields map {"\"" + _.name + "\""} mkString(", "),
               fields map {x: AvroField => javaSchema(x.avroType, true)} mkString(", "),
@@ -1080,40 +1108,73 @@ public class %s extends com.opendatagroup.hadrian.data.PFAEnumSymbol implements 
         }
         
         val beginMethod =
-          """    public void begin() { (new Object() {
+          """    public void begin() { synchronized(runlock) { (new Object() {
 %s
 public void apply() {
 timeout = options().timeout_begin();
 startTime = System.currentTimeMillis();
+%s = "%s";
 %s
-} }).apply(); }""".format(symbolFields(beginSymbols), block(begin, ReturnMethod.NONE, AvroNull()))
+%s = _metadata();
+%s
+} }).apply(); } }""".format(
+            symbolFields(beginSymbols),
+            s("name"),
+            StringEscapeUtils.escapeJava(engineName),
+            version match {
+              case Some(x) => s("version") + " = " + x.toString + ";"
+              case None => ""
+            },
+            s("metadata"),
+            block(begin, ReturnMethod.NONE, AvroNull()))
 
         val (interface, actionMethod) = method match {
           case Method.MAP =>
             ("com.opendatagroup.hadrian.jvmcompiler.PFAMapEngine<%s, %s>".format(javaType(input, true, true, true), javaType(output, true, true, true)),
               """%s
     public %s action(%s input) {
+synchronized(runlock) {
 rollbackSave();
+_actionsStarted_$eq(_actionsStarted() + 1L);
+%s out;
 try {
-return (new Object() {
+out = (new Object() {
 %s
 public %s apply(%s input) {
 timeout = options().timeout_action();
 startTime = System.currentTimeMillis();
 %s = input;
+%s = "%s";
+%s
+%s = _metadata();
+%s = _actionsStarted();
+%s = _actionsFinished();
 %s
 } }).apply(input); }
 catch (Throwable err) {
 rollback();
 throw err;
+}
+_actionsFinished_$eq(_actionsFinished() + 1L);
+return out;
 } }""".format(
                 if (!input.isInstanceOf[AvroUnion]) """    public Object action(Object input) { return (Object)action((%s)input); }""".format(javaType(input, true, true, true)) else "",
                 javaType(output, true, true, true),
                 javaType(input, true, true, true),
+                javaType(output, true, true, true),
                 symbolFields(actionSymbols),
                 javaType(output, true, true, true),
                 javaType(input, true, true, true),
                 s("input"),
+                s("name"),
+                StringEscapeUtils.escapeJava(engineName),
+                version match {
+                  case Some(x) => s("version") + " = " + x.toString + ";"
+                  case None => ""
+                },
+                s("metadata"),
+                s("actionsStarted"),
+                s("actionsFinished"),
                 block(action, ReturnMethod.RETURN, output)))
 
           case Method.EMIT =>
@@ -1126,20 +1187,30 @@ throw err;
     public void emit_$eq(scala.Function1<%s, scala.runtime.BoxedUnit> newEmit) { %s = newEmit; }
 %s
     public %s action(%s input) {
+synchronized(runlock) {
 rollbackSave();
+_actionsStarted_$eq(_actionsStarted() + 1L);
 try {
-return (new Object() {
+(new Object() {
 %s
 public %s apply(%s input) {
 timeout = options().timeout_action();
 startTime = System.currentTimeMillis();
 %s = input;
+%s = "%s";
+%s
+%s = _metadata();
+%s = _actionsStarted();
+%s = _actionsFinished();
 %s
 return null;
 } }).apply(input); }
 catch (Throwable err) {
 rollback();
 throw err;
+}
+_actionsFinished_$eq(_actionsFinished() + 1L);
+return null;
 } }""".format(
                 javaType(output, true, true, true),
                 f("emit"),
@@ -1157,6 +1228,15 @@ throw err;
                 javaType(output, true, true, true),
                 javaType(input, true, true, true),
                 s("input"),
+                s("name"),
+                StringEscapeUtils.escapeJava(engineName),
+                version match {
+                  case Some(x) => s("version") + " = " + x.toString + ";"
+                  case None => ""
+                },
+                s("metadata"),
+                s("actionsStarted"),
+                s("actionsFinished"),
                 block(action, ReturnMethod.NONE, AvroNull())))
 
           case Method.FOLD =>
@@ -1176,7 +1256,9 @@ throw err;
     }
 %s
     public %s action(%s input) {
+synchronized(runlock) {
 rollbackSave();
+_actionsStarted_$eq(_actionsStarted() + 1L);
 try {
 %s = (new Object() {
 %s
@@ -1184,12 +1266,20 @@ public %s apply(%s input) {
 timeout = options().timeout_action();
 startTime = System.currentTimeMillis();
 %s = input;
+%s = "%s";
+%s
+%s = _metadata();
+%s = _actionsStarted();
+%s = _actionsFinished();
 %s
 } }).apply(input);
-return %s; }
+}
 catch (Throwable err) {
 rollback();
 throw err;
+}
+_actionsFinished_$eq(_actionsFinished() + 1L);
+return %s;
 } }""".format(
                 javaType(output, true, true, true),
                 s("tally"),
@@ -1212,18 +1302,45 @@ throw err;
                 javaType(output, true, true, true),
                 javaType(input, true, true, true),
                 s("input"),
+                s("name"),
+                StringEscapeUtils.escapeJava(engineName),
+                version match {
+                  case Some(x) => s("version") + " = " + x.toString + ";"
+                  case None => ""
+                },
+                s("metadata"),
+                s("actionsStarted"),
+                s("actionsFinished"),
                 block(action, ReturnMethod.RETURN, output),
                 s("tally")))
         }
 
         val endMethod =
-          """    public void end() { (new Object() {
+          """    public void end() { synchronized(runlock) { (new Object() {
 %s
 public void apply() {
 timeout = options().timeout_end();
 startTime = System.currentTimeMillis();
+%s = "%s";
 %s
-} }).apply(); }""".format(symbolFields(endSymbols), block(end, ReturnMethod.NONE, AvroNull()))
+%s = _metadata();
+%s = _actionsStarted();
+%s = _actionsFinished();
+%s
+%s
+} }).apply(); } }""".format(
+            symbolFields(endSymbols),
+            s("name"),
+            StringEscapeUtils.escapeJava(engineName),
+            version match {
+              case Some(x) => s("version") + " = " + x.toString + ";"
+              case None => ""
+            },
+            s("metadata"),
+            s("actionsStarted"),
+            s("actionsFinished"),
+            if (method == Method.FOLD) s("tally") + " = tally();" else "",
+            block(end, ReturnMethod.NONE, AvroNull()))
 
         val unsharedCells =
           for ((cname, cell) <- cells if (!cell.shared)) yield
@@ -1243,11 +1360,11 @@ startTime = System.currentTimeMillis();
 %s
 %s
 public %s apply(%s) {
+synchronized(runlock) {
 checkClock();
 %s
 %s
-}
-}""".format(f(fname),
+} } }""".format(f(fname),
             fcnContext.params.size.toString,
             ((fcnContext.params map {case (n, t) => javaType(t, true, true, true)}) :+ javaType(fcnContext.ret, true, true, true)).mkString(", "),
             symbolFields(fcnContext.symbols),
@@ -1283,6 +1400,7 @@ checkClock();
         JavaCode("""public class %s extends com.opendatagroup.hadrian.jvmcompiler.PFAEngineBase implements %s {
 final com.opendatagroup.hadrian.jvmcompiler.PFAEngineBase thisEngineBase = this;
 final %s thisInterface = this;
+private Object runlock = new Object();
 %s
 public com.opendatagroup.hadrian.shared.SharedMap sharedCells;
 %s
@@ -1314,7 +1432,7 @@ public void checkClock() {
           beginMethod,
           actionMethod,
           endMethod)
-        .setName("PFA_" + name)
+        .setName("PFA_" + engineName)
         .setDependencies(dependencyBuilder.result)
       }
 
@@ -1353,6 +1471,41 @@ checkClock();
       case FcnRef.Context(_, _, fcn) => resolvedType match {
         case Some(x: FcnType) => fcn.javaRef(x)
         case _ => JavaCode("").setAsPlaceholder()
+      }
+
+      case FcnRefFill.Context(fcnType, _, fcn, originalParamNames, argTypeResult) => {
+        val sig = fcn.sig.asInstanceOf[Sig]
+        val originalFcnType = FcnType(sig.params map {case (k, p) => P.toType(p)}, P.mustBeAvro(P.toType(sig.ret)))
+
+        val abstractCall =
+          if (fcnType.params.isEmpty  ||  fcnType.params.forall(_.isInstanceOf[AvroUnion]))
+            ""
+          else
+            """public %s apply(%s) { return apply(%s); }""".format(
+              javaType(fcnType.ret, true, true, true),
+              (0 until fcnType.params.size) map {i => "Object $" + i.toString} mkString(", "),
+              fcnType.params.zipWithIndex map {case (t, i) => "((%s)($%d))".format(javaType(P.mustBeAvro(t), true, true, true), i)} mkString(", "))
+
+        var j = 0
+        JavaCode("""(new scala.runtime.AbstractFunction%s<%s>() {
+public %s apply(%s) { return (%s).apply(%s); }
+%s
+})""",
+          fcnType.params.size.toString,
+          ((fcnType.params map {t => javaType(P.mustBeAvro(t), true, true, true)}) :+ javaType(fcnType.ret, true, true, true)).mkString(", "),
+          javaType(fcnType.ret, true, true, true),
+          fcnType.params.zipWithIndex map {case (t, i) => javaType(P.mustBeAvro(t), true, true, true) + " $" + i.toString} mkString(", "),
+          fcn.javaRef(originalFcnType).toString,
+          originalParamNames map {argTypeResult.get(_) match {
+            case Some((t: Type, r: TaskResult)) => r.toString
+            case None => {
+              val out = "$" + j.toString
+              j += 1
+              out
+            }
+          }} mkString(", "),
+          abstractCall
+        )
       }
 
       case CallUserFcn.Context(retType, _, name, nameToNum, nameToFcn, args, argContext, nameToParamTypes, nameToRetTypes) => {
@@ -1439,16 +1592,16 @@ public %s apply() {
 
       case Let.Context(_, _, nameTypeExpr) => {
         def wrap(nameTypeExpr: List[(String, AvroType, JavaCode)]): JavaCode = nameTypeExpr match {
-          case (name, t, expr) :: Nil => JavaCode("com.opendatagroup.hadrian.jvmcompiler.W.n(%s = %s)", s(name), W.wrapExpr(expr.toString, t, false))
-          case (name, t, expr) :: rest => JavaCode("com.opendatagroup.hadrian.jvmcompiler.W.nn(%s = %s, %s)", s(name), W.wrapExpr(expr.toString, t, false), wrap(rest).toString)
+          case (name, t, expr) :: Nil => JavaCode("com.opendatagroup.hadrian.jvmcompiler.W.n(%s = (%s)(%s))", s(name), javaType(t, false, true, false), W.wrapExpr(expr.toString, t, false))
+          case (name, t, expr) :: rest => JavaCode("com.opendatagroup.hadrian.jvmcompiler.W.nn(%s = (%s)(%s), %s)", s(name), javaType(t, false, true, false), W.wrapExpr(expr.toString, t, false), wrap(rest).toString)
         }
         wrap(nameTypeExpr.toList.collect({case (n, t, j: JavaCode) => (n, t, j)}))
       }
 
       case SetVar.Context(_, _, nameTypeExpr) => {
         def wrap(nameTypeExpr: List[(String, AvroType, JavaCode)]): JavaCode = nameTypeExpr match {
-          case (name, t, expr) :: Nil => JavaCode("com.opendatagroup.hadrian.jvmcompiler.W.n(%s = %s)", s(name), W.wrapExpr(expr.toString, t, false))
-          case (name, t, expr) :: rest => JavaCode("com.opendatagroup.hadrian.jvmcompiler.W.nn(%s = %s, %s)", s(name), W.wrapExpr(expr.toString, t, false), wrap(rest).toString)
+          case (name, t, expr) :: Nil => JavaCode("com.opendatagroup.hadrian.jvmcompiler.W.n(%s = (%s)(%s))", s(name), javaType(t, false, true, false), W.wrapExpr(expr.toString, t, false))
+          case (name, t, expr) :: rest => JavaCode("com.opendatagroup.hadrian.jvmcompiler.W.nn(%s = (%s)(%s), %s)", s(name), javaType(t, false, true, false), W.wrapExpr(expr.toString, t, false), wrap(rest).toString)
         }
         wrap(nameTypeExpr.toList.collect({case (n, t, j: JavaCode) => (n, t, j)}))
       }
@@ -1645,7 +1798,7 @@ public %s apply() {
           JavaCode("""(new Object() {
 %s
 public Void apply() {
-if (%s) {
+if (com.opendatagroup.hadrian.jvmcompiler.W.asBool(%s)) {
 %s
 }
 return null;
@@ -1779,32 +1932,49 @@ return null;
           W.wrapExpr("pair.getValue()", valueType, false),
           block(loopBody, ReturnMethod.NONE, retType))
 
-      case CastCase.Context(retType, name, toType, _, symbols, clause) => {
-        JavaCode("""(new Object() {
+      case CastCase.Context(retType, name, toType, _, symbols, clause) =>
+        if (retType.isInstanceOf[ExceptionType])
+          JavaCode("""(new Object() {
+%s
+public Object apply() {
+%s = ((%s)%s);
+%s
+return defaultDummy;
+} }).apply();
+""",
+            symbolFields(symbols),
+            s(name),
+            javaType(toType, true, true, true),
+            W.wrapExpr("obj", toType, false),
+            block(clause, ReturnMethod.NONE, retType))
+
+        else
+          JavaCode("""(new Object() {
 %s
 public %s apply() {
 %s = ((%s)%s);
 %s
 } }).apply();
 """,
-          symbolFields(symbols),
-          javaType(retType, false, true, true),
-          s(name),
-          javaType(toType, true, true, true),
-          W.wrapExpr("obj", toType, false),
-          block(clause, ReturnMethod.RETURN, retType))
-      }
+            symbolFields(symbols),
+            javaType(retType, false, true, true),
+            s(name),
+            javaType(toType, true, true, true),
+            W.wrapExpr("obj", toType, false),
+            block(clause, ReturnMethod.RETURN, retType))
 
       case CastBlock.Context(retType, _, exprType, expr, cases, partial) =>
         if (partial)
           JavaCode("""(new Object() {
 %s obj;
+%s defaultDummy = null;
 public Void apply() {
 obj = %s;
 %s
 return null;
 } }).apply()""",
             javaType(exprType, true, true, true),
+            javaType(retType, true, true, true),
             expr.toString,
             (for (((ctx: CastCase.Context, code: JavaCode), i) <- cases.zipWithIndex) yield {
               if (i == 0)
@@ -1815,20 +1985,30 @@ return null;
         else
           JavaCode("""(new Object() {
 %s obj;
+%s defaultDummy = null;
 public %s apply() {
 obj = %s;
 %s
 } }).apply()""",
             javaType(exprType, true, true, true),
             javaType(retType, true, true, true),
+            javaType(retType, true, true, true),
             expr.toString,
             (for (((ctx: CastCase.Context, code: JavaCode), i) <- cases.zipWithIndex) yield {
               if (i == 0)
-                "if (obj instanceof %s) { return %s }".format(javaType(ctx.toType, true, true, false), code.toString)
+                "if (obj instanceof %s) { return (%s)%s }".format(
+                  javaType(ctx.toType, true, true, false),
+                  javaType(retType, true, true, true),
+                  code.toString)
               else if (i == cases.size - 1)
-                "else { return %s }".format(code.toString)
+                "else { return (%s)%s }".format(
+                  javaType(retType, true, true, true),
+                  code.toString)
               else
-                "else if (obj instanceof %s) { return %s }".format(javaType(ctx.toType, true, true, false), code.toString)
+                "else if (obj instanceof %s) { return (%s)%s }".format(
+                  javaType(ctx.toType, true, true, false),
+                  javaType(retType, true, true, true),
+                  code.toString)
             }).mkString("\n"))
 
       case Upcast.Context(retType, _, expr) =>
@@ -1902,7 +2082,7 @@ return null;
       case Error.Context(_, _, message, code) =>
         JavaCode("""(new Object() {
 boolean dummy = true;
-public Void apply() {
+public Object apply() {
     if (dummy)
         throw new com.opendatagroup.hadrian.errors.PFAUserException("%s", %s);
     return null;
@@ -1926,11 +2106,14 @@ public Void apply() {
 }
 }).apply()""",
           symbolFields(symbols),
-          (for ((code: JavaCode, exprType) <- exprTypes) yield {
-            val out = "    out += \"%s\" + toJson(%s, %s);".format(space, code.toString, javaSchema(exprType, false))
-            space = " "
-            out
-          }).mkString("\n"),
+          (for ((code: JavaCode, exprType) <- exprTypes) yield
+            if (exprType.isInstanceOf[ExceptionType])
+              code.toString + ";"
+            else {
+              val out = "    out += \"%s\" + toJson(%s, %s);".format(space, code.toString, javaSchema(exprType, false))
+              space = " "
+              out
+            }).mkString("\n"),
           (if (namespace == None)
             "scala.None$.MODULE$"
           else

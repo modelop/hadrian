@@ -65,9 +65,9 @@ package object metric {
   val prefix = "metric."
 
   ////   simpleEuclidean (SimpleEuclidean)
-  object SimpleEuclidean extends LibFcn {
+  object SimpleEuclidean extends LibFcn with Function2[PFAArray[Double], PFAArray[Double], Double] {
     val name = prefix + "simpleEuclidean"
-    val sig = Sigs(List(Sig(List("x" -> P.Array(P.Double), "y" -> P.Array(P.Double)), P.Double)))
+    val sig = Sig(List("x" -> P.Array(P.Double), "y" -> P.Array(P.Double)), P.Double)
     val doc =
       <doc>
         <desc>Euclidean metric without a special similarity function and without any handling of missing values.</desc>

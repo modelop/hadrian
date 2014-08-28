@@ -23,6 +23,7 @@ import itertools
 import titus.P as P
 from titus.datatype import Type
 from titus.datatype import FcnType
+from titus.datatype import ExceptionType
 from titus.datatype import AvroType
 from titus.datatype import AvroCompiled
 from titus.datatype import AvroNull
@@ -66,66 +67,70 @@ class LabelData(object):
 
     @staticmethod
     def broadestType(candidates):
+        realCandidates = [x for x in candidates if not isinstance(x, ExceptionType)]
+
         if len(candidates) == 0:
             return ValueError("empty list of types")
+        elif len(realCandidates) == 0:
+            return ValueError("list of types consists only of exception type")
 
-        elif all(isinstance(x, AvroNull) for x in candidates):
-            return candidates[0]
-        elif all(isinstance(x, AvroBoolean) for x in candidates):
-            return candidates[0]
+        elif all(isinstance(x, AvroNull) for x in realCandidates):
+            return realCandidates[0]
+        elif all(isinstance(x, AvroBoolean) for x in realCandidates):
+            return realCandidates[0]
 
-        elif all(isinstance(x, AvroInt) for x in candidates):
+        elif all(isinstance(x, AvroInt) for x in realCandidates):
             return AvroInt()
-        elif all(isinstance(x, AvroInt) or isinstance(x, AvroLong) for x in candidates):
+        elif all(isinstance(x, AvroInt) or isinstance(x, AvroLong) for x in realCandidates):
             return AvroLong()
-        elif all(isinstance(x, AvroInt) or isinstance(x, AvroLong) or isinstance(x, AvroFloat) for x in candidates):
+        elif all(isinstance(x, AvroInt) or isinstance(x, AvroLong) or isinstance(x, AvroFloat) for x in realCandidates):
             return AvroFloat()
-        elif all(isinstance(x, AvroInt) or isinstance(x, AvroLong) or isinstance(x, AvroFloat) or isinstance(x, AvroDouble) for x in candidates):
+        elif all(isinstance(x, AvroInt) or isinstance(x, AvroLong) or isinstance(x, AvroFloat) or isinstance(x, AvroDouble) for x in realCandidates):
             return AvroDouble()
 
-        elif all(isinstance(x, AvroBytes) for x in candidates):
-            return candidates[0]
-        elif all(isinstance(x, AvroString) for x in candidates):
-            return candidates[0]
+        elif all(isinstance(x, AvroBytes) for x in realCandidates):
+            return realCandidates[0]
+        elif all(isinstance(x, AvroString) for x in realCandidates):
+            return realCandidates[0]
 
-        elif all(isinstance(x, AvroArray) for x in candidates):
-            return AvroArray(P.mustBeAvro(LabelData.broadestType([x.items for x in candidates])))
+        elif all(isinstance(x, AvroArray) for x in realCandidates):
+            return AvroArray(P.mustBeAvro(LabelData.broadestType([x.items for x in realCandidates])))
 
-        elif all(isinstance(x, AvroMap) for x in candidates):
-            return AvroMap(P.mustBeAvro(LabelData.broadestType([x.values for x in candidates])))
+        elif all(isinstance(x, AvroMap) for x in realCandidates):
+            return AvroMap(P.mustBeAvro(LabelData.broadestType([x.values for x in realCandidates])))
 
-        elif all(isinstance(x, AvroFixed) for x in candidates):
-            fullName = candidates[0].fullName
-            if all(x.fullName == fullName for x in candidates[1:]):
-                return candidates[0]
+        elif all(isinstance(x, AvroFixed) for x in realCandidates):
+            fullName = realCandidates[0].fullName
+            if all(x.fullName == fullName for x in realCandidates[1:]):
+                return realCandidates[0]
             else:
-                raise IncompatibleTypes("incompatible fixed types: " + " ".join(map(repr, candidates)))
+                raise IncompatibleTypes("incompatible fixed types: " + " ".join(map(repr, realCandidates)))
 
-        elif all(isinstance(x, AvroEnum) for x in candidates):
-            fullName = candidates[0].fullName
-            if all(x.fullName == fullName for x in candidates[1:]):
-                return candidates[0]
+        elif all(isinstance(x, AvroEnum) for x in realCandidates):
+            fullName = realCandidates[0].fullName
+            if all(x.fullName == fullName for x in realCandidates[1:]):
+                return realCandidates[0]
             else:
-                raise IncompatibleTypes("incompatible enum types: " + " ".join(map(repr, candidates)))
+                raise IncompatibleTypes("incompatible enum types: " + " ".join(map(repr, realCandidates)))
 
-        elif all(isinstance(x, AvroRecord) for x in candidates):
-            fullName = candidates[0].fullName
-            if all(x.fullName == fullName for x in candidates[1:]):
-                return candidates[0]
+        elif all(isinstance(x, AvroRecord) for x in realCandidates):
+            fullName = realCandidates[0].fullName
+            if all(x.fullName == fullName for x in realCandidates[1:]):
+                return realCandidates[0]
             else:
-                raise IncompatibleTypes("incompatible record types: " + " ".join(map(repr, candidates)))
+                raise IncompatibleTypes("incompatible record types: " + " ".join(map(repr, realCandidates)))
 
-        elif all(isinstance(x, FcnType) for x in candidates):
-            params = candidates[0].params
-            ret = candidates[0].ret
+        elif all(isinstance(x, FcnType) for x in realCandidates):
+            params = realCandidates[0].params
+            ret = realCandidates[0].ret
 
-            if all(x.params == params and x.ret == ret for x in candidates[1:]):
-                return candidates[0]
+            if all(x.params == params and x.ret == ret for x in realCandidates[1:]):
+                return realCandidates[0]
             else:
-                raise IncompatibleTypes("incompatible function types: " + " ".join(map(repr, candidates)))
+                raise IncompatibleTypes("incompatible function types: " + " ".join(map(repr, realCandidates)))
 
-        elif not any(isinstance(x, FcnType) for x in candidates):
-            types = LabelData.distinctTypes(candidates)
+        elif not any(isinstance(x, FcnType) for x in realCandidates):
+            types = LabelData.distinctTypes(realCandidates)
             types = [P.mustBeAvro(x) for x in types]
 
             countFixed = 0
@@ -144,7 +149,7 @@ class LabelData(object):
             return AvroUnion(types)
 
         else:
-            raise IncompatibleTypes("incompatible function/non-function types: " + " ".join(map(repr, candidates)))
+            raise IncompatibleTypes("incompatible function/non-function types: " + " ".join(map(repr, realCandidates)))
 
     def __init__(self):
         self.members = []
@@ -201,7 +206,10 @@ class Sig(Signature):
             return None
 
     def check(self, pat, arg, labelData, strict, reversed):
-        if isinstance(pat, P.Null) and isinstance(arg, AvroNull):
+        if isinstance(arg, ExceptionType):
+            return False
+
+        elif isinstance(pat, P.Null) and isinstance(arg, AvroNull):
             return True
         elif isinstance(pat, P.Boolean) and isinstance(arg, AvroBoolean):
             return True

@@ -20,6 +20,7 @@ package com.opendatagroup.hadrian.lib1.model
 
 import scala.language.postfixOps
 import scala.collection.immutable.ListMap
+import scala.util.Random
 
 import org.apache.avro.AvroRuntimeException
 import org.apache.avro.SchemaCompatibility.checkReaderWriterCompatibility
@@ -143,5 +144,152 @@ package object cluster {
     }
   }
   provide(ClosestN)
+
+  ////   randomSeeds (RandomSeeds)
+  object RandomSeeds extends LibFcn {
+    val name = prefix + "randomSeeds"
+    val sig = Sig(List(
+      "data" -> P.Array(P.Array(P.Wildcard("A"))),
+      "k" -> P.Int,
+      "newCluster" -> P.Fcn(List(P.Int, P.Array(P.Wildcard("A"))), P.WildRecord("C", ListMap("center" -> P.Array(P.Wildcard("B")))))
+    ), P.Array(P.Wildcard("C")))
+    val doc =
+      <doc>
+        <desc>Call <p>newCluster</p> to create <p>k</p> cluster records with random, unique cluster centers drawn from <p>data</p>.</desc>
+        <param name="data">Sample data.</param>
+        <param name="k">Number of times to call <p>newCluster</p>.</param>
+        <param name="newCluster">Function that creates a cluster record, given an index (ranges from zero up to but not including <p>k</p>) and a random vector from <p>data</p>.</param>
+        <ret>The cluster records created by <p>newCluster</p>.</ret>
+        <error>Raises a "k must be greater than zero" error if <p>k</p> is less than or equal to zero.</error>
+        <error>Raises a "not enough unique points" error if <p>data</p> has fewer than <p>k</p> unique elements.</error>
+        <error>Raises a "dimensions of vectors do not match" error if the elements of <p>data</p> are not all the same size.</error>
+      </doc>
+    override def javaRef(fcnType: FcnType): JavaCode =
+      JavaCode("(new " + this.getClass.getName + "Selector(randomGenerator()))")
+    class Selector(randomGenerator: Random) {
+      def apply[X](data: PFAArray[PFAArray[X]], k: Int, newCluster: (Int, PFAArray[X]) => PFARecord): PFAArray[PFARecord] = {
+        if (k <= 0)
+          throw new PFARuntimeException("k must be greater than zero")
+
+        val uniques = data.toVector.distinct
+        if (uniques.size < k)
+          throw new PFARuntimeException("not enough unique points")
+
+        val sizes = uniques.map(_.toVector.size).distinct
+        if (sizes.size != 1)
+          throw new PFARuntimeException("dimensions of vectors do not match")
+
+        val selected = randomGenerator.shuffle(uniques).take(k)
+
+        PFAArray.fromVector(
+          for ((vec, i) <- selected.zipWithIndex) yield
+            newCluster(i, vec))
+      }
+    }
+  }
+  provide(RandomSeeds)
+
+  ////   kmeansIteration (KMeansIteration)
+  object KMeansIteration extends LibFcn {
+    val name = prefix + "kmeansIteration"
+    val sig = Sig(List(
+      "data" -> P.Array(P.Array(P.Wildcard("A"))),
+      "clusters" -> P.Array(P.WildRecord("C", ListMap("center" -> P.Array(P.Wildcard("B"))))),
+      "metric" -> P.Fcn(List(P.Array(P.Wildcard("A")), P.Array(P.Wildcard("B"))), P.Double),
+      "update" -> P.Fcn(List(P.Array(P.Array(P.Wildcard("A"))), P.Wildcard("C")), P.Wildcard("C"))
+    ), P.Array(P.Wildcard("C")))
+    val doc =
+      <doc>
+        <desc>Update a cluster set by applying one iteration of k-means (Lloyd's algorithm).</desc>
+        <param name="data">Sample data.</param>
+        <param name="clusters">Set of clusters; the record type <tp>C</tp> may contain additional identifying information for post-processing.</param>
+        <param name="metric">Function used to compare each <p>datum</p> with the <pf>center</pf> of the <p>clusters</p>.  (See, for example, <f>metric.euclidean</f>.)</param>
+        <param name="update">Function of matched data and old cluster records that yields new cluster records.  (See, for example, <f>model.cluster.updateMean</f> with <p>weight</p> = 0.)</param>
+        <detail>The <p>update</p> function is only called if the number of matched data points is greater than zero.</detail>
+        <ret>Returns a new cluster set with each of the <tp>centers</tp> located at the average of all points that match the corresponding cluster in the old cluster set.</ret>
+        <error>Raises a "no data" error if <p>data</p> is empty.</error>
+        <error>Raises a "no clusters" error if <p>clusters</p> is empty.</error>
+      </doc>
+    def apply[A, B](data: PFAArray[PFAArray[A]], clusters: PFAArray[PFARecord], metric: (PFAArray[A], PFAArray[B]) => Double, update: (PFAArray[PFAArray[A]], PFARecord) => PFARecord): PFAArray[PFARecord] = {
+      if (data.toVector.isEmpty)
+        throw new PFARuntimeException("no data")
+
+      val theClusters = clusters.toVector
+      val centers = theClusters map {_.get("center").asInstanceOf[PFAArray[B]]}
+
+      val length = theClusters.size
+      if (length == 0)
+        throw new PFARuntimeException("no clusters")
+
+      val matched = Array.fill(length)(List[PFAArray[A]]())
+
+      for (datum <- data.toVector) {
+        var besti = 0
+        var bestCenter: PFAArray[B] = null
+        var bestDistance = 0.0
+        var i = 0
+        while (i < length) {
+          val thisCenter = centers(i)
+          val thisDistance = metric(datum, thisCenter)
+          if (bestCenter == null  ||  thisDistance < bestDistance) {
+            besti = i
+            bestCenter = thisCenter
+            bestDistance = thisDistance
+          }
+          i += 1
+        }
+        matched(besti) = datum :: matched(besti)
+      }
+
+      PFAArray.fromVector(
+        for ((matchedData, i) <- matched.toVector.zipWithIndex) yield
+          if (matchedData.isEmpty)
+            theClusters(i)
+          else
+            update(PFAArray.fromVector(matchedData.reverse.toVector), theClusters(i)))
+    }
+  }
+  provide(KMeansIteration)
+
+  ////   updateMean (UpdateMean)
+  object UpdateMean extends LibFcn {
+    val name = prefix + "updateMean"
+    val sig = Sig(List("data" -> P.Array(P.Array(P.Double)), "cluster" -> P.WildRecord("C", ListMap("center" -> P.Array(P.Double))), "weight" -> P.Double), P.Wildcard("C"))
+    val doc =
+      <doc>
+        <desc>Update a cluster record by computing the mean of the <p>data</p> vectors and <p>weight</p> times the old <p>cluster</p> center.</desc>
+        <detail>If <p>weight</p> is zero, the new center is equal to the mean of <p>data</p>, ignoring the old <p>center</p>.</detail>
+        <error>Raises a "no data" error if <p>data</p> is empty.</error>
+        <error>Raises a "dimensions of vectors do not match" error if all elements of <p>data</p> and the <p>cluster</p> center do not match.</error>
+      </doc>
+    def apply(data: PFAArray[PFAArray[Double]], cluster: PFARecord, weight: Double): PFARecord = {
+      if (data.toVector.isEmpty)
+        throw new PFARuntimeException("no data")
+
+      val dimension = data.toVector.head.size
+      val summ = Array.fill(dimension)(0.0)
+
+      for (datum <- data.toVector) {
+        val vec = datum.toVector
+        if (vec.size != dimension)
+          throw new PFARuntimeException("dimensions of vectors do not match")
+        for (i <- 0 until dimension)
+          summ(i) += vec(i)
+      }
+
+      val vec = cluster.get("center").asInstanceOf[PFAArray[Double]].toVector
+      if (vec.size != dimension)
+        throw new PFARuntimeException("dimensions of vectors do not match")
+      for (i <- 0 until dimension)
+        summ(i) += weight * vec(i)
+
+      val denom = data.toVector.size + weight
+      for (i <- 0 until dimension)
+        summ(i) = summ(i) / denom
+
+      cluster.multiUpdate(Array("center"), Array(PFAArray.fromVector(summ.toVector)))
+    }
+  }
+  provide(UpdateMean)
 
 }

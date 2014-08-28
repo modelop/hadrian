@@ -55,7 +55,7 @@ class E(LibFcn):
         return math.e
 provide(E())
 
-#################################################################### functions (alphabetical order)
+#################################################################### basic functions (alphabetical order)
 
 anyNumber = set([AvroInt(), AvroLong(), AvroFloat(), AvroDouble()])
 
@@ -303,3 +303,13 @@ class TanH(LibFcn):
     def __call__(self, state, scope, paramTypes, x):
         return math.tanh(x)
 provide(TanH())
+
+#################################################################### special functions
+
+class SpecialErf(LibFcn):
+    name = prefix + "special.erf"
+    sig = Sig([{"x": P.Double()}], P.Double())
+    def __call__(self, state, scope, paramTypes, x):
+        return math.erf(x)
+provide(SpecialErf())
+

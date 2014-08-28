@@ -38,6 +38,10 @@ INT_MIN_VALUE = -2147483648
 INT_MAX_VALUE = 2147483647
 LONG_MIN_VALUE = -9223372036854775808
 LONG_MAX_VALUE = 9223372036854775807
+FLOAT_MIN_VALUE = 1.4e-45
+FLOAT_MAX_VALUE = 3.4028235e38
+DOUBLE_MIN_VALUE = 4.9e-324
+DOUBLE_MAX_VALUE = 1.7976931348623157e308
 
 def checkForOverflow(paramTypes, out):
     if paramTypes == ["int", "int"] or paramTypes == ["int"]:
@@ -79,10 +83,11 @@ provide(Times())
 class Divide(LibFcn):
     name = "/"
     sig = Sig([{"x": P.Double()}, {"y": P.Double()}], P.Double())
-    def genpy(self, paramTypes, args):
-        return "({} / float({}))".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
-        return x / float(y)
+        try:
+            return x / float(y)
+        except ZeroDivisionError:
+            return float("nan")
 provide(Divide())
 
 class FloorDivide(LibFcn):

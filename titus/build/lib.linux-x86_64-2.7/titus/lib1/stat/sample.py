@@ -294,11 +294,11 @@ class UpdateEWMA(LibFcn):
             return out
 
         mean = theState["mean"]
-        variance = theState["variance"]
         diff = x - mean
         incr = alpha * diff
 
         if hasVariance:
+            variance = theState["variance"]
             return dict(theState, mean=(mean + incr), variance=((1.0 - alpha) * (variance + diff * incr)))
         else:
             return dict(theState, mean=(mean + incr))

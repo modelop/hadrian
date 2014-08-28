@@ -49,7 +49,7 @@ class AbsDiff(Similarity):
     def __init__(self):
         self.calculate = lambda dataset, cluster: dataset - cluster
     def pfa(self):
-        return {"fcnref": "metric.absDiff"}
+        return {"fcn": "metric.absDiff"}
 
 class GaussianSimilarity(Similarity):
     def __init__(self, sigma):
@@ -118,11 +118,16 @@ class Minkowski(Metric):
 # 0.001, and keep going if one jumped
 
 def printChange(format):
-    state = {}
+    state = {"ready": False}
     def out(iterationNumber, corrections, datasetSize):
-        if len(state) == 0:
+        if not state["ready"]:
             state["j"] = "{:5s} (jump)"
-            state["n"] = "{:5s}" + ((" {:%s}" % format) * len(corrections[0]))
+            for corr in corrections:
+                if corr is not None:
+                    state["n"] = "{:5s}" + ((" {:%s}" % format) * len(corr))
+                    break
+            if "n" in state:
+                state["ready"] = True
             print "iter  changes"
             print "----------------------------------"
         for index, corr in enumerate(corrections):
@@ -195,10 +200,13 @@ class KMeans(object):
         if len(dataset.shape) != 2:
             raise TypeError("dataset must be two-dimensional: dataset.shape[0] is the number of records (rows), dataset.shape[1] is the number of dimensions (columns)")
 
-        flattenedView = numpy.ascontiguousarray(dataset).view(numpy.dtype((numpy.void, dataset.dtype.itemsize * dataset.shape[1])))
-        _, indexes = numpy.unique(flattenedView, return_index=True)
+        try:
+            flattenedView = numpy.ascontiguousarray(dataset).view(numpy.dtype((numpy.void, dataset.dtype.itemsize * dataset.shape[1])))
+            _, indexes = numpy.unique(flattenedView, return_index=True)
+            self.uniques = dataset[indexes]
+        except TypeError:
+            self.uniques = dataset
 
-        self.uniques = dataset[indexes]
         if self.uniques.shape[0] <= numberOfClusters:
             raise TypeError("the number of unique records in the dataset ({} in this case) must be strictly greater than numberOfClusters ({})".format(self.uniques.shape[0], numberOfClusters))
 
@@ -246,6 +254,23 @@ class KMeans(object):
 
         return dataset, weights
 
+    def closestCluster(self, dataset, weights):
+        """Identify the closest cluster to each element in the
+        dataset.
+
+        Return value is an array of integers corresponding to the
+        indexes of the closest cluster for each datum."""
+
+        # distanceToCenter is the result of applying the metric to each point in the dataset, for each cluster
+        # distanceToCenter.shape[0] is the number of records, distanceToCenter.shape[1] is the number of clusters
+
+        distanceToCenter = numpy.empty((dataset.shape[0], self.numberOfClusters), dtype=numpy.dtype(float))
+        for clusterIndex, cluster in enumerate(self.clusters):
+            distanceToCenter[:, clusterIndex] = self.metric.calculate(dataset, cluster)
+
+        # indexOfClosestCluster is the cluster classification for each point in the dataset
+        return numpy.argmin(distanceToCenter, axis=1)
+
     def iterate(self, dataset, weights, iterationNumber, condition):
         """Perform one iteration step (in-place; modifies
         self.clusters).
@@ -256,15 +281,7 @@ class KMeans(object):
         The return value is the result of condition(iterationNumber,
         corrections, dataset.shape[0])."""
 
-        # distanceToCenter is the result of applying the metric to each point in the dataset, for each cluster
-        # distanceToCenter.shape[0] is the number of records, distanceToCenter.shape[1] is the number of clusters
-
-        distanceToCenter = numpy.empty((dataset.shape[0], self.numberOfClusters), dtype=numpy.dtype(float))
-        for clusterIndex, cluster in enumerate(self.clusters):
-            distanceToCenter[:, clusterIndex] = self.metric.calculate(dataset, cluster)
-
-        # indexOfClosestCluster is the cluster classification for each point in the dataset
-        indexOfClosestCluster = numpy.argmin(distanceToCenter, axis=1)
+        indexOfClosestCluster = self.closestCluster(dataset, weights)
 
         corrections = []
         for clusterIndex, cluster in enumerate(self.clusters):

@@ -377,7 +377,7 @@ action:
       value: [[898.98, -1026.12], [-1026.12, 1309.55]]
 """).head
     chi2(engine.action(null).asInstanceOf[PFAArray[PFAArray[Double]]],
-         Vector(Vector(0.014, -0.017), Vector(-0.102, -0.083))) should be (0.00 +- 0.01)
+         Vector(Vector(0.014, -0.017), Vector(0.102, 0.083))) should be (0.00 +- 0.01)
   }
 
   it must "compute an eigenbasis from maps" taggedAs(Lib1, Lib1LA) in {
@@ -390,7 +390,7 @@ action:
       value: {a: {a: 898.98, b: -1026.12}, b: {a: -1026.12, b: 1309.55}}
 """).head
     chi2(engine.action(null).asInstanceOf[PFAMap[PFAMap[java.lang.Double]]],
-         Map("0" -> Map("a" -> 0.014, "b" -> -0.017), "1" -> Map("a" -> -0.102, "b" -> -0.083))) should be (0.00 +- 0.01)
+         Map("0" -> Map("a" -> 0.014, "b" -> -0.017), "1" -> Map("a" -> 0.102, "b" -> 0.083))) should be (0.00 +- 0.01)
   }
 
   it must "accumulate a covariance and compute eigenbasis using arrays" taggedAs(Lib1, Lib1LA) in {
@@ -445,19 +445,19 @@ action:
     engine.action(engine.fromJson("""{"datum": [56, 5], "update": true}""", engine.inputType))
 
     chi2Vector(engine.action(engine.fromJson("""{"datum": [12, 85], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
-         Vector(-0.728, -0.775)) should be (0.00 +- 0.01)
+         Vector(-0.728, 0.775)) should be (0.00 +- 0.01)
     chi2Vector(engine.action(engine.fromJson("""{"datum": [32, 40], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
-         Vector(0.295, 0.943)) should be (0.00 +- 0.01)
+         Vector(0.295, -0.943)) should be (0.00 +- 0.01)
     chi2Vector(engine.action(engine.fromJson("""{"datum": [4, 90], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
-         Vector(-0.921, -0.378)) should be (0.00 +- 0.01)
+         Vector(-0.921, 0.378)) should be (0.00 +- 0.01)
     chi2Vector(engine.action(engine.fromJson("""{"datum": [3, 77], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
-         Vector(-0.718, 0.808)) should be (0.00 +- 0.01)
+         Vector(-0.718, -0.808)) should be (0.00 +- 0.01)
     chi2Vector(engine.action(engine.fromJson("""{"datum": [7, 87], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
-         Vector(-0.830, -0.433)) should be (0.00 +- 0.01)
+         Vector(-0.830, 0.433)) should be (0.00 +- 0.01)
     chi2Vector(engine.action(engine.fromJson("""{"datum": [88, 2], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
-         Vector(1.695, -1.585)) should be (0.00 +- 0.01)
+         Vector(1.695, 1.585)) should be (0.00 +- 0.01)
     chi2Vector(engine.action(engine.fromJson("""{"datum": [56, 5], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
-         Vector(1.207, 1.420)) should be (0.00 +- 0.01)
+         Vector(1.207, -1.420)) should be (0.00 +- 0.01)
   }
 
   it must "truncate a matrix using arrays" taggedAs(Lib1, Lib1LA) in {
@@ -531,8 +531,9 @@ action:
     engine.action(engine.fromJson("""[23, 56, 12, 34, 72]""", engine.inputType))
     engine.action(engine.fromJson("""[52, 61, 12, 71, 91]""", engine.inputType))
     engine.action(engine.fromJson("""[15, 12, 89, 23, 48]""", engine.inputType))
+
     chi2Vector(engine.action(engine.fromJson("""[16, 27, 36, 84, 52]""", engine.inputType)).asInstanceOf[PFAArray[Double]],
-         Vector(0.038, -1.601)) should be (0.00 +- 0.01)
+         Vector(-0.038, -1.601)) should be (0.00 +- 0.01)
   }
 
 }

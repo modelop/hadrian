@@ -42,6 +42,7 @@ import com.opendatagroup.hadrian.ast.Expression
 import com.opendatagroup.hadrian.ast.LiteralValue
 import com.opendatagroup.hadrian.ast.FcnDef
 import com.opendatagroup.hadrian.ast.FcnRef
+import com.opendatagroup.hadrian.ast.FcnRefFill
 import com.opendatagroup.hadrian.ast.CallUserFcn
 import com.opendatagroup.hadrian.ast.Call
 import com.opendatagroup.hadrian.ast.Ref
@@ -216,7 +217,8 @@ package reader {
         var _pools = Map[String, Pool]()
         var _randseed: Option[Long] = None
         var _doc: Option[String] = None
-        var _metadata: Option[JsonNode] = None
+        var _version: Option[Int] = None
+        var _metadata = Map[String, String]()
         var _options = Map[String, JsonNode]()
 
         var subtoken = parser.nextToken()
@@ -254,7 +256,8 @@ package reader {
               case "pools" =>     _pools = readPools(parser, parser.nextToken(), key, _at, avroTypeBuilder)
               case "randseed" =>  _randseed = Some(readLong(parser, parser.nextToken(), key, _at))
               case "doc" =>       _doc = Some(readString(parser, parser.nextToken(), key, _at))
-              case "metadata" =>  _metadata = Some(readJsonNode(parser, parser.nextToken(), key, _at))
+              case "version" =>   _version = Some(readInt(parser, parser.nextToken(), key, _at))
+              case "metadata" =>  _metadata = readStringMap(parser, parser.nextToken(), key, _at)
               case "options" =>   _options = readJsonNodeMap(parser, parser.nextToken(), key, _at)
               case x => throw new PFASyntaxException("unexpected top-level field: %s".format(x), Some(pos("", _at)))
             }
@@ -272,7 +275,7 @@ package reader {
         if ((keys intersect required) != required)
           throw new PFASyntaxException("missing top-level fields: %s".format((required diff keys).mkString(", ")), Some(pos("", _at)))
         else
-          EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _cells, _pools, _randseed, _doc, _metadata, _options, Some(pos("", _at)))
+          EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _cells, _pools, _randseed, _doc, _version, _metadata, _options, Some(pos("", _at)))
       }
       case x => throw new PFASyntaxException("PFA engine must be a JSON object, not %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos("", jsonAt(parser))))
     }
@@ -409,6 +412,25 @@ package reader {
       case x => throw new PFASyntaxException("expected array of strings, found %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos(dot, at)))
     }
 
+    private def readStringMap(parser: JsonParser, token: JsonToken, dot: String, at: String): Map[String, String] = token match {
+      case JsonToken.START_OBJECT => {
+        var _at = jsonAt(parser)
+
+        var items = List[(String, String)]()
+        var subtoken = parser.nextToken()
+        while (subtoken != JsonToken.END_OBJECT) {
+          val key = parser.getCurrentName
+          if (key == "@")
+            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+          else
+            items = (key, readString(parser, parser.nextToken(), dot + "." + key, _at)) :: items
+          subtoken = parser.nextToken()
+        }
+        items.toMap
+      }
+      case x => throw new PFASyntaxException("expected map of strings, found %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos(dot, at)))
+    }
+
     private def readString(parser: JsonParser, token: JsonToken, dot: String, at: String): String = token match {
       case JsonToken.VALUE_STRING => parser.getText
       case x => throw new PFASyntaxException("expected string, found %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos(dot, at)))
@@ -534,6 +556,25 @@ package reader {
       case x => throw new PFASyntaxException("expected array of arguments, found %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos(dot, at)))
     }
 
+    private def readArgumentMap(parser: JsonParser, token: JsonToken, dot: String, at: String, avroTypeBuilder: AvroTypeBuilder): Map[String, Argument] = token match {
+      case JsonToken.START_OBJECT => {
+        var _at = jsonAt(parser)
+
+        var items = List[(String, Argument)]()
+        var subtoken = parser.nextToken()
+        while (subtoken != JsonToken.END_OBJECT) {
+          val key = parser.getCurrentName
+          if (key == "@")
+            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+          else
+            items = (key, readArgument(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)) :: items
+          subtoken = parser.nextToken()
+        }
+        items.toMap
+      }
+      case x => throw new PFASyntaxException("expected map of arguments, found %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos(dot, at)))
+    }
+
     private def readArgument(parser: JsonParser, token: JsonToken, dot: String, at: String, avroTypeBuilder: AvroTypeBuilder): Argument = token match {
       case JsonToken.VALUE_NULL => LiteralNull(Some(pos(dot, at)))
       case JsonToken.VALUE_TRUE => LiteralBoolean(true, Some(pos(dot, at)))
@@ -626,7 +667,7 @@ package reader {
         var _in: Expression = null
         var _cast: Expression = null
         var _upcast: Expression = null
-        var _init: Option[Expression] = None
+        var _init: Expression = null
         var _callwith: Expression = null
 
         var _seq: Boolean = false
@@ -647,6 +688,7 @@ package reader {
         var _callName: String = null
         var _callArgs: Seq[Argument] = null
         var _to: Argument = null
+        var _fill: Map[String, Argument] = null
 
         var subtoken = parser.nextToken()
         while (subtoken != JsonToken.END_OBJECT) {
@@ -706,14 +748,14 @@ package reader {
               case "foreach" =>   _foreach = readString(parser, parser.nextToken(), dot + "." + key, _at)
               case "forkey" =>    _forkey = readString(parser, parser.nextToken(), dot + "." + key, _at)
               case "forval" =>    _forval = readString(parser, parser.nextToken(), dot + "." + key, _at)
-              case "fcnref" =>    _fcnref = readString(parser, parser.nextToken(), dot + "." + key, _at)
+              case "fcn" =>       _fcnref = readString(parser, parser.nextToken(), dot + "." + key, _at)
               case "cell" =>      _cell = readString(parser, parser.nextToken(), dot + "." + key, _at)
               case "pool" =>      _pool = readString(parser, parser.nextToken(), dot + "." + key, _at)
 
               case "in" =>        _in = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
               case "cast" =>      _cast = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
               case "upcast" =>    _upcast = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "init" =>      _init = Some(readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder))
+              case "init" =>      _init = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
               case "call" =>      _callwith = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
 
               case "seq" =>       _seq = readBoolean(parser, parser.nextToken(), dot + "." + key, _at)
@@ -736,6 +778,8 @@ package reader {
 
               case "to" =>        _to = readArgument(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
 
+              case "fill" =>      _fill = readArgumentMap(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+
               case x => {
                 _callName = x
                 parser.nextToken() match {
@@ -754,7 +798,7 @@ package reader {
           throw new PFASyntaxException("\"%s\" is not a valid symbol name".format(_forkey), Some(pos(dot, at)))
         if (keys.contains("forval")  &&  !validSymbolName(_forval))
           throw new PFASyntaxException("\"%s\" is not a valid symbol name".format(_forval), Some(pos(dot, at)))
-        if (keys.contains("fcnref")  &&  !validFunctionName(_fcnref))
+        if (keys.contains("fcn")  &&  !validFunctionName(_fcnref))
           throw new PFASyntaxException("\"%s\" is not a valid function name".format(_fcnref), Some(pos(dot, at)))
 
         if (keys == Set("int"))                                      LiteralInt(_int, Some(pos(dot, _at)))
@@ -779,8 +823,7 @@ package reader {
         else if (keys == Set("cell", "to")  ||
                  keys == Set("cell", "path", "to"))                  CellTo(_cell, _path, _to, Some(pos(dot, _at)))
         else if (keys == Set("pool", "path"))                        PoolGet(_pool, _path, Some(pos(dot, _at)))
-        else if (keys == Set("pool", "path", "to")  ||
-                 keys == Set("pool", "path", "to", "init"))          PoolTo(_pool, _path, _to, _init, Some(pos(dot, _at)))
+        else if (keys == Set("pool", "path", "to", "init"))          PoolTo(_pool, _path, _to, _init, Some(pos(dot, _at)))
 
         else if (keys == Set("if", "then"))                          If(_ifPredicate, _thenClause, None, Some(pos(dot, _at)))
         else if (keys == Set("if", "then", "else"))                  If(_ifPredicate, _thenClause, Some(_elseClause), Some(pos(dot, _at)))
@@ -809,14 +852,15 @@ package reader {
 
         // FcnDef and FcnRef can only be arguments, not expressions
         else if (keys == Set("params", "ret", "do"))                 FcnDef(_params, _ret, _body, Some(pos(dot, _at)))
-        else if (keys == Set("fcnref"))                              FcnRef(_fcnref, Some(pos(dot, _at)))
+        else if (keys == Set("fcn"))                                 FcnRef(_fcnref, Some(pos(dot, _at)))
+        else if (keys == Set("fcn", "fill"))                         FcnRefFill(_fcnref, _fill, Some(pos(dot, _at)))
 
         else if (keys == Set("call", "args"))                        CallUserFcn(_callwith, _callwithargs, Some(pos(dot, _at)))
 
         // function call is anything else
         else if (keys.size == 1  &&
                  !Set("args", "as", "attr", "base64", "call", "cases", "cast", "cell", "code", "cond", "do", "doc", "double", "else",
-                      "error", "fcnref", "float", "for", "foreach", "forkey", "forval", "if", "ifnotnull", "in", "init",
+                      "error", "fcn", "fill", "float", "for", "foreach", "forkey", "forval", "if", "ifnotnull", "in", "init",
                       "int", "let", "log", "long", "namespace", "new", "params", "partial", "path", "pool", "ret", "seq",
                       "set", "step", "string", "then", "to", "type", "until", "upcast", "value", "while").contains(keys.head))
                                                                      Call(_callName, _callArgs, Some(pos(dot, _at)))

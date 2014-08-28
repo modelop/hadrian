@@ -25,6 +25,9 @@ import threading
 import time
 import random
 
+from avro.datafile import DataFileReader, DataFileWriter
+from avro.io import DatumReader, DatumWriter
+
 from titus.errors import *
 import titus.ast
 import titus.datatype
@@ -39,6 +42,7 @@ from titus.util import DynamicScope
 from titus.ast import EngineConfig
 from titus.ast import FcnDef
 from titus.ast import FcnRef
+from titus.ast import FcnRefFill
 from titus.ast import CallUserFcn
 from titus.ast import Call
 from titus.ast import Ref
@@ -91,14 +95,18 @@ class GeneratePython(titus.ast.Task):
             raise NotImplementedError("unrecognized style " + style)
 
     def commandsMap(self, codes, indent):
-        return "".join(indent + x + "\n" for x in codes[:-1]) + indent + "return " + codes[-1] + "\n"
+        suffix = indent + "self.actionsFinished += 1\n" + \
+                 indent + "return last\n"
+        return "".join(indent + x + "\n" for x in codes[:-1]) + indent + "last = " + codes[-1] + "\n" + suffix
 
     def commandsEmit(self, codes, indent):
-        return "".join(indent + x + "\n" for x in codes)
+        suffix = indent + "self.actionsFinished += 1\n"
+        return "".join(indent + x + "\n" for x in codes) + suffix
 
     def commandsFold(self, codes, indent):
         prefix = indent + "scope.let({'tally': self.tally})\n"
         suffix = indent + "self.tally = last\n" + \
+                 indent + "self.actionsFinished += 1\n" + \
                  indent + "return self.tally\n"
         return prefix + "".join(indent + x + "\n" for x in codes[:-1]) + indent + "last = " + codes[-1] + "\n" + suffix
 
@@ -118,7 +126,7 @@ class GeneratePython(titus.ast.Task):
                 raise Exception
         return ", ".join(out)
 
-    def __call__(self, context):
+    def __call__(self, context, engineOptions):
         if isinstance(context, EngineConfig.Context):
             if context.name is None:
                 name = titus.util.uniqueEngineName()
@@ -134,9 +142,12 @@ class GeneratePython(titus.ast.Task):
                 callGraph[fname] = fctx.calls
 
             out = ["class PFA_" + name + """(PFAEngine):
-    def __init__(self, cells, pools, options, log, emit, zero, rand):
+    def __init__(self, cells, pools, config, options, log, emit, zero, rand):
+        self.actionsStarted = 0
+        self.actionsFinished = 0
         self.cells = cells
         self.pools = pools
+        self.config = config
         self.options = options
         self.log = log
         self.emit = emit
@@ -151,13 +162,16 @@ class GeneratePython(titus.ast.Task):
 """)
 
             for ufname, fcnContext in context.fcns:
-                out.append("        self.f[" + repr(ufname) + "] = " + self(fcnContext) + "\n")
+                out.append("        self.f[" + repr(ufname) + "] = " + self(fcnContext, engineOptions) + "\n")
 
             if len(begin) > 0:
                 out.append("""
     def begin(self):
         state = ExecutionState(self.options, self.rand, 'action', self.parser)
         scope = DynamicScope(None)
+        scope.let({'name': self.config.name, 'metadata': self.config.metadata})
+        if self.config.version is not None:
+            scope.let({'version': self.config.version})
 """ + self.commandsBeginEnd(begin, "        "))
 
             if context.method == Method.MAP:
@@ -175,8 +189,11 @@ class GeneratePython(titus.ast.Task):
             cell.maybeSaveBackup()
         for pool in self.pools.values():
             pool.maybeSaveBackup()
+        self.actionsStarted += 1
         try:
-            scope.let({'input': input})
+            scope.let({'input': input, 'name': self.config.name, 'metadata': self.config.metadata, 'actionsStarted': self.actionsStarted, 'actionsFinished': self.actionsFinished})
+            if self.config.version is not None:
+                scope.let({'version': self.config.version})
 """ + commands)
 
             out.append("""        except Exception:
@@ -188,11 +205,18 @@ class GeneratePython(titus.ast.Task):
 """)
 
             if len(end) > 0:
+                tallyLine = ""
+                if context.method == Method.FOLD:
+                    tallyLine = """        scope.let({'tally': self.tally})\n"""
+                
                 out.append("""
     def end(self):
         state = ExecutionState(self.options, self.rand, 'action', self.parser)
         scope = DynamicScope(None)
-""" + self.commandsBeginEnd(end, "        "))
+        scope.let({'name': self.config.name, 'metadata': self.config.metadata, 'actionsStarted': self.actionsStarted, 'actionsFinished': self.actionsFinished})
+        if self.config.version is not None:
+            scope.let({'version': self.config.version})
+""" + tallyLine + self.commandsBeginEnd(end, "        "))
 
             return "".join(out)
 
@@ -201,6 +225,19 @@ class GeneratePython(titus.ast.Task):
 
         elif isinstance(context, FcnRef.Context):
             return "self.f[" + repr(context.fcn.name) + "]"
+
+        elif isinstance(context, FcnRefFill.Context):
+            reducedArgs = ["\"$" + str(x) + "\"" for x in xrange(len(context.fcnType.params))]
+            j = 0
+            args = []
+            for name in context.originalParamNames:
+                if name in context.argTypeResult:
+                    args.append(context.argTypeResult[name][1])
+                else:
+                    args.append("scope.get(\"$" + str(j) + "\")")
+                    j += 1
+
+            return "labeledFcn(lambda state, scope: call(state, DynamicScope(scope), self.f[" + repr(context.fcn.name) + "], [" + ", ".join(args) + "]), [" + ", ".join(reducedArgs) + "])"
 
         elif isinstance(context, CallUserFcn.Context):
             return "call(state, DynamicScope(None), self.f['u.' + " + context.name + "], [" + ", ".join(context.args) + "])"
@@ -309,9 +346,9 @@ class GeneratePython(titus.ast.Task):
 
         elif isinstance(context, IfNotNull.Context):
             if context.elseClause is None:
-                return "ifNotNull(state, scope, {" + ", ".join(repr(n) + ": " + e for n, t, e in context.symbolTypeResult) + "}, lambda state, scope: do(" + ", ".join(context.thenClause) + "))"
+                return "ifNotNull(state, scope, {" + ", ".join(repr(n) + ": " + e for n, t, e in context.symbolTypeResult) + "}, {" + ", ".join(repr(n) + ": '" + repr(t) + "'" for n, t, e in context.symbolTypeResult) + "}, lambda state, scope: do(" + ", ".join(context.thenClause) + "))"
             else:
-                return "ifNotNullElse(state, scope, {" + ", ".join(repr(n) + ": " + e for n, t, e in context.symbolTypeResult) + "}, lambda state, scope: do(" + ", ".join(context.thenClause) + "), lambda state, scope: do(" + ", ".join(context.elseClause) + "))"
+                return "ifNotNullElse(state, scope, {" + ", ".join(repr(n) + ": " + e for n, t, e in context.symbolTypeResult) + "}, {" + ", ".join(repr(n) + ": '" + repr(t) + "'" for n, t, e in context.symbolTypeResult) + "}, lambda state, scope: do(" + ", ".join(context.thenClause) + "), lambda state, scope: do(" + ", ".join(context.elseClause) + "))"
 
         elif isinstance(context, Doc.Context):
             return "None"
@@ -572,7 +609,7 @@ def doForkeyval(state, scope, forkey, forval, mapping, loopBody):
         loopScope.let({forkey: key, forval: val})
         loopBody(state, bodyScope)
     return None
-
+        
 def cast(state, scope, expr, fromType, cases, partial, parser):
     fromType = parser.getAvroType(fromType)
 
@@ -607,16 +644,42 @@ def cast(state, scope, expr, fromType, cases, partial, parser):
                 return out
     return None
 
-def ifNotNull(state, scope, nameExpr, thenClause):
+def untagUnions(nameExpr, nameType):
+    out = {}
+    for name, expr in nameExpr.items():
+        if isinstance(expr, dict) and len(expr) == 1:
+            tag, = expr.keys()
+            value, = expr.values()
+
+            expectedTag = json.loads(nameType[name])
+            if isinstance(expectedTag, dict):
+                if expectedTag["type"] in ("record", "enum", "fixed"):
+                    if "namespace" in expectedTag and expectedTag["namespace"].strip() != "":
+                        expectedTag = expectedTag["namespace"] + "." + expectedTag["name"]
+                    else:
+                        expectedTag = expectedTag["name"]
+                else:
+                    expectedTag = expectedTag["type"]
+
+            if tag == expectedTag:
+                out[name] = value
+            else:
+                out[name] = expr
+        else:
+            out[name] = expr
+
+    return out
+
+def ifNotNull(state, scope, nameExpr, nameType, thenClause):
     if all(x is not None for x in nameExpr.values()):
         thenScope = DynamicScope(scope)
-        thenScope.let(nameExpr)
+        thenScope.let(untagUnions(nameExpr, nameType))
         thenClause(state, thenScope)
 
-def ifNotNullElse(state, scope, nameExpr, thenClause, elseClause):
+def ifNotNullElse(state, scope, nameExpr, nameType, thenClause, elseClause):
     if all(x is not None for x in nameExpr.values()):
         thenScope = DynamicScope(scope)
-        thenScope.let(nameExpr)
+        thenScope.let(untagUnions(nameExpr, nameType))
         return thenClause(state, thenScope)
     else:
         return elseClause(state, scope)
@@ -640,7 +703,7 @@ def genericEmit(x):
 def checkForDeadlock(engineConfig, engine):
     class WithFcnRef(object):
         def isDefinedAt(self, ast):
-            return isinstance(ast, (CellTo, PoolTo)) and isinstance(ast.to, FcnRef)
+            return isinstance(ast, (CellTo, PoolTo)) and isinstance(ast.to, (FcnRef, FcnRefFill))
         def __call__(self, slotTo):
             if engine.hasSideEffects(slotTo.to.name):
                 raise PFAInitializationException("{} references function \"{}\", which has side-effects".format(slotTo.desc, slotTo.to.name))
@@ -672,7 +735,9 @@ class PFAEngine(object):
     def fromAst(engineConfig, options=None, sharedState=None, multiplicity=1, style="pure", debug=False):
         functionTable = titus.ast.FunctionTable.blank()
 
-        context, code = engineConfig.walk(GeneratePython.makeTask(style), titus.ast.SymbolTable.blank(), functionTable)
+        engineOptions = titus.options.EngineOptions(engineConfig.options, options)
+
+        context, code = engineConfig.walk(GeneratePython.makeTask(style), titus.ast.SymbolTable.blank(), functionTable, engineOptions)
         if debug:
             print code
 
@@ -753,7 +818,7 @@ class PFAEngine(object):
             for skip in xrange(index):
                 rand.random(skip)
 
-            engine = cls(cells, pools, titus.options.EngineOptions(engineConfig.options, options), genericLog, genericEmit, zero, rand)
+            engine = cls(cells, pools, engineConfig, engineOptions, genericLog, genericEmit, zero, rand)
 
             f = dict(functionTable.functions)
             if engineConfig.method == Method.EMIT:
@@ -817,3 +882,13 @@ class PFAEngine(object):
     def hasSideEffects(self, fcnName):
         reach = self.calledBy(fcnName)
         return CellTo.desc in reach or PoolTo.desc in reach
+
+    def avroInputIterator(self, inputStream):
+        try:
+            import fastavro
+            return fastavro.reader(inputStream)
+        except ImportError:
+            return DataFileReader(inputStream, DatumReader())
+
+    def avroOutputDataFileWriter(self, fileName):
+        return DataFileWriter(open(fileName, "w"), DatumWriter(), self.config.output.schema)

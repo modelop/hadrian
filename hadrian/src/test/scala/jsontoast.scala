@@ -56,6 +56,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -79,6 +80,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -103,6 +105,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -128,6 +131,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -152,6 +156,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -176,7 +181,8 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       Map(),
       Some(12345),
       Some("hello"),
-      Some(convertFromJson("""{"internal": "data"}""")),
+      None,
+      Map("internal" -> "data"),
       Map("param" -> convertFromJson("3"))),
       """{
   "name": "test",
@@ -204,7 +210,8 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       Map("private" -> Pool(AvroInt(), Map[String, String](), false, false)),
       Some(12345),
       Some("hello"),
-      Some(convertFromJson("""{"internal": "data"}""")),
+      None,
+      Map("internal" -> "data"),
       Map("param" -> convertFromJson("3"))),
       """{
   "name": "test",
@@ -240,6 +247,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -266,6 +274,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -292,6 +301,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -317,12 +327,13 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
   "input": "int",
   "output": "string",
-  "action": [{"sort":["array",{"fcnref": "byname"}]}]
+  "action": [{"sort":["array",{"fcn": "byname"}]}]
 }""")
   }
 
@@ -342,6 +353,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -367,6 +379,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -392,6 +405,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -417,6 +431,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -442,6 +457,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -467,6 +483,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -492,6 +509,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -517,6 +535,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -542,6 +561,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -567,6 +587,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -592,6 +613,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -618,6 +640,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -643,6 +666,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -668,6 +692,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -693,6 +718,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -718,6 +744,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -743,6 +770,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -768,6 +796,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -793,6 +822,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -815,6 +845,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -840,6 +871,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -862,6 +894,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -887,6 +920,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -903,7 +937,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       AvroInt(),
       AvroString(),
       List(),
-      List(PoolTo("p", List(Ref("a"), LiteralInt(1), LiteralString("b")), LiteralDouble(2.2), None)),
+      List(PoolTo("p", List(Ref("a"), LiteralInt(1), LiteralString("b")), LiteralDouble(2.2), LiteralDouble(2.2))),
       List(),
       Map(),
       None,
@@ -912,29 +946,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
-      Map()),
-      """{
-  "name": "test",
-  "input": "int",
-  "output": "string",
-  "action": [{"pool":"p","path":["a",1,{"string":"b"}],"to":2.2}]
-}""")
-
-    checkJsonToAst(EngineConfig(
-      "test",
-      Method.MAP,
-      AvroInt(),
-      AvroString(),
-      List(),
-      List(PoolTo("p", List(Ref("a"), LiteralInt(1), LiteralString("b")), LiteralDouble(2.2), Some(LiteralDouble(2.2)))),
-      List(),
       Map(),
-      None,
-      Map(),
-      Map(),
-      None,
-      None,
-      None,
       Map()),
       """{
   "name": "test",
@@ -960,6 +972,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -986,6 +999,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -1012,6 +1026,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -1037,6 +1052,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -1062,6 +1078,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -1087,6 +1104,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -1112,6 +1130,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -1137,6 +1156,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -1162,6 +1182,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -1185,6 +1206,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -1210,6 +1232,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -1235,6 +1258,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -1262,6 +1286,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",

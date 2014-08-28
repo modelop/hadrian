@@ -24,7 +24,7 @@ from titus.signature import Sig
 from titus.signature import Sigs
 from titus.datatype import *
 from titus.errors import *
-from titus.util import callfcn
+from titus.util import callfcn, div
 import titus.P as P
 from titus.lib1.array import argLowestN
 
@@ -55,3 +55,92 @@ class ClosestN(LibFcn):
         indexes = argLowestN(distances, n, lambda a, b: a < b)
         return [clusters[i] for i in indexes]
 provide(ClosestN())
+
+class RandomSeeds(LibFcn):
+    name = prefix + "randomSeeds"
+    sig = Sig([{"data": P.Array(P.Array(P.Wildcard("A")))}, {"k": P.Int()}, {"newCluster": P.Fcn([P.Int(), P.Array(P.Wildcard("A"))], P.WildRecord("C", {"center": P.Array(P.Wildcard("B"))}))}], P.Array(P.Wildcard("C")))
+    def __call__(self, state, scope, paramTypes, data, k, newCluster):
+        if k <= 0:
+            raise PFARuntimeException("k must be greater than zero")
+
+        uniques = list(set(map(tuple, data)))
+        if len(uniques) < k:
+            raise PFARuntimeException("not enough unique points")
+
+        sizes = set(len(x) for x in uniques)
+        if len(sizes) != 1:
+            raise PFARuntimeException("dimensions of vectors do not match")
+
+        state.rand.shuffle(uniques)
+        selected = uniques[:k]
+        
+        return [callfcn(state, scope, newCluster, [i, list(vec)]) for i, vec in enumerate(selected)]
+provide(RandomSeeds())
+
+class KMeansIteration(LibFcn):
+    name = prefix + "kmeansIteration"
+    sig = Sig([{"data": P.Array(P.Array(P.Wildcard("A")))}, {"clusters": P.Array(P.WildRecord("C", {"center": P.Array(P.Wildcard("B"))}))}, {"metric": P.Fcn([P.Array(P.Wildcard("A")), P.Array(P.Wildcard("B"))], P.Double())}, {"update": P.Fcn([P.Array(P.Array(P.Wildcard("A"))), P.Wildcard("C")], P.Wildcard("C"))}], P.Array(P.Wildcard("C")))
+    def __call__(self, state, scope, paramTypes, data, clusters, metric, update):
+        if len(data) == 0:
+            raise PFARuntimeException("no data")
+
+        centers = [x["center"] for x in clusters]
+
+        length = len(clusters)
+        if length == 0:
+            raise PFARuntimeException("no clusters")
+
+        matched = [[] for i in xrange(length)]
+
+        for datum in data:
+            besti = 0
+            bestCenter = None
+            bestDistance = 0.0
+            i = 0
+            while i < length:
+                thisCenter = centers[i]
+                thisDistance = callfcn(state, scope, metric, [datum, thisCenter])
+                if bestCenter is None or thisDistance < bestDistance:
+                    besti = i
+                    bestCenter = thisCenter
+                    bestDistance = thisDistance
+                i += 1
+            matched[besti].append(datum)
+
+        out = []
+        for i, matchedData in enumerate(matched):
+            if len(matchedData) == 0:
+                out.append(clusters[i])
+            else:
+                out.append(callfcn(state, scope, update, [matchedData, clusters[i]]))
+        return out
+provide(KMeansIteration())
+
+class UpdateMean(LibFcn):
+    name = prefix + "updateMean"
+    sig = Sig([{"data": P.Array(P.Array(P.Double()))}, {"cluster": P.WildRecord("C", {"center": P.Array(P.Double())})}, {"weight": P.Double()}], P.Wildcard("C"))
+    def __call__(self, state, scope, paramTypes, data, cluster, weight):
+        if len(data) == 0:
+            raise PFARuntimeException("no data")
+
+        dimension = len(data[0])
+        summ = [0.0 for i in xrange(dimension)]
+
+        for vec in data:
+            if len(vec) != dimension:
+                raise PFARuntimeException("dimensions of vectors do not match")
+            for i in xrange(dimension):
+                summ[i] += vec[i]
+
+        vec = cluster["center"]
+        if len(vec) != dimension:
+            raise PFARuntimeException("dimensions of vectors do not match")
+        for i in xrange(dimension):
+            summ[i] += weight * vec[i]
+
+        denom = len(data) + weight
+        for i in xrange(dimension):
+            summ[i] = div(summ[i], denom)
+
+        return dict(cluster, center=summ)
+provide(UpdateMean())

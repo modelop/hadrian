@@ -91,4 +91,114 @@ action:
 """).head } should produce [PFASemanticException]
   }
 
+  it must "isnan" taggedAs(Lib1, Lib1Impute) in {
+    val floatEngine = PFAEngine.fromYaml("""
+input: float
+output: boolean
+action: {impute.isnan: input}
+""").head
+    floatEngine.action(java.lang.Float.valueOf(123.4F)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NaN)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    floatEngine.action(java.lang.Float.valueOf(java.lang.Float.POSITIVE_INFINITY)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NEGATIVE_INFINITY)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+
+    val doubleEngine = PFAEngine.fromYaml("""
+input: double
+output: boolean
+action: {impute.isnan: input}
+""").head
+    doubleEngine.action(java.lang.Double.valueOf(123.4F)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NaN)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.POSITIVE_INFINITY)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NEGATIVE_INFINITY)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+  }
+
+  it must "isinf" taggedAs(Lib1, Lib1Impute) in {
+    val floatEngine = PFAEngine.fromYaml("""
+input: float
+output: boolean
+action: {impute.isinf: input}
+""").head
+    floatEngine.action(java.lang.Float.valueOf(123.4F)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NaN)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    floatEngine.action(java.lang.Float.valueOf(java.lang.Float.POSITIVE_INFINITY)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NEGATIVE_INFINITY)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+
+    val doubleEngine = PFAEngine.fromYaml("""
+input: double
+output: boolean
+action: {impute.isinf: input}
+""").head
+    doubleEngine.action(java.lang.Double.valueOf(123.4F)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NaN)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.POSITIVE_INFINITY)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NEGATIVE_INFINITY)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+  }
+
+  it must "isnum" taggedAs(Lib1, Lib1Impute) in {
+    val floatEngine = PFAEngine.fromYaml("""
+input: float
+output: boolean
+action: {impute.isnum: input}
+""").head
+    floatEngine.action(java.lang.Float.valueOf(123.4F)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NaN)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    floatEngine.action(java.lang.Float.valueOf(java.lang.Float.POSITIVE_INFINITY)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NEGATIVE_INFINITY)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+
+    val doubleEngine = PFAEngine.fromYaml("""
+input: double
+output: boolean
+action: {impute.isnum: input}
+""").head
+    doubleEngine.action(java.lang.Double.valueOf(123.4F)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NaN)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.POSITIVE_INFINITY)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NEGATIVE_INFINITY)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+  }
+
+  it must "errorOnNonNum" taggedAs(Lib1, Lib1Impute) in {
+    val floatEngine = PFAEngine.fromYaml("""
+input: float
+output: float
+action: {impute.errorOnNonNum: input}
+""").head
+    floatEngine.action(java.lang.Float.valueOf(123.4F)) should be (123.4F)
+    evaluating { floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NaN)) } should produce [PFARuntimeException]
+    evaluating { floatEngine.action(java.lang.Float.valueOf(java.lang.Float.POSITIVE_INFINITY)) } should produce [PFARuntimeException]
+    evaluating { floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NEGATIVE_INFINITY)) } should produce [PFARuntimeException]
+
+    val doubleEngine = PFAEngine.fromYaml("""
+input: double
+output: double
+action: {impute.errorOnNonNum: input}
+""").head
+    doubleEngine.action(java.lang.Double.valueOf(123.4F)) should be (123.4F)
+    evaluating { doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NaN)) } should produce [PFARuntimeException]
+    evaluating { doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.POSITIVE_INFINITY)) } should produce [PFARuntimeException]
+    evaluating { doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NEGATIVE_INFINITY)) } should produce [PFARuntimeException]
+  }
+
+  it must "defaultOnNonNum" taggedAs(Lib1, Lib1Impute) in {
+    val floatEngine = PFAEngine.fromYaml("""
+input: float
+output: float
+action: {impute.defaultOnNonNum: [input, {float: 999.0}]}
+""").head
+    floatEngine.action(java.lang.Float.valueOf(123.4F)) should be (123.4F)
+    floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NaN)) should be (999.0F)
+    floatEngine.action(java.lang.Float.valueOf(java.lang.Float.POSITIVE_INFINITY)) should be (999.0F)
+    floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NEGATIVE_INFINITY)) should be (999.0F)
+
+    val doubleEngine = PFAEngine.fromYaml("""
+input: double
+output: double
+action: {impute.defaultOnNonNum: [input, 999.0]}
+""").head
+    doubleEngine.action(java.lang.Double.valueOf(123.4)) should be (123.4)
+    doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NaN)) should be (999.0)
+    doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.POSITIVE_INFINITY)) should be (999.0)
+    doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NEGATIVE_INFINITY)) should be (999.0)
+  }
+
 }

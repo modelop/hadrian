@@ -24,7 +24,7 @@ import com.opendatagroup.hadrian.errors.PFAInitializationException
 
 package options {
   object EngineOptions {
-    val recognizedKeys = Set("@", "timeout", "timeout.begin", "timeout.action", "timeout.end")
+    val recognizedKeys = Set("@", "timeout", "timeout.begin", "timeout.action", "timeout.end", "data.PFARecord.interface")
   }
 
   class EngineOptions(requestedOptions: Map[String, JsonNode], hostOptions: Map[String, JsonNode]) {
@@ -45,6 +45,11 @@ package options {
     val timeout_begin = longOpt("timeout.begin", timeout)
     val timeout_action = longOpt("timeout.action", timeout)
     val timeout_end = longOpt("timeout.end", timeout)
+
+    val data_pfarecord_interface = combinedOptions.get("data.PFARecord.interface") flatMap {_ match {
+      case x: JsonNode if (x.isTextual) => Some(x.getTextValue)
+      case _ => throw new PFAInitializationException("data.PFARecord.interface must be a string")
+    }}
 
     // ...
 

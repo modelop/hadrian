@@ -86,5 +86,110 @@ action:
 ''')
         self.assertRaises(PFASemanticException, bad)
 
+    def testIsNan(self):
+        floatEngine, = PFAEngine.fromYaml('''
+input: float
+output: boolean
+action: {impute.isnan: input}
+''')
+        self.assertFalse(floatEngine.action(123.4))
+        self.assertTrue(floatEngine.action(float("nan")))
+        self.assertFalse(floatEngine.action(float("inf")))
+        self.assertFalse(floatEngine.action(float("-inf")))
+
+        doubleEngine, = PFAEngine.fromYaml('''
+input: double
+output: boolean
+action: {impute.isnan: input}
+''')
+        self.assertFalse(doubleEngine.action(123.4))
+        self.assertTrue(doubleEngine.action(float("nan")))
+        self.assertFalse(doubleEngine.action(float("inf")))
+        self.assertFalse(doubleEngine.action(float("-inf")))
+
+    def testIsInf(self):
+        floatEngine, = PFAEngine.fromYaml('''
+input: float
+output: boolean
+action: {impute.isinf: input}
+''')
+        self.assertFalse(floatEngine.action(123.4))
+        self.assertFalse(floatEngine.action(float("nan")))
+        self.assertTrue(floatEngine.action(float("inf")))
+        self.assertTrue(floatEngine.action(float("-inf")))
+
+        doubleEngine, = PFAEngine.fromYaml('''
+input: double
+output: boolean
+action: {impute.isinf: input}
+''')
+        self.assertFalse(doubleEngine.action(123.4))
+        self.assertFalse(doubleEngine.action(float("nan")))
+        self.assertTrue(doubleEngine.action(float("inf")))
+        self.assertTrue(doubleEngine.action(float("-inf")))
+
+    def testIsNum(self):
+        floatEngine, = PFAEngine.fromYaml('''
+input: float
+output: boolean
+action: {impute.isnum: input}
+''')
+        self.assertTrue(floatEngine.action(123.4))
+        self.assertFalse(floatEngine.action(float("nan")))
+        self.assertFalse(floatEngine.action(float("inf")))
+        self.assertFalse(floatEngine.action(float("-inf")))
+
+        doubleEngine, = PFAEngine.fromYaml('''
+input: double
+output: boolean
+action: {impute.isnum: input}
+''')
+        self.assertTrue(doubleEngine.action(123.4))
+        self.assertFalse(doubleEngine.action(float("nan")))
+        self.assertFalse(doubleEngine.action(float("inf")))
+        self.assertFalse(doubleEngine.action(float("-inf")))
+
+    def testErrorOnNonNum(self):
+        floatEngine, = PFAEngine.fromYaml('''
+input: float
+output: float
+action: {impute.errorOnNonNum: input}
+''')
+        self.assertEqual(floatEngine.action(123.4), 123.4)
+        self.assertRaises(PFARuntimeException, lambda: floatEngine.action(float("nan")))
+        self.assertRaises(PFARuntimeException, lambda: floatEngine.action(float("inf")))
+        self.assertRaises(PFARuntimeException, lambda: floatEngine.action(float("-inf")))
+
+        doubleEngine, = PFAEngine.fromYaml('''
+input: double
+output: double
+action: {impute.errorOnNonNum: input}
+''')
+        self.assertEqual(doubleEngine.action(123.4), 123.4)
+        self.assertRaises(PFARuntimeException, lambda: doubleEngine.action(float("nan")))
+        self.assertRaises(PFARuntimeException, lambda: doubleEngine.action(float("inf")))
+        self.assertRaises(PFARuntimeException, lambda: doubleEngine.action(float("-inf")))
+
+    def testDefaultOnNonNum(self):
+        floatEngine, = PFAEngine.fromYaml('''
+input: float
+output: float
+action: {impute.defaultOnNonNum: [input, {float: 999.0}]}
+''')
+        self.assertEqual(floatEngine.action(123.4), 123.4)
+        self.assertEqual(floatEngine.action(float("nan")), 999.0)
+        self.assertEqual(floatEngine.action(float("inf")), 999.0)
+        self.assertEqual(floatEngine.action(float("-inf")), 999.0)
+
+        doubleEngine, = PFAEngine.fromYaml('''
+input: double
+output: double
+action: {impute.defaultOnNonNum: [input, 999.0]}
+''')
+        self.assertEqual(doubleEngine.action(123.4), 123.4)
+        self.assertEqual(doubleEngine.action(float("nan")), 999.0)
+        self.assertEqual(doubleEngine.action(float("inf")), 999.0)
+        self.assertEqual(doubleEngine.action(float("-inf")), 999.0)
+
 if __name__ == "__main__":
     unittest.main()

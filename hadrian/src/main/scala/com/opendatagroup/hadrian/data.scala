@@ -266,6 +266,8 @@ package data {
       case _ :: rest => throw new IllegalArgumentException("wrong PathIndex element used on a record")
       case Nil => throw new IllegalArgumentException("empty PathIndex used on a record")
     }
+
+    def fieldNameExists(x: String): Boolean = fieldNames.contains(x)
   }
 
   abstract class PFAFixed extends SpecificFixed {

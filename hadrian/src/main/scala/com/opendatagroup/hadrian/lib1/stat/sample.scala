@@ -473,12 +473,13 @@ package object sample {
         val record = state.asInstanceOf[PFARecord]
 
         val mean = record.get("mean").asInstanceOf[java.lang.Number].doubleValue
-        val variance = record.get("variance").asInstanceOf[java.lang.Number].doubleValue
         val diff = x - mean
         val incr = alpha * diff
 
-        if (hasVariance)
+        if (hasVariance) {
+          val variance = record.get("variance").asInstanceOf[java.lang.Number].doubleValue
           record.multiUpdate(Array("mean", "variance"), Array(mean + incr, (1.0 - alpha) * (variance + diff * incr)))
+        }
         else
           record.multiUpdate(Array("mean"), Array(mean + incr))
       }

@@ -31,8 +31,10 @@ titus/lib1/core.py
 titus/lib1/enum.py
 titus/lib1/fixed.py
 titus/lib1/impute.py
+titus/lib1/la.py
 titus/lib1/map.py
 titus/lib1/metric.py
+titus/lib1/parse.py
 titus/lib1/pfamath.py
 titus/lib1/pfastring.py
 titus/lib1/record.py

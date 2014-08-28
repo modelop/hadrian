@@ -78,7 +78,8 @@ package object impute {
     val sig = Sig(List("x" -> P.Union(List(P.Wildcard("A"), P.Null))), P.Wildcard("A"))
     val doc =
       <doc>
-        <desc>Skip an action by raising an "encountered null" runtime error when <p>x</p> is <c>null</c>.</desc>
+        <desc>Skip an action by raising a runtime error when <p>x</p> is <c>null</c>.</desc>
+        <error>Raises an "encountered null" error if <p>x</p> is <c>null</c>.</error>
       </doc>
     override def javaRef(fcnType: FcnType): JavaCode = fcnType.ret match {
       case _: AvroBoolean => JavaCode(DoBoolean.getClass.getName + ".MODULE$")
@@ -265,5 +266,102 @@ package object impute {
     }
   }
   provide(DefaultOnNull)
+
+  ////   isnan (IsNan)
+  object IsNan extends LibFcn {
+    val name = prefix + "isnan"
+    val sig = Sigs(List(Sig(List("x" -> P.Float), P.Boolean),
+                        Sig(List("x" -> P.Double), P.Boolean)))
+    val doc =
+      <doc>
+        <desc>Return <c>true</c> if <p>x</p> is <c>nan</c>, <c>false</c> otherwise.</desc>
+      </doc>
+    def apply(x: Float): Boolean = java.lang.Float.isNaN(x)
+    def apply(x: Double): Boolean = java.lang.Double.isNaN(x)
+  }
+  provide(IsNan)
+
+  ////   isinf (IsInf)
+  object IsInf extends LibFcn {
+    val name = prefix + "isinf"
+    val sig = Sigs(List(Sig(List("x" -> P.Float), P.Boolean),
+                        Sig(List("x" -> P.Double), P.Boolean)))
+    val doc =
+      <doc>
+        <desc>Return <c>true</c> if <p>x</p> is positive or negative infinity, <c>false</c> otherwise.</desc>
+      </doc>
+    def apply(x: Float): Boolean = java.lang.Float.isInfinite(x)
+    def apply(x: Double): Boolean = java.lang.Double.isInfinite(x)
+  }
+  provide(IsInf)
+
+  ////   isnum (IsNum)
+  object IsNum extends LibFcn {
+    val name = prefix + "isnum"
+    val sig = Sigs(List(Sig(List("x" -> P.Float), P.Boolean),
+                        Sig(List("x" -> P.Double), P.Boolean)))
+    val doc =
+      <doc>
+        <desc>Return <c>true</c> if <p>x</p> is neither <c>nan</c> nor infinite, <c>false</c> otherwise.</desc>
+      </doc>
+    def apply(x: Float): Boolean = !java.lang.Float.isNaN(x)  &&  !java.lang.Float.isInfinite(x)
+    def apply(x: Double): Boolean = !java.lang.Double.isNaN(x)  &&  !java.lang.Double.isInfinite(x)
+  }
+  provide(IsNum)
+
+  ////   errorOnNonNum (ErrorOnNonNum)
+  object ErrorOnNonNum extends LibFcn {
+    val name = prefix + "errorOnNonNum"
+    val sig = Sigs(List(Sig(List("x" -> P.Float), P.Float),
+                        Sig(List("x" -> P.Double), P.Double)))
+    val doc =
+      <doc>
+        <desc>Pass through <p>x</p> if it is neither <c>nan</c> nor infinite, but raise an error otherwise.</desc>
+        <error>Raises an "encountered nan" if <p>x</p> is <c>nan</c>.</error>
+        <error>Raises an "encountered +inf" if <p>x</p> is positive infinity.</error>
+        <error>Raises an "encountered -inf" if <p>x</p> is negative infinity.</error>
+      </doc>
+    def apply(x: Float): Float =
+      if (java.lang.Float.isNaN(x))
+        throw new PFARuntimeException("encountered nan")
+      else if (java.lang.Float.isInfinite(x)) {
+        if (x > 0.0F)
+          throw new PFARuntimeException("encountered +inf")
+        else
+          throw new PFARuntimeException("encountered -inf")
+      }
+      else x
+    def apply(x: Double): Double =
+      if (java.lang.Double.isNaN(x))
+        throw new PFARuntimeException("encountered nan")
+      else if (java.lang.Double.isInfinite(x)) {
+        if (x > 0.0)
+          throw new PFARuntimeException("encountered +inf")
+        else
+          throw new PFARuntimeException("encountered -inf")
+      }
+      else x
+  }
+  provide(ErrorOnNonNum)
+
+  ////   defaultOnNonNum (DefaultOnNonNum)
+  object DefaultOnNonNum extends LibFcn {
+    val name = prefix + "defaultOnNonNum"
+    val sig = Sigs(List(Sig(List("x" -> P.Float, "default" -> P.Float), P.Float),
+                        Sig(List("x" -> P.Double, "default" -> P.Double), P.Double)))
+    val doc =
+      <doc>
+        <desc>Pass through <p>x</p> if it is neither <c>nan</c> nor infinite, and return <p>default</p> otherwise.</desc>
+      </doc>
+    def apply(x: Float, default: Float): Float =
+      if (java.lang.Float.isNaN(x)  ||  java.lang.Float.isInfinite(x))
+        default
+      else x
+    def apply(x: Double, default: Double): Double =
+      if (java.lang.Double.isNaN(x)  ||  java.lang.Double.isInfinite(x))
+        default
+      else x
+  }
+  provide(DefaultOnNonNum)
 
 }

@@ -246,6 +246,7 @@ package object la {
         <desc>Multiply two matrices or a matrix and a vector, which may be represented as dense arrays or potentially sparse maps.</desc>
         <detail>Like most functions that deal with matrices, this function has an array signature and a map signature.  In the array signature, the number of columns of <p>x</p> must be equal to the number of rows (or the number of elements) of <p>y</p>.  In the map signature, missing values are assumed to be zero.</detail>
         <detail>Matrices supplied as maps may be computed using sparse methods.</detail>
+        <error>In the array signature, if the dimensions of <p>x</p> do not correspond to the dimension(s) of <p>y</p>, this function raises a "misaligned matrices" error.</error>
       </doc>
 
     override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = paramTypes(1) match {
@@ -392,10 +393,16 @@ package object la {
         <error>If <p>x</p> is an array with ragged columns (arrays of different lengths), this function raises a "ragged columns" error.</error>
       </doc>
     def apply(x: PFAArray[PFAArray[Double]]): Double = {
-      if (ragged(x))
-        throw new PFARuntimeException("ragged columns")
-      (for (i <- 0 until x.toVector.size) yield
-        x.toVector.apply(i).toVector.apply(i)).sum
+      val rows = x.toVector.size
+      if (rows == 0)
+        0.0
+      else {
+        if (ragged(x))
+          throw new PFARuntimeException("ragged columns")
+        val cols = x.toVector.head.toVector.size
+        (for (i <- 0 until Array(rows, cols).min) yield
+          x.toVector.apply(i).toVector.apply(i)).sum
+      }
     }
     def apply(x: PFAMap[PFAMap[java.lang.Double]]): Double = {
       val keys = rowKeys(x) intersect colKeys(x)
@@ -415,7 +422,7 @@ package object la {
         <desc>Compute the determinant of a matrix.</desc>
         <error>If the matrix has fewer than 1 row or fewer than 1 column, this function raises a "too few rows/cols" error.</error>
         <error>If <p>x</p> is an array with ragged columns (arrays of different lengths), this function raises a "ragged columns" error.</error>
-        <error>If <p>x</p> is not a square matrix, this function raises a "non-square matrix" error.</error>
+        <error>In the array signature, if <p>x</p> is not a square matrix, this function raises a "non-square matrix" error.</error>
       </doc>
     def apply(x: PFAArray[PFAArray[Double]]): Double = {
       if (x.toVector.size < 1)
@@ -468,6 +475,8 @@ package object la {
     }
     def apply(x: PFAMap[PFAMap[java.lang.Double]], tolerance: Double): Boolean = {
       val keys = (rowKeys(x) union colKeys(x)).toSeq
+      if (keys.size < 1)
+        throw new PFARuntimeException("too few rows/cols")
       val size = keys.size
       (0 until size) forall {i =>
         ((i+1) until size) forall {j =>
@@ -498,7 +507,7 @@ package object la {
     val doc =
       <doc>
         <desc>Compute the eigenvalues and eigenvectors of a real, symmetric matrix <p>x</p> (which are all real).</desc>
-        <ret>A matrix in which each row (first level of array or map hierarchy) is a normalized eigenvector of <p>x</p> divided by the square root of the corresponding eigenvalue.  If provided as an array, the rows are in decreasing order of eigenvalue (increasing order of inverse square root eigenvalue).  If provided as a map, the rows are keyed by string representations of integers starting with <c>"0"</c>, and increasing row keys are in decreasing order of eigenvalue.</ret>
+        <ret>A matrix in which each row (first level of array or map hierarchy) is a normalized eigenvector of <p>x</p> divided by the square root of the corresponding eigenvalue (The sign is chosen such that the first component is positive.).  If provided as an array, the rows are in decreasing order of eigenvalue (increasing order of inverse square root eigenvalue).  If provided as a map, the rows are keyed by string representations of integers starting with <c>"0"</c>, and increasing row keys are in decreasing order of eigenvalue.</ret>
         <detail>If <p>x</p> is the covariance matrix of a zero-mean dataset, the matrix that this function returns would transform the dataset to one with unit variances and zero covariances.</detail>
         <detail>If <p>x</p> is not symmetric or not exactly symmetric, it will first be symmetrized (<m>{"(x + x^T)/2"}</m>).  For example, a matrix represented by only the upper triangle (other elements are zero or missing from the map) becomes a symmetric matrix with the upper triangle unchanged.</detail>
         <error>If the matrix has fewer than 1 row or fewer than 1 column, this function raises a "too few rows/cols" error.</error>
@@ -518,13 +527,14 @@ package object la {
         throw new RuntimeException("report this error 2")
 
       val eigvalm2 = (0 until size) map {i => 1.0 / Math.sqrt(evd.getEigenvalue(i).getMagnitude)}
-      val eigvec = (0 until size) map {evd.getEigenVector(_)}
+      val eigvec = (0 until size) map {i => SimpleMatrix.wrap(evd.getEigenVector(i))} map {y => if (y.get(0, 0) < 0.0) y.scale(-1.0) else y}
       val order = argsort(eigvalm2)
 
-      var out = new SimpleMatrix(eigvec(order(0))).scale(eigvalm2(order(0))).transpose
-      for (j <- 1 until size)
-        out = out.combine(j, 0, new SimpleMatrix(eigvec(order(j))).scale(eigvalm2(order(j))).transpose)
-      out
+      val out = Array.fill(size)(Array.fill(size)(0.0))
+      for (i <- 0 until size)
+        for (j <- 0 until size)
+          out(i)(j) = eigvec(order(i)).get(j, 0) * eigvalm2(order(i))
+      new SimpleMatrix(out)
     }
 
     def apply(x: PFAArray[PFAArray[Double]]): PFAArray[PFAArray[Double]] = {

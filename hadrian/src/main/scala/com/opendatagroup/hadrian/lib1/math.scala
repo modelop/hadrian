@@ -18,6 +18,8 @@
 
 package com.opendatagroup.hadrian.lib1
 
+import org.apache.commons.math3.special
+
 import com.opendatagroup.hadrian.ast.LibFcn
 import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.jvmcompiler.JavaCode
@@ -90,7 +92,7 @@ package object math {
   }
   provide(E)
 
-  //////////////////////////////////////////////////////////////////// functions (alphabetical order)
+  //////////////////////////////////////////////////////////////////// basic functions (alphabetical order)
 
   def domain(low: String, high: String, lowInclusive: String = "", highInclusive: String = " (inclusive)",
     result: scala.xml.Node = <x>Beyond this domain, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.head,
@@ -490,5 +492,19 @@ package object math {
     def apply(x: Double): Double = java.lang.Math.tanh(x)
   }
   provide(TanH)
+
+  //////////////////////////////////////////////////////////////////// special functions
+
+  ////   erf (Erf)
+  object SpecialErf extends LibFcn {
+    val name = prefix + "special.erf"
+    val sig = Sig(List("x" -> P.Double), P.Double)
+    val doc =
+      <doc>
+        <desc>Return the error function of <p>x</p>.</desc>{wholeLine()}
+      </doc>
+    def apply(x: Double): Double = special.Erf.erf(x)
+  }
+  provide(SpecialErf)
 
 }

@@ -173,11 +173,11 @@ class TestTypeCheck(unittest.TestCase):
         with self.assertRaises(PFASemanticException):
             inferType(jsonToAst.expr('''{"attr": "x", "path": [2], "to": {"params": [{"x": "string"}], "ret": "int", "do": 12}}'''), {"x": AvroArray(AvroInt())})
 
-        self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"attr": "x", "path": [2], "to": {"fcnref": "u.f"}}'''), {"x": AvroArray(AvroInt())}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "int", "do": "x"}'''))}), AvroArray(AvroInt())))
+        self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"attr": "x", "path": [2], "to": {"fcn": "u.f"}}'''), {"x": AvroArray(AvroInt())}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "int", "do": "x"}'''))}), AvroArray(AvroInt())))
         with self.assertRaises(PFASemanticException):
-            inferType(jsonToAst.expr('''{"attr": "x", "path": [2], "to": {"fcnref": "u.f"}}'''), {"x": AvroArray(AvroInt())}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}'''))})
+            inferType(jsonToAst.expr('''{"attr": "x", "path": [2], "to": {"fcn": "u.f"}}'''), {"x": AvroArray(AvroInt())}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}'''))})
         with self.assertRaises(PFASemanticException):
-            inferType(jsonToAst.expr('''{"attr": "x", "path": [2], "to": {"fcnref": "u.f"}}'''), {"x": AvroArray(AvroInt())}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "string"}], "ret": "int", "do": 12}'''))})
+            inferType(jsonToAst.expr('''{"attr": "x", "path": [2], "to": {"fcn": "u.f"}}'''), {"x": AvroArray(AvroInt())}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "string"}], "ret": "int", "do": 12}'''))})
 
     def testCell(self):
         for shared in True, False:
@@ -227,11 +227,11 @@ class TestTypeCheck(unittest.TestCase):
             with self.assertRaises(PFASemanticException):
                 inferType(jsonToAst.expr('''{"cell": "x", "path": [2], "to": {"params": [{"x": "string"}], "ret": "int", "do": 12}}'''), cells={"x": Cell(AvroArray(AvroInt()), "", shared, False)})
 
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"cell": "x", "path": [2], "to": {"fcnref": "u.f"}}'''), cells={"x": Cell(AvroArray(AvroInt()), "", shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "int", "do": "x"}'''))}), AvroArray(AvroInt())))
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"cell": "x", "path": [2], "to": {"fcn": "u.f"}}'''), cells={"x": Cell(AvroArray(AvroInt()), "", shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "int", "do": "x"}'''))}), AvroArray(AvroInt())))
             with self.assertRaises(PFASemanticException):
-                inferType(jsonToAst.expr('''{"cell": "x", "path": [2], "to": {"fcnref": "u.f"}}'''), cells={"x": Cell(AvroArray(AvroInt()), "", shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}'''))})
+                inferType(jsonToAst.expr('''{"cell": "x", "path": [2], "to": {"fcn": "u.f"}}'''), cells={"x": Cell(AvroArray(AvroInt()), "", shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}'''))})
             with self.assertRaises(PFASemanticException):
-                inferType(jsonToAst.expr('''{"cell": "x", "path": [2], "to": {"fcnref": "u.f"}}'''), cells={"x": Cell(AvroArray(AvroInt()), "", shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "string"}], "ret": "int", "do": 12}'''))})
+                inferType(jsonToAst.expr('''{"cell": "x", "path": [2], "to": {"fcn": "u.f"}}'''), cells={"x": Cell(AvroArray(AvroInt()), "", shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "string"}], "ret": "int", "do": 12}'''))})
 
     def testPool(self):
         for shared in True, False:
@@ -272,28 +272,25 @@ class TestTypeCheck(unittest.TestCase):
 
     def testPoolTo(self):
         for shared in True, False:
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": 12}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}), AvroArray(AvroInt())))
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": 12, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}), AvroArray(AvroInt())))
             with self.assertRaises(PFASemanticException):
-                self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": 12, "init": 12}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}), AvroNull()))
-            with self.assertRaises(PFASemanticException):
-                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": 12.4}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)})
+                self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": 12.4, "init": {"value": [999.9], "type": {"type": "array", "items": "double"}}}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}), AvroNull()))
 
             with self.assertRaises(PFASemanticException):
-                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "int"}], "ret": "int", "do": "x"}}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)})
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "int"}], "ret": "int", "do": "x"}, "init": 12}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}), AvroArray(AvroInt())))
+                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "int"}], "ret": "int", "do": "x"}, "init": {"value": [999.9], "type": {"type": "array", "items": "double"}}}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)})
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "int"}], "ret": "int", "do": "x"}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}), AvroArray(AvroInt())))
+            with self.assertRaises(PFASemanticException):
+                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)})
+            with self.assertRaises(PFASemanticException):
+                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "string"}], "ret": "int", "do": 12}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)})
 
             with self.assertRaises(PFASemanticException):
-                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}, "init": 12}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)})
+                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"fcn": "u.f"}, "init": {"value": [999.9], "type": {"type": "array", "items": "double"}}}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "int", "do": "x"}'''))})
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"fcn": "u.f"}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "int", "do": "x"}'''))}), AvroArray(AvroInt())))
             with self.assertRaises(PFASemanticException):
-                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "string"}], "ret": "int", "do": 12}, "init": 12}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)})
-
+                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"fcn": "u.f"}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}'''))})
             with self.assertRaises(PFASemanticException):
-                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"fcnref": "u.f"}}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "int", "do": "x"}'''))})
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"fcnref": "u.f"}, "init": 12}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "int", "do": "x"}'''))}), AvroArray(AvroInt())))
-            with self.assertRaises(PFASemanticException):
-                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"fcnref": "u.f"}, "init": 12}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}'''))})
-            with self.assertRaises(PFASemanticException):
-                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"fcnref": "u.f"}, "init": 12}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "string"}], "ret": "int", "do": 12}'''))})
+                inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2], "to": {"fcn": "u.f"}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False)}, fcns={"u.f": UserFcn.fromFcnDef("u.f", jsonToAst.fcn('''{"params": [{"x": "string"}], "ret": "int", "do": 12}'''))})
 
     def testIf(self):
         self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"if": true, "then": 12}''')), AvroNull()))
@@ -406,7 +403,7 @@ class TestTypeCheck(unittest.TestCase):
 
     def testDocErrorLog(self):
         self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"doc": "hello"}''')), AvroNull()))
-        self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"error": "hello"}''')), AvroNull()))
+        self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"do": {"error": "hello"}}''')), AvroNull()))
         self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"log": [["hello"]]}''')), AvroNull()))
 
     def testCallPatterns(self):

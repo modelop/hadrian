@@ -42,14 +42,14 @@ class TestAstToJson(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}).jsonNode,
         json.loads('''{
   "name": "test",
   "method": "map",
   "input": "int",
   "output": "string",
-  "action": [{"+": [2, 2]}],
-  "cells": {}, "pools": {}, "options": {}
+  "action": [{"+": [2, 2]}]
 }'''))
 
         self.assertEqual(
@@ -68,6 +68,7 @@ class TestAstToJson(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}).jsonNode,
         json.loads('''{
   "name": "test",
@@ -76,8 +77,7 @@ class TestAstToJson(unittest.TestCase):
   "output": "string",
   "begin": [{"+": [2, 2]}],
   "action": [{"+": [2, 2]}],
-  "end": [{"+": [2, 2]}],
-  "cells": {}, "pools": {}, "options": {}
+  "end": [{"+": [2, 2]}]
 }'''))
 
         self.assertEqual(
@@ -96,6 +96,7 @@ class TestAstToJson(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}).jsonNode,
         json.loads('''{
   "name": "test",
@@ -105,8 +106,7 @@ class TestAstToJson(unittest.TestCase):
   "begin": [{"+": [2, 2]}],
   "action": [{"+": [2, 2]}],
   "end": [{"+": [2, 2]}],
-  "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}},
-  "cells": {}, "pools": {}, "options": {}
+  "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}}
 }'''))
 
         self.assertEqual(
@@ -125,6 +125,7 @@ class TestAstToJson(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}).jsonNode,
         json.loads('''{
   "name": "test",
@@ -135,8 +136,7 @@ class TestAstToJson(unittest.TestCase):
   "action": [{"+": [2, 2]}],
   "end": [{"+": [2, 2]}],
   "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}},
-  "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}},
-  "pools": {}, "options": {}
+  "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}}
 }'''))
 
         self.assertEqual(EngineConfig(
@@ -154,6 +154,7 @@ class TestAstToJson(unittest.TestCase):
          None,
          None,
          None,
+         {},
          {}).jsonNode,
          json.loads('''{
   "name": "test",
@@ -165,8 +166,7 @@ class TestAstToJson(unittest.TestCase):
   "end": [{"+": [2, 2]}],
   "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}},
   "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}},
-  "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}},
-  "options": {}
+  "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}}
 }'''))
 
         self.assertEqual(EngineConfig(
@@ -184,6 +184,7 @@ class TestAstToJson(unittest.TestCase):
         12345,
         None,
         None,
+        {},
         {}).jsonNode,
     json.loads('''{
   "name": "test",
@@ -196,8 +197,7 @@ class TestAstToJson(unittest.TestCase):
   "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}},
   "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}},
   "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}},
-  "randseed":12345,
-  "options": {}
+  "randseed":12345
 }'''))
 
         self.assertEqual(EngineConfig(
@@ -215,6 +215,39 @@ class TestAstToJson(unittest.TestCase):
         12345,
         "hello",
         None,
+        {},
+        {}).jsonNode,
+        json.loads('''{
+  "name": "test",
+  "method": "map",
+  "input": "int",
+  "output": "string",
+  "begin": [{"+": [2, 2]}],
+  "action": [{"+": [2, 2]}],
+  "end": [{"+": [2, 2]}],
+  "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}},
+  "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}},
+  "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}},
+  "randseed":12345,
+  "doc":"hello"
+}'''))
+
+        self.assertEqual(EngineConfig(
+        "test",
+        Method.MAP,
+        AvroInt(),
+        AvroString(),
+        [Call("+", [LiteralInt(2), LiteralInt(2)])],
+        [Call("+", [LiteralInt(2), LiteralInt(2)])],
+        [Call("+", [LiteralInt(2), LiteralInt(2)])],
+        {"f": FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])},
+        None,
+        {"private": Cell(AvroInt(), "0", False, False)},
+        {"private": Pool(AvroInt(), {}, False, False)},
+        12345,
+        "hello",
+        None,
+        {"internal": "data"},
         {}).jsonNode,
         json.loads('''{
   "name": "test",
@@ -229,7 +262,7 @@ class TestAstToJson(unittest.TestCase):
   "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}},
   "randseed":12345,
   "doc":"hello",
-  "options": {}
+  "metadata":{"internal":"data"}
 }'''))
 
         self.assertEqual(EngineConfig(
@@ -246,40 +279,8 @@ class TestAstToJson(unittest.TestCase):
         {"private": Pool(AvroInt(), {}, False, False)},
         12345,
         "hello",
-        json.loads('''{"internal": "data"}'''),
-        {}).jsonNode,
-        json.loads('''{
-  "name": "test",
-  "method": "map",
-  "input": "int",
-  "output": "string",
-  "begin": [{"+": [2, 2]}],
-  "action": [{"+": [2, 2]}],
-  "end": [{"+": [2, 2]}],
-  "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}},
-  "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}},
-  "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}},
-  "randseed":12345,
-  "doc":"hello",
-  "metadata":{"internal":"data"},
-  "options": {}
-}'''))
-
-        self.assertEqual(EngineConfig(
-        "test",
-        Method.MAP,
-        AvroInt(),
-        AvroString(),
-        [Call("+", [LiteralInt(2), LiteralInt(2)])],
-        [Call("+", [LiteralInt(2), LiteralInt(2)])],
-        [Call("+", [LiteralInt(2), LiteralInt(2)])],
-        {"f": FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])},
         None,
-        {"private": Cell(AvroInt(), "0", False, False)},
-        {"private": Pool(AvroInt(), {}, False, False)},
-        12345,
-        "hello",
-        json.loads('''{"internal": "data"}'''),
+        {"internal": "data"},
         {"param": json.loads("3")}).jsonNode,
         json.loads('''{
   "name": "test",
@@ -312,7 +313,7 @@ class TestAstToJson(unittest.TestCase):
         self.assertEqual(Call("+", [LiteralInt(2), LiteralInt(2)]).jsonNode, json.loads('''{"+":[2,2]}'''))
 
     def testCallWithFcn(self):
-        self.assertEqual(Call("sort", [Ref("array"), FcnRef("byname")]).jsonNode, json.loads('''{"sort":["array",{"fcnref": "byname"}]}'''))
+        self.assertEqual(Call("sort", [Ref("array"), FcnRef("byname")]).jsonNode, json.loads('''{"sort":["array",{"fcn": "byname"}]}'''))
 
     def testCallWithFcnDef(self):
         self.assertEqual(Call("sort", [Ref("array"), FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])]).jsonNode,
@@ -385,7 +386,6 @@ class TestAstToJson(unittest.TestCase):
         self.assertEqual(PoolGet("p", [Ref("a"), LiteralInt(1), LiteralString("b")]).jsonNode, json.loads('''{"pool":"p","path":["a",1,{"string":"b"}]}'''))
 
     def testPoolSet(self):
-        self.assertEqual(PoolTo("p", [Ref("a"), LiteralInt(1), LiteralString("b")], LiteralDouble(2.2), None).jsonNode, json.loads('''{"pool":"p","path":["a",1,{"string":"b"}],"to":2.2}'''))
         self.assertEqual(PoolTo("p", [Ref("a"), LiteralInt(1), LiteralString("b")], LiteralDouble(2.2), LiteralDouble(2.2)).jsonNode, json.loads('''{"pool":"p","path":["a",1,{"string":"b"}],"to":2.2,"init":2.2}'''))
 
     def testIf(self):

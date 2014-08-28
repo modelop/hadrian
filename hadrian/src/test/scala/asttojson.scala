@@ -54,14 +54,14 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
   "method": "map",
   "input": "int",
   "output": "string",
-  "action": [{"+": [2, 2]}],
-  "cells": {}, "pools": {}, "options": {}
+  "action": [{"+": [2, 2]}]
 }""")
 
     checkAstToJson(EngineConfig(
@@ -79,6 +79,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -87,8 +88,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
   "output": "string",
   "begin": [{"+": [2, 2]}],
   "action": [{"+": [2, 2]}],
-  "end": [{"+": [2, 2]}],
-  "cells": {}, "pools": {}, "options": {}
+  "end": [{"+": [2, 2]}]
 }""")
 
     checkAstToJson(EngineConfig(
@@ -106,6 +106,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -115,8 +116,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
   "begin": [{"+": [2, 2]}],
   "action": [{"+": [2, 2]}],
   "end": [{"+": [2, 2]}],
-  "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}},
-  "cells": {}, "pools": {}, "options": {}
+  "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}}
 }""")
 
     checkAstToJson(EngineConfig(
@@ -134,6 +134,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -144,8 +145,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
   "action": [{"+": [2, 2]}],
   "end": [{"+": [2, 2]}],
   "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}},
-  "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}},
-  "pools": {}, "options": {}
+  "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}}
 }""")
 
     checkAstToJson(EngineConfig(
@@ -163,6 +163,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       None,
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -174,8 +175,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
   "end": [{"+": [2, 2]}],
   "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}},
   "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}},
-  "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}},
-  "options": {}
+  "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}}
 }""")
 
     checkAstToJson(EngineConfig(
@@ -193,6 +193,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       Some(12345),
       None,
       None,
+      Map(),
       Map()),
       """{
   "name": "test",
@@ -205,8 +206,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
   "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}},
   "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}},
   "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}},
-  "randseed":12345,
-  "options": {}
+  "randseed":12345
 }""")
 
     checkAstToJson(EngineConfig(
@@ -224,6 +224,39 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       Some(12345),
       Some("hello"),
       None,
+      Map(),
+      Map()),
+      """{
+  "name": "test",
+  "method": "map",
+  "input": "int",
+  "output": "string",
+  "begin": [{"+": [2, 2]}],
+  "action": [{"+": [2, 2]}],
+  "end": [{"+": [2, 2]}],
+  "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}},
+  "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}},
+  "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}},
+  "randseed":12345,
+  "doc":"hello"
+}""")
+
+    checkAstToJson(EngineConfig(
+      "test",
+      Method.MAP,
+      AvroInt(),
+      AvroString(),
+      List(Call("+", List(LiteralInt(2), LiteralInt(2)))),
+      List(Call("+", List(LiteralInt(2), LiteralInt(2)))),
+      List(Call("+", List(LiteralInt(2), LiteralInt(2)))),
+      Map("f" -> FcnDef(List("x" -> AvroInt(), "y" -> AvroString()), AvroNull(), List(LiteralNull()))),
+      None,
+      Map("private" -> Cell(AvroInt(), "0", false, false)),
+      Map("private" -> Pool(AvroInt(), Map[String, String](), false, false)),
+      Some(12345),
+      Some("hello"),
+      None,
+      Map("internal" -> "data"),
       Map()),
       """{
   "name": "test",
@@ -238,7 +271,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
   "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}},
   "randseed":12345,
   "doc":"hello",
-  "options": {}
+  "metadata":{"internal":"data"}
 }""")
 
     checkAstToJson(EngineConfig(
@@ -255,40 +288,8 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       Map("private" -> Pool(AvroInt(), Map[String, String](), false, false)),
       Some(12345),
       Some("hello"),
-      Some(convertFromJson("""{"internal": "data"}""")),
-      Map()),
-      """{
-  "name": "test",
-  "method": "map",
-  "input": "int",
-  "output": "string",
-  "begin": [{"+": [2, 2]}],
-  "action": [{"+": [2, 2]}],
-  "end": [{"+": [2, 2]}],
-  "fcns": {"f": {"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}},
-  "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}},
-  "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}},
-  "randseed":12345,
-  "doc":"hello",
-  "metadata":{"internal":"data"},
-  "options": {}
-}""")
-
-    checkAstToJson(EngineConfig(
-      "test",
-      Method.MAP,
-      AvroInt(),
-      AvroString(),
-      List(Call("+", List(LiteralInt(2), LiteralInt(2)))),
-      List(Call("+", List(LiteralInt(2), LiteralInt(2)))),
-      List(Call("+", List(LiteralInt(2), LiteralInt(2)))),
-      Map("f" -> FcnDef(List("x" -> AvroInt(), "y" -> AvroString()), AvroNull(), List(LiteralNull()))),
       None,
-      Map("private" -> Cell(AvroInt(), "0", false, false)),
-      Map("private" -> Pool(AvroInt(), Map[String, String](), false, false)),
-      Some(12345),
-      Some("hello"),
-      Some(convertFromJson("""{"internal": "data"}""")),
+      Map("internal" -> "data"),
       Map("param" -> convertFromJson("3"))),
       """{
   "name": "test",
@@ -326,7 +327,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
   }
 
   it must "call with fcn" taggedAs(AstToJson) in {
-    checkAstToJson(Call("sort", List(Ref("array"), FcnRef("byname"))), """{"sort":["array",{"fcnref": "byname"}]}""")
+    checkAstToJson(Call("sort", List(Ref("array"), FcnRef("byname"))), """{"sort":["array",{"fcn": "byname"}]}""")
   }
 
   it must "call with fcn def" taggedAs(JsonToAst) in {
@@ -421,8 +422,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
   }
 
   it must "pool-set" taggedAs(AstToJson) in {
-    checkAstToJson(PoolTo("p", List(Ref("a"), LiteralInt(1), LiteralString("b")), LiteralDouble(2.2), None), """{"pool":"p","path":["a",1,{"string":"b"}],"to":2.2}""")
-    checkAstToJson(PoolTo("p", List(Ref("a"), LiteralInt(1), LiteralString("b")), LiteralDouble(2.2), Some(LiteralDouble(2.2))), """{"pool":"p","path":["a",1,{"string":"b"}],"to":2.2,"init":2.2}""")
+    checkAstToJson(PoolTo("p", List(Ref("a"), LiteralInt(1), LiteralString("b")), LiteralDouble(2.2), LiteralDouble(2.2)), """{"pool":"p","path":["a",1,{"string":"b"}],"to":2.2,"init":2.2}""")
   }
 
   it must "if" taggedAs(AstToJson) in {

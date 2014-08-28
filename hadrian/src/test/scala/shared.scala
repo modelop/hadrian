@@ -50,8 +50,8 @@ class SharedSuite extends FlatSpec with Matchers {
     state.get("one", Array[PathIndex]()) should be (Right(1))
     state.get("two", Array[PathIndex]()) should be (Right(2.2))
     state.get("three", Array[PathIndex]()) should be (Right("Three"))
-    state.get("four", Array[PathIndex]()) should be (Right(2))
-    state.get("five", Array[PathIndex]()) should be (Right(List(5, 5)))
+    state.get("four", Array[PathIndex]()) should be (Right(3))
+    state.get("five", Array[PathIndex]()) should be (Right(List(5, 5, 5)))
     state.get("six", Array[PathIndex]()).isLeft should be (true)
 
     state.remove("one", Array[PathIndex]())
@@ -123,7 +123,7 @@ class SharedSuite extends FlatSpec with Matchers {
     thread5.start
     Thread.sleep(550)
 
-    state.get("x", Array[PathIndex]()) should be (Right(4))  // and not, for instance, Right(1) because the Incrementers overwrote each other
+    state.get("x", Array[PathIndex]()) should be (Right(5))  // and not, for instance, Right(1) because the Incrementers overwrote each other
   }
 
 }

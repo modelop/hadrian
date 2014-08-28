@@ -469,7 +469,7 @@ cells:
           pass: {string: no-yes}
           fail: {string: no-no}
 action:
-  - {model.tree.simpleWalk: [input, {cell: tree}, {fcnref: u.myPredicate}]}
+  - {model.tree.simpleWalk: [input, {cell: tree}, {fcn: u.myPredicate}]}
 fcns:
   myPredicate:
     params:

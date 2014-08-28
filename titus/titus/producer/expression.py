@@ -268,7 +268,7 @@ def _expression(expr, state):
             else:
                 raise PythonToPfaException("Python AST node {} (source line {}) does not have a PFA equivalent".format(ast.dump(x), x.lineno))
 
-        specialForms = ["Int", "Long", "Float", "Double", "String", "Base64", "Type", "Value", "New", "Do", "Let", "Set", "Attr", "Path", "To", "Cell", "Pool", "Init", "If", "Then", "Else", "Cond", "While", "Until", "For", "Step", "Foreach", "In", "Forkey", "Forval", "Cast", "Cases", "Partial", "Upcast", "As", "Ifnotnull", "Doc", "Error", "Log", "Namespace", "Params", "Ret", "Fcnref"]
+        specialForms = ["Int", "Long", "Float", "Double", "String", "Base64", "Type", "Value", "New", "Do", "Let", "Set", "Attr", "Path", "To", "Cell", "Pool", "Init", "If", "Then", "Else", "Cond", "While", "Until", "For", "Step", "Foreach", "In", "Forkey", "Forval", "Cast", "Cases", "Partial", "Upcast", "As", "Ifnotnull", "Doc", "Error", "Log", "Namespace", "Params", "Ret", "Fcn"]
         coreLibrary = {"Plus": "+", "Minus": "-", "Times": "*", "Divide": "/", "FloorDivide": "//", "Negative": "U-", "Modulo": "%", "Remainder": "%%", "Pow": "**", "Comparison": "cmp", "Equal": "==", "GreaterOrEqual": ">=", "GreaterThan": ">", "NotEqual": "!=", "LessThan": "<", "LessOrEqual": "<=", "Max": "max", "Min": "min", "And": "&&", "Or": "||", "XOr": "^^", "Not": "!", "BitwiseAnd": "&", "BitwiseOr": "|", "BitwiseXOr": "^", "BitwiseNot": "~"}
 
         name = unfold(expr.func)
@@ -280,7 +280,7 @@ def _expression(expr, state):
         if len(args) == 1:
             args = args[0]
 
-        if name in ["string", "base64", "value", "attr", "cell", "pool", "foreach", "forkey", "forval", "doc", "error", "fcnref"] and isinstance(args, dict) and len(args) == 1 and args.keys() == ["string"]:
+        if name in ["string", "base64", "value", "attr", "cell", "pool", "foreach", "forkey", "forval", "doc", "error", "fcn"] and isinstance(args, dict) and len(args) == 1 and args.keys() == ["string"]:
             args, = args.values()
 
         out = OrderedDict([(name, args)])

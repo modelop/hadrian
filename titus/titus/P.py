@@ -20,6 +20,7 @@
 
 from titus.datatype import Type
 from titus.datatype import FcnType
+from titus.datatype import ExceptionType
 from titus.datatype import AvroType
 from titus.datatype import AvroCompiled
 from titus.datatype import AvroNull
@@ -268,6 +269,7 @@ def fromType(t, memo=None):
         else:
             return Record(dict((f.name, fromType(f.avroType, memo.union(set([t.name])))) for f in t.fields), t.name)
     elif isinstance(t, FcnType): return Fcn([fromType(x, memo) for x in t.params()], fromType(t.ret(), memo))
+    elif isinstance(t, ExceptionType): raise IncompatibleTypes("exception type cannot be used in argument patterns")
 
 def mustBeAvro(t):
     if not isinstance(t, AvroType):

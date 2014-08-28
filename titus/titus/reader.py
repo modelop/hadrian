@@ -41,6 +41,7 @@ from titus.ast import RecordIndex
 from titus.ast import HasPath
 from titus.ast import FcnDef
 from titus.ast import FcnRef
+from titus.ast import FcnRefFill
 from titus.ast import CallUserFcn
 from titus.ast import Call
 from titus.ast import Ref
@@ -254,7 +255,8 @@ def _readEngineConfig(data, avroTypeBuilder):
     _pools = {}
     _randseed = None
     _doc = None
-    _metadata = None
+    _version = None
+    _metadata = {}
     _options = {}
 
     for key in keys:
@@ -292,7 +294,8 @@ def _readEngineConfig(data, avroTypeBuilder):
         elif key == "pools": _pools = _readPools(data[key], key, avroTypeBuilder)
         elif key == "randseed": _randseed = _readLong(data[key], key)
         elif key == "doc": _doc = _readString(data[key], key)
-        elif key == "metadata": _metadata = _readJsonNode(data[key], key)
+        elif key == "version": _version = _readInt(data[key], key)
+        elif key == "metadata": _metadata = _readStringMap(data[key], key)
         elif key == "options": _options = _readJsonNodeMap(data[key], key)
         else:
             raise PFASyntaxException("unexpected top-level field: {}".format(key), at)
@@ -307,7 +310,7 @@ def _readEngineConfig(data, avroTypeBuilder):
     if keys.intersection(required) != required:
         raise PFASyntaxException("missing top-level fields: {}".format(", ".join(required.diff(fields))), at)
     else:
-        return EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _cells, _pools, _randseed, _doc, _metadata, _options, at)
+        return EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _cells, _pools, _randseed, _doc, _version, _metadata, _options, at)
 
 def _readJsonToString(data, dot):
     return json.dumps(_stripAtSigns(data))
@@ -372,6 +375,13 @@ def _readStringArray(data, dot):
         return [_readString(x, dot + "." + str(i)) for i, x in enumerate(data)]
     else:
         raise PFASyntaxException("expected array of strings, not " + _trunc(repr(data)), dot)
+
+def _readStringMap(data, dot):
+    if isinstance(data, dict):
+        at = data.get("@")
+        return dict((k, _readString(v, dot + "." + k)) for k, v in data.items() if k != "@")
+    else:
+        raise PFASyntaxException("expected map of strings, not " + _trunc(repr(data)), pos(dot, at))
 
 def _readString(data, dot):
     if isinstance(data, basestring):
@@ -442,6 +452,13 @@ def _readArgumentArray(data, dot, avroTypeBuilder):
     else:
         raise PFASyntaxException("expected array of arguments, not " + _trunc(repr(data)), dot)
 
+def _readArgumentMap(data, dot, avroTypeBuilder):
+    if isinstance(data, dict):
+        at = data.get("@")
+        return dict((k, _readArgument(v, dot + "." + k, avroTypeBuilder)) for k, v in data.items() if k != "@")
+    else:
+        raise PFASyntaxException("expected map of arguments, found " + _trunc(repr(data)), dot)
+
 def _readArgument(data, dot, avroTypeBuilder):
     if data is None:
         return LiteralNull(dot)
@@ -487,7 +504,6 @@ def _readArgument(data, dot, avroTypeBuilder):
         keys = set(x for x in data.keys() if x != "@")
 
         _path = []
-        _init = None
         _seq = False
         _partial = False
         _code = 0
@@ -550,7 +566,7 @@ def _readArgument(data, dot, avroTypeBuilder):
             elif key == "foreach": _foreach = _readString(data[key], dot + "." + key)
             elif key == "forkey": _forkey = _readString(data[key], dot + "." + key)
             elif key == "forval": _forval = _readString(data[key], dot + "." + key)
-            elif key == "fcnref": _fcnref = _readString(data[key], dot + "." + key)
+            elif key == "fcn": _fcnref = _readString(data[key], dot + "." + key)
             elif key == "cell": _cell = _readString(data[key], dot + "." + key)
             elif key == "pool": _pool = _readString(data[key], dot + "." + key)
 
@@ -582,6 +598,8 @@ def _readArgument(data, dot, avroTypeBuilder):
 
             elif key == "to": _to = _readArgument(data[key], dot + "." + key, avroTypeBuilder)
 
+            elif key == "fill": _fill = _readArgumentMap(data[key], dot + "." + key, avroTypeBuilder)
+
             else:
                 _callName = key
                 if isinstance(data[key], (list, tuple)):
@@ -595,7 +613,7 @@ def _readArgument(data, dot, avroTypeBuilder):
             raise PFASyntaxException("\"{}\" is not a valid symbol name".format(data[keys]), pos(dot, at))
         if "forval" in keys and not validSymbolName(_forval):
             raise PFASyntaxException("\"{}\" is not a valid symbol name".format(data[keys]), pos(dot, at))
-        if "fcnref" in keys and not validFunctionName(_fcnref):
+        if "fcn" in keys and not validFunctionName(_fcnref):
             raise PFASyntaxException("\"{}\" is not a valid function name".format(data[keys]), pos(dot, at))
 
         if keys == set(["int"]):                             return LiteralInt(_int, pos(dot, at))
@@ -622,8 +640,7 @@ def _readArgument(data, dot, avroTypeBuilder):
         elif keys == set(["cell", "to"]) or \
              keys == set(["cell", "path", "to"]):            return CellTo(_cell, _path, _to, pos(dot, at))
         elif keys == set(["pool", "path"]):                  return PoolGet(_pool, _path, pos(dot, at))
-        elif keys == set(["pool", "path", "to"]) or \
-             keys == set(["pool", "path", "to", "init"]):    return PoolTo(_pool, _path, _to, _init, pos(dot, at))
+        elif keys == set(["pool", "path", "to", "init"]):    return PoolTo(_pool, _path, _to, _init, pos(dot, at))
 
         elif keys == set(["if", "then"]):                    return If(_ifPredicate, _thenClause, None, pos(dot, at))
         elif keys == set(["if", "then", "else"]):            return If(_ifPredicate, _thenClause, _elseClause, pos(dot, at))
@@ -653,12 +670,13 @@ def _readArgument(data, dot, avroTypeBuilder):
         elif keys == set(["log", "namespace"]):              return Log(_log, _namespace, pos(dot, at))
 
         elif keys == set(["params", "ret", "do"]):           return FcnDef(_params, _ret, _body, pos(dot, at))
-        elif keys == set(["fcnref"]):                        return FcnRef(_fcnref, pos(dot, at))
+        elif keys == set(["fcn"]):                           return FcnRef(_fcnref, pos(dot, at))
+        elif keys == set(["fcn", "fill"]):                   return FcnRefFill(_fcnref, _fill, pos(dot, at))
         elif keys == set(["call", "args"]):                  return CallUserFcn(_callwith, _callwithargs, pos(dot, at))
 
         elif len(keys) == 1 and list(keys)[0] not in \
              set(["args", "as", "attr", "base64", "call", "cases", "cast", "cell", "code", "cond", "do", "doc", "double", "else",
-                  "error", "fcnref", "float", "for", "foreach", "forkey", "forval", "if", "ifnotnull", "in", "init",
+                  "error", "fcn", "fill", "float", "for", "foreach", "forkey", "forval", "if", "ifnotnull", "in", "init",
                   "int", "let", "log", "long", "namespace", "new", "params", "partial", "path", "pool", "ret", "seq",
                   "set", "step", "string", "then", "to", "type", "until", "upcast", "value", "while"]):
                                                              return Call(_callName, _callArgs, pos(dot, at))

@@ -43,6 +43,7 @@ class TestJsonToAst(unittest.TestCase):
             None,
             None,
             None,
+            {},
             {}),
             jsonToAst('''{
   "name": "test",
@@ -67,6 +68,7 @@ class TestJsonToAst(unittest.TestCase):
             None,
             None,
             None,
+            {},
             {}),
             jsonToAst('''{
   "name": "test",
@@ -92,6 +94,7 @@ class TestJsonToAst(unittest.TestCase):
             None,
             None,
             None,
+            {},
             {}),
             jsonToAst('''{
   "name": "test",
@@ -118,6 +121,7 @@ class TestJsonToAst(unittest.TestCase):
             None,
             None,
             None,
+            {},
             {}),
             jsonToAst('''{
   "name": "test",
@@ -143,6 +147,7 @@ class TestJsonToAst(unittest.TestCase):
             None,
             None,
             None,
+            {},
             {}),
             jsonToAst('''{
   "name": "test",
@@ -168,7 +173,8 @@ class TestJsonToAst(unittest.TestCase):
             {},
             12345,
             "hello",
-            json.loads('''{"internal": "data"}'''),
+            None,
+            {"internal": "data"},
             {"param": json.loads("3")}),
             jsonToAst('''{
   "name": "test",
@@ -197,7 +203,8 @@ class TestJsonToAst(unittest.TestCase):
             {"private": Pool(AvroInt(), {}, False, False)},
             12345,
             "hello",
-            json.loads('''{"internal": "data"}'''),
+            None,
+            {"internal": "data"},
             {"param": json.loads("3")}),
             jsonToAst('''{
   "name": "test",
@@ -233,6 +240,7 @@ class TestJsonToAst(unittest.TestCase):
             None,
             None,
             None,
+            {},
             {}),
             jsonToAst('''{
   "name": "test",
@@ -259,6 +267,7 @@ class TestJsonToAst(unittest.TestCase):
             None,
             None,
             None,
+            {},
             {}),
             jsonToAst('''{
   "name": "test",
@@ -285,6 +294,7 @@ class TestJsonToAst(unittest.TestCase):
             None,
             None,
             None,
+            {},
             {}),
             jsonToAst('''{
   "name": "test",
@@ -310,16 +320,17 @@ class TestJsonToAst(unittest.TestCase):
             None,
             None,
             None,
+            {},
             {}),
             jsonToAst('''{
   "name": "test",
   "input": "int",
   "output": "string",
-  "action": [{"sort":["array",{"fcnref": "byname"}]}]
+  "action": [{"sort":["array",{"fcn": "byname"}]}]
 }'''))
 
     def testCallWithFcnDef(self):
-        x = EngineConfig("test", Method.MAP, AvroInt(), AvroString(), [], [Call("sort", [Ref("array"), FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])])], [], {}, None, {}, {}, None, None, None, {})
+        x = EngineConfig("test", Method.MAP, AvroInt(), AvroString(), [], [Call("sort", [Ref("array"), FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])])], [], {}, None, {}, {}, None, None, None, {}, {})
         y = jsonToAst('''{
   "name": "test",
   "input": "int",
@@ -342,6 +353,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -367,6 +379,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -392,6 +405,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -417,6 +431,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -442,6 +457,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -467,6 +483,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -492,6 +509,7 @@ class TestJsonToAst(unittest.TestCase):
       None,
       None,
       None,
+      {},
       {}),
       jsonToAst('''{
   "name": "test",
@@ -517,6 +535,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -542,6 +561,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -567,6 +587,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -592,6 +613,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -618,6 +640,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -643,6 +666,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -668,6 +692,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -693,6 +718,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -718,6 +744,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -743,6 +770,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -768,6 +796,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -793,6 +822,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -816,6 +846,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -841,6 +872,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -864,6 +896,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -889,6 +922,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -905,30 +939,6 @@ class TestJsonToAst(unittest.TestCase):
         AvroInt(),
         AvroString(),
         [],
-        [PoolTo("p", [Ref("a"), LiteralInt(1), LiteralString("b")], LiteralDouble(2.2), None)],
-        [],
-        {},
-        None,
-        {},
-        {},
-        None,
-        None,
-        None,
-        {}),
-        jsonToAst('''{
-  "name": "test",
-  "input": "int",
-  "output": "string",
-  "action": [{"pool":"p","path":["a",1,{"string":"b"}],"to":2.2}]
-}'''))
-
-        self.assertEqual(
-        EngineConfig(
-        "test",
-        Method.MAP,
-        AvroInt(),
-        AvroString(),
-        [],
         [PoolTo("p", [Ref("a"), LiteralInt(1), LiteralString("b")], LiteralDouble(2.2), LiteralDouble(2.2))],
         [],
         {},
@@ -938,6 +948,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -963,6 +974,7 @@ class TestJsonToAst(unittest.TestCase):
         None,
         None,
         None,
+        {},
         {}),
         jsonToAst('''{
   "name": "test",
@@ -989,6 +1001,7 @@ class TestJsonToAst(unittest.TestCase):
           None,
           None,
           None,
+          {},
           {}),
           jsonToAst('''{
   "name": "test",
@@ -1015,6 +1028,7 @@ class TestJsonToAst(unittest.TestCase):
           None,
           None,
           None,
+          {},
           {}),
           jsonToAst('''{
   "name": "test",
@@ -1040,6 +1054,7 @@ class TestJsonToAst(unittest.TestCase):
           None,
           None,
           None,
+          {},
           {}),
           jsonToAst('''{
   "name": "test",
@@ -1065,6 +1080,7 @@ class TestJsonToAst(unittest.TestCase):
           None,
           None,
           None,
+          {},
           {}),
           jsonToAst('''{
   "name": "test",
@@ -1090,6 +1106,7 @@ class TestJsonToAst(unittest.TestCase):
           None,
           None,
           None,
+          {},
           {}),
           jsonToAst('''{
   "name": "test",
@@ -1115,6 +1132,7 @@ class TestJsonToAst(unittest.TestCase):
           None,
           None,
           None,
+          {},
           {}),
           jsonToAst('''{
   "name": "test",
@@ -1140,6 +1158,7 @@ class TestJsonToAst(unittest.TestCase):
           None,
           None,
           None,
+          {},
           {}),
           jsonToAst('''{
   "name": "test",
@@ -1165,6 +1184,7 @@ class TestJsonToAst(unittest.TestCase):
           None,
           None,
           None,
+          {},
           {}),
           jsonToAst('''{
   "name": "test",
@@ -1190,6 +1210,7 @@ class TestJsonToAst(unittest.TestCase):
           None,
           None,
           None,
+          {},
           {}),
           jsonToAst('''{
   "name": "test",
@@ -1217,6 +1238,7 @@ class TestJsonToAst(unittest.TestCase):
           None,
           None,
           None,
+          {},
           {}),
           jsonToAst('''{
   "name": "test",

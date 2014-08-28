@@ -43,7 +43,7 @@ input: "null"
 output: double
 action:
   - metric.euclidean: 
-      - fcnref: metric.absDiff
+      - fcn: metric.absDiff
       - value: [1, 2, 3]
         type: {type: array, items: double}
       - value: [0, 0, 0]
@@ -57,7 +57,7 @@ input: "null"
 output: double
 action:
   - metric.euclidean: 
-      - fcnref: metric.absDiff
+      - fcn: metric.absDiff
       - value: [1, 2, 3]
         type: {type: array, items: int}
       - value: [0, 0, 0]
@@ -87,7 +87,7 @@ input: "null"
 output: double
 action:
   - metric.euclidean: 
-      - fcnref: metric.absDiff
+      - fcn: metric.absDiff
       - value: [null, {double: 2}, {double: 3}]
         type: {type: array, items: ["null", double]}
       - value: [0, 0, 0]
@@ -100,7 +100,7 @@ input: "null"
 output: double
 action:
   - metric.euclidean: 
-      - fcnref: metric.absDiff
+      - fcn: metric.absDiff
       - value: [1, 2, 3]
         type: {type: array, items: double}
       - value: [null, {double: 0}, {double: 0}]
@@ -113,7 +113,7 @@ input: "null"
 output: double
 action:
   - metric.euclidean: 
-      - fcnref: metric.absDiff
+      - fcn: metric.absDiff
       - value: [null, {double: 2}, {double: 3}]
         type: {type: array, items: ["null", double]}
       - value: [null, {double: 0}, {double: 0}]
@@ -127,7 +127,7 @@ input: "null"
 output: double
 action:
   - metric.euclidean: 
-      - fcnref: metric.absDiff
+      - fcn: metric.absDiff
       - value: [null, {double: 2}, {double: 3}]
         type: {type: array, items: ["null", double]}
       - value: [0, 0, 0]
@@ -178,7 +178,7 @@ input: "null"
 output: double
 action:
   - metric.squaredEuclidean: 
-      - fcnref: metric.absDiff
+      - fcn: metric.absDiff
       - value: [1, 2, 3]
         type: {type: array, items: double}
       - value: [0, 0, 0]
@@ -192,7 +192,7 @@ input: "null"
 output: double
 action:
   - metric.chebyshev: 
-      - fcnref: metric.absDiff
+      - fcn: metric.absDiff
       - value: [1, 2, 3]
         type: {type: array, items: double}
       - value: [0, 0, 0]
@@ -206,7 +206,7 @@ input: "null"
 output: double
 action:
   - metric.taxicab: 
-      - fcnref: metric.absDiff
+      - fcn: metric.absDiff
       - value: [1, 2, 3]
         type: {type: array, items: double}
       - value: [0, 0, 0]
@@ -220,7 +220,7 @@ input: "null"
 output: double
 action:
   - metric.minkowski: 
-      - fcnref: metric.absDiff
+      - fcn: metric.absDiff
       - value: [1, 2, 3]
         type: {type: array, items: double}
       - value: [0, 0, 0]
@@ -235,7 +235,7 @@ input: "null"
 output: double
 action:
   - metric.minkowski: 
-      - fcnref: metric.absDiff
+      - fcn: metric.absDiff
       - value: [1, 2, 3]
         type: {type: array, items: double}
       - value: [0, 0, 0]

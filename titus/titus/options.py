@@ -21,7 +21,7 @@
 from titus.errors import PFAInitializationException
 
 class EngineOptions(object):
-    recognizedKeys = set(["@", "timeout", "timeout.begin", "timeout.action", "timeout.end"])
+    recognizedKeys = set(["@", "timeout", "timeout.begin", "timeout.action", "timeout.end", "data.PFARecord.interface"])
 
     def __init__(self, requestedOptions, hostOptions):
         combinedOptions = {} if requestedOptions is None else dict(requestedOptions)

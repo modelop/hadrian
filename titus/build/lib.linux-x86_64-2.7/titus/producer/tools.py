@@ -115,7 +115,7 @@ def uniqueSymbols(expr, toavoid, tr=None):
         keys = expr.keys()
         if "@" in keys:
             del keys["@"]
-        if keys in (["int"], ["long"], ["float"], ["double"], ["string"], ["base64"], ["type", "value"], ["doc"], ["error"], ["error", "code"], ["fcnref"]):
+        if keys in (["int"], ["long"], ["float"], ["double"], ["string"], ["base64"], ["type", "value"], ["doc"], ["error"], ["error", "code"], ["fcn"], ["fcn", "fill"]):
             return expr
 
         if keys == ["new", "type"] and isinstance(expr["new"], dict):

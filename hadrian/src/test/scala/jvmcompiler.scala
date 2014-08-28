@@ -61,6 +61,351 @@ fcns:
     allLogs.toSeq
   }
 
+  "JVM metadata access" must "access name" taggedAs(JVMCompilation) in {
+    PFAEngine.fromYaml("""
+name: ThisIsMyName
+input: "null"
+output: string
+method: map
+action: {s.concat: [name, {string: "!!!"}]}
+""").head.action(null) should be ("ThisIsMyName!!!")
+
+    val emitEngine = PFAEngine.fromYaml("""
+name: ThisIsMyName
+input: "null"
+output: string
+method: emit
+action: {emit: {s.concat: [name, {string: "!!!"}]}}
+""").head
+    emitEngine.asInstanceOf[PFAEmitEngine[AnyRef, AnyRef]].emit = {x: AnyRef => x should be ("ThisIsMyName!!!")}
+    emitEngine.action(null)
+
+    PFAEngine.fromYaml("""
+name: ThisIsMyName
+input: "null"
+output: string
+method: fold
+zero: "!!!"
+action: {s.concat: [name, tally]}
+""").head.action(null) should be ("ThisIsMyName!!!")
+
+    val beginEngine = PFAEngine.fromYaml("""
+name: ThisIsMyName
+input: "null"
+output: "null"
+action: null
+begin: {log: {s.concat: [name, {string: "!!!"}]}}
+""").head
+    beginEngine.log = {(x: String, ns: Option[String]) => x should be (""""ThisIsMyName!!!"""")}
+    beginEngine.begin()
+
+    val endEngine = PFAEngine.fromYaml("""
+name: ThisIsMyName
+input: "null"
+output: "null"
+action: null
+end: {log: {s.concat: [name, {string: "!!!"}]}}
+""").head
+    endEngine.log = {(x: String, ns: Option[String]) => x should be (""""ThisIsMyName!!!"""")}
+    endEngine.end()
+  }
+
+  it must "refuse to change name" taggedAs(JVMCompilation) in {
+    evaluating { PFAEngine.fromYaml("""
+name: ThisIsMyName
+input: "null"
+output: "null"
+method: map
+action:
+  - set: {name: {string: SomethingElse}}
+  - null
+""").head } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+name: ThisIsMyName
+input: "null"
+output: "null"
+method: emit
+action:
+  - set: {name: {string: SomethingElse}}
+""").head } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+name: ThisIsMyName
+input: "null"
+output: "null"
+method: fold
+zero: null
+action:
+  - set: {name: {string: SomethingElse}}
+  - null
+""").head } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+name: ThisIsMyName
+input: "null"
+output: "null"
+action: null
+begin:
+  - set: {name: {string: SomethingElse}}
+""").head } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+name: ThisIsMyName
+input: "null"
+output: "null"
+action: null
+end:
+  - set: {name: {string: SomethingElse}}
+""").head } should produce [PFASemanticException]
+  }
+
+  it must "access version" taggedAs(JVMCompilation) in {
+    PFAEngine.fromYaml("""
+version: 123
+input: "null"
+output: int
+method: map
+action: {+: [version, 1000]}
+""").head.action(null) should be (1123)
+
+    val emitEngine = PFAEngine.fromYaml("""
+version: 123
+input: "null"
+output: int
+method: emit
+action: {emit: {+: [version, 1000]}}
+""").head
+    emitEngine.asInstanceOf[PFAEmitEngine[AnyRef, AnyRef]].emit = {x: AnyRef => x should be (1123)}
+    emitEngine.action(null)
+
+    PFAEngine.fromYaml("""
+version: 123
+input: "null"
+output: int
+method: fold
+zero: 1000
+action: {+: [version, tally]}
+""").head.action(null) should be (1123)
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: int
+method: map
+action: {+: [version, 1000]}
+""").head } should produce [PFASemanticException]
+
+    val beginEngine = PFAEngine.fromYaml("""
+version: 123
+input: "null"
+output: "null"
+action: null
+begin: {log: {+: [version, 1000]}}
+""").head
+    beginEngine.log = {(x: String, ns: Option[String]) => x should be ("1123")}
+    beginEngine.begin()
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: "null"
+action: null
+begin: {+: [version, 1000]}
+""").head } should produce [PFASemanticException]
+
+    val endEngine = PFAEngine.fromYaml("""
+version: 123
+input: "null"
+output: "null"
+action: null
+end: {log: {+: [version, 1000]}}
+""").head
+    endEngine.log = {(x: String, ns: Option[String]) => x should be ("1123")}
+    endEngine.end()
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: "null"
+action: null
+end: {+: [version, 1000]}
+""").head } should produce [PFASemanticException]
+  }
+
+  it must "access metadata" taggedAs(JVMCompilation) in {
+    PFAEngine.fromYaml("""
+metadata: {hello: there}
+input: "null"
+output: string
+method: map
+action: metadata.hello
+""").head.action(null) should be ("there")
+
+    val emitEngine = PFAEngine.fromYaml("""
+metadata: {hello: there}
+input: "null"
+output: string
+method: emit
+action: {emit: metadata.hello}
+""").head
+    emitEngine.asInstanceOf[PFAEmitEngine[AnyRef, AnyRef]].emit = {x: AnyRef => x should be ("there")}
+    emitEngine.action(null)
+
+    PFAEngine.fromYaml("""
+metadata: {hello: there}
+input: "null"
+output: string
+method: fold
+zero: "!!!"
+action: {s.concat: [metadata.hello, tally]}
+""").head.action(null) should be ("there!!!")
+
+    val beginEngine = PFAEngine.fromYaml("""
+metadata: {hello: there}
+input: "null"
+output: "null"
+action: null
+begin: {log: metadata.hello}
+""").head
+    beginEngine.log = {(x: String, ns: Option[String]) => x should be (""""there"""")}
+    beginEngine.begin()
+
+    val endEngine = PFAEngine.fromYaml("""
+metadata: {hello: there}
+input: "null"
+output: "null"
+action: null
+end: {log: metadata.hello}
+""").head
+    endEngine.log = {(x: String, ns: Option[String]) => x should be (""""there"""")}
+    endEngine.end()
+  }
+
+  it must "count successful and unsuccessful actions in a map-type engine" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: boolean
+output: {type: array, items: long}
+method: map
+action:
+  if: input
+  then:
+    new: [actionsStarted, actionsFinished]
+    type: {type: array, items: long}
+  else:
+    - error: "yowzers!"
+    - {new: [], type: {type: array, items: long}}
+""").head
+
+    try {
+      engine.action(java.lang.Boolean.valueOf(true)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(1L, 0L))
+    }
+    catch {case err: Exception =>}
+
+    try {
+      engine.action(java.lang.Boolean.valueOf(true)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(2L, 1L))
+    }
+    catch {case err: Exception =>}
+
+    try {
+      engine.action(java.lang.Boolean.valueOf(false))
+    }
+    catch {case err: Exception =>}
+
+    try {
+      engine.action(java.lang.Boolean.valueOf(false))
+    }
+    catch {case err: Exception =>}
+
+    try {
+      engine.action(java.lang.Boolean.valueOf(true)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(5L, 2L))
+    }
+    catch {case err: Exception =>}
+  }
+
+  it must "count successful and unsuccessful actions in an emit-type engine" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: boolean
+output: {type: array, items: long}
+method: emit
+action:
+  if: input
+  then:
+    emit:
+      new: [actionsStarted, actionsFinished]
+      type: {type: array, items: long}
+  else:
+    - error: "yowzers!"
+""").head
+
+    engine.asInstanceOf[PFAEmitEngine[AnyRef, AnyRef]].emit = {x: AnyRef => x.asInstanceOf[PFAArray[Long]].toVector should be (Vector(1L, 0L))}
+    try {
+      engine.action(java.lang.Boolean.valueOf(true))
+    }
+    catch {case err: Exception =>}
+
+    engine.asInstanceOf[PFAEmitEngine[AnyRef, AnyRef]].emit = {x: AnyRef => x.asInstanceOf[PFAArray[Long]].toVector should be (Vector(2L, 1L))}
+    try {
+      engine.action(java.lang.Boolean.valueOf(true))
+    }
+    catch {case err: Exception =>}
+
+    try {
+      engine.action(java.lang.Boolean.valueOf(false))
+    }
+    catch {case err: Exception =>}
+
+    try {
+      engine.action(java.lang.Boolean.valueOf(false))
+    }
+    catch {case err: Exception =>}
+
+    engine.asInstanceOf[PFAEmitEngine[AnyRef, AnyRef]].emit = {x: AnyRef => x.asInstanceOf[PFAArray[Long]].toVector should be (Vector(5L, 2L))}
+    try {
+      engine.action(java.lang.Boolean.valueOf(true))
+    }
+    catch {case err: Exception =>}
+  }
+
+  it must "count successful and unsuccessful actions in a fold-type engine" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: boolean
+output: {type: array, items: long}
+method: fold
+zero: []
+action:
+  if: input
+  then:
+    new: [actionsStarted, actionsFinished]
+    type: {type: array, items: long}
+  else:
+    - error: "yowzers!"
+    - {new: [], type: {type: array, items: long}}
+""").head
+
+    try {
+      engine.action(java.lang.Boolean.valueOf(true)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(1L, 0L))
+    }
+    catch {case err: Exception =>}
+
+    try {
+      engine.action(java.lang.Boolean.valueOf(true)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(2L, 1L))
+    }
+    catch {case err: Exception =>}
+
+    try {
+      engine.action(java.lang.Boolean.valueOf(false))
+    }
+    catch {case err: Exception =>}
+
+    try {
+      engine.action(java.lang.Boolean.valueOf(false))
+    }
+    catch {case err: Exception =>}
+
+    try {
+      engine.action(java.lang.Boolean.valueOf(true)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(5L, 2L))
+    }
+    catch {case err: Exception =>}
+  }
+
   "JVM expression compilation" must "do simple literals" taggedAs(JVMCompilation) in {
     compileExpression("""null""", """"null"""").apply should be (null.asInstanceOf[java.lang.Void])
     compileExpression("""true""", """"boolean"""").apply should be (java.lang.Boolean.valueOf(true))
@@ -1231,6 +1576,351 @@ else:
 """, """"string"""").apply should be ("there")
   }
 
+  it must "properly deal with the exception type" taggedAs(JVMCompilation) in {
+    PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  if: true
+  then: {string: "hello"}
+  else: {error: "This is bad"}
+""").head.action(null) should be ("hello")
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: ["null", string]
+action:
+  if: true
+  then: {string: "hello"}
+  else: {do: {error: "This is bad"}}
+""").head.action(null) should be ("hello")
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: "null"
+action:
+  if: true
+  then: {error: "err 1"}
+  else: {error: "err 2"}
+""").head.action(null) } should produce [PFAUserException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  if: false
+  then: {string: "hello"}
+  else: {error: "This is bad"}
+""").head.action(null) } should produce [PFAUserException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: "null"
+action:
+  if: true
+  then: {error: "This is bad"}
+""").head.action(null) } should produce [PFAUserException]
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  cond:
+    - if: false
+      then: {error: "err 1"}
+    - if: false
+      then: {error: "err 2"}
+    - if: true
+      then: {string: hey}
+    - if: false
+      then: {error: "err 3"}
+  else:
+    {error: "err 4"}
+""").head.action(null) should be ("hey")
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: "null"
+action:
+  cond:
+    - if: false
+      then: {error: "err 1"}
+    - if: false
+      then: {error: "err 2"}
+    - if: false
+      then: {error: "err 3"}
+  else:
+    {error: "err 4"}
+""").head.action(null) } should produce [PFAUserException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: int
+action:
+  - let:
+      x: {error: "should not be able to assign the bottom type"}
+  - 123
+""").head.action(null) } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: int
+action:
+  - let:
+      x: null
+  - set:
+      x: {error: "even if it's a null object"}
+  - 123
+""").head.action(null) } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: int
+cells:
+  someobj:
+    type:
+      type: record
+      name: Whatever
+      fields:
+        - {name: x, type: "null"}
+    init:
+      {x: null}
+action:
+  - attr: {cell: someobj}
+    path: [{string: x}]
+    to: {error: "even if it's a null object"}
+  - 123
+""").head.action(null) } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: int
+cells:
+  someobj:
+    type:
+      type: record
+      name: Whatever
+      fields:
+        - {name: x, type: "null"}
+    init:
+      {x: null}
+action:
+  - cell: someobj
+    path: [{string: x}]
+    to: {error: "even if it's a null object"}
+  - 123
+""").head.action(null) } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: int
+pools:
+  someobj:
+    type:
+      type: record
+      name: Whatever
+      fields:
+        - {name: x, type: "null"}
+    init:
+      whatev:
+        {x: null}
+action:
+  - pool: someobj
+    path: [{string: whatev}, {string: x}]
+    to: {error: "even if it's a null object"}
+    init:
+      type: Whatever
+      value: {x: null}
+  - 123
+""").head.action(null) } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: "null"
+action: {u.somefcn: []}
+fcns:
+  somefcn:
+    params: []
+    ret: "null"
+    do: {error: "but this is okay"}
+""").head.action(null) } should produce [PFAUserException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: int
+action: {u.somefcn: []}
+fcns:
+  somefcn:
+    params: []
+    ret: int
+    do: {error: "this, too"}
+""").head.action(null) } should produce [PFAUserException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: int
+action:
+  u.callme: {error: "not in argument lists, no!"}
+fcns:
+  callme:
+    params: [{x: "null"}]
+    ret: int
+    do: 12
+""").head } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: int
+action:
+  u.callme: {do: {error: "but do sanitizes it"}}
+fcns:
+  callme:
+    params: [{x: "null"}]
+    ret: int
+    do: 12
+""").head.action(null) } should produce [PFAUserException]
+
+    PFAEngine.fromYaml("""
+input: "null"
+cells:
+  someobj:
+    type: [int, string]
+    init: {int: 12}
+output: int
+action:
+  cast: {cell: someobj}
+  cases:
+    - as: int
+      named: x
+      do: x
+    - as: string
+      named: x
+      do: {error: "really oughta be an int"}
+""").head.action(null) should be (12)
+
+    PFAEngine.fromYaml("""
+input: "null"
+cells:
+  someobj:
+    type: [int, string]
+    init: {int: 12}
+output: "null"
+action:
+  cast: {cell: someobj}
+  cases:
+    - as: int
+      named: x
+      do: x
+    - as: string
+      named: x
+      do: {error: "really oughta be an int"}
+  partial: true
+""").head.action(null) should be (null)
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+cells:
+  someobj:
+    type: [int, string]
+    init: {string: woohoo}
+output: int
+action:
+  cast: {cell: someobj}
+  cases:
+    - as: int
+      named: x
+      do: x
+    - as: string
+      named: x
+      do: {error: "really oughta be an int"}
+""").head.action(null) } should produce [PFAUserException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+cells:
+  someobj:
+    type: [int, string]
+    init: {string: woohoo}
+output: "null"
+action:
+  cast: {cell: someobj}
+  cases:
+    - as: int
+      named: x
+      do: x
+    - as: string
+      named: x
+      do: {error: "really oughta be an int"}
+  partial: true
+""").head.action(null) } should produce [PFAUserException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: "null"
+action:
+  upcast: {error: "wtf?"}
+  as: "null"
+""").head } should produce [PFASemanticException]
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: int
+cells:
+  someobj:
+    type: [int, "null"]
+    init: {int: 12}
+action:
+  ifnotnull: {x: {cell: someobj}}
+  then: x
+  else: {error: "I really wanted an int"}
+""").head.action(null) should be (12)
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: int
+cells:
+  someobj:
+    type: [int, "null"]
+    init: null
+action:
+  ifnotnull: {x: {cell: someobj}}
+  then: x
+  else: {error: "I really wanted an int"}
+""").head.action(null) } should produce [PFAUserException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: int
+action:
+  ifnotnull: {x: {error: "wtf?"}}
+  then: x
+""").head } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: "null"
+action:
+  - log: {error: "wtf?"}
+  - null
+""").head.action(null) } should produce [PFAUserException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: "null"
+action:
+  - log: [12, {error: "wtf?"}]
+  - null
+""").head.action(null) } should produce [PFAUserException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: "null"
+action:
+  - log: [{error: "wtf?"}, 12]
+  - null
+""").head.action(null) } should produce [PFAUserException]
+  }
+
   "JVM engine compilation" must "minimally work" taggedAs(JVMCompilation) in {
     PFAEngine.fromYaml("""
 input: string
@@ -1543,12 +2233,24 @@ input: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: arra
 output: int
 action:
   - {let: {x: [two]}}
-  - {let: {something: {attr: input, path: [[one], 2, x], to: {fcnref: u.inc}}}}
+  - {let: {something: {attr: input, path: [[one], 2, x], to: {fcn: u.inc}}}}
   - {attr: something, path: [[one], 2, x]}
 fcns:
   inc: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}
 """).head
     engine.action(engine.fromJson("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""", engine.inputType)) should be (3)
+
+    val engine2 = PFAEngine.fromYaml("""
+input: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}
+output: int
+action:
+  - {let: {x: [two]}}
+  - {let: {something: {attr: input, path: [[one], 2, x], to: {fcn: u.inc, fill: {uno: 1}}}}}
+  - {attr: something, path: [[one], 2, x]}
+fcns:
+  inc: {params: [{z: int}, {uno: int}], ret: int, do: [{+: [z, uno]}]}
+""").head
+    engine2.action(engine2.fromJson("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""", engine2.inputType)) should be (3)
   }
 
   "cell-get" must "extract private cells" taggedAs(JVMCompilation) in {
@@ -1702,7 +2404,7 @@ cells:
 input: string
 output: int
 action:
-  - {cell: x, to: {fcnref: u.inc}}
+  - {cell: x, to: {fcn: u.inc}}
   - {cell: x}
 cells:
   x: {type: int, init: 12}
@@ -1714,7 +2416,19 @@ fcns:
 input: string
 output: int
 action:
-  - {cell: x, to: {fcnref: u.inc}}
+  - {cell: x, to: {fcn: u.inc, fill: {uno: 1}}}
+  - {cell: x}
+cells:
+  x: {type: int, init: 12}
+fcns:
+  inc: {params: [{z: int}, {uno: int}], ret: int, do: [{+: [z, uno]}]}
+""").head.action("whatever") should be (13)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  - {cell: x, to: {fcn: u.inc}}
 cells:
   x: {type: int, init: 12}
 fcns:
@@ -1771,7 +2485,7 @@ cells:
 input: string
 output: int
 action:
-  - {cell: x, path: [[one], 2, input], to: {fcnref: u.inc}}
+  - {cell: x, path: [[one], 2, input], to: {fcn: u.inc}}
   - {cell: x, path: [[one], 2, input]}
 cells:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {one: [{zero: 0}, {one: 1}, {two: 2}]}}
@@ -1783,7 +2497,19 @@ fcns:
 input: string
 output: int
 action:
-  - attr: {cell: x, path: [[one], 2, input], to: {fcnref: u.inc}}
+  - {cell: x, path: [[one], 2, input], to: {fcn: u.inc, fill: {uno: 1}}}
+  - {cell: x, path: [[one], 2, input]}
+cells:
+  x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {one: [{zero: 0}, {one: 1}, {two: 2}]}}
+fcns:
+  inc: {params: [{z: int}, {uno: int}], ret: int, do: [{+: [z, uno]}]}
+""").head.action("two") should be (3)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  - attr: {cell: x, path: [[one], 2, input], to: {fcn: u.inc}}
     path: [[one], 2, input]
 cells:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {one: [{zero: 0}, {one: 1}, {two: 2}]}}
@@ -1839,7 +2565,7 @@ cells:
 input: string
 output: int
 action:
-  - {cell: x, to: {fcnref: u.inc}}
+  - {cell: x, to: {fcn: u.inc}}
   - {cell: x}
 cells:
   x: {type: int, init: 12, shared: true}
@@ -1851,7 +2577,19 @@ fcns:
 input: string
 output: int
 action:
-  - {cell: x, to: {fcnref: u.inc}}
+  - {cell: x, to: {fcn: u.inc, fill: {uno: 1}}}
+  - {cell: x}
+cells:
+  x: {type: int, init: 12, shared: true}
+fcns:
+  inc: {params: [{z: int}, {uno: int}], ret: int, do: [{+: [z, uno]}]}
+""").head.action("whatever") should be (13)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  - {cell: x, to: {fcn: u.inc}}
 cells:
   x: {type: int, init: 12, shared: true}
 fcns:
@@ -1908,7 +2646,7 @@ cells:
 input: string
 output: int
 action:
-  - {cell: x, path: [[one], 2, input], to: {fcnref: u.inc}}
+  - {cell: x, path: [[one], 2, input], to: {fcn: u.inc}}
   - {cell: x, path: [[one], 2, input]}
 cells:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {one: [{zero: 0}, {one: 1}, {two: 2}]}, shared: true}
@@ -1920,7 +2658,19 @@ fcns:
 input: string
 output: int
 action:
-  - attr: {cell: x, path: [[one], 2, input], to: {fcnref: u.inc}}
+  - {cell: x, path: [[one], 2, input], to: {fcn: u.inc, fill: {uno: 1}}}
+  - {cell: x, path: [[one], 2, input]}
+cells:
+  x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {one: [{zero: 0}, {one: 1}, {two: 2}]}, shared: true}
+fcns:
+  inc: {params: [{z: int}, {uno: int}], ret: int, do: [{+: [z, uno]}]}
+""").head.action("two") should be (3)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  - attr: {cell: x, path: [[one], 2, input], to: {fcn: u.inc}}
     path: [[one], 2, input]
 cells:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {one: [{zero: 0}, {one: 1}, {two: 2}]}, shared: true}
@@ -2038,7 +2788,7 @@ pools:
 input: string
 output: int
 action:
-  - {pool: x, path: [input], to: 999}
+  - {pool: x, path: [input], to: 999, init: 123}
   - {pool: x, path: [input]}
 pools:
   x: {type: int, init: {whatever: 12}}
@@ -2048,10 +2798,19 @@ pools:
 input: string
 output: int
 action:
-  - {pool: x, path: [input], to: 999}
+  - {pool: x, path: [input], to: 999, init: 123}
 pools:
   x: {type: int, init: {whatever: 12}}
 """).head.action("whatever") should be (999)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  - {pool: x, path: [input], to: 999, init: 123}
+pools:
+  x: {type: int, init: {whatever: 12}}
+""").head.action("somethingelse") should be (999)
   }
 
   it must "change private pools with fcndef" taggedAs(JVMCompilation) in {
@@ -2080,7 +2839,7 @@ pools:
 input: string
 output: int
 action:
-  - {pool: x, path: [input], to: {fcnref: u.inc}, init: 0}
+  - {pool: x, path: [input], to: {fcn: u.inc}, init: 0}
   - {pool: x, path: [input]}
 pools:
   x: {type: int, init: {whatever: 12}}
@@ -2092,7 +2851,19 @@ fcns:
 input: string
 output: int
 action:
-  - {pool: x, path: [input], to: {fcnref: u.inc}, init: 0}
+  - {pool: x, path: [input], to: {fcn: u.inc, fill: {uno: 1}}, init: 0}
+  - {pool: x, path: [input]}
+pools:
+  x: {type: int, init: {whatever: 12}}
+fcns:
+  inc: {params: [{z: int}, {uno: int}], ret: int, do: [{+: [z, uno]}]}
+""").head.action("whatever") should be (13)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  - {pool: x, path: [input], to: {fcn: u.inc}, init: 0}
 pools:
   x: {type: int, init: {whatever: 12}}
 fcns:
@@ -2105,7 +2876,7 @@ fcns:
 input: string
 output: int
 action:
-  - {pool: x, path: [[whatever], [one], 2, input], to: 999}
+  - {pool: x, path: [[whatever], [one], 2, input], to: 999, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
   - {pool: x, path: [[whatever], [one], 2, input]}
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
@@ -2115,11 +2886,21 @@ pools:
 input: string
 output: int
 action:
-  - attr: {pool: x, path: [[whatever], [one], 2, input], to: 999}
+  - attr: {pool: x, path: [[whatever], [one], 2, input], to: 999, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
     path: [[one], 2, input]
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
 """).head.action("two") should be (999)
+
+    PFAEngine.fromYaml("""
+input: string
+output: {type: map, values: int}
+action:
+  - attr: {pool: x, path: [[somethingelse], [one], 2, input], to: 999, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102, glue: 103}]}, type: SimpleRecord}}
+    path: [[one], 2]
+pools:
+  x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
+""").head.action("two").asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("two" -> java.lang.Integer.valueOf(999), "glue" -> java.lang.Integer.valueOf(103)))
   }
 
   it must "change deep private pools with fcndef" taggedAs(JVMCompilation) in {
@@ -2127,7 +2908,7 @@ pools:
 input: string
 output: int
 action:
-  - {pool: x, path: [[whatever], [one], 2, input], to: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}, init: 0}
+  - {pool: x, path: [[whatever], [one], 2, input], to: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
   - {pool: x, path: [[whatever], [one], 2, input]}
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
@@ -2137,11 +2918,27 @@ pools:
 input: string
 output: int
 action:
-  - attr: {pool: x, path: [[whatever], [one], 2, input], to: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}, init: 0}
+  - attr: {pool: x, path: [[whatever], [one], 2, input], to: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
     path: [[one], 2, input]
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
 """).head.action("two") should be (3)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  attr:
+    pool: x
+    path: [[somethingelse], [one], 2, input]
+    to: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}
+    init:
+      value: {one: [{zero: 100}, {one: 101}, {two: 102}]}
+      type: SimpleRecord
+  path: [[one], 2, input]
+pools:
+  x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
+""").head.action("two") should be (103)
   }
 
   it must "change deep private pools with fcnref" taggedAs(JVMCompilation) in {
@@ -2149,7 +2946,7 @@ pools:
 input: string
 output: int
 action:
-  - {pool: x, path: [[whatever], [one], 2, input], to: {fcnref: u.inc}, init: 0}
+  - {pool: x, path: [[whatever], [one], 2, input], to: {fcn: u.inc}, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
   - {pool: x, path: [[whatever], [one], 2, input]}
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
@@ -2161,13 +2958,61 @@ fcns:
 input: string
 output: int
 action:
-  - attr: {pool: x, path: [[whatever], [one], 2, input], to: {fcnref: u.inc}, init: 0}
+  - {pool: x, path: [[whatever], [one], 2, input], to: {fcn: u.inc, fill: {uno: 1}}, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
+  - {pool: x, path: [[whatever], [one], 2, input]}
+pools:
+  x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
+fcns:
+  inc: {params: [{z: int}, {uno: int}], ret: int, do: [{+: [z, uno]}]}
+""").head.action("two") should be (3)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  - attr: {pool: x, path: [[whatever], [one], 2, input], to: {fcn: u.inc}, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
     path: [[one], 2, input]
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
 fcns:
   inc: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}
 """).head.action("two") should be (3)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  attr:
+    pool: x
+    path: [[somethingelse], [one], 2, input]
+    to: {fcn: u.inc}
+    init:
+      value: {one: [{zero: 100}, {one: 101}, {two: 102}]}
+      type: SimpleRecord
+  path: [[one], 2, input]
+pools:
+  x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
+fcns:
+  inc: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}
+""").head.action("two") should be (103)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  attr:
+    pool: x
+    path: [[somethingelse], [one], 2, input]
+    to: {fcn: u.inc, fill: {uno: 1}}
+    init:
+      value: {one: [{zero: 100}, {one: 101}, {two: 102}]}
+      type: SimpleRecord
+  path: [[one], 2, input]
+pools:
+  x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
+fcns:
+  inc: {params: [{z: int}, {uno: int}], ret: int, do: [{+: [z, uno]}]}
+""").head.action("two") should be (103)
   }
 
   "pool-set" must "change public pools" taggedAs(JVMCompilation) in {
@@ -2175,7 +3020,7 @@ fcns:
 input: string
 output: int
 action:
-  - {pool: x, path: [input], to: 999}
+  - {pool: x, path: [input], to: 999, init: 123}
   - {pool: x, path: [input]}
 pools:
   x: {type: int, init: {whatever: 12}, shared: true}
@@ -2185,10 +3030,19 @@ pools:
 input: string
 output: int
 action:
-  - {pool: x, path: [input], to: 999}
+  - {pool: x, path: [input], to: 999, init: 123}
 pools:
   x: {type: int, init: {whatever: 12}, shared: true}
 """).head.action("whatever") should be (999)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  - {pool: x, path: [input], to: 999, init: 123}
+pools:
+  x: {type: int, init: {whatever: 12}, shared: true}
+""").head.action("somethingelse") should be (999)
   }
 
   it must "change public pools with fcndef" taggedAs(JVMCompilation) in {
@@ -2217,7 +3071,7 @@ pools:
 input: string
 output: int
 action:
-  - {pool: x, path: [input], to: {fcnref: u.inc}, init: 0}
+  - {pool: x, path: [input], to: {fcn: u.inc}, init: 0}
   - {pool: x, path: [input]}
 pools:
   x: {type: int, init: {whatever: 12}, shared: true}
@@ -2229,7 +3083,19 @@ fcns:
 input: string
 output: int
 action:
-  - {pool: x, path: [input], to: {fcnref: u.inc}, init: 0}
+  - {pool: x, path: [input], to: {fcn: u.inc, fill: {uno: 1}}, init: 0}
+  - {pool: x, path: [input]}
+pools:
+  x: {type: int, init: {whatever: 12}, shared: true}
+fcns:
+  inc: {params: [{z: int}, {uno: int}], ret: int, do: [{+: [z, uno]}]}
+""").head.action("whatever") should be (13)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  - {pool: x, path: [input], to: {fcn: u.inc}, init: 0}
 pools:
   x: {type: int, init: {whatever: 12}, shared: true}
 fcns:
@@ -2242,7 +3108,7 @@ fcns:
 input: string
 output: int
 action:
-  - {pool: x, path: [[whatever], [one], 2, input], to: 999}
+  - {pool: x, path: [[whatever], [one], 2, input], to: 999, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
   - {pool: x, path: [[whatever], [one], 2, input]}
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}, shared: true}
@@ -2252,11 +3118,21 @@ pools:
 input: string
 output: int
 action:
-  - attr: {pool: x, path: [[whatever], [one], 2, input], to: 999}
+  - attr: {pool: x, path: [[whatever], [one], 2, input], to: 999, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
     path: [[one], 2, input]
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}, shared: true}
 """).head.action("two") should be (999)
+
+    PFAEngine.fromYaml("""
+input: string
+output: {type: map, values: int}
+action:
+  - attr: {pool: x, path: [[somethingelse], [one], 2, input], to: 999, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102, glue: 103}]}, type: SimpleRecord}}
+    path: [[one], 2]
+pools:
+  x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}, shared: true}
+""").head.action("two").asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("two" -> java.lang.Integer.valueOf(999), "glue" -> java.lang.Integer.valueOf(103)))
   }
 
   it must "change deep public pools with fcndef" taggedAs(JVMCompilation) in {
@@ -2264,7 +3140,7 @@ pools:
 input: string
 output: int
 action:
-  - {pool: x, path: [[whatever], [one], 2, input], to: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}, init: 0}
+  - {pool: x, path: [[whatever], [one], 2, input], to: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
   - {pool: x, path: [[whatever], [one], 2, input]}
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}, shared: true}
@@ -2274,11 +3150,27 @@ pools:
 input: string
 output: int
 action:
-  - attr: {pool: x, path: [[whatever], [one], 2, input], to: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}, init: 0}
+  - attr: {pool: x, path: [[whatever], [one], 2, input], to: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
     path: [[one], 2, input]
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}, shared: true}
 """).head.action("two") should be (3)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  attr:
+    pool: x
+    path: [[somethingelse], [one], 2, input]
+    to: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}
+    init:
+      value: {one: [{zero: 100}, {one: 101}, {two: 102}]}
+      type: SimpleRecord
+  path: [[one], 2, input]
+pools:
+  x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}, shared: true}
+""").head.action("two") should be (103)
   }
 
   it must "change deep public pools with fcnref" taggedAs(JVMCompilation) in {
@@ -2286,7 +3178,7 @@ pools:
 input: string
 output: int
 action:
-  - {pool: x, path: [[whatever], [one], 2, input], to: {fcnref: u.inc}, init: 0}
+  - {pool: x, path: [[whatever], [one], 2, input], to: {fcn: u.inc}, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
   - {pool: x, path: [[whatever], [one], 2, input]}
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}, shared: true}
@@ -2298,13 +3190,61 @@ fcns:
 input: string
 output: int
 action:
-  - attr: {pool: x, path: [[whatever], [one], 2, input], to: {fcnref: u.inc}, init: 0}
+  - {pool: x, path: [[whatever], [one], 2, input], to: {fcn: u.inc, fill: {uno: 1}}, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
+  - {pool: x, path: [[whatever], [one], 2, input]}
+pools:
+  x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}, shared: true}
+fcns:
+  inc: {params: [{z: int}, {uno: int}], ret: int, do: [{+: [z, uno]}]}
+""").head.action("two") should be (3)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  - attr: {pool: x, path: [[whatever], [one], 2, input], to: {fcn: u.inc}, init: {value: {one: [{zero: 100}, {one: 101}, {two: 102}]}, type: SimpleRecord}}
     path: [[one], 2, input]
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}, shared: true}
 fcns:
   inc: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}
 """).head.action("two") should be (3)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  attr:
+    pool: x
+    path: [[somethingelse], [one], 2, input]
+    to: {fcn: u.inc}
+    init:
+      value: {one: [{zero: 100}, {one: 101}, {two: 102}]}
+      type: SimpleRecord
+  path: [[one], 2, input]
+pools:
+  x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}, shared: true}
+fcns:
+  inc: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}
+""").head.action("two") should be (103)
+
+    PFAEngine.fromYaml("""
+input: string
+output: int
+action:
+  attr:
+    pool: x
+    path: [[somethingelse], [one], 2, input]
+    to: {fcn: u.inc, fill: {uno: 1}}
+    init:
+      value: {one: [{zero: 100}, {one: 101}, {two: 102}]}
+      type: SimpleRecord
+  path: [[one], 2, input]
+pools:
+  x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}, shared: true}
+fcns:
+  inc: {params: [{z: int}, {uno: int}], ret: int, do: [{+: [z, uno]}]}
+""").head.action("two") should be (103)
   }
 
   "unshared cells" must "handle null cases" taggedAs(JVMCompilation) in {
@@ -2597,11 +3537,11 @@ input: string
 output: int
 method: map
 action:
-  - {pool: tally, path: [[x]], to: {fcnref: u.inc}, init: 0}
-  - {pool: tally, path: [[x]], to: {fcnref: u.inc}, init: 0}
-  - {pool: tally, path: [[x]], to: {fcnref: u.inc}, init: 0}
-  - {pool: tally, path: [[y]], to: {fcnref: u.inc}, init: 0}
-  - {pool: tally, path: [[y]], to: {fcnref: u.inc}, init: 0}
+  - {pool: tally, path: [[x]], to: {fcn: u.inc}, init: 0}
+  - {pool: tally, path: [[x]], to: {fcn: u.inc}, init: 0}
+  - {pool: tally, path: [[x]], to: {fcn: u.inc}, init: 0}
+  - {pool: tally, path: [[y]], to: {fcn: u.inc}, init: 0}
+  - {pool: tally, path: [[y]], to: {fcn: u.inc}, init: 0}
   - {pool: tally, path: [[x]]}
 pools:
   tally: {type: int, init: {}}
@@ -2614,11 +3554,11 @@ input: string
 output: int
 method: map
 action:
-  - {pool: tally, path: [[x]], to: {fcnref: u.inc}, init: 0}
-  - {pool: tally, path: [[x]], to: {fcnref: u.inc}, init: 0}
-  - {pool: tally, path: [[x]], to: {fcnref: u.inc}, init: 0}
-  - {pool: tally, path: [[y]], to: {fcnref: u.inc}, init: 0}
-  - {pool: tally, path: [[y]], to: {fcnref: u.inc}, init: 0}
+  - {pool: tally, path: [[x]], to: {fcn: u.inc}, init: 0}
+  - {pool: tally, path: [[x]], to: {fcn: u.inc}, init: 0}
+  - {pool: tally, path: [[x]], to: {fcn: u.inc}, init: 0}
+  - {pool: tally, path: [[y]], to: {fcn: u.inc}, init: 0}
+  - {pool: tally, path: [[y]], to: {fcn: u.inc}, init: 0}
   - {pool: tally, path: [[y]]}
 pools:
   tally: {type: int, init: {}}
@@ -2698,7 +3638,7 @@ output: string
 action:
   - input
 fcns:
-  a: {params: [{x: "null"}], ret: "null", do: [{cell: x, to: {fcnref: u.b}}]}
+  a: {params: [{x: "null"}], ret: "null", do: [{cell: x, to: {fcn: u.b}}]}
   b: {params: [{x: "null"}], ret: "null", do: [{u.c: [null]}]}
   c: {params: [{x: "null"}], ret: "null", do: [null]}
 cells:
@@ -2725,7 +3665,7 @@ output: string
 action:
   - input
 fcns:
-  a: {params: [{x: "null"}], ret: "null", do: [{cell: x, to: {fcnref: u.b}}]}
+  a: {params: [{x: "null"}], ret: "null", do: [{cell: x, to: {fcn: u.b}}]}
   b: {params: [{x: "null"}], ret: "null", do: [{u.c: [null]}]}
   c: {params: [{x: "null"}], ret: "null", do: [{cell: y, to: null}]}
 cells:
@@ -2752,7 +3692,7 @@ output: string
 action:
   - input
 fcns:
-  a: {params: [{x: "null"}], ret: "null", do: [{pool: x, path: [[whatever]], to: {fcnref: u.b}, init: null}]}
+  a: {params: [{x: "null"}], ret: "null", do: [{pool: x, path: [[whatever]], to: {fcn: u.b}, init: null}]}
   b: {params: [{x: "null"}], ret: "null", do: [{u.c: [null]}]}
   c: {params: [{x: "null"}], ret: "null", do: [null]}
 pools:
@@ -2779,9 +3719,9 @@ output: string
 action:
   - input
 fcns:
-  a: {params: [{x: "null"}], ret: "null", do: [{pool: x, path: [[whatever]], to: {fcnref: u.b}, init: null}]}
+  a: {params: [{x: "null"}], ret: "null", do: [{pool: x, path: [[whatever]], to: {fcn: u.b}, init: null}]}
   b: {params: [{x: "null"}], ret: "null", do: [{u.c: [null]}]}
-  c: {params: [{x: "null"}], ret: "null", do: [{pool: y, path: [[whatever]], to: null}]}
+  c: {params: [{x: "null"}], ret: "null", do: [{pool: y, path: [[whatever]], to: null, init: null}]}
 pools:
   x: {type: "null", init: {whatever: null}}
   y: {type: "null", init: {whatever: null}}
@@ -2794,7 +3734,7 @@ action:
   - input
 fcns:
   a: {params: [{x: "null"}], ret: "null", do: [{pool: x, path: [[whatever]], to: {params: [{x: "null"}], ret: "null", do: [{u.c: [null]}]}, init: null}]}
-  c: {params: [{x: "null"}], ret: "null", do: [{pool: y, path: [[whatever]], to: null}]}
+  c: {params: [{x: "null"}], ret: "null", do: [{pool: y, path: [[whatever]], to: null, init: null}]}
 pools:
   x: {type: "null", init: {whatever: null}}
   y: {type: "null", init: {whatever: null}}
@@ -3021,6 +3961,109 @@ fcns:
     do: {string: hello}
 """) } should produce [PFASemanticException]
 
+  }
+
+  "FcnRefFill" must "work with user functions" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: int}
+action:
+  a.map:
+    - value: [1, 2, 3, 4, 5]
+      type: {type: array, items: int}
+    - fcn: u.callme
+      fill: {y: 2}
+fcns:
+  callme:
+    params: [{x: int}, {y: int}]
+    ret: int
+    do: {"*": [{+: [x, 1000]}, y]}
+""").head
+    engine.action(null).asInstanceOf[PFAArray[Int]].toVector should be (Vector(2002, 2004, 2006, 2008, 2010))
+
+    val engine2 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: int}
+action:
+  a.map:
+    - value: [1, 2, 3, 4, 5]
+      type: {type: array, items: int}
+    - fcn: u.callme
+      fill: {x: 2}
+fcns:
+  callme:
+    params: [{x: int}, {y: int}]
+    ret: int
+    do: {"*": [{+: [x, 1000]}, y]}
+""").head
+    engine2.action(null).asInstanceOf[PFAArray[Int]].toVector should be (Vector(1002, 2004, 3006, 4008, 5010))
+
+    val engine3 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: int}
+action:
+  a.map:
+    - value: [1, 2, 3, 4, 5]
+      type: {type: array, items: int}
+    - fcn: u.callme
+      fill: {x: 10, y: 100}
+fcns:
+  callme:
+    params: [{x: int}, {y: int}, {z: int}]
+    ret: int
+    do: {+: [x, {+: [y, z]}]}
+""").head
+    engine3.action(null).asInstanceOf[PFAArray[Int]].toVector should be (Vector(111, 112, 113, 114, 115))
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: int}
+action:
+  a.map:
+    - value: [1, 2, 3, 4, 5]
+      type: {type: array, items: int}
+    - fcn: u.callme
+      fill: {x: 10, yy: 100}
+fcns:
+  callme:
+    params: [{x: int}, {y: int}, {z: int}]
+    ret: int
+    do: {+: [x, {+: [y, z]}]}
+""") } should produce [PFASemanticException]
+
+    evaluating { PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: int}
+action:
+  a.map:
+    - value: [1, 2, 3, 4, 5]
+      type: {type: array, items: int}
+    - fcn: u.callme
+      fill: {}
+fcns:
+  callme:
+    params: [{x: int}, {y: int}, {z: int}]
+    ret: int
+    do: {+: [x, {+: [y, z]}]}
+""") } should produce [PFASyntaxException]
+  }
+
+  it must "work with library functions" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: int
+output: {type: array, items: string}
+action:
+  a.map:
+    - value: ["abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ"]
+      type: {type: array, items: string}
+    - fcn: s.substr
+      fill: {start: 0, end: input}
+""").head
+    engine.action(java.lang.Integer.valueOf(1)).asInstanceOf[PFAArray[String]].toVector should be (Vector("a", "A"))
+    engine.action(java.lang.Integer.valueOf(3)).asInstanceOf[PFAArray[String]].toVector should be (Vector("abc", "ABC"))
+    engine.action(java.lang.Integer.valueOf(5)).asInstanceOf[PFAArray[String]].toVector should be (Vector("abcde", "ABCDE"))
+    engine.action(java.lang.Integer.valueOf(10)).asInstanceOf[PFAArray[String]].toVector should be (Vector("abcdefghij", "ABCDEFGHIJ"))
+    engine.action(java.lang.Integer.valueOf(15)).asInstanceOf[PFAArray[String]].toVector should be (Vector("abcdefghijklmno", "ABCDEFGHIJKLMNO"))
   }
 
 }

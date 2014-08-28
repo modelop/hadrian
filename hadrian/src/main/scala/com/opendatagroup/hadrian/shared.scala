@@ -133,19 +133,22 @@ package shared {
       val newRef = Ref(initialValue, LastUpdate(System.currentTimeMillis))
       var result: Any = initialValue
       newRef.lastUpdate.synchronized {
-        val oldRef = hashMap.putIfAbsent(name, newRef)
-        if (oldRef != null) {
-          oldRef.lastUpdate.synchronized {
-            oldRef.to = oldRef.to match {
-              case x: PFAArray[_] => x.updated(path, updator, schema)
-              case x: PFAMap[_] => x.updated(path, updator, schema)
-              case x: PFARecord => x.updated(path, updator, schema)
-              case x => updator(x.asInstanceOf[X])
-            }
-            result = oldRef.to
-            oldRef.lastUpdate.at = System.currentTimeMillis
-          } // end oldRef.lastUpdate.synchronized
-        }
+        var ref = hashMap.putIfAbsent(name, newRef)
+
+        if (ref == null)
+          ref = newRef
+
+        ref.lastUpdate.synchronized {
+          ref.to = ref.to match {
+            case x: PFAArray[_] => x.updated(path, updator, schema)
+            case x: PFAMap[_] => x.updated(path, updator, schema)
+            case x: PFARecord => x.updated(path, updator, schema)
+            case x => updator(x.asInstanceOf[X])
+          }
+          result = ref.to
+          ref.lastUpdate.at = System.currentTimeMillis
+        } // end ref.lastUpdate.synchronized
+
       } // end newRef.lastUpdate.synchronized
       Right(result)
     }
