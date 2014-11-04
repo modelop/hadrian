@@ -62,6 +62,40 @@
 
   * Added m.special.erf (Hadrian, Titus, and PFA).
 
+**After tag v0.5.0:**
+
+  * Added ability to take snapshots of the scoring engine state (Hadrian and Titus).
+
+  * Removed null option from stat.change.updateTrigger, stat.sample.updateEWMA, and stat.sample.updateHoltWintersPeriodic, since it is unnecessary and it complicates signature matching (Hadrian, Titus, and PFA).
+
+  * Added map.* primitives (Hadrian, Titus, and PFA).
+
+  * Changed some a.* names to be consistent with the corresponding m.* names (Hadrian, Titus, and PFA).
+
+**After tag v0.5.2:**
+
+  * Added s.number (Hadrian, Titus, and PFA).
+
+  * Added enum.* fixed.* bytes.* (Hadrian, Titus, and PFA).
+
+  * Added try special form for turning exceptions into missing values (Hadrian, Titus, and PFA).
+
+**After tag v0.5.3:**
+
+  * Fixed error message for missing top-level fields (Titus).
+
+  * Fixed bug in Ast-to-Json: no longer writes out named types multiple times (Hadrian and Titus).
+
+  * Added PrettyPFA with clustering and tutorial examples of its use (Titus).
+
+  * Moved testSpeed into a suite of manually invoked tests, so that all standard tests take a reasonable amount of time (Titus).
+
+  * Fixed NullPointerException in AvroFilledPlaceholder.toString (Hadrian).
+
+**After tag v0.5.4:**
+
+* Added stat.histogram, stat.histogram2d, stat.top, stat.bottom (Hadrian, Titus, and PFA)    NOT DONE!
+
 **Future:**
 
   * Added model.reg.* regression module (_____, _____, and  _____).    NOT STARTED!
