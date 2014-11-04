@@ -31,4 +31,29 @@ def provide(fcn):
 
 prefix = "enum."
 
-#################################################################### basic access
+class ToString(LibFcn):
+    name = prefix + "toString"
+    sig = Sig([{"x": P.WildEnum("A")}], P.String())
+    def __call__(self, state, scope, paramTypes, x):
+        if x in paramTypes[0]["symbols"]:
+            return x
+        else:
+            raise AvroException("\"{}\" is not in enum {} ({})".format(x, paramTypes[0]["name"], paramTypes[0]["symbols"]))
+provide(ToString())
+
+class ToInt(LibFcn):
+    name = prefix + "toInt"
+    sig = Sig([{"x": P.WildEnum("A")}], P.Int())
+    def __call__(self, state, scope, paramTypes, x):
+        try:
+            return paramTypes[0]["symbols"].index(x)
+        except ValueError:
+            raise AvroException("\"{}\" is not in enum {} ({})".format(x, paramTypes[0]["name"], paramTypes[0]["symbols"]))
+provide(ToInt())
+
+class NumSymbols(LibFcn):
+    name = prefix + "numSymbols"
+    sig = Sig([{"x": P.WildEnum("A")}], P.Int())
+    def __call__(self, state, scope, paramTypes, x):
+        return len(paramTypes[0]["symbols"])
+provide(NumSymbols())

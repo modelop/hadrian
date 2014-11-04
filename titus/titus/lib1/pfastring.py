@@ -18,6 +18,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import re
+
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
 from titus.signature import Sig
@@ -125,6 +127,85 @@ class Split(LibFcn):
     def __call__(self, state, scope, paramTypes, s, sep):
         return s.split(sep)
 provide(Split())
+
+class Number(LibFcn):
+    name = prefix + "number"
+    sig = Sigs([Sig([{"x": P.Long()}], P.String()),
+                Sig([{"x": P.Long()}, {"width": P.Int()}, {"zeroPad": P.Boolean()}], P.String()),
+                Sig([{"x": P.Double()}, {"width": P.Union([P.Int(), P.Null()])}, {"precision": P.Union([P.Int(), P.Null()])}], P.String()),
+                Sig([{"x": P.Double()}, {"width": P.Union([P.Int(), P.Null()])}, {"precision": P.Union([P.Int(), P.Null()])}, {"minNoExp": P.Double()}, {"maxNoExp": P.Double()}], P.String())])
+    def __call__(self, state, scope, paramTypes, *args):
+        if len(args) == 1 and isinstance(args[0], (int, long)):
+            x, = args
+            return "{:d}".format(x)
+
+        elif len(args) == 3 and isinstance(args[0], (int, long)):
+            x, width, zeroPad = args
+            if not zeroPad:
+                if width < 0:
+                    formatStr = "{:<" + str(-width) + "d}"
+                else:
+                    formatStr = "{:" + str(width) + "d}"
+            else:
+                if width < 0:
+                    raise PFARuntimeException("negative width cannot be used with zero-padding")
+                else:
+                    formatStr = "{:0" + str(width) + "d}"
+            return formatStr.format(x)
+
+        else:
+            if len(args) == 3:
+                x, width, precision = args
+                minNoExp, maxNoExp = 0.0001, 100000
+            else:
+                x, width, precision, minNoExp, maxNoExp = args
+
+            if width is None:
+                widthStr = ""
+            elif width < 0:
+                widthStr = "<" + str(-width)
+            else:
+                widthStr = str(width)
+
+            if precision is None:
+                precisionStr = ".6"
+            elif precision < 0:
+                raise PFARuntimeException("negative precision")
+            else:
+                precisionStr = "." + str(precision)
+
+            if x == 0.0: x = 0.0   # drop sign bit from zero
+
+            v = abs(x)
+            if v == 0.0 or (v >= minNoExp and v <= maxNoExp):
+                conv = "f"
+            else:
+                conv = "e"
+
+            formatStr = "{:" + widthStr + precisionStr + conv + "}"
+            result = formatStr.format(x)
+
+            if precision is None:
+                m = re.search("\.[0-9]+?(0+) *$", result)
+                if m is None:
+                    m = re.search("\.[0-9]+?(0+)e", result)
+                if m is not None:
+                    start, end = m.regs[1]
+                    numChanged = end - start
+                    result = result[:start] + result[end:]
+                    if width is not None:
+                        if width < 0:
+                            actual, target = len(result), -width
+                            if actual < target:
+                                result = result + (" " * (target - actual))
+                        else:
+                            actual, target = len(result), width
+                            if actual < target:
+                                result = (" " * (target - actual)) + result
+
+            return result
+
+provide(Number())
 
 #################################################################### conversions to/from other strings
 

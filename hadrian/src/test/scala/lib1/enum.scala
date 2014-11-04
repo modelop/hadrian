@@ -32,13 +32,41 @@ import test.scala._
 
 @RunWith(classOf[JUnitRunner])
 class Lib1EnumSuite extends FlatSpec with Matchers {
-//   "basic access" must "get length" taggedAs(Lib1, Lib1Enum) in {
-//     PFAEngine.fromYaml("""
-// input: string
-// output: int
-// action:
-//   - {enum.len: [input]}
-// """).head.action("hello") should be (5)
-//   }
+  "basic access" must "convert to string" taggedAs(Lib1, Lib1Enum) in {
+    val engine = PFAEngine.fromYaml("""
+input: {type: enum, name: Test, symbols: ["A", "B", "C"]}
+output: string
+action:
+  enum.toString: input
+""").head
+    engine.action(engine.fromJson(""""A"""", engine.inputType)) should be ("A")
+    engine.action(engine.fromJson(""""B"""", engine.inputType)) should be ("B")
+    engine.action(engine.fromJson(""""C"""", engine.inputType)) should be ("C")
+    evaluating { engine.fromJson(""""D"""", engine.inputType) } should produce [org.apache.avro.AvroTypeException]
+  }
+
+  it must "convert to int" taggedAs(Lib1, Lib1Enum) in {
+    val engine = PFAEngine.fromYaml("""
+input: {type: enum, name: Test, symbols: ["A", "B", "C"]}
+output: int
+action:
+  enum.toInt: input
+""").head
+    engine.action(engine.fromJson(""""A"""", engine.inputType)) should be (0)
+    engine.action(engine.fromJson(""""B"""", engine.inputType)) should be (1)
+    engine.action(engine.fromJson(""""C"""", engine.inputType)) should be (2)
+  }
+
+  it must "return numSymbols" taggedAs(Lib1, Lib1Enum) in {
+    val engine = PFAEngine.fromYaml("""
+input: {type: enum, name: Test, symbols: ["A", "B", "C"]}
+output: int
+action:
+  enum.numSymbols: input
+""").head
+    engine.action(engine.fromJson(""""A"""", engine.inputType)) should be (3)
+    engine.action(engine.fromJson(""""B"""", engine.inputType)) should be (3)
+    engine.action(engine.fromJson(""""C"""", engine.inputType)) should be (3)
+  }
 
 }

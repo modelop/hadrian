@@ -28,6 +28,8 @@ import com.opendatagroup.hadrian.ast.ExpressionContext
 import com.opendatagroup.hadrian.ast.FcnDef
 import com.opendatagroup.hadrian.ast.FcnRef
 
+import com.opendatagroup.hadrian.data.PFAFixed
+
 import com.opendatagroup.hadrian.datatype.Type
 import com.opendatagroup.hadrian.datatype.FcnType
 import com.opendatagroup.hadrian.datatype.AvroType
@@ -47,6 +49,9 @@ import com.opendatagroup.hadrian.datatype.AvroRecord
 import com.opendatagroup.hadrian.datatype.AvroField
 import com.opendatagroup.hadrian.datatype.AvroUnion
 
+import com.opendatagroup.hadrian.signature.Sig
+import com.opendatagroup.hadrian.signature.P
+
 package object fixed {
   private var fcns = Map[String, LibFcn]()
   def provides = fcns
@@ -55,18 +60,16 @@ package object fixed {
 
   val prefix = "fixed."
 
-  //////////////////////////////////////////////////////////////////// basic access
-
-  // ////   len (Len)
-  // object Len extends LibFcn {
-  //   val name = prefix + "len"
-  //   val sig = Sig(List("s" -> AvroString()), AvroInt())
-  //   val doc =
-  //     <doc>
-  //       <desc>Return the length of a string.</desc>
-  //     </doc>
-  //   def apply(s: String): Int = s.size
-  // }
-  // provide(Len)
+  ////   toBytes (ToBytes)
+  object ToBytes extends LibFcn {
+    val name = prefix + "toBytes"
+    val sig = Sig(List("x" -> P.WildFixed("A")), P.Bytes)
+    val doc =
+      <doc>
+        <desc>Convert fixed-length, named bytes into arbitrary-length, anonymous bytes.</desc>
+      </doc>
+    def apply(x: PFAFixed): Array[Byte] = x.bytes
+  }
+  provide(ToBytes)
 
 }

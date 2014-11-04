@@ -4583,6 +4583,43 @@ action:
         self.assertEqual(engine.action(5), ["abcde", "ABCDE"])
         self.assertEqual(engine.action(10), ["abcdefghij", "ABCDEFGHIJ"])
         self.assertEqual(engine.action(15), ["abcdefghijklmno", "ABCDEFGHIJKLMNO"])
-  
+
+    def testTryCatchWithoutFiltering(self):
+        engine, = PFAEngine.fromYaml('''
+input: int
+output: [int, "null"]
+action:
+  try:
+    if: {"==": [input, 3]}
+    then: {error: "ouch"}
+    else: input
+''')
+        self.assertEqual(engine.action(1), 1)
+        self.assertEqual(engine.action(2), 2)
+        self.assertEqual(engine.action(3), None)
+        self.assertEqual(engine.action(4), 4)
+        self.assertEqual(engine.action(5), 5)
+
+    def testTryCatchWithFiltering(self):
+        engine, = PFAEngine.fromYaml('''
+input: int
+output: [int, "null"]
+action:
+  try:
+    cond:
+      - if: {"==": [input, 3]}
+        then: {error: "ouch"}
+      - if: {"==": [input, 4]}
+        then: {error: "yowzers"}
+    else: input
+  filter:
+    - ouch
+''')
+        self.assertEqual(engine.action(1), 1)
+        self.assertEqual(engine.action(2), 2)
+        self.assertEqual(engine.action(3), None)
+        self.assertRaises(PFAUserException, lambda: engine.action(4))
+        self.assertEqual(engine.action(5), 5)
+
 if __name__ == "__main__":
     unittest.main()

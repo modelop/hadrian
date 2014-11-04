@@ -24,61 +24,62 @@ import base64
 import titus.util
 from titus.util import pos
 
-from titus.ast import validSymbolName
-from titus.ast import validFunctionName
-from titus.ast import Ast
-from titus.ast import Method
-from titus.ast import EngineConfig
-from titus.ast import Cell
-from titus.ast import Pool
-from titus.ast import Argument
-from titus.ast import Expression
-from titus.ast import LiteralValue
-from titus.ast import PathIndex
-from titus.ast import ArrayIndex
-from titus.ast import MapIndex
-from titus.ast import RecordIndex
-from titus.ast import HasPath
-from titus.ast import FcnDef
-from titus.ast import FcnRef
-from titus.ast import FcnRefFill
-from titus.ast import CallUserFcn
-from titus.ast import Call
-from titus.ast import Ref
-from titus.ast import LiteralNull
-from titus.ast import LiteralBoolean
-from titus.ast import LiteralInt
-from titus.ast import LiteralLong
-from titus.ast import LiteralFloat
-from titus.ast import LiteralDouble
-from titus.ast import LiteralString
-from titus.ast import LiteralBase64
-from titus.ast import Literal
-from titus.ast import NewObject
-from titus.ast import NewArray
-from titus.ast import Do
-from titus.ast import Let
-from titus.ast import SetVar
-from titus.ast import AttrGet
-from titus.ast import AttrTo
-from titus.ast import CellGet
-from titus.ast import CellTo
-from titus.ast import PoolGet
-from titus.ast import PoolTo
-from titus.ast import If
-from titus.ast import Cond
-from titus.ast import While
-from titus.ast import DoUntil
-from titus.ast import For
-from titus.ast import Foreach
-from titus.ast import Forkeyval
-from titus.ast import CastCase
-from titus.ast import CastBlock
-from titus.ast import Upcast
-from titus.ast import IfNotNull
-from titus.ast import Doc
-from titus.ast import Error
-from titus.ast import Log
+from titus.pfaast import validSymbolName
+from titus.pfaast import validFunctionName
+from titus.pfaast import Ast
+from titus.pfaast import Method
+from titus.pfaast import EngineConfig
+from titus.pfaast import Cell
+from titus.pfaast import Pool
+from titus.pfaast import Argument
+from titus.pfaast import Expression
+from titus.pfaast import LiteralValue
+from titus.pfaast import PathIndex
+from titus.pfaast import ArrayIndex
+from titus.pfaast import MapIndex
+from titus.pfaast import RecordIndex
+from titus.pfaast import HasPath
+from titus.pfaast import FcnDef
+from titus.pfaast import FcnRef
+from titus.pfaast import FcnRefFill
+from titus.pfaast import CallUserFcn
+from titus.pfaast import Call
+from titus.pfaast import Ref
+from titus.pfaast import LiteralNull
+from titus.pfaast import LiteralBoolean
+from titus.pfaast import LiteralInt
+from titus.pfaast import LiteralLong
+from titus.pfaast import LiteralFloat
+from titus.pfaast import LiteralDouble
+from titus.pfaast import LiteralString
+from titus.pfaast import LiteralBase64
+from titus.pfaast import Literal
+from titus.pfaast import NewObject
+from titus.pfaast import NewArray
+from titus.pfaast import Do
+from titus.pfaast import Let
+from titus.pfaast import SetVar
+from titus.pfaast import AttrGet
+from titus.pfaast import AttrTo
+from titus.pfaast import CellGet
+from titus.pfaast import CellTo
+from titus.pfaast import PoolGet
+from titus.pfaast import PoolTo
+from titus.pfaast import If
+from titus.pfaast import Cond
+from titus.pfaast import While
+from titus.pfaast import DoUntil
+from titus.pfaast import For
+from titus.pfaast import Foreach
+from titus.pfaast import Forkeyval
+from titus.pfaast import CastCase
+from titus.pfaast import CastBlock
+from titus.pfaast import Upcast
+from titus.pfaast import IfNotNull
+from titus.pfaast import Doc
+from titus.pfaast import Error
+from titus.pfaast import Try
+from titus.pfaast import Log
 from titus.errors import PFASyntaxException
 from titus.datatype import AvroTypeBuilder
 
@@ -308,7 +309,7 @@ def _readEngineConfig(data, avroTypeBuilder):
 
     required = set(["action", "input", "output"])
     if keys.intersection(required) != required:
-        raise PFASyntaxException("missing top-level fields: {}".format(", ".join(required.diff(fields))), at)
+        raise PFASyntaxException("missing top-level fields: {}".format(", ".join(required.difference(keys))), at)
     else:
         return EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _cells, _pools, _randseed, _doc, _version, _metadata, _options, at)
 
@@ -509,6 +510,7 @@ def _readArgument(data, dot, avroTypeBuilder):
         _code = 0
         _newObject = None
         _newArray = None
+        _filter = None
 
         for key in keys:
             if key == "int": _int = _readInt(data[key], dot + "." + key)
@@ -550,6 +552,11 @@ def _readArgument(data, dot, avroTypeBuilder):
                 _path = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
             elif key == "args":
                 _callwithargs = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+            elif key == "try":
+                if isinstance(data[key], (list, tuple)):
+                    _trycatch = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+                else:
+                    _trycatch = [_readExpression(data[key], dot + "." + key, avroTypeBuilder)]
 
             elif key == "attr": _attr = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
             elif key == "if": _ifPredicate = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
@@ -599,6 +606,8 @@ def _readArgument(data, dot, avroTypeBuilder):
             elif key == "to": _to = _readArgument(data[key], dot + "." + key, avroTypeBuilder)
 
             elif key == "fill": _fill = _readArgumentMap(data[key], dot + "." + key, avroTypeBuilder)
+
+            elif key == "filter": _filter = _readStringArray(data[key], dot + "." + key)
 
             else:
                 _callName = key
@@ -666,6 +675,8 @@ def _readArgument(data, dot, avroTypeBuilder):
 
         elif keys == set(["error"]):                         return Error(_error, None, pos(dot, at))
         elif keys == set(["error", "code"]):                 return Error(_error, _code, pos(dot, at))
+        elif keys == set(["try"]) or \
+             keys == set(["try", "filter"]):                 return Try(_trycatch, _filter, pos(dot, at))
         elif keys == set(["log"]):                           return Log(_log, None, pos(dot, at))
         elif keys == set(["log", "namespace"]):              return Log(_log, _namespace, pos(dot, at))
 
@@ -676,9 +687,9 @@ def _readArgument(data, dot, avroTypeBuilder):
 
         elif len(keys) == 1 and list(keys)[0] not in \
              set(["args", "as", "attr", "base64", "call", "cases", "cast", "cell", "code", "cond", "do", "doc", "double", "else",
-                  "error", "fcn", "fill", "float", "for", "foreach", "forkey", "forval", "if", "ifnotnull", "in", "init",
+                  "error", "fcn", "fill", "filter", "float", "for", "foreach", "forkey", "forval", "if", "ifnotnull", "in", "init",
                   "int", "let", "log", "long", "namespace", "new", "params", "partial", "path", "pool", "ret", "seq",
-                  "set", "step", "string", "then", "to", "type", "until", "upcast", "value", "while"]):
+                  "set", "step", "string", "then", "to", "try", "type", "until", "upcast", "value", "while"]):
                                                              return Call(_callName, _callArgs, pos(dot, at))
 
         else: raise PFASyntaxException("unrecognized special form: {} (not enough arguments? too many?)".format(", ".join(keys)), pos(dot, at))
@@ -770,7 +781,7 @@ def _readCell(data, dot, avroTypeBuilder):
         else:
             return Cell(_avroType, _init, _shared, _rollback, pos(dot, at))
     else:
-        raise PFASyntaxException("expected cell, not " + _trunc(repr(data)), pos(dot, at))
+        raise PFASyntaxException("expected cell, not " + _trunc(repr(data)), None)
 
 def _readPools(data, dot, avroTypeBuilder):
     if isinstance(data, dict):
@@ -780,7 +791,7 @@ def _readPools(data, dot, avroTypeBuilder):
                 raise PFASyntaxException("\"{}\" is not a valid symbol name".format(k), pos(dot, at))
         return dict((k, _readPool(data[k], dot, avroTypeBuilder)) for k, v in data.items() if k != "@")
     else:
-        raise PFASyntaxException("expected map of pools, not " + _trunc(repr(data)), pos(dot, at))
+        raise PFASyntaxException("expected map of pools, not " + _trunc(repr(data)), None)
 
 def _readPool(data, dot, avroTypeBuilder):
     if isinstance(data, dict):

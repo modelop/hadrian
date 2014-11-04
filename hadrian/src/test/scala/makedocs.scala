@@ -48,7 +48,6 @@ class MakeDocsSuite extends FlatSpec with Matchers {
     lib1.metric.provides ++
     lib1.parse.provides ++
     lib1.prob.dist.provides ++
-    lib1.record.provides ++
     lib1.string.provides ++
     lib1.stat.change.provides ++
     lib1.stat.sample.provides ++

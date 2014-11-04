@@ -212,6 +212,12 @@ class AvroType(Type):
         else:
             return False
 
+    def toJson(self):
+        return json.dumps(self.jsonNode(set()))
+
+    def jsonNode(self, memo):
+        return self.name
+
     @property
     def avroType(self): return self
 
@@ -296,6 +302,18 @@ class AvroFixed(AvroRaw, AvroCompiled):
     @property
     def size(self):
         return self.schema.size
+    def jsonNode(self, memo):
+        if self.fullName in memo:
+            return self.fullName
+        else:
+            memo.add(self.fullName)
+            out = {"type": "fixed", "size": self.size}
+            if self.namespace is not None and self.namespace != "":
+                out["name"] = self.name
+                out["namespace"] = self.namespace
+            else:
+                out["name"] = self.name
+            return out
 
 class AvroString(AvroIdentifier): 
     _schema = avro.schema.PrimitiveSchema("string")
@@ -311,6 +329,18 @@ class AvroEnum(AvroIdentifier, AvroCompiled):
     @property
     def symbols(self):
         return self.schema.symbols
+    def jsonNode(self, memo):
+        if self.fullName in memo:
+            return self.fullName
+        else:
+            memo.add(self.fullName)
+            out = {"type": "enum", "symbols": self.symbols}
+            if self.namespace is not None and self.namespace != "":
+                out["name"] = self.name
+                out["namespace"] = self.namespace
+            else:
+                out["name"] = self.name
+            return out
 
 class AvroArray(AvroContainer):
     def __init__(self, items):
@@ -322,6 +352,8 @@ class AvroArray(AvroContainer):
     @property
     def name(self):
         return "array"
+    def jsonNode(self, memo):
+        return {"type": "array", "items": self.items.jsonNode(memo)}
 
 class AvroMap(AvroContainer, AvroMapping):
     def __init__(self, values):
@@ -333,6 +365,8 @@ class AvroMap(AvroContainer, AvroMapping):
     @property
     def name(self):
         return "map"
+    def jsonNode(self, memo):
+        return {"type": "map", "values": self.values.jsonNode(memo)}
 
 class AvroRecord(AvroContainer, AvroMapping, AvroCompiled):
     def __init__(self, fields, name=None, namespace=None):
@@ -351,6 +385,21 @@ class AvroRecord(AvroContainer, AvroMapping, AvroCompiled):
     @property
     def fieldsDict(self):
         return dict((x.name, AvroField.fromSchema(x)) for x in self.schema.fields)
+    def jsonNode(self, memo):
+        if self.fullName in memo:
+            return self.fullName
+        else:
+            memo.add(self.fullName)
+            out = {"type": "record"}
+            if self.namespace is not None and self.namespace != "":
+                out["name"] = self.name
+                out["namespace"] = self.namespace
+            else:
+                out["name"] = self.name
+            out["fields"] = []
+            for field in self.fields:
+                out["fields"].append(field.jsonNode(memo))
+            return out
 
 class AvroUnion(AvroType):
     def __init__(self, types):
@@ -367,6 +416,8 @@ class AvroUnion(AvroType):
     @property
     def name(self):
         return "union"
+    def jsonNode(self, memo):
+        return [x.jsonNode(memo) for x in self.types]
 
 class AvroField(object):
     @staticmethod
@@ -393,6 +444,13 @@ class AvroField(object):
     @property
     def order(self):
         return self.schema.order
+    def jsonNode(self, memo):
+        out = {"name": self.name, "type": self.avroType.jsonNode(memo)}
+        if self.default is not None:
+            out["default"] = self.default
+        if self.order is not None:
+            out["order"] = self.order
+        return out
 
 ########################### resolving types out of order in streaming input
 
@@ -421,6 +479,12 @@ class AvroPlaceholder(object):
             return repr(self.forwardDeclarationParser.lookup(self.original))
         else:
             return '{"type": "unknown"}'
+
+    def toJson(self):
+        return json.dumps(self.jsonNode())
+
+    def jsonNode(self, memo=set()):
+        return self.avroType.jsonNode(memo)
 
     @property
     def parser(self):

@@ -23,6 +23,8 @@ class SchemaParseException(RuntimeError): pass
 
 class PFAException(RuntimeError): pass
 
+class PrettyPfaException(PFAException): pass
+
 class PFASyntaxException(PFAException):
     def __init__(self, message, pos):
         self.pos = pos
@@ -45,10 +47,12 @@ class PFAInitializationException(PFAException):
 
 class PFARuntimeException(PFAException):
     def __init__(self, message):
+        self.message = message
         super(PFARuntimeException, self).__init__("PFA runtime error: " + message)
 
 class PFAUserException(PFAException):
     def __init__(self, message, code):
+        self.message = message
         self.code = code
         super(PFAUserException, self).__init__("PFA user-defined error: " + message + ("" if code is None else "(code {})".format(code)))
 

@@ -119,11 +119,17 @@ provide(SubseqTo())
 class Contains(LibFcn):
     name = prefix + "contains"
     sig = Sigs([Sig([{"haystack": P.Array(P.Wildcard("A"))}, {"needle": P.Array(P.Wildcard("A"))}], P.Boolean()),
-                Sig([{"haystack": P.Array(P.Wildcard("A"))}, {"needle": P.Wildcard("A")}], P.Boolean())])
+                Sig([{"haystack": P.Array(P.Wildcard("A"))}, {"needle": P.Wildcard("A")}], P.Boolean()),
+                Sig([{"haystack": P.Array(P.Wildcard("A"))}, {"needle": P.Fcn([P.Wildcard("A")], P.Boolean())}], P.Boolean())])
     def __call__(self, state, scope, paramTypes, haystack, needle):
         if isinstance(needle, (list, tuple)):
             for start in xrange(len(haystack) - len(needle) + 1):
                 if needle == haystack[start:(start + len(needle))]:
+                    return True
+            return False
+        elif callable(needle):
+            for item in haystack:
+                if callfcn(state, scope, needle, [item]):
                     return True
             return False
         else:
@@ -160,12 +166,18 @@ provide(Count())
 class Index(LibFcn):
     name = prefix + "index"
     sig = Sigs([Sig([{"haystack": P.Array(P.Wildcard("A"))}, {"needle": P.Array(P.Wildcard("A"))}], P.Int()),
-                Sig([{"haystack": P.Array(P.Wildcard("A"))}, {"needle": P.Wildcard("A")}], P.Int())])
+                Sig([{"haystack": P.Array(P.Wildcard("A"))}, {"needle": P.Wildcard("A")}], P.Int()),
+                Sig([{"haystack": P.Array(P.Wildcard("A"))}, {"needle": P.Fcn([P.Wildcard("A")], P.Boolean())}], P.Int())])
     def __call__(self, state, scope, paramTypes, haystack, needle):
         if isinstance(needle, (list, tuple)):
             for start in xrange(len(haystack) - len(needle) + 1):
                 if needle == haystack[start:(start + len(needle))]:
                     return start
+            return -1
+        elif callable(needle):
+            for index, item in enumerate(haystack):
+                if callfcn(state, scope, needle, [item]):
+                    return index
             return -1
         else:
             try:
@@ -177,12 +189,18 @@ provide(Index())
 class RIndex(LibFcn):
     name = prefix + "rindex"
     sig = Sigs([Sig([{"haystack": P.Array(P.Wildcard("A"))}, {"needle": P.Array(P.Wildcard("A"))}], P.Int()),
-                Sig([{"haystack": P.Array(P.Wildcard("A"))}, {"needle": P.Wildcard("A")}], P.Int())])
+                Sig([{"haystack": P.Array(P.Wildcard("A"))}, {"needle": P.Wildcard("A")}], P.Int()),
+                Sig([{"haystack": P.Array(P.Wildcard("A"))}, {"needle": P.Fcn([P.Wildcard("A")], P.Boolean())}], P.Int())])
     def __call__(self, state, scope, paramTypes, haystack, needle):
         if isinstance(needle, (list, tuple)):
             for start in xrange(len(haystack) - len(needle), -1, -1):
                 if needle == haystack[start:(start + len(needle))]:
                     return start
+            return -1
+        elif callable(needle):
+            for index, item in enumerate(reversed(haystack)):
+                if callfcn(state, scope, needle, [item]):
+                    return index
             return -1
         else:
             for index in xrange(len(haystack) - 1, -1, -1):
@@ -699,14 +717,14 @@ class Union(LibFcn):
         return list(set(a).union(set(b)))
 provide(Union())
 
-class Intersect(LibFcn):
-    name = prefix + "intersect"
+class Intersection(LibFcn):
+    name = prefix + "intersection"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"b": P.Array(P.Wildcard("A"))}], P.Array(P.Wildcard("A")))
     def genpy(self, paramTypes, args):
         return "list(set({}).intersection(set({})))".format(*args)
     def __call__(self, state, scope, paramTypes, a, b):
         return list(set(a).intersection(set(b)))
-provide(Intersect())
+provide(Intersection())
 
 class Diff(LibFcn):
     name = prefix + "diff"
@@ -753,12 +771,12 @@ class MapApply(LibFcn):
         return [callfcn(state, scope, fcn, [x]) for x in a]
 provide(MapApply())
 
-class MapIndex(LibFcn):
-    name = prefix + "mapIndex"
+class MapWithIndex(LibFcn):
+    name = prefix + "mapWithIndex"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"fcn": P.Fcn([P.Int(), P.Wildcard("A")], P.Wildcard("B"))}], P.Array(P.Wildcard("B")))
     def __call__(self, state, scope, paramTypes, a, fcn):
         return [callfcn(state, scope, fcn, [i, x]) for i, x in enumerate(a)]
-provide(MapIndex())
+provide(MapWithIndex())
 
 class Filter(LibFcn):
     name = prefix + "filter"
@@ -767,8 +785,15 @@ class Filter(LibFcn):
         return [x for x in a if callfcn(state, scope, fcn, [x])]
 provide(Filter())
 
+class FilterWithIndex(LibFcn):
+    name = prefix + "filterWithIndex"
+    sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"fcn": P.Fcn([P.Int(), P.Wildcard("A")], P.Boolean())}], P.Array(P.Wildcard("A")))
+    def __call__(self, state, scope, paramTypes, a, fcn):
+        return [x for i, x in enumerate(a) if callfcn(state, scope, fcn, [i, x])]
+provide(FilterWithIndex())
+
 class FilterMap(LibFcn):
-    name = prefix + "filtermap"
+    name = prefix + "filterMap"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"fcn": P.Fcn([P.Wildcard("A")], P.Union([P.Wildcard("B"), P.Null()]))}], P.Array(P.Wildcard("B")))
     def __call__(self, state, scope, paramTypes, a, fcn):
         out = []
@@ -779,8 +804,20 @@ class FilterMap(LibFcn):
         return out
 provide(FilterMap())
 
+class FilterMapWithIndex(LibFcn):
+    name = prefix + "filterMapWithIndex"
+    sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"fcn": P.Fcn([P.Int(), P.Wildcard("A")], P.Union([P.Wildcard("B"), P.Null()]))}], P.Array(P.Wildcard("B")))
+    def __call__(self, state, scope, paramTypes, a, fcn):
+        out = []
+        for i, x in enumerate(a):
+            y = callfcn(state, scope, fcn, [i, x])
+            if y is not None:
+                out.append(y)
+        return out
+provide(FilterMapWithIndex())
+
 class FlatMap(LibFcn):
-    name = prefix + "flatmap"
+    name = prefix + "flatMap"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"fcn": P.Fcn([P.Wildcard("A")], P.Array(P.Wildcard("B")))}], P.Array(P.Wildcard("B")))
     def __call__(self, state, scope, paramTypes, a, fcn):
         out = []
@@ -788,6 +825,16 @@ class FlatMap(LibFcn):
             out = out + callfcn(state, scope, fcn, [x])
         return out
 provide(FlatMap())
+
+class FlatMapWithIndex(LibFcn):
+    name = prefix + "flatMapWithIndex"
+    sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"fcn": P.Fcn([P.Int(), P.Wildcard("A")], P.Array(P.Wildcard("B")))}], P.Array(P.Wildcard("B")))
+    def __call__(self, state, scope, paramTypes, a, fcn):
+        out = []
+        for i, x in enumerate(a):
+            out = out + callfcn(state, scope, fcn, [i, x])
+        return out
+provide(FlatMapWithIndex())
 
 class Reduce(LibFcn):
     name = prefix + "reduce"
@@ -797,7 +844,7 @@ class Reduce(LibFcn):
 provide(Reduce())
 
 class ReduceRight(LibFcn):
-    name = prefix + "reduceright"
+    name = prefix + "reduceRight"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"fcn": P.Fcn([P.Wildcard("A"), P.Wildcard("A")], P.Wildcard("A"))}], P.Wildcard("A"))
     def __call__(self, state, scope, paramTypes, a, fcn):
         return reduce(lambda x, y: callfcn(state, scope, fcn, [y, x]), reversed(a))
@@ -811,7 +858,7 @@ class Fold(LibFcn):
 provide(Fold())
 
 class FoldRight(LibFcn):
-    name = prefix + "foldright"
+    name = prefix + "foldRight"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"zero": P.Wildcard("B")}, {"fcn": P.Fcn([P.Wildcard("B"), P.Wildcard("A")], P.Wildcard("B"))}], P.Wildcard("B"))
     def __call__(self, state, scope, paramTypes, a, zero, fcn):
         return reduce(lambda x, y: callfcn(state, scope, fcn, [y, x]), reversed(a), zero)
@@ -862,6 +909,13 @@ class Corresponds(LibFcn):
     def __call__(self, state, scope, paramTypes, a, b, fcn):
         return len(a) == len(b) and all(callfcn(state, scope, fcn, [x, y]) for x, y in zip(a, b))
 provide(Corresponds())
+
+class CorrespondsWithIndex(LibFcn):
+    name = prefix + "correspondsWithIndex"
+    sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"b": P.Array(P.Wildcard("B"))}, {"fcn": P.Fcn([P.Int(), P.Wildcard("A"), P.Wildcard("B")], P.Boolean())}], P.Boolean())
+    def __call__(self, state, scope, paramTypes, a, b, fcn):
+        return len(a) == len(b) and all(callfcn(state, scope, fcn, [i, x, y]) for i, (x, y) in enumerate(zip(a, b)))
+provide(CorrespondsWithIndex())
 
 #################################################################### restructuring
 

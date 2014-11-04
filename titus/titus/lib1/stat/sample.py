@@ -259,7 +259,7 @@ provide(UpdateWindow())
 
 class UpdateEWMA(LibFcn):
     name = prefix + "updateEWMA"
-    sig = Sig([{"x": P.Double()}, {"alpha": P.Double()}, {"state": P.Union([P.Null(), P.WildRecord("A", {"mean": P.Double()})])}], P.Wildcard("A"))
+    sig = Sig([{"x": P.Double()}, {"alpha": P.Double()}, {"state": P.WildRecord("A", {"mean": P.Double()})}], P.Wildcard("A"))
     def _getRecord(self, paramType):
         if isinstance(paramType, AvroUnion):
             for t in paramType.types:
@@ -280,18 +280,6 @@ class UpdateEWMA(LibFcn):
     def __call__(self, state, scope, paramTypes, x, alpha, theState, hasVariance):
         if alpha < 0.0 or alpha > 1.0:
             raise PFARuntimeException("alpha is out of range")
-
-        if theState is None:
-            out = {}
-            paramType = state.parser.getAvroType(paramTypes[2])
-            for field in self._getRecord(paramType).fields:
-                if field.name == "mean":
-                    out["mean"] = x
-                elif field.name == "variance":
-                    out["variance"] = 0.0
-                else:
-                    raise PFARuntimeException("cannot initialize unrecognized fields")
-            return out
 
         mean = theState["mean"]
         diff = x - mean

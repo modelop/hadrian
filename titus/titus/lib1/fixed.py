@@ -31,4 +31,9 @@ def provide(fcn):
 
 prefix = "fixed."
 
-#################################################################### basic access
+class ToBytes(LibFcn):
+    name = prefix + "toBytes"
+    sig = Sig([{"x": P.WildFixed("A")}], P.Bytes())
+    def __call__(self, state, scope, paramTypes, x):
+        return x
+provide(ToBytes())

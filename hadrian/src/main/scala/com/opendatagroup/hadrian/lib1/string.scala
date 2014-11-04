@@ -215,6 +215,108 @@ package object string {
   }
   provide(Split)
 
+  ////   number (Number)
+  object Number extends LibFcn {
+    val name = prefix + "number"
+    val sig = Sigs(List(Sig(List("x" -> P.Long), P.String),
+                        Sig(List("x" -> P.Long, "width" -> P.Int, "zeroPad" -> P.Boolean), P.String),
+                        Sig(List("x" -> P.Double, "width" -> P.Union(List(P.Int, P.Null)), "precision" -> P.Union(List(P.Int, P.Null))), P.String),
+                        Sig(List("x" -> P.Double, "width" -> P.Union(List(P.Int, P.Null)), "precision" -> P.Union(List(P.Int, P.Null)), "minNoExp" -> P.Double, "maxNoExp" -> P.Double), P.String)))
+    val doc =
+      <doc>
+        <desc>Format a number as a string.</desc>
+        <param name="x">The number.  Note that different signatures apply to integers and floating point numbers.</param>
+        <param name="width">Width of the string.  If negative, left-justify.  If omitted, the string will be as wide as it needs to be to provide the precision.</param>
+        <param name="zeroPad">If true, pad the integer with zeros to fill up to <p>width</p>.</param>
+        <param name="precision">Optional precision with which to represent the number.  If omitted, at most six digits after the decimal point will be shown, unless they are zero.</param>
+        <param name="minNoExp">Minimum absolute value that is not presented in scientific notation; 0.0001 if omitted.</param>
+        <param name="maxNoExp">Maxiumum absolute value that is not presented in scientific notation; 100000 if omitted.</param>
+        <detail>If the <p>precision</p> requires more space than <p>width</p>, the string will be wide enough to accommodate the <p>precision</p>.</detail>
+        <detail>Floating point numbers always have a decimal point with at least one digit after the decimal, even if it is zero.</detail>
+        <detail>Exponents are represented by a lowercase "e" which is always followed by a sign, whether positive or negative, and an exponent of two or more digits (single-digit exponents are zero-padded).</detail>
+        <detail>The base of a number is preceded by a "-" if negative, but not a "+" if positive.</detail>
+        <detail>Special floating point values are represented in the following ways: negative zero as zero (no negative sign), not a number as "nan", positive infinity as "inf", and negative infinity as "-inf" (lowercase).  They follow the same precision and width rules as normal numbers, where applicable.</detail>
+        <error>If <p>width</p> is negative and <p>zeroPad</p> is <c>true</c>, a "negative width cannot be used with zero-padding" error is raised.</error>
+        <error>If <p>precision</p> is provided and is less than zero, a "negative precision" error is raised.</error>
+      </doc>
+
+    def apply(x: Long): String = "%d".format(x)
+
+    def apply(x: Long, width: Int, zeroPad: Boolean): String = {
+      val formatStr = (width, zeroPad) match {
+        case (w, false) => "%" + w.toString + "d"
+        case (w, true) if (w < 0) => throw new PFARuntimeException("negative width cannot be used with zero-padding")
+        case (w, true) => "%0" + w.toString + "d"
+      }
+      formatStr.format(x)
+    }
+
+    def pad(width: java.lang.Integer, str: String): String = width match {
+      case null         => str
+      case w if (w < 0) => str + Array.fill(-w.intValue - str.size)(' ').mkString
+      case w            => Array.fill(w.intValue - str.size)(' ').mkString + str
+    }
+
+    def apply(x: Double, width: java.lang.Integer, precision: java.lang.Integer): String = apply(x, width, precision, 0.0001, 100000)
+
+    def apply(x: Double, width: java.lang.Integer, precision: java.lang.Integer, minNoExp: Double, maxNoExp: Double): String = {
+      val widthStr = width match {
+        case null => ""
+        case w if (w < 0) => (w.intValue + 1).toString
+        case w => w.intValue.toString
+      }
+
+      val precisionStr = precision match {
+        case null => ""
+        case p if (p < 0) => throw new PFARuntimeException("negative precision")
+        case p => "." + p.intValue.toString
+      }
+
+      x match {
+        case y if (java.lang.Double.isInfinite(y)) => if (y > 0.0) pad(width, "inf") else pad(width, "-inf")
+        case y if (java.lang.Double.isNaN(y)) => pad(width, "nan")
+        case y => {
+          var neg = y < 0.0
+          val v = Math.abs(y)
+
+          val conv = if (v >= minNoExp  &&  v <= maxNoExp) "f" else "e"
+
+          val raw = ("%" + widthStr + precisionStr + conv).format(v)
+
+          val (wh1, tmp) = raw.span(_ == ' ')
+          val (res, wh2) = tmp.span(_ != ' ')
+
+          val (base, exp) =
+            if (conv == "f")
+              (res, "")
+            else
+              res.splitAt(res.indexOf('e'))
+
+          var out = base
+          if (precisionStr == "") {
+            if (out.indexOf('.') < 0)
+              out += "."
+            out = out.replaceAll("0+$", "")
+            if (out.endsWith("."))
+              out += "0"
+          }
+          if (y != 0.0)
+            out += exp
+
+          if (neg)
+            out = "-" + out
+
+          width match {
+            case null => out
+            case w if (w < 0) => wh1 + out + Array.fill(Math.abs(w) - wh1.size - out.size)(' ').mkString
+            case w => Array.fill(w - out.size - wh2.size)(' ').mkString + out + wh2
+          }
+        }
+      }
+    }
+  }
+  provide(Number)
+
   //////////////////////////////////////////////////////////////////// conversions to/from other strings
 
   ////   concat (Concat)

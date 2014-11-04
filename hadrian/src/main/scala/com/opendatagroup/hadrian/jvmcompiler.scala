@@ -19,6 +19,7 @@
 package com.opendatagroup.hadrian
 
 import scala.collection.mutable
+import scala.collection.JavaConversions._
 import scala.language.postfixOps
 import scala.util.Random
 
@@ -101,6 +102,7 @@ import com.opendatagroup.hadrian.ast.Upcast
 import com.opendatagroup.hadrian.ast.IfNotNull
 import com.opendatagroup.hadrian.ast.Doc
 import com.opendatagroup.hadrian.ast.Error
+import com.opendatagroup.hadrian.ast.Try
 import com.opendatagroup.hadrian.ast.Log
 
 import com.opendatagroup.hadrian.datatype.Type
@@ -146,6 +148,7 @@ import com.opendatagroup.hadrian.shared.SharedMapInMemory
 import com.opendatagroup.hadrian.shared.SharedState
 import com.opendatagroup.hadrian.signature.P
 import com.opendatagroup.hadrian.signature.Sig
+import com.opendatagroup.hadrian.util.escapeJson
 import com.opendatagroup.hadrian.yaml.yamlToJson
 
 package object jvmcompiler {
@@ -368,6 +371,17 @@ package jvmcompiler {
       case (_: AvroDouble, true) => "com.opendatagroup.hadrian.jvmcompiler.W.asJDouble(" + x + ")"
       case _ => x
     }
+
+    def trycatch[X <: AnyRef](f: () => X, hasFilter: Boolean, filters: Array[String]): X = {
+      try {
+        f()
+      }
+      catch {
+        case _: PFARuntimeException | _: PFAUserException if (!hasFilter) => null.asInstanceOf[X]
+        case err: PFARuntimeException if (hasFilter  &&  filters.contains(err.message)) => null.asInstanceOf[X]
+        case err: PFAUserException if (hasFilter  &&  filters.contains(err.message)) => null.asInstanceOf[X]
+      }
+    }
   }
 
   abstract class PFAEngineBase {
@@ -446,6 +460,10 @@ package jvmcompiler {
     val poolsToRollback = mutable.Map[String, java.lang.reflect.Field]()
     val savedCells = mutable.Map[String, Any]()
     val savedPools = mutable.Map[String, java.util.HashMap[String, AnyRef]]()
+    private val privateCells = mutable.Map[String, java.lang.reflect.Field]()
+    private var publicCells: SharedMap = null
+    private val privatePools = mutable.Map[String, java.util.HashMap[String, AnyRef]]()
+    private val publicPools = mutable.Map[String, SharedMap]()
 
     def initialize(config: EngineConfig, options: EngineOptions, sharedState: Option[SharedState], thisClass: java.lang.Class[_], context: EngineConfig.Context): Unit = {
       _config = config
@@ -518,6 +536,7 @@ package jvmcompiler {
 
         if (cell.rollback)
           cellsToRollback(cname) = field
+        privateCells(cname) = field
       }
 
       // fill the shared cells
@@ -531,6 +550,7 @@ package jvmcompiler {
           val cell = config.cells(name)
           fromJson(cell.init, cell.avroType.schema)
         })
+      publicCells = sharedCells
 
       // fill the unshared pools
       for ((pname, pool) <- config.pools if (!pool.shared)) {
@@ -545,6 +565,7 @@ package jvmcompiler {
 
         if (pool.rollback)
           poolsToRollback(pname) = field
+        privatePools(pname) = hashMap
       }
 
       // fill the shared pools
@@ -562,6 +583,7 @@ package jvmcompiler {
         thisClass.getDeclaredField(JVMNameMangle.p(pname)).set(this, state)
         state.initialize(pool.init.keys.toSet,
           (name: String) => fromJson(pool.init(name), schema))
+        publicPools(pname) = state
       }
 
       _inputType = context.input
@@ -613,6 +635,66 @@ package jvmcompiler {
       // roll back the pools
       for ((pname, field) <- poolsToRollback)
         field.set(this, savedPools(pname))
+    }
+
+    def getRunlock: AnyRef
+
+    private def cellState(cell: String): Any = cellState(cell, config.cells(cell).shared)
+    private def cellState(cell: String, shared: Boolean): Any =
+      if (shared)
+        publicCells.get(cell, Array[com.opendatagroup.hadrian.shared.PathIndex]()) match {
+          case Left(err) => throw err
+          case Right(x) => x
+        }
+      else
+        privateCells(cell).get(this)
+
+    private def poolState(pool: String): Map[String, Any] = poolState(pool, config.pools(pool).shared)
+    private def poolState(pool: String, shared: Boolean): Map[String, Any] =
+      if (shared)
+        publicPools(pool).toMap
+      else {
+        privatePools(pool).entrySet.iterator map {entry => (entry.getKey, entry.getValue)} toMap
+      }
+
+    private def toBoxed(x: Any): AnyRef = x match {
+      case y: Boolean => java.lang.Boolean.valueOf(y)
+      case y: Int => java.lang.Integer.valueOf(y)
+      case y: Long => java.lang.Long.valueOf(y)
+      case y: Float => java.lang.Float.valueOf(y)
+      case y: Double => java.lang.Double.valueOf(y)
+      case y: AnyRef => y
+    }
+
+    def snapshot(): EngineConfig = getRunlock.synchronized {
+      val newCells = config.cells map {
+        case (cname, Cell(avroPlaceholder, _, shared, rollback, _)) =>
+          (cname, Cell(avroPlaceholder, toJson(toBoxed(cellState(cname, shared)), avroPlaceholder.avroType.schema), shared, rollback))
+      }
+
+      val newPools = config.pools map {
+        case (pname, Pool(avroPlaceholder, _, shared, rollback, _)) =>
+          (pname, Pool(avroPlaceholder, poolState(pname, shared) map {case (k, v) => (k, toJson(toBoxed(v), avroPlaceholder.avroType.schema))}, shared, rollback))
+      }
+
+      EngineConfig(
+        config.name,
+        config.method,
+        config.inputPlaceholder,
+        config.outputPlaceholder,
+        config.begin,
+        config.action,
+        config.end,
+        config.fcns,
+        config.zero,
+        newCells,
+        newPools,
+        config.randseed,
+        config.doc,
+        config.version,
+        config.metadata,
+        config.options,
+        config.pos)
     }
 
     def fromJsonHashMap(json: String, schema: Schema): AnyRef = {
@@ -738,6 +820,8 @@ package jvmcompiler {
     def begin(): Unit
     def action(input: INPUT): OUTPUT
     def end(): Unit
+
+    def snapshot: EngineConfig
 
     val namedTypes: Map[String, AvroCompiled]
     val inputType: AvroType
@@ -1401,6 +1485,7 @@ checkClock();
 final com.opendatagroup.hadrian.jvmcompiler.PFAEngineBase thisEngineBase = this;
 final %s thisInterface = this;
 private Object runlock = new Object();
+public Object getRunlock() { return runlock; }
 %s
 public com.opendatagroup.hadrian.shared.SharedMap sharedCells;
 %s
@@ -2093,6 +2178,22 @@ public Object apply() {
             "scala.None$.MODULE$"
           else
             "scala.Option.apply(%s)".format(code.get)))
+
+      case Try.Context(retType, _, symbols, exprs, exprType, filter) =>
+        JavaCode("""com.opendatagroup.hadrian.jvmcompiler.W.trycatch(new scala.runtime.AbstractFunction0<%s>() {
+%s
+public %s apply() {
+%s
+} }, %s, new String[]{%s})""",
+          javaType(exprType, true, true, false),
+          symbolFields(symbols),
+          javaType(exprType, true, true, false),
+          block(exprs, ReturnMethod.RETURN, exprType),
+          if (filter == None) "false" else "true",
+          filter match {
+            case Some(x) => x map {y => "\"" + StringEscapeUtils.escapeJava(y) + "\""} mkString(", ")
+            case None => ""
+          })
 
       case Log.Context(_, _, symbols, exprTypes, namespace) => {
         var space = ""

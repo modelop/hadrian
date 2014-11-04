@@ -350,7 +350,7 @@ class RandomJsonSuite extends FlatSpec with Matchers {
   it must "be able to convert them to AST" taggedAs(RandomJson) in {
     for (oldJson <- jsons) {
       val ast = jsonToAst(oldJson)
-      val newJson = ast.toString
+      val newJson = ast.toJson()
 
       if (newJson.size > 100)
         println(newJson.substring(0, 100) + "...")
@@ -364,7 +364,7 @@ class RandomJsonSuite extends FlatSpec with Matchers {
 
   it must "convert to JSON that converts back to the same AST (full cycle)" taggedAs(RandomJson) in {
     for (ast <- asts) {
-      val newJson = ast.toString
+      val newJson = ast.toJson()
       if (newJson.size > 100)
         println(newJson.substring(0, 100) + "...")
       else

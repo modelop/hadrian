@@ -321,7 +321,7 @@ package data {
       vector
     }
 
-    override def toString(): String = "[" + toVector.mkString(", ") + "]"
+    override def toString(): String = "[" + toVector.map(x => if (x == null) "null" else x).mkString(", ") + "]"
     override def equals(that: Any): Boolean = that match {
       case thatArray: PFAArray[_] => this.toVector == thatArray.toVector
       case _ => false
@@ -464,7 +464,7 @@ package data {
       map
     }
 
-    override def toString(): String = "{" + toMap.map({case (k, v) => k.toString + ": " + v.toString}).mkString(", ") + "}"
+    override def toString(): String = "{" + toMap.map({case (k, v) => k.toString + ": " + (if (v == null) "null" else v.toString)}).mkString(", ") + "}"
     override def equals(that: Any): Boolean = that match {
       case thatMap: PFAMap[_] => this.toMap == thatMap.toMap
       case _ => false

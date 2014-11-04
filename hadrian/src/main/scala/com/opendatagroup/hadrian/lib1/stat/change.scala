@@ -77,74 +77,47 @@ package object change {
   ////   updateTrigger (UpdateTrigger)
   object UpdateTrigger extends LibFcn {
     val name = prefix + "updateTrigger"
-    val sig = Sig(List("predicate" -> P.Boolean, "history" -> P.Union(List(P.Null, P.WildRecord("A", ListMap("numEvents" -> P.Int, "numRuns" -> P.Int, "currentRun" -> P.Int, "longestRun" -> P.Int))))), P.Wildcard("A"))
+    val sig = Sig(List("predicate" -> P.Boolean, "history" -> P.WildRecord("A", ListMap("numEvents" -> P.Int, "numRuns" -> P.Int, "currentRun" -> P.Int, "longestRun" -> P.Int))), P.Wildcard("A"))
     val doc =
       <doc>
         <desc>Update the state of a trigger that counts the number of times <p>predicate</p> is satisfied (<c>true</c>), as well as the number and lengths of runs of <c>true</c>.</desc>
         <param name="predicate">Expression that evaluates to <c>true</c> or <c>false</c>.</param>
-        <param name="history">Summary of previous results of the <p>predicate</p>, or <c>null</c> to start a new history.
+        <param name="history">Summary of previous results of the <p>predicate</p>.
           <paramField name="numEvents">The number of times <p>predicate</p> evaluated to <c>true</c>.</paramField>
           <paramField name="numRuns">The number of contiguous intervals in which <p>predicate</p> was <c>true</c>, including the current one.</paramField>
           <paramField name="currentRun">If <p>predicate</p> is <c>false</c>, <pf>currentRun</pf> is 0.  Otherwise, <pf>currentRun</pf> is incremented (greater than or equal to 1 if <p>predicate</p> evaluated to <c>true</c>).</paramField>
           <paramField name="longestRun">The longest run observed so far; may be equal to <pf>currentRun</pf>.</paramField>
         </param>
-        <ret>If <p>history</p> is <c>null</c>, a new record is created with <pf>numEvents</pf> = 1, <pf>numRuns</pf> = 1, <pf>currentRun</pf> = 1, <pf>longestRun</pf> = 1 if <p>predicate</p> is <c>true</c>, <pf>numEvents</pf> = 0, <pf>numRuns</pf> = 0, <pf>currentRun</pf> = 0, <pf>longestRun</pf> = 0 if <p>predicate</p> is <c>false</c>.  If the input <p>history</p> has fields other than <pf>numEvents</pf>, <pf>numRuns</pf>, <pf>currentRun</pf>, and <pf>longestRun</pf>, they are copied unaltered to the output state.</ret>
+        <ret>Returns a new record with updated fields: <pf>numEvents</pf> is always incremented; <pf>numRuns</pf> is incremented if <p>predicate</p> is <c>true</c> and <pf>currentRun</pf> is zero; <pf>currentRun</pf> is incremented if <p>predicate</p> is <c>true</c> and set to zero if <p>predicate</p> is <c>false</c>; <pf>longestRun</pf> is set to <pf>currentRun</pf> if <p>predicate</p> is <c>true</c> and <pf>currentRun</pf> is longer than <pf>longestRun</pf>.  If the input <p>history</p> has fields other than <pf>numEvents</pf>, <pf>numRuns</pf>, <pf>currentRun</pf>, or <pf>longestRun</pf>, they are copied unaltered to the output.</ret>
         <error>If any of <pf>numEvents</pf>, <pf>numRuns</pf>, <pf>currentRun</pf>, and <pf>longestRun</pf> are less than 0, a "counter out of range" error is raised.</error>
-        <error>If <p>history</p> is <c>null</c> and the record type has fields other than <pf>numEvents</pf>, <pf>numRuns</pf>, <pf>currentRun</pf>, and <pf>longestRun</pf>, then a "cannot initialize unrecognized fields" error is raised.  Unrecognized fields are only allowed if an initial record is provided.</error>
       </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
-      val record = retType.asInstanceOf[AvroRecord]
+    def apply(predicate: Boolean, history: PFARecord): PFARecord = {
+      var numEvents = history.get("numEvents").asInstanceOf[java.lang.Number].intValue
+      var numRuns = history.get("numRuns").asInstanceOf[java.lang.Number].intValue
+      var currentRun = history.get("currentRun").asInstanceOf[java.lang.Number].intValue
+      var longestRun = history.get("longestRun").asInstanceOf[java.lang.Number].intValue
 
-      val hasOthers = !(record.fields.map(_.name).toSet subsetOf Set("numEvents", "numRuns", "currentRun", "longestRun"))
+      if (numEvents < 0  ||  numRuns < 0  ||  currentRun < 0  ||  longestRun < 0)
+        throw new PFARuntimeException("counter out of range")
 
-      JavaCode("%s.MODULE$.apply(%s, %s, thisEngineBase, %s, %s)",
-        this.getClass.getName,
-        wrapArg(0, args, paramTypes, true),
-        wrapArg(1, args, paramTypes, true),
-        javaSchema(retType, false),
-        (if (hasOthers) "true" else "false"))
-    }
+      if (predicate) {
+        numEvents += 1
 
-    def apply(predicate: Boolean, history: AnyRef, pfaEngineBase: PFAEngineBase, schema: Schema, hasOthers: Boolean): PFARecord = {
-      if (history == null) {
-        if (hasOthers)
-          throw new PFARuntimeException("cannot initialize unrecognized fields")
-        if (predicate)
-          pfaEngineBase.fromJson("""{"numEvents": 1, "numRuns": 1, "currentRun": 1, "longestRun": 1}""", schema).asInstanceOf[PFARecord]
-        else
-          pfaEngineBase.fromJson("""{"numEvents": 0, "numRuns": 0, "currentRun": 0, "longestRun": 0}""", schema).asInstanceOf[PFARecord]
+        if (currentRun == 0)
+          numRuns += 1
+
+        currentRun += 1
+
+        if (currentRun > longestRun)
+          longestRun = currentRun
+
       }
-
       else {
-        val record = history.asInstanceOf[PFARecord]
-        var numEvents = record.get("numEvents").asInstanceOf[java.lang.Number].intValue
-        var numRuns = record.get("numRuns").asInstanceOf[java.lang.Number].intValue
-        var currentRun = record.get("currentRun").asInstanceOf[java.lang.Number].intValue
-        var longestRun = record.get("longestRun").asInstanceOf[java.lang.Number].intValue
-
-        if (numEvents < 0  ||  numRuns < 0  ||  currentRun < 0  ||  longestRun < 0)
-          throw new PFARuntimeException("counter out of range")
-
-        if (predicate) {
-          numEvents += 1
-
-          if (currentRun == 0)
-            numRuns += 1
-
-          currentRun += 1
-
-          if (currentRun > longestRun)
-            longestRun = currentRun
-
-        }
-        else {
-          currentRun = 0
-        }
-
-        record.multiUpdate(Array("numEvents", "numRuns", "currentRun", "longestRun"), Array(numEvents, numRuns, currentRun, longestRun))
+        currentRun = 0
       }
 
+      history.multiUpdate(Array("numEvents", "numRuns", "currentRun", "longestRun"), Array(numEvents, numRuns, currentRun, longestRun))
     }
   }
   provide(UpdateTrigger)

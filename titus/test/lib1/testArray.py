@@ -24,8 +24,6 @@ from titus.genpy import PFAEngine
 from titus.errors import *
     
 class TestLib1Array(unittest.TestCase):
-    #################################################################### basic access
-
     def testGetLength(self):
         engine, = PFAEngine.fromYaml('''
 input: "null"
@@ -1139,12 +1137,12 @@ action:
 """)
         self.assertEqual(set(engine.action(None)), set(["wow", "this", "is", "guys", "different", "you", "there", "hey"]))
 
-    def testIntersect(self):
+    def testIntersection(self):
         engine, = PFAEngine.fromYaml("""
 input: "null"
 output: {type: array, items: string}
 action:
-  a.intersect:
+  a.intersection:
     - {value: ["hey", "there", "you", "hey", "guys", "there"], type: {type: array, items: string}}
     - {value: ["hey", "there", "wow", "this", "is", "different"], type: {type: array, items: string}}
 """)
@@ -1254,12 +1252,12 @@ fcns:
 """)
         self.assertEqual(engine.action(None), [0, 2, 4, 6, 8, 10])
 
-    def testMapIndex(self):
+    def testMapWithIndex(self):
       engine, = PFAEngine.fromYaml('''
 input: "null"
 output: {type: array, items: double}
 action:
-  a.mapIndex:
+  a.mapWithIndex:
     - {value: [0.0, 1.1, 2.2, 3.3, 4.4, 5.5], type: {type: array, items: double}}
     - params: [{i: int}, {x: double}]
       ret: double
@@ -1301,12 +1299,25 @@ fcns:
 """)
         self.assertEqual(engine.action(None), [0, 2, 4])
 
+    def testFilterWithIndex(self):
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: int}
+action:
+  a.filterWithIndex:
+    - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
+    - params: [{i: int}, {x: int}]
+      ret: boolean
+      do: {"&&": [{"==": [{"%": [x, 2]}, 0]}, {"<": [i, 3]}]}
+""")
+        self.assertEqual(engine.action(None), [0, 2])
+
     def testFilterMap(self):
         engine, = PFAEngine.fromYaml("""
 input: "null"
 output: {type: array, items: long}
 action:
-  a.filtermap:
+  a.filterMap:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
     - params: [{x: int}]
       ret: [long, "null"]
@@ -1321,7 +1332,7 @@ action:
 input: "null"
 output: {type: array, items: long}
 action:
-  a.filtermap:
+  a.filterMap:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
     - {fcn: u.maybeten}
 fcns:
@@ -1335,12 +1346,25 @@ fcns:
 """)
         self.assertEqual(engine.action(None), [10, 30, 50])
 
+    def testFilterMapWithIndex(self):
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: int}
+action:
+  a.filterWithIndex:
+    - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
+    - params: [{i: int}, {x: int}]
+      ret: boolean
+      do: {"&&": [{"==": [{"%": [x, 2]}, 0]}, {"<": [i, 3]}]}
+""")
+        self.assertEqual(engine.action(None), [0, 2])
+
     def testFlatMap(self):
         engine, = PFAEngine.fromYaml("""
 input: "null"
 output: {type: array, items: long}
 action:
-  a.flatmap:
+  a.flatMap:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
     - params: [{x: int}]
       ret: {type: array, items: long}
@@ -1352,7 +1376,7 @@ action:
 input: "null"
 output: {type: array, items: long}
 action:
-  a.flatmap:
+  a.flatMap:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
     - {fcn: u.stutter}
 fcns:
@@ -1362,6 +1386,22 @@ fcns:
     do: {new: [x, x], type: {type: array, items: long}}
 """)
         self.assertEqual(engine.action(None), [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5])
+
+    def testFlatMapWithIndex(self):
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: long}
+action:
+  a.flatMapWithIndex:
+    - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
+    - params: [{i: int}, {x: int}]
+      ret: {type: array, items: long}
+      do:
+        if: {"==": [{"%": [i, 2]}, 0]}
+        then: {new: [x, x], type: {type: array, items: long}}
+        else: {value: [], type: {type: array, items: long}}
+""")
+        self.assertEqual(engine.action(None), [0, 0, 2, 2, 4, 4])
 
     def testReduce(self):
         engine, = PFAEngine.fromYaml("""
@@ -1395,7 +1435,7 @@ fcns:
 input: "null"
 output: string
 action:
-  a.reduceright:
+  a.reduceRight:
     - {value: ["a", "b", "c", "d", "e"], type: {type: array, items: string}}
     - params: [{x: string}, {tally: string}]
       ret: string
@@ -1407,7 +1447,7 @@ action:
 input: "null"
 output: string
 action:
-  a.reduceright:
+  a.reduceRight:
     - {value: ["a", "b", "c", "d", "e"], type: {type: array, items: string}}
     - {fcn: u.monoid}
 fcns:
@@ -1452,7 +1492,7 @@ fcns:
 input: "null"
 output: string
 action:
-  a.foldright:
+  a.foldRight:
     - {value: ["a", "b", "c", "d", "e"], type: {type: array, items: string}}
     - {string: ""}
     - params: [{x: string}, {tally: string}]
@@ -1465,7 +1505,7 @@ action:
 input: "null"
 output: string
 action:
-  a.foldright:
+  a.foldRight:
     - {value: ["a", "b", "c", "d", "e"], type: {type: array, items: string}}
     - {string: ""}
     - {fcn: u.monoid}
@@ -1594,6 +1634,20 @@ action:
       do: {"==": [{"*": [x, 2]}, y]}
 """)
         self.assertFalse(engine.action(None))
+
+    def testCorrespondsWithIndex(self):
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: boolean
+action:
+  a.correspondsWithIndex:
+    - {value: [0, 1, 2, 3], type: {type: array, items: int}}
+    - {value: [0, 2, 4, 6], type: {type: array, items: int}}
+    - params: [{i: int}, {x: int}, {y: int}]
+      ret: boolean
+      do: {"==": [{"*": [x, 2]}, y]}
+""")
+        self.assertTrue(engine.action(None))
 
    #################################################################### restructuring
 

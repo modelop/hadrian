@@ -27,7 +27,7 @@ limitations under the License.
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian</artifactId>
-  <version>TRUNK</version>
+  <version>0.5.4</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -211,6 +211,7 @@ limitations under the License.
     AstToJson,
     Data,
     DataType,
+    DumpState,
     JsonToAst,
     JVMCompilation,
     Lib1Array,
@@ -233,7 +234,7 @@ limitations under the License.
     Lib1String,
     MakeDocsLatex,
     MultiThreaded,
-    RandomJson,
+    RandomJson
     Shared,
     SignatureMatch,
     Speed,

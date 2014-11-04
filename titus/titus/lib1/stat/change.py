@@ -35,43 +35,27 @@ prefix = "stat.change."
 
 class UpdateTrigger(LibFcn):
     name = prefix + "updateTrigger"
-    sig = Sig([{"predicate": P.Boolean()}, {"history": P.Union([P.Null(), P.WildRecord("A", {"numEvents": P.Int(), "numRuns": P.Int(), "currentRun": P.Int(), "longestRun": P.Int()})])}], P.Wildcard("A"))
-    def _getRecord(self, paramType):
-        for t in paramType.types:
-            if not isinstance(t, AvroNull):
-                return t
-
+    sig = Sig([{"predicate": P.Boolean()}, {"history": P.WildRecord("A", {"numEvents": P.Int(), "numRuns": P.Int(), "currentRun": P.Int(), "longestRun": P.Int()})}], P.Wildcard("A"))
     def __call__(self, state, scope, paramTypes, predicate, history):
-        if history is None:
-            paramType = state.parser.getAvroType(paramTypes[2])
-            for field in self._getRecord(paramType)["fields"]:
-                if field["name"] not in ("numEvents", "numRuns", "currentRun", "longestRun"):
-                    raise PFARuntimeException("cannot initialize unrecognized fields")
-            if predicate:
-                return {"numEvents": 1, "numRuns": 1, "currentRun": 1, "longestRun": 1}
-            else:
-                return {"numEvents": 0, "numRuns": 0, "currentRun": 0, "longestRun": 0}
+        numEvents = history["numEvents"]
+        numRuns = history["numRuns"]
+        currentRun = history["currentRun"]
+        longestRun = history["longestRun"]
 
+        if numEvents < 0 or numRuns < 0 or currentRun < 0 or longestRun < 0:
+            raise PFARuntimeException("counter out of range")
+
+        if predicate:
+            numEvents += 1
+            if currentRun == 0:
+                numRuns += 1
+            currentRun += 1
+            if currentRun > longestRun:
+                longestRun = currentRun
         else:
-            numEvents = history["numEvents"]
-            numRuns = history["numRuns"]
-            currentRun = history["currentRun"]
-            longestRun = history["longestRun"]
+            currentRun = 0
 
-            if numEvents < 0 or numRuns < 0 or currentRun < 0 or longestRun < 0:
-                raise PFARuntimeException("counter out of range")
-
-            if predicate:
-                numEvents += 1
-                if currentRun == 0:
-                    numRuns += 1
-                currentRun += 1
-                if currentRun > longestRun:
-                    longestRun = currentRun
-            else:
-                currentRun = 0
-
-            return dict(history, numEvents=numEvents, numRuns=numRuns, currentRun=currentRun, longestRun=longestRun)
+        return dict(history, numEvents=numEvents, numRuns=numRuns, currentRun=currentRun, longestRun=longestRun)
 provide(UpdateTrigger())
 
 class ZValue(LibFcn):
@@ -81,10 +65,14 @@ class ZValue(LibFcn):
         count = meanVariance["count"]
         mean = meanVariance["mean"]
         variance = meanVariance["variance"]
-        if unbiased:
-            return ((x - mean)/math.sqrt(variance)) * math.sqrt((count) / (count - 1.0))
-        else:
-            return ((x - mean)/math.sqrt(variance))
+        try:
+            if unbiased:
+                return ((x - mean)/math.sqrt(variance)) * math.sqrt((count) / (count - 1.0))
+            else:
+                return ((x - mean)/math.sqrt(variance))
+        except ZeroDivisionError:
+            return float("inf")
+
 provide(ZValue())
 
 class UpdateCUSUM(LibFcn):

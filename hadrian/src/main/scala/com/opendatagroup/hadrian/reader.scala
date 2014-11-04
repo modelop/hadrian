@@ -79,6 +79,7 @@ import com.opendatagroup.hadrian.ast.Upcast
 import com.opendatagroup.hadrian.ast.IfNotNull
 import com.opendatagroup.hadrian.ast.Doc
 import com.opendatagroup.hadrian.ast.Error
+import com.opendatagroup.hadrian.ast.Try
 import com.opendatagroup.hadrian.ast.Log
 
 import com.opendatagroup.hadrian.datatype.AvroConversions._
@@ -648,6 +649,7 @@ package reader {
         var _log: Seq[Expression] = null
         var _path: Seq[Expression] = Nil   // important: must be Nil instead of null because some forms have an empty list as default
         var _callwithargs: Seq[Expression] = null
+        var _trycatch: Seq[Expression] = null
 
         var _attr: Expression = null
         var _ifPredicate: Expression = null
@@ -689,6 +691,7 @@ package reader {
         var _callArgs: Seq[Argument] = null
         var _to: Argument = null
         var _fill: Map[String, Argument] = null
+        var _filter = Seq[String]()
 
         var subtoken = parser.nextToken()
         while (subtoken != JsonToken.END_OBJECT) {
@@ -731,6 +734,10 @@ package reader {
               }
               case "path" =>      _path = readExpressionArray(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
               case "args" =>      _callwithargs = readExpressionArray(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+              case "try" => parser.nextToken() match {
+                case x @ JsonToken.START_ARRAY => _trycatch = readExpressionArray(parser, x, dot + "." + key, _at, avroTypeBuilder)
+                case x => _trycatch = List(readExpression(parser, x, dot + "." + key, _at, avroTypeBuilder))
+              }
 
               case "attr" =>      _attr = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
               case "if" =>        _ifPredicate = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
@@ -779,6 +786,8 @@ package reader {
               case "to" =>        _to = readArgument(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
 
               case "fill" =>      _fill = readArgumentMap(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+
+              case "filter" =>    _filter = readStringArray(parser, parser.nextToken(), dot + "." + key, _at)
 
               case x => {
                 _callName = x
@@ -847,6 +856,8 @@ package reader {
 
         else if (keys == Set("error"))                               Error(_error, None, Some(pos(dot, _at)))
         else if (keys == Set("error", "code"))                       Error(_error, Some(_code), Some(pos(dot, _at)))
+        else if (keys == Set("try"))                                 Try(_trycatch, None, Some(pos(dot, _at)))
+        else if (keys == Set("try", "filter"))                       Try(_trycatch, Some(_filter), Some(pos(dot, _at)))
         else if (keys == Set("log"))                                 Log(_log, None, Some(pos(dot, _at)))
         else if (keys == Set("log", "namespace"))                    Log(_log, Some(_namespace), Some(pos(dot, _at)))
 
@@ -860,9 +871,9 @@ package reader {
         // function call is anything else
         else if (keys.size == 1  &&
                  !Set("args", "as", "attr", "base64", "call", "cases", "cast", "cell", "code", "cond", "do", "doc", "double", "else",
-                      "error", "fcn", "fill", "float", "for", "foreach", "forkey", "forval", "if", "ifnotnull", "in", "init",
+                      "error", "fcn", "fill", "filter", "float", "for", "foreach", "forkey", "forval", "if", "ifnotnull", "in", "init",
                       "int", "let", "log", "long", "namespace", "new", "params", "partial", "path", "pool", "ret", "seq",
-                      "set", "step", "string", "then", "to", "type", "until", "upcast", "value", "while").contains(keys.head))
+                      "set", "step", "string", "then", "to", "try", "type", "until", "upcast", "value", "while").contains(keys.head))
                                                                      Call(_callName, _callArgs, Some(pos(dot, _at)))
         else throw new PFASyntaxException("unrecognized special form: %s (not enough arguments? too many?)".format(keys.mkString(" ")), Some(pos(dot, _at)))
       }

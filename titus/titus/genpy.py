@@ -29,7 +29,7 @@ from avro.datafile import DataFileReader, DataFileWriter
 from avro.io import DatumReader, DatumWriter
 
 from titus.errors import *
-import titus.ast
+import titus.pfaast
 import titus.datatype
 import titus.fcn
 import titus.options
@@ -39,54 +39,57 @@ import titus.signature
 import titus.util
 from titus.util import DynamicScope
 
-from titus.ast import EngineConfig
-from titus.ast import FcnDef
-from titus.ast import FcnRef
-from titus.ast import FcnRefFill
-from titus.ast import CallUserFcn
-from titus.ast import Call
-from titus.ast import Ref
-from titus.ast import LiteralNull
-from titus.ast import LiteralBoolean
-from titus.ast import LiteralInt
-from titus.ast import LiteralLong
-from titus.ast import LiteralFloat
-from titus.ast import LiteralDouble
-from titus.ast import LiteralString
-from titus.ast import LiteralBase64
-from titus.ast import Literal
-from titus.ast import NewObject
-from titus.ast import NewArray
-from titus.ast import Do
-from titus.ast import Let
-from titus.ast import SetVar
-from titus.ast import AttrGet
-from titus.ast import AttrTo
-from titus.ast import CellGet
-from titus.ast import CellTo
-from titus.ast import PoolGet
-from titus.ast import PoolTo
-from titus.ast import If
-from titus.ast import Cond
-from titus.ast import While
-from titus.ast import DoUntil
-from titus.ast import For
-from titus.ast import Foreach
-from titus.ast import Forkeyval
-from titus.ast import CastCase
-from titus.ast import CastBlock
-from titus.ast import Upcast
-from titus.ast import IfNotNull
-from titus.ast import Doc
-from titus.ast import Error
-from titus.ast import Log
+from titus.pfaast import EngineConfig
+from titus.pfaast import Cell as AstCell
+from titus.pfaast import Pool as AstPool
+from titus.pfaast import FcnDef
+from titus.pfaast import FcnRef
+from titus.pfaast import FcnRefFill
+from titus.pfaast import CallUserFcn
+from titus.pfaast import Call
+from titus.pfaast import Ref
+from titus.pfaast import LiteralNull
+from titus.pfaast import LiteralBoolean
+from titus.pfaast import LiteralInt
+from titus.pfaast import LiteralLong
+from titus.pfaast import LiteralFloat
+from titus.pfaast import LiteralDouble
+from titus.pfaast import LiteralString
+from titus.pfaast import LiteralBase64
+from titus.pfaast import Literal
+from titus.pfaast import NewObject
+from titus.pfaast import NewArray
+from titus.pfaast import Do
+from titus.pfaast import Let
+from titus.pfaast import SetVar
+from titus.pfaast import AttrGet
+from titus.pfaast import AttrTo
+from titus.pfaast import CellGet
+from titus.pfaast import CellTo
+from titus.pfaast import PoolGet
+from titus.pfaast import PoolTo
+from titus.pfaast import If
+from titus.pfaast import Cond
+from titus.pfaast import While
+from titus.pfaast import DoUntil
+from titus.pfaast import For
+from titus.pfaast import Foreach
+from titus.pfaast import Forkeyval
+from titus.pfaast import CastCase
+from titus.pfaast import CastBlock
+from titus.pfaast import Upcast
+from titus.pfaast import IfNotNull
+from titus.pfaast import Doc
+from titus.pfaast import Error
+from titus.pfaast import Try
+from titus.pfaast import Log
 
-from titus.ast import Method
-from titus.ast import ArrayIndex
-from titus.ast import MapIndex
-from titus.ast import RecordIndex
+from titus.pfaast import Method
+from titus.pfaast import ArrayIndex
+from titus.pfaast import MapIndex
+from titus.pfaast import RecordIndex
 
-class GeneratePython(titus.ast.Task):
+class GeneratePython(titus.pfaast.Task):
     @staticmethod
     def makeTask(style):
         if style == "pure":
@@ -355,6 +358,9 @@ class GeneratePython(titus.ast.Task):
 
         elif isinstance(context, Error.Context):
             return "error(" + repr(context.message) + ", " + repr(context.code) + ")"
+
+        elif isinstance(context, Try.Context):
+            return "tryCatch(state, scope, lambda state, scope: do(" + ", ".join(context.exprs) + "), " + repr(context.filter) + ")"
 
         elif isinstance(context, Log.Context):
             return "self.log([{}], {})".format(", ".join(x[1] for x in context.exprTypes), repr(context.namespace))
@@ -631,7 +637,7 @@ def cast(state, scope, expr, fromType, cases, partial, parser):
 
         try:
             castValue = titus.datatype.jsonDecoder(toType, value)
-        except AvroException:
+        except (AvroException, TypeError):
             pass
         else:
             clauseScope = DynamicScope(scope)
@@ -687,6 +693,15 @@ def ifNotNullElse(state, scope, nameExpr, nameType, thenClause, elseClause):
 def error(message, code):
     raise PFAUserException(message, code)
 
+def tryCatch(state, scope, exprs, filter):
+    try:
+        return exprs(state, scope)
+    except Exception as err:
+        if filter is None or err.message in filter:
+            return None
+        else:
+            raise err
+
 def genericLog(message, namespace):
     if namespace is None:
         print " ".join(map(json.dumps, message))
@@ -733,11 +748,11 @@ def checkForDeadlock(engineConfig, engine):
 class PFAEngine(object):
     @staticmethod
     def fromAst(engineConfig, options=None, sharedState=None, multiplicity=1, style="pure", debug=False):
-        functionTable = titus.ast.FunctionTable.blank()
+        functionTable = titus.pfaast.FunctionTable.blank()
 
         engineOptions = titus.options.EngineOptions(engineConfig.options, options)
 
-        context, code = engineConfig.walk(GeneratePython.makeTask(style), titus.ast.SymbolTable.blank(), functionTable, engineOptions)
+        context, code = engineConfig.walk(GeneratePython.makeTask(style), titus.pfaast.SymbolTable.blank(), functionTable, engineOptions)
         if debug:
             print code
 
@@ -764,6 +779,7 @@ class PFAEngine(object):
                    "ifNotNull": ifNotNull,
                    "ifNotNullElse": ifNotNullElse,
                    "error": error,
+                   "tryCatch": tryCatch,
                    # Python libraries
                    "math": math,
                    }
@@ -840,6 +856,28 @@ class PFAEngine(object):
     @staticmethod
     def fromYaml(src, options=None, sharedState=None, multiplicity=1, style="pure", debug=False):
         return PFAEngine.fromAst(titus.reader.yamlToAst(src), options, sharedState, multiplicity, style, debug)
+
+    def snapshot(self):
+        newCells = dict((k, AstCell(self.config.cells[k].avroPlaceholder, json.dumps(v.value), v.shared, v.rollback)) for k, v in self.cells.items())
+        newPools = dict((k, AstPool(self.config.pools[k].avroPlaceholder, dict((kk, json.dumps(vv)) for kk, vv in v.value.items()), v.shared, v.rollback)) for k, v in self.pools.items())
+
+        return EngineConfig(
+            self.config.name,
+            self.config.method,
+            self.config.inputPlaceholder,
+            self.config.outputPlaceholder,
+            self.config.begin,
+            self.config.action,
+            self.config.end,
+            self.config.fcns,
+            self.config.zero,
+            newCells,
+            newPools,
+            self.config.randseed,
+            self.config.doc,
+            self.config.version,
+            self.config.metadata,
+            self.config.options)
 
     def calledBy(self, fcnName, exclude=None):
         if exclude is None:

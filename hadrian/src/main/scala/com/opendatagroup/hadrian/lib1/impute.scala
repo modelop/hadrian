@@ -68,7 +68,6 @@ package object impute {
 
   val prefix = "impute."
 
-  // TODO: errorOnNaN, defaultOnNaN, errorOnInf, defaultOnInf
   // functions that keep a running average in a cell...
   // functors that take an handler function...
 

@@ -21,13 +21,13 @@
 import json
 import unittest
 
-from titus.ast import *
+from titus.pfaast import *
 from titus.datatype import *
 
 class TestAstToJson(unittest.TestCase):
     def testEngineConfig(self):
         self.assertEqual(
-        EngineConfig(
+        json.loads(EngineConfig(
         "test",
         Method.MAP,
         AvroInt(),
@@ -43,7 +43,7 @@ class TestAstToJson(unittest.TestCase):
         None,
         None,
         {},
-        {}).jsonNode,
+        {}).toJson(lineNumbers=False)),
         json.loads('''{
   "name": "test",
   "method": "map",
@@ -53,7 +53,7 @@ class TestAstToJson(unittest.TestCase):
 }'''))
 
         self.assertEqual(
-        EngineConfig(
+        json.loads(EngineConfig(
         "test",
         Method.MAP,
         AvroInt(),
@@ -69,7 +69,7 @@ class TestAstToJson(unittest.TestCase):
         None,
         None,
         {},
-        {}).jsonNode,
+        {}).toJson(lineNumbers=False)),
         json.loads('''{
   "name": "test",
   "method": "map",
@@ -81,7 +81,7 @@ class TestAstToJson(unittest.TestCase):
 }'''))
 
         self.assertEqual(
-        EngineConfig(
+        json.loads(EngineConfig(
         "test",
         Method.MAP,
         AvroInt(),
@@ -97,7 +97,7 @@ class TestAstToJson(unittest.TestCase):
         None,
         None,
         {},
-        {}).jsonNode,
+        {}).toJson(lineNumbers=False)),
         json.loads('''{
   "name": "test",
   "method": "map",
@@ -110,7 +110,7 @@ class TestAstToJson(unittest.TestCase):
 }'''))
 
         self.assertEqual(
-        EngineConfig(
+        json.loads(EngineConfig(
         "test",
         Method.MAP,
         AvroInt(),
@@ -126,7 +126,7 @@ class TestAstToJson(unittest.TestCase):
         None,
         None,
         {},
-        {}).jsonNode,
+        {}).toJson(lineNumbers=False)),
         json.loads('''{
   "name": "test",
   "method": "map",
@@ -139,7 +139,7 @@ class TestAstToJson(unittest.TestCase):
   "cells":{"private":{"type":"int","init":0,"shared":false,"rollback":false}}
 }'''))
 
-        self.assertEqual(EngineConfig(
+        self.assertEqual(json.loads(EngineConfig(
         "test",
          Method.MAP,
          AvroInt(),
@@ -155,7 +155,7 @@ class TestAstToJson(unittest.TestCase):
          None,
          None,
          {},
-         {}).jsonNode,
+         {}).toJson(lineNumbers=False)),
          json.loads('''{
   "name": "test",
   "method": "map",
@@ -169,7 +169,7 @@ class TestAstToJson(unittest.TestCase):
   "pools":{"private":{"type":"int","init":{},"shared":false,"rollback":false}}
 }'''))
 
-        self.assertEqual(EngineConfig(
+        self.assertEqual(json.loads(EngineConfig(
         "test",
         Method.MAP,
         AvroInt(),
@@ -185,7 +185,7 @@ class TestAstToJson(unittest.TestCase):
         None,
         None,
         {},
-        {}).jsonNode,
+        {}).toJson(lineNumbers=False)),
     json.loads('''{
   "name": "test",
   "method": "map",
@@ -200,7 +200,7 @@ class TestAstToJson(unittest.TestCase):
   "randseed":12345
 }'''))
 
-        self.assertEqual(EngineConfig(
+        self.assertEqual(json.loads(EngineConfig(
         "test",
         Method.MAP,
         AvroInt(),
@@ -216,7 +216,7 @@ class TestAstToJson(unittest.TestCase):
         "hello",
         None,
         {},
-        {}).jsonNode,
+        {}).toJson(lineNumbers=False)),
         json.loads('''{
   "name": "test",
   "method": "map",
@@ -232,7 +232,7 @@ class TestAstToJson(unittest.TestCase):
   "doc":"hello"
 }'''))
 
-        self.assertEqual(EngineConfig(
+        self.assertEqual(json.loads(EngineConfig(
         "test",
         Method.MAP,
         AvroInt(),
@@ -248,7 +248,7 @@ class TestAstToJson(unittest.TestCase):
         "hello",
         None,
         {"internal": "data"},
-        {}).jsonNode,
+        {}).toJson(lineNumbers=False)),
         json.loads('''{
   "name": "test",
   "method": "map",
@@ -265,7 +265,7 @@ class TestAstToJson(unittest.TestCase):
   "metadata":{"internal":"data"}
 }'''))
 
-        self.assertEqual(EngineConfig(
+        self.assertEqual(json.loads(EngineConfig(
         "test",
         Method.MAP,
         AvroInt(),
@@ -281,7 +281,7 @@ class TestAstToJson(unittest.TestCase):
         "hello",
         None,
         {"internal": "data"},
-        {"param": json.loads("3")}).jsonNode,
+        {"param": json.loads("3")}).toJson(lineNumbers=False)),
         json.loads('''{
   "name": "test",
   "method": "map",
@@ -300,139 +300,139 @@ class TestAstToJson(unittest.TestCase):
 }'''))
 
     def testCell(self):
-        self.assertEqual(Cell(AvroInt(), "0", False, False).jsonNode, json.loads('''{"type":"int","init":0,"shared":false,"rollback":false}'''))
+        self.assertEqual(json.loads(Cell(AvroInt(), "0", False, False).toJson(lineNumbers=False)), json.loads('''{"type":"int","init":0,"shared":false,"rollback":false}'''))
 
     def testPool(self):
-        self.assertEqual(Pool(AvroInt(), {}, False, False).jsonNode, json.loads('''{"type":"int","init":{},"shared":false,"rollback":false}'''))
-        self.assertEqual(Pool(AvroInt(), {"one": "1"}, False, False).jsonNode, json.loads('''{"type":"int","init":{"one":1},"shared":false,"rollback":false}'''))
+        self.assertEqual(json.loads(Pool(AvroInt(), {}, False, False).toJson(lineNumbers=False)), json.loads('''{"type":"int","init":{},"shared":false,"rollback":false}'''))
+        self.assertEqual(json.loads(Pool(AvroInt(), {"one": "1"}, False, False).toJson(lineNumbers=False)), json.loads('''{"type":"int","init":{"one":1},"shared":false,"rollback":false}'''))
 
     def testDefineFunction(self):
-        self.assertEqual(FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()]).jsonNode, json.loads('''{"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}'''))
+        self.assertEqual(json.loads(FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()]).toJson(lineNumbers=False)), json.loads('''{"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}'''))
 
     def testCallFunction(self):
-        self.assertEqual(Call("+", [LiteralInt(2), LiteralInt(2)]).jsonNode, json.loads('''{"+":[2,2]}'''))
+        self.assertEqual(json.loads(Call("+", [LiteralInt(2), LiteralInt(2)]).toJson(lineNumbers=False)), json.loads('''{"+":[2,2]}'''))
 
     def testCallWithFcn(self):
-        self.assertEqual(Call("sort", [Ref("array"), FcnRef("byname")]).jsonNode, json.loads('''{"sort":["array",{"fcn": "byname"}]}'''))
+        self.assertEqual(json.loads(Call("sort", [Ref("array"), FcnRef("byname")]).toJson(lineNumbers=False)), json.loads('''{"sort":["array",{"fcn": "byname"}]}'''))
 
     def testCallWithFcnDef(self):
-        self.assertEqual(Call("sort", [Ref("array"), FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])]).jsonNode,
+        self.assertEqual(json.loads(Call("sort", [Ref("array"), FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])]).toJson(lineNumbers=False)),
                          json.loads('''{"sort":["array",{"params": [{"x": "int"}, {"y": "string"}], "ret": "null", "do": [null]}]}'''))
 
     def testRef(self):
-        self.assertEqual(Ref("x").jsonNode, "x")
+        self.assertEqual(json.loads(Ref("x").toJson(lineNumbers=False)), "x")
 
     def testNull(self):
-        self.assertEqual(LiteralNull().jsonNode, json.loads("null"))
+        self.assertEqual(json.loads(LiteralNull().toJson(lineNumbers=False)), json.loads("null"))
 
     def testBoolean(self):
-        self.assertEqual(LiteralBoolean(True).jsonNode, json.loads("true"))
-        self.assertEqual(LiteralBoolean(False).jsonNode, json.loads("false"))
+        self.assertEqual(json.loads(LiteralBoolean(True).toJson(lineNumbers=False)), json.loads("true"))
+        self.assertEqual(json.loads(LiteralBoolean(False).toJson(lineNumbers=False)), json.loads("false"))
 
     def testInt(self):
-        self.assertEqual(LiteralInt(2).jsonNode, json.loads('''2'''))
+        self.assertEqual(json.loads(LiteralInt(2).toJson(lineNumbers=False)), json.loads('''2'''))
 
     def testLong(self):
-        self.assertEqual(LiteralLong(2).jsonNode, json.loads('''{"long":2}'''))
+        self.assertEqual(json.loads(LiteralLong(2).toJson(lineNumbers=False)), json.loads('''{"long":2}'''))
 
     def testFloat(self):
-        self.assertEqual(LiteralFloat(2.5).jsonNode, json.loads('''{"float":2.5}'''))
+        self.assertEqual(json.loads(LiteralFloat(2.5).toJson(lineNumbers=False)), json.loads('''{"float":2.5}'''))
 
     def testDouble(self):
-        self.assertEqual(LiteralDouble(2.2).jsonNode, json.loads("2.2"))
+        self.assertEqual(json.loads(LiteralDouble(2.2).toJson(lineNumbers=False)), json.loads("2.2"))
 
     def testString(self):
-        self.assertEqual(LiteralString("hello").jsonNode, json.loads('''{"string":"hello"}'''))
+        self.assertEqual(json.loads(LiteralString("hello").toJson(lineNumbers=False)), json.loads('''{"string":"hello"}'''))
 
     def testBase64(self):
-        self.assertEqual(LiteralBase64("hello".encode("utf-8")).jsonNode, json.loads('''{"base64":"aGVsbG8="}'''))
+        self.assertEqual(json.loads(LiteralBase64("hello".encode("utf-8")).toJson(lineNumbers=False)), json.loads('''{"base64":"aGVsbG8="}'''))
 
     def testLiteral(self):
-        self.assertEqual(Literal(AvroRecord([AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())], "SimpleRecord"), '''{"one": 1, "two": 2.2, "three": "THREE"}''').jsonNode,
+        self.assertEqual(json.loads(Literal(AvroRecord([AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())], "SimpleRecord"), '''{"one": 1, "two": 2.2, "three": "THREE"}''').toJson(lineNumbers=False)),
         json.loads('''{"type":{"type":"record","name":"SimpleRecord","fields":[{"name":"one","type":"int"},{"name":"two","type":"double"},{"name":"three","type":"string"}]},"value":{"one":1,"two":2.2,"three":"THREE"}}'''))
 
     def testNewRecord(self):
-        self.assertEqual(NewObject({"one": LiteralInt(1), "two": LiteralDouble(2.2), "three": LiteralString("THREE")},
-                                   AvroRecord([AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())], "SimpleRecord"), AvroTypeBuilder()).jsonNode,
+        self.assertEqual(json.loads(NewObject({"one": LiteralInt(1), "two": LiteralDouble(2.2), "three": LiteralString("THREE")},
+                                   AvroRecord([AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())], "SimpleRecord"), AvroTypeBuilder()).toJson(lineNumbers=False)),
         json.loads('''{"new":{"one":1,"two":2.2,"three":{"string":"THREE"}},"type":{"type":"record","name":"SimpleRecord","fields":[{"name":"one","type":"int"},{"name":"two","type":"double"},{"name":"three","type":"string"}]}}'''))
 
     def testNewArray(self):
-        self.assertEqual(NewArray([LiteralInt(1), LiteralInt(2), LiteralInt(3)], AvroArray(AvroInt()), AvroTypeBuilder()).jsonNode, json.loads('''{"new":[1,2,3],"type":{"type":"array","items":"int"}}'''))
+        self.assertEqual(json.loads(NewArray([LiteralInt(1), LiteralInt(2), LiteralInt(3)], AvroArray(AvroInt()), AvroTypeBuilder()).toJson(lineNumbers=False)), json.loads('''{"new":[1,2,3],"type":{"type":"array","items":"int"}}'''))
 
     def testDo(self):
-        self.assertEqual(Do([Ref("x"), Ref("y"), Ref("z")]).jsonNode, json.loads('''{"do":["x","y","z"]}'''))
+        self.assertEqual(json.loads(Do([Ref("x"), Ref("y"), Ref("z")]).toJson(lineNumbers=False)), json.loads('''{"do":["x","y","z"]}'''))
 
     def testLet(self):
-        self.assertEqual(Let({"x": LiteralInt(3), "y": LiteralInt(4)}).jsonNode, json.loads('''{"let":{"x":3,"y":4}}'''))
+        self.assertEqual(json.loads(Let({"x": LiteralInt(3), "y": LiteralInt(4)}).toJson(lineNumbers=False)), json.loads('''{"let":{"x":3,"y":4}}'''))
 
     def testSet(self):
-        self.assertEqual(SetVar({"x": LiteralInt(3), "y": LiteralInt(4)}).jsonNode, json.loads('''{"set":{"x":3,"y":4}}'''))
+        self.assertEqual(json.loads(SetVar({"x": LiteralInt(3), "y": LiteralInt(4)}).toJson(lineNumbers=False)), json.loads('''{"set":{"x":3,"y":4}}'''))
 
     def testAttrGet(self):
-        self.assertEqual(AttrGet(Ref("a"), [Ref("a"), LiteralInt(1), LiteralString("b")]).jsonNode, json.loads('''{"attr":"a","path":["a",1,{"string":"b"}]}'''))
+        self.assertEqual(json.loads(AttrGet(Ref("a"), [Ref("a"), LiteralInt(1), LiteralString("b")]).toJson(lineNumbers=False)), json.loads('''{"attr":"a","path":["a",1,{"string":"b"}]}'''))
 
     def testAttrSet(self):
-        self.assertEqual(AttrTo(Ref("a"), [Ref("a"), LiteralInt(1), LiteralString("b")], LiteralDouble(2.2)).jsonNode, json.loads('''{"attr":"a","path":["a",1,{"string":"b"}],"to":2.2}'''))
+        self.assertEqual(json.loads(AttrTo(Ref("a"), [Ref("a"), LiteralInt(1), LiteralString("b")], LiteralDouble(2.2)).toJson(lineNumbers=False)), json.loads('''{"attr":"a","path":["a",1,{"string":"b"}],"to":2.2}'''))
 
     def testCellGet(self):
-        self.assertEqual(CellGet("c", []).jsonNode, json.loads('''{"cell":"c"}'''))
-        self.assertEqual(CellGet("c", [Ref("a"), LiteralInt(1), LiteralString("b")]).jsonNode, json.loads('''{"cell":"c","path":["a",1,{"string":"b"}]}'''))
+        self.assertEqual(json.loads(CellGet("c", []).toJson(lineNumbers=False)), json.loads('''{"cell":"c"}'''))
+        self.assertEqual(json.loads(CellGet("c", [Ref("a"), LiteralInt(1), LiteralString("b")]).toJson(lineNumbers=False)), json.loads('''{"cell":"c","path":["a",1,{"string":"b"}]}'''))
 
     def testCellSet(self):
-        self.assertEqual(CellTo("c", [], LiteralDouble(2.2)).jsonNode, json.loads('''{"cell":"c","to":2.2}'''))
-        self.assertEqual(CellTo("c", [Ref("a"), LiteralInt(1), LiteralString("b")], LiteralDouble(2.2)).jsonNode, json.loads('''{"cell":"c","path":["a",1,{"string":"b"}],"to":2.2}'''))
+        self.assertEqual(json.loads(CellTo("c", [], LiteralDouble(2.2)).toJson(lineNumbers=False)), json.loads('''{"cell":"c","to":2.2}'''))
+        self.assertEqual(json.loads(CellTo("c", [Ref("a"), LiteralInt(1), LiteralString("b")], LiteralDouble(2.2)).toJson(lineNumbers=False)), json.loads('''{"cell":"c","path":["a",1,{"string":"b"}],"to":2.2}'''))
 
     def testPoolGet(self):
-        self.assertEqual(PoolGet("p", [Ref("a"), LiteralInt(1), LiteralString("b")]).jsonNode, json.loads('''{"pool":"p","path":["a",1,{"string":"b"}]}'''))
+        self.assertEqual(json.loads(PoolGet("p", [Ref("a"), LiteralInt(1), LiteralString("b")]).toJson(lineNumbers=False)), json.loads('''{"pool":"p","path":["a",1,{"string":"b"}]}'''))
 
     def testPoolSet(self):
-        self.assertEqual(PoolTo("p", [Ref("a"), LiteralInt(1), LiteralString("b")], LiteralDouble(2.2), LiteralDouble(2.2)).jsonNode, json.loads('''{"pool":"p","path":["a",1,{"string":"b"}],"to":2.2,"init":2.2}'''))
+        self.assertEqual(json.loads(PoolTo("p", [Ref("a"), LiteralInt(1), LiteralString("b")], LiteralDouble(2.2), LiteralDouble(2.2)).toJson(lineNumbers=False)), json.loads('''{"pool":"p","path":["a",1,{"string":"b"}],"to":2.2,"init":2.2}'''))
 
     def testIf(self):
-        self.assertEqual(If(LiteralBoolean(True), [Ref("x")], None).jsonNode, json.loads('''{"if":true,"then":["x"]}'''))
-        self.assertEqual(If(LiteralBoolean(True), [Ref("x")], [Ref("y")]).jsonNode, json.loads('''{"if":true,"then":["x"],"else":["y"]}'''))
+        self.assertEqual(json.loads(If(LiteralBoolean(True), [Ref("x")], None).toJson(lineNumbers=False)), json.loads('''{"if":true,"then":["x"]}'''))
+        self.assertEqual(json.loads(If(LiteralBoolean(True), [Ref("x")], [Ref("y")]).toJson(lineNumbers=False)), json.loads('''{"if":true,"then":["x"],"else":["y"]}'''))
 
     def testCond(self):
-        self.assertEqual(Cond([If(LiteralBoolean(False), [Ref("x")], None), If(LiteralBoolean(True), [Ref("y")], None)], None).jsonNode,
+        self.assertEqual(json.loads(Cond([If(LiteralBoolean(False), [Ref("x")], None), If(LiteralBoolean(True), [Ref("y")], None)], None).toJson(lineNumbers=False)),
                          json.loads('''{"cond":[{"if":false,"then":["x"]},{"if":true,"then":["y"]}]}'''))
-        self.assertEqual(Cond([If(LiteralBoolean(False), [Ref("x")], None), If(LiteralBoolean(True), [Ref("y")], None)], [Ref("z")]).jsonNode,
+        self.assertEqual(json.loads(Cond([If(LiteralBoolean(False), [Ref("x")], None), If(LiteralBoolean(True), [Ref("y")], None)], [Ref("z")]).toJson(lineNumbers=False)),
                          json.loads('''{"cond":[{"if":false,"then":["x"]},{"if":true,"then":["y"]}],"else":["z"]}'''))
 
     def testWhile(self):
-        self.assertEqual(While(LiteralBoolean(True), [Call("+", [LiteralInt(2), LiteralInt(2)])]).jsonNode,
+        self.assertEqual(json.loads(While(LiteralBoolean(True), [Call("+", [LiteralInt(2), LiteralInt(2)])]).toJson(lineNumbers=False)),
                          json.loads('''{"while":true,"do":[{"+":[2,2]}]}'''))
 
     def testDoUntil(self):
-        self.assertEqual(DoUntil([Call("+", [LiteralInt(2), LiteralInt(2)])], LiteralBoolean(True)).jsonNode,
+        self.assertEqual(json.loads(DoUntil([Call("+", [LiteralInt(2), LiteralInt(2)])], LiteralBoolean(True)).toJson(lineNumbers=False)),
                          json.loads('''{"do":[{"+":[2,2]}],"until":true}'''))
 
     def testFor(self):
-        self.assertEqual(For({"i": LiteralInt(0)}, Call("<", [Ref("i"), LiteralInt(10)]), {"i": Call("+", [Ref("i"), LiteralInt(1)])}, [Ref("i")], False).jsonNode,
+        self.assertEqual(json.loads(For({"i": LiteralInt(0)}, Call("<", [Ref("i"), LiteralInt(10)]), {"i": Call("+", [Ref("i"), LiteralInt(1)])}, [Ref("i")], False).toJson(lineNumbers=False)),
                          json.loads('''{"for":{"i":0},"while":{"<":["i",10]},"step":{"i":{"+":["i",1]}},"do":["i"]}'''))
 
     def testForeach(self):
-        self.assertEqual(Foreach("x", Literal(AvroArray(AvroInt()), '''[1, 2, 3]'''), [Ref("x")], False).jsonNode,
+        self.assertEqual(json.loads(Foreach("x", Literal(AvroArray(AvroInt()), '''[1, 2, 3]'''), [Ref("x")], False).toJson(lineNumbers=False)),
                          json.loads('''{"foreach":"x","in":{"type":{"type":"array","items":"int"},"value":[1,2,3]},"do":["x"],"seq":false}'''))
 
     def testForkeyval(self):
-        self.assertEqual(Forkeyval("k", "v", Literal(AvroMap(AvroInt()), '''{"one": 1, "two": 2, "three": 3}'''), [Ref("k")]).jsonNode,
+        self.assertEqual(json.loads(Forkeyval("k", "v", Literal(AvroMap(AvroInt()), '''{"one": 1, "two": 2, "three": 3}'''), [Ref("k")]).toJson(lineNumbers=False)),
                          json.loads('''{"forkey":"k","forval":"v","in":{"type":{"type":"map","values":"int"},"value":{"one":1,"two":2,"three":3}},"do":["k"]}'''))
 
     def testCast(self):
-        self.assertEqual(CastBlock(LiteralInt(3), [CastCase(AvroString(), "x", [Ref("x")]), CastCase(AvroInt(), "x", [Ref("x")])], False).jsonNode,
+        self.assertEqual(json.loads(CastBlock(LiteralInt(3), [CastCase(AvroString(), "x", [Ref("x")]), CastCase(AvroInt(), "x", [Ref("x")])], False).toJson(lineNumbers=False)),
                          json.loads('''{"cast":3,"cases":[{"as":"string","named":"x","do":["x"]},{"as":"int","named":"x","do":["x"]}],"partial":false}'''))
 
     def testDoc(self):
-        self.assertEqual(Doc("hello").jsonNode, json.loads('''{"doc":"hello"}'''))
+        self.assertEqual(json.loads(Doc("hello").toJson(lineNumbers=False)), json.loads('''{"doc":"hello"}'''))
 
     def testError(self):
-        self.assertEqual(Error("hello", None).jsonNode, json.loads('''{"error":"hello"}'''))
-        self.assertEqual(Error("hello", 3).jsonNode, json.loads('''{"error":"hello","code":3}'''))
+        self.assertEqual(json.loads(Error("hello", None).toJson(lineNumbers=False)), json.loads('''{"error":"hello"}'''))
+        self.assertEqual(json.loads(Error("hello", 3).toJson(lineNumbers=False)), json.loads('''{"error":"hello","code":3}'''))
 
     def testLog(self):
-        self.assertEqual(Log([LiteralString("hello")], None).jsonNode, json.loads('''{"log":[{"string":"hello"}]}'''))
-        self.assertEqual(Log([LiteralString("hello")], "DEBUG").jsonNode, json.loads('''{"log":[{"string":"hello"}],"namespace":"DEBUG"}'''))
-        self.assertEqual(Log([Call("+", [LiteralInt(2), LiteralInt(2)])], None).jsonNode, json.loads('''{"log":[{"+":[2,2]}]}'''))
+        self.assertEqual(json.loads(Log([LiteralString("hello")], None).toJson(lineNumbers=False)), json.loads('''{"log":[{"string":"hello"}]}'''))
+        self.assertEqual(json.loads(Log([LiteralString("hello")], "DEBUG").toJson(lineNumbers=False)), json.loads('''{"log":[{"string":"hello"}],"namespace":"DEBUG"}'''))
+        self.assertEqual(json.loads(Log([Call("+", [LiteralInt(2), LiteralInt(2)])], None).toJson(lineNumbers=False)), json.loads('''{"log":[{"+":[2,2]}]}'''))
 
 if __name__ == "__main__":
     unittest.main()

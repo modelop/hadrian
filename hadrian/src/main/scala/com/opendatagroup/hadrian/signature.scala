@@ -68,6 +68,8 @@ package signature {
 
     case class Wildcard(label: String, oneOf: Set[Type] = Set[Type]()) extends Pattern
     case class WildRecord(label: String, minimalFields: scala.collection.immutable.Map[String, Pattern]) extends Pattern
+    case class WildEnum(label: String) extends Pattern
+    case class WildFixed(label: String) extends Pattern
     case class EnumFields(label: String, wildRecord: String) extends Pattern
 
     def toType(pat: Pattern): Type = pat match {
@@ -384,6 +386,20 @@ package signature {
           false
       }
 
+      case (P.WildEnum(label), a: AvroEnum) => {
+        if (!labelData.contains(label))
+          labelData(label) = new LabelData
+        labelData(label).add(a)
+        true
+      }
+
+      case (P.WildFixed(label), a: AvroFixed) => {
+        if (!labelData.contains(label))
+          labelData(label) = new LabelData
+        labelData(label).add(a)
+        true
+      }
+
       case (P.EnumFields(label, wildRecord), a @ AvroEnum(symbols, _, _, _, _)) => {
         if (!labelData.contains(label))
           labelData(label) = new LabelData
@@ -420,6 +436,8 @@ package signature {
 
       case (P.Wildcard(label, _), _) => assignments(label)
       case (P.WildRecord(label, _), _) => assignments(label)
+      case (P.WildEnum(label), _) => assignments(label)
+      case (P.WildFixed(label), _) => assignments(label)
       case (P.EnumFields(label, _), _) => assignments(label)
     }
 
@@ -444,6 +462,8 @@ package signature {
 
       case P.Wildcard(label, _) => assignments(label).asInstanceOf[AvroType]
       case P.WildRecord(label, _) => assignments(label).asInstanceOf[AvroType]
+      case P.WildEnum(label) => assignments(label).asInstanceOf[AvroType]
+      case P.WildFixed(label) => assignments(label).asInstanceOf[AvroType]
       case P.EnumFields(label, _) => assignments(label).asInstanceOf[AvroType]
     }
   }
@@ -473,9 +493,13 @@ package signature {
       case P.Union(types) => "union of \\{%s\\}".format(types map {apply(_, alreadyLabeled)} mkString(", "))
       case P.Fcn(params, ret) => "function (%s) $\\to$ %s".format(params map {apply(_, alreadyLabeled)} mkString(", "), apply(ret, alreadyLabeled))
       case P.Wildcard(label, _) if (alreadyLabeled.contains(label)) => s"{\\PFAtp $label}"
+      case P.WildEnum(label) if (alreadyLabeled.contains(label)) => s"{\\PFAtp $label}"
+      case P.WildFixed(label) if (alreadyLabeled.contains(label)) => s"{\\PFAtp $label}"
       case P.WildRecord(label, _) if (alreadyLabeled.contains(label)) => s"{\\PFAtp $label}"
       case P.Wildcard(label, oneOf) if (oneOf.isEmpty) => alreadyLabeled.add(label);  s"any {\\PFAtp $label}"
       case P.Wildcard(label, oneOf) => alreadyLabeled.add(label);  val types = oneOf.map({applyType(_)}).mkString(", ");  s"any {\\PFAtp $label} of \\{$types\\}"
+      case P.WildEnum(label) => alreadyLabeled.add(label);  s"any enum {\\PFAtp $label}"
+      case P.WildFixed(label) => alreadyLabeled.add(label);  s"any fixed {\\PFAtp $label}"
       case P.WildRecord(label, fields) => alreadyLabeled.add(label);  val fs = fields.map({case (n, f) => "{\\PFApf " + n.replace("_", "\\_") + ":}$\\!$ " + apply(f, alreadyLabeled)}).mkString(", ");  s"any record {\\PFAtp $label}" + (if (fields.isEmpty) "" else s" with \\{$fs\\}")
       case P.EnumFields(label, wildRecord) => alreadyLabeled.add(label);  s"enum $label of fields of $wildRecord"
     }

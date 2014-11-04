@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
 import json
 
-import titus.ast as ast
+import titus.pfaast as ast
 from titus.datatype import AvroTypeBuilder
 from titus.util import uniqueEngineName, uniqueRecordName, uniqueEnumName
 

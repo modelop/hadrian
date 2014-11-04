@@ -340,6 +340,18 @@ class Sig(Signature):
             else:
                 return False
 
+        elif isinstance(pat, P.WildEnum):
+            if not pat.label in labelData:
+                labelData[pat.label] = LabelData()
+            labelData[pat.label].add(arg)
+            return True
+
+        elif isinstance(pat, P.WildFixed):
+            if not pat.label in labelData:
+                labelData[pat.label] = LabelData()
+            labelData[pat.label].add(arg)
+            return True
+
         elif isinstance(pat, P.EnumFields) and isinstance(arg, AvroEnum):
             if not pat.label in labelData:
                 labelData[pat.label] = LabelData()
@@ -393,6 +405,10 @@ class Sig(Signature):
             return assignments[pat.label]
         elif isinstance(pat, P.WildRecord):
             return assignments[pat.label]
+        elif isinstance(pat, P.WildEnum):
+            return assignments[pat.label]
+        elif isinstance(pat, P.WildFixed):
+            return assignments[pat.label]
         elif isinstance(pat, P.EnumFields):
             return assignments[pat.label]
 
@@ -436,6 +452,10 @@ class Sig(Signature):
         elif isinstance(pat, P.Wildcard):
             return assignments[pat.label]
         elif isinstance(pat, P.WildRecord):
+            return assignments[pat.label]
+        elif isinstance(pat, P.WildEnum):
+            return assignments[pat.label]
+        elif isinstance(pat, P.WildFixed):
             return assignments[pat.label]
         elif isinstance(pat, P.EnumFields):
             return assignments[pat.label]

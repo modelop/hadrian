@@ -4066,4 +4066,43 @@ action:
     engine.action(java.lang.Integer.valueOf(15)).asInstanceOf[PFAArray[String]].toVector should be (Vector("abcdefghijklmno", "ABCDEFGHIJKLMNO"))
   }
 
+  "try-catch" must "work without filtering" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: int
+output: [int, "null"]
+action:
+  try:
+    if: {"==": [input, 3]}
+    then: {error: "ouch"}
+    else: input
+""").head
+    engine.action(java.lang.Integer.valueOf(1)) should be (java.lang.Integer.valueOf(1))
+    engine.action(java.lang.Integer.valueOf(2)) should be (java.lang.Integer.valueOf(2))
+    engine.action(java.lang.Integer.valueOf(3)) should be (null)
+    engine.action(java.lang.Integer.valueOf(4)) should be (java.lang.Integer.valueOf(4))
+    engine.action(java.lang.Integer.valueOf(5)) should be (java.lang.Integer.valueOf(5))
+  }
+
+  it must "work with filtering" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: int
+output: [int, "null"]
+action:
+  try:
+    cond:
+      - if: {"==": [input, 3]}
+        then: {error: "ouch"}
+      - if: {"==": [input, 4]}
+        then: {error: "yowzers"}
+    else: input
+  filter:
+    - ouch
+""").head
+    engine.action(java.lang.Integer.valueOf(1)) should be (java.lang.Integer.valueOf(1))
+    engine.action(java.lang.Integer.valueOf(2)) should be (java.lang.Integer.valueOf(2))
+    engine.action(java.lang.Integer.valueOf(3)) should be (null)
+    evaluating { engine.action(java.lang.Integer.valueOf(4)) } should produce [PFAUserException]
+    engine.action(java.lang.Integer.valueOf(5)) should be (java.lang.Integer.valueOf(5))
+  }
+
 }

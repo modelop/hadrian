@@ -85,10 +85,28 @@ package shared {
 
     // remove() is atomic and more than one remove has the same effect as one remove.
     def remove(name: String, path: Array[PathIndex]): Either[Exception, Any]
+
+    // toMap blocks writing and returns a snapshot of the names and values
+    def toMap: Map[String, Any]
   }
 
   class SharedMapInMemory(initialCapacity: Int = 16, loadFactor: Float = 0.75f, concurrencyLevel: Int = 16) extends SharedMap {
     private val hashMap = new ConcurrentHashMap[String, Ref](initialCapacity, loadFactor, concurrencyLevel)
+    private var enumerating = false  // not a lock because it should be asymmetric: toMap sets it, put/update respond to it
+
+    override def toMap: Map[String, Any] = {
+      blockUntilInitialized()
+      enumerating = true
+      val out =
+        (for (entry <- hashMap.entrySet) yield {
+          val key = entry.getKey
+          val ref = entry.getValue
+          val value = ref.lastUpdate.synchronized {ref.to}
+          (key, value)
+        }).toMap
+      enumerating = false
+      out
+    }
 
     override def get(name: String, path: Array[PathIndex]): Either[Exception, Any] = try {
       blockUntilInitialized()
@@ -112,6 +130,9 @@ package shared {
     override def put[X](name: String, path: Array[PathIndex], value: X, initializing: Boolean = false): Either[Exception, X] = try {
       if (!initializing)
         blockUntilInitialized()
+      while (enumerating)
+        Thread.sleep(100)
+
       val newRef = Ref(value, LastUpdate(System.currentTimeMillis))
       newRef.lastUpdate.synchronized {
         val oldRef = hashMap.putIfAbsent(name, newRef)
@@ -130,6 +151,9 @@ package shared {
 
     override def update[X](name: String, path: Array[PathIndex], initialValue: X, updator: (X) => X, schema: Schema): Either[Exception, Any] = try {
       blockUntilInitialized()
+      while (enumerating)
+        Thread.sleep(100)
+
       val newRef = Ref(initialValue, LastUpdate(System.currentTimeMillis))
       var result: Any = initialValue
       newRef.lastUpdate.synchronized {
@@ -139,12 +163,15 @@ package shared {
           ref = newRef
 
         ref.lastUpdate.synchronized {
-          ref.to = ref.to match {
-            case x: PFAArray[_] => x.updated(path, updator, schema)
-            case x: PFAMap[_] => x.updated(path, updator, schema)
-            case x: PFARecord => x.updated(path, updator, schema)
-            case x => updator(x.asInstanceOf[X])
-          }
+          if (path.isEmpty)
+            ref.to = updator(ref.to.asInstanceOf[X])
+          else
+            ref.to = ref.to match {
+              case x: PFAArray[_] => x.updated(path, updator, schema)
+              case x: PFAMap[_] => x.updated(path, updator, schema)
+              case x: PFARecord => x.updated(path, updator, schema)
+              case x => updator(x.asInstanceOf[X])
+            }
           result = ref.to
           ref.lastUpdate.at = System.currentTimeMillis
         } // end ref.lastUpdate.synchronized

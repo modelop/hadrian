@@ -388,12 +388,21 @@ class KMeans(object):
                           "fields": [{"name": "center", "type": {"type": "array", "items": centerComponentType}},
                                      {"name": "id", "type": idType}]}}
             
-    def pfaValue(self, ids, untransform=None):
+    def pfaValue(self, ids, untransform=None, populations=False):
         """Create a PFA data structure representing this cluster set."""
 
         if len(ids) != self.numberOfClusters:
             raise TypeError("ids should be a list with length equal to the number of clusters")
-        return [{"id": i, "center": x} for i, x in zip(ids, self.centers(untransform))]
+
+        if populations:
+            pops = []
+            indexOfClosestCluster = self.closestCluster(self.dataset, self.weights)
+            for clusterIndex in xrange(len(self.clusters)):
+                pops.append(numpy.count_nonzero(indexOfClosestCluster == clusterIndex))
+            return [{"id": i, "center": x, "population": y} for i, x, y in zip(ids, self.centers(untransform), pops)]
+
+        else:
+            return [{"id": i, "center": x} for i, x in zip(ids, self.centers(untransform))]
 
     def pfaDocument(self, clusterTypeName, ids, untransform=None, idType="string", dataComponentType="double", centerComponentType="double"):
         """Create a PFA document to score with this cluster set."""

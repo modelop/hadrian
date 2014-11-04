@@ -95,8 +95,8 @@ package object math {
   //////////////////////////////////////////////////////////////////// basic functions (alphabetical order)
 
   def domain(low: String, high: String, lowInclusive: String = "", highInclusive: String = " (inclusive)",
-    result: scala.xml.Node = <x>Beyond this domain, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.head,
-    ensureFinite: scala.xml.Node = <x>Use <f>impute.ensureFinite</f> to produce errors from infinite or <c>NaN</c> values."</x>.child.head) =
+    result: Array[scala.xml.Node] = <x>Beyond this domain, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.toArray,
+    ensureFinite: Array[scala.xml.Node] = <x>Use <f>impute.ensureFinite</f> to produce errors from infinite or <c>NaN</c> values."</x>.child.toArray) =
       <detail>The domain of this function is from {low}{lowInclusive} to {high}{highInclusive}.  {result}  {ensureFinite}</detail>
 
   def wholeLine(tpe: String = " real") = <detail>The domain of this function is the whole{tpe} line; no input is invalid.</detail>
@@ -314,7 +314,7 @@ package object math {
     val doc =
       <doc>
         <desc>Return the natural logarithm of <p>x</p>.</desc>
-        {domain("0", "infinity", "", " (exclusive)", <x>Given zero, the result is negative infinity, and below zero, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.head)}
+        {domain("0", "infinity", "", " (exclusive)", <x>Given zero, the result is negative infinity, and below zero, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.toArray)}
       </doc>
     override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
       JavaCode("Math.log(%s)", wrapArg(0, args, paramTypes, false))
@@ -329,7 +329,7 @@ package object math {
     val doc =
       <doc>
         <desc>Return the logarithm base 10 of <p>x</p>.</desc>
-        {domain("0", "infinity", "", " (exclusive)", <x>Given zero, the result is negative infinity, and below zero, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.head)}
+        {domain("0", "infinity", "", " (exclusive)", <x>Given zero, the result is negative infinity, and below zero, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.toArray)}
       </doc>
     override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
       JavaCode("Math.log10(%s)", wrapArg(0, args, paramTypes, false))
@@ -344,7 +344,7 @@ package object math {
     val doc =
       <doc>
         <desc>Return the logarithm of <p>x</p> with a given <p>base</p>.</desc>
-        {domain("0", "infinity", "", " (exclusive)", <x>Given zero, the result is negative infinity, and below zero, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.head)}
+        {domain("0", "infinity", "", " (exclusive)", <x>Given zero, the result is negative infinity, and below zero, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.toArray)}
         <error>If <p>base</p> is less than or equal to zero, this function produces a "base must be positive" runtime error.</error>
       </doc>
     def apply(x: Double, base: Int): Double = {
@@ -362,7 +362,7 @@ package object math {
     val doc =
       <doc>
         <desc>Return <m>ln(x^2 + 1)</m>.</desc>{avoidsRoundoff}
-        {domain("-1", "infinity", "", " (exclusive)", <x>Given -1, the result is negative infinity, and below -1, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.head)}
+        {domain("-1", "infinity", "", " (exclusive)", <x>Given -1, the result is negative infinity, and below -1, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.toArray)}
       </doc>
     override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
       JavaCode("Math.log1p(%s)", wrapArg(0, args, paramTypes, false))

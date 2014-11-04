@@ -32,13 +32,14 @@ import test.scala._
 
 @RunWith(classOf[JUnitRunner])
 class Lib1FixedSuite extends FlatSpec with Matchers {
-//   "basic access" must "get length" taggedAs(Lib1, Lib1Fixed) in {
-//     PFAEngine.fromYaml("""
-// input: fixed
-// output: int
-// action:
-//   - {s.len: [input]}
-// """).head.action("hello") should be (5)
-//   }
+  "basic access" must "convert to bytes" taggedAs(Lib1, Lib1Fixed) in {
+    val engine = PFAEngine.fromYaml("""
+input: {type: fixed, name: Test, size: 10}
+output: bytes
+action:
+  fixed.toBytes: input
+""").head
+    new String(engine.action(engine.fromJson(""""0123456789"""", engine.inputType)).asInstanceOf[Array[Byte]], "utf-8") should be ("0123456789")
+  }
 
 }

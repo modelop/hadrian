@@ -20,7 +20,7 @@
 
 import json
 
-import titus.ast as ast
+import titus.pfaast as ast
 from titus.datatype import AvroArray
 from titus.datatype import AvroDouble
 from titus.datatype import AvroString

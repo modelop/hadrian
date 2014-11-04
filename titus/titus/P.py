@@ -178,6 +178,24 @@ class WildRecord(Pattern):
     def __repr__(self):
         return "P.WildRecord(" + repr(self.label) + ", " + repr(self.minimalFields) + ")"
 
+class WildEnum(Pattern):
+    def __init__(self, label):
+        self._label = label
+    @property
+    def label(self):
+        return self._label
+    def __repr__(self):
+        return "P.WildEnum(" + repr(self.label) + ")"
+
+class WildFixed(Pattern):
+    def __init__(self, label):
+        self._label = label
+    @property
+    def label(self):
+        return self._label
+    def __repr__(self):
+        return "P.WildFixed(" + repr(self.label) + ")"
+
 class EnumFields(Pattern):
     def __init__(self, label, wildRecord):
         self._label = label

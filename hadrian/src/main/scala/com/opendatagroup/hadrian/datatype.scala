@@ -23,6 +23,11 @@ import scala.collection.mutable
 import scala.language.implicitConversions
 import scala.language.postfixOps
 
+import org.codehaus.jackson.JsonNode
+import org.codehaus.jackson.node.IntNode
+import org.codehaus.jackson.node.JsonNodeFactory
+import org.codehaus.jackson.node.TextNode
+
 import org.apache.avro.Schema
 import org.apache.avro.SchemaCompatibility.checkReaderWriterCompatibility
 import org.apache.avro.SchemaCompatibility.SchemaCompatibilityType
@@ -30,6 +35,7 @@ import org.apache.avro.SchemaParseException
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
 
+import com.opendatagroup.hadrian.util.convertToJson
 import com.opendatagroup.hadrian.util.escapeJson
 import com.opendatagroup.hadrian.util.uniqueEnumName
 import com.opendatagroup.hadrian.util.uniqueFixedName
@@ -100,9 +106,12 @@ package datatype {
         checkReaderWriterCompatibility(this.schema, avroThat.schema).getType == SchemaCompatibilityType.COMPATIBLE
       case _ => false
     }
-    override def avroType: AvroType = this
 
-    override def toString(): String = schema.toString
+    def toJson(): String = convertToJson(jsonNode(mutable.Set[String]()))
+    def jsonNode(memo: mutable.Set[String]): JsonNode
+    override def toString(): String = toJson()
+
+    override def avroType: AvroType = this
   }
 
   trait AvroCompiled extends AvroType {
@@ -133,19 +142,40 @@ package datatype {
     override def accepts(that: Type): Boolean = that.isInstanceOf[ExceptionType]
     override def toString() = """{"type":"exception"}"""
     def schema: Schema = AvroNull().schema
+    def jsonNode(memo: mutable.Set[String]): JsonNode = throw new Exception("don't call jsonNode() on ExceptionType")
   }
 
   ///////////////////////////////////////////////////////// Avro type wrappers
 
   // start classes
 
-  class AvroNull(val schema: Schema) extends AvroType
-  class AvroBoolean(val schema: Schema) extends AvroType
-  class AvroInt(val schema: Schema) extends AvroType with AvroNumber
-  class AvroLong(val schema: Schema) extends AvroType with AvroNumber
-  class AvroFloat(val schema: Schema) extends AvroType with AvroNumber
-  class AvroDouble(val schema: Schema) extends AvroType with AvroNumber
-  class AvroBytes(val schema: Schema) extends AvroType with AvroRaw
+  class AvroNull(val schema: Schema) extends AvroType {
+    def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("null")
+  }
+
+  class AvroBoolean(val schema: Schema) extends AvroType {
+    def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("boolean")
+  }
+
+  class AvroInt(val schema: Schema) extends AvroType with AvroNumber {
+    def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("int")
+  }
+
+  class AvroLong(val schema: Schema) extends AvroType with AvroNumber {
+    def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("long")
+  }
+
+  class AvroFloat(val schema: Schema) extends AvroType with AvroNumber {
+    def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("float")
+  }
+
+  class AvroDouble(val schema: Schema) extends AvroType with AvroNumber {
+    def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("double")
+  }
+
+  class AvroBytes(val schema: Schema) extends AvroType with AvroRaw {
+    def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("bytes")
+  }
 
   class AvroFixed(val schema: Schema) extends AvroType with AvroRaw with AvroCompiled {
     def size: Int = schema.getFixedSize
@@ -154,9 +184,33 @@ package datatype {
     override def fullName: String = schema.getFullName
     override def aliases: Set[String] = schema.getAliases.toSet
     override def doc: String = schema.getDoc
+
+    def jsonNode(memo: mutable.Set[String]): JsonNode =
+      if (memo.contains(fullName))
+        new TextNode(fullName)
+      else {
+        memo.add(fullName)
+        val factory = JsonNodeFactory.instance
+        val out = factory.objectNode
+        out.put("type", "fixed")
+        out.put("size", new IntNode(size))
+
+        out.put("name", new TextNode(name))
+        namespace.foreach(x => out.put("namespace", new TextNode(x)))
+        if (!aliases.isEmpty) {
+          val aliasItems = factory.arrayNode
+          aliases.foreach(x => aliasItems.add(new TextNode(x)))
+          out.put("aliases", aliasItems)
+        }
+        if (doc != null  &&  !doc.isEmpty)
+          out.put("doc", new TextNode(doc))
+        out
+      }
   }
 
-  class AvroString(val schema: Schema) extends AvroType with AvroIdentifier
+  class AvroString(val schema: Schema) extends AvroType with AvroIdentifier {
+    def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("string")
+  }
 
   class AvroEnum(val schema: Schema) extends AvroType with AvroIdentifier with AvroCompiled {
     def symbols: Seq[String] = schema.getEnumSymbols.toVector
@@ -165,14 +219,52 @@ package datatype {
     override def fullName: String = schema.getFullName
     override def aliases: Set[String] = schema.getAliases.toSet
     override def doc: String = schema.getDoc
+
+    def jsonNode(memo: mutable.Set[String]): JsonNode =
+      if (memo.contains(fullName))
+        new TextNode(fullName)
+      else {
+        memo.add(fullName)
+        val factory = JsonNodeFactory.instance
+        val out = factory.objectNode
+        out.put("type", "enum")
+        val symbolItems = factory.arrayNode
+        symbols.foreach(x => symbolItems.add(new TextNode(x)))
+        out.put("symbols", symbolItems)
+
+        out.put("name", new TextNode(name))
+        namespace.foreach(x => out.put("namespace", new TextNode(x)))
+        if (!aliases.isEmpty) {
+          val aliasItems = factory.arrayNode
+          aliases.foreach(x => aliasItems.add(new TextNode(x)))
+          out.put("aliases", aliasItems)
+        }
+        if (doc != null  &&  !doc.isEmpty)
+          out.put("doc", new TextNode(doc))
+        out
+      }
   }
 
   class AvroArray(val schema: Schema) extends AvroType with AvroContainer {
     def items: AvroType = AvroConversions.schemaToAvroType(schema.getElementType)
+    def jsonNode(memo: mutable.Set[String]): JsonNode = {
+      val factory = JsonNodeFactory.instance
+      val out = factory.objectNode
+      out.put("type", "array")
+      out.put("items", items.jsonNode(memo))
+      out
+    }
   }
 
   class AvroMap(val schema: Schema) extends AvroType with AvroContainer with AvroMapping {
     def values: AvroType = AvroConversions.schemaToAvroType(schema.getValueType)
+    def jsonNode(memo: mutable.Set[String]): JsonNode = {
+      val factory = JsonNodeFactory.instance
+      val out = factory.objectNode
+      out.put("type", "map")
+      out.put("values", values.jsonNode(memo))
+      out
+    }
   }
 
   class AvroRecord(val schema: Schema) extends AvroType with AvroContainer with AvroMapping with AvroCompiled {
@@ -184,33 +276,33 @@ package datatype {
     override def fullName: String = schema.getFullName
     override def aliases: Set[String] = schema.getAliases.toSet
     override def doc: String = schema.getDoc
+
+    def jsonNode(memo: mutable.Set[String]): JsonNode =
+      if (memo.contains(fullName))
+        new TextNode(fullName)
+      else {
+        memo.add(fullName)
+        val factory = JsonNodeFactory.instance
+        val out = factory.objectNode
+        out.put("type", "record")
+        val fieldItems = factory.arrayNode
+        fields.foreach(x => fieldItems.add(x.jsonNode(memo)))
+        out.put("fields", fieldItems)
+
+        out.put("name", new TextNode(name))
+        namespace.foreach(x => out.put("namespace", new TextNode(x)))
+        if (!aliases.isEmpty) {
+          val aliasItems = factory.arrayNode
+          aliases.foreach(x => aliasItems.add(new TextNode(x)))
+          out.put("aliases", aliasItems)
+        }
+        if (doc != null  &&  !doc.isEmpty)
+          out.put("doc", new TextNode(doc))
+        out
+      }
   }
 
   class AvroField(val schemaField: Schema.Field) {
-    override def toString(): String = {
-      val showDefault =
-        if (schemaField.defaultValue == null)
-          ""
-        else
-          ""","default":""" + schemaField.defaultValue.toString
-      val showOrder =
-        if (order == Schema.Field.Order.ASCENDING)
-          ""
-        else
-          ""","order":"%s"""".format(order.toString.toLowerCase)
-      val showAliases =
-        if (aliases.size == 0)
-          ""
-        else
-          ""","aliases":[%s]""".format(schemaField.aliases map { x => "\"" + escapeJson(x.toString) + "\"" } mkString(","))
-      """{"name":"%s","type":%s,"doc":"%s"%s%s%s}""".format(
-        escapeJson(schemaField.name),
-        schemaField.schema.toString,
-        escapeJson(schemaField.doc),
-        showDefault,
-        showOrder,
-        showAliases)
-    }
     def name: String = schemaField.name
     def avroType: AvroType = AvroConversions.schemaToAvroType(schemaField.schema)
     def default: Option[JsonNode] =
@@ -221,10 +313,34 @@ package datatype {
     def order: Schema.Field.Order = schemaField.order
     def aliases: Set[String] = schemaField.aliases.toSet
     def doc: String = schemaField.doc
+
+    def jsonNode(memo: mutable.Set[String]): JsonNode = {
+      val factory = JsonNodeFactory.instance
+      val out = factory.objectNode
+      out.put("name", name)
+      out.put("type", avroType.jsonNode(memo))
+      default.foreach(x => out.put("default", x))
+      if (!aliases.isEmpty) {
+        val aliasItems = factory.arrayNode
+        aliases.foreach(x => aliasItems.add(new TextNode(x)))
+        out.put("aliases", aliasItems)
+      }
+      if (order != Schema.Field.Order.ASCENDING)
+        out.put("order", new TextNode(order.toString))
+      out
+    }
+    override def toString(): String = convertToJson(jsonNode(mutable.Set[String]()))
   }
 
   class AvroUnion(val schema: Schema) extends AvroType {
     def types: Seq[AvroType] = schema.getTypes.map(AvroConversions.schemaToAvroType(_)).toList
+
+    def jsonNode(memo: mutable.Set[String]): JsonNode = {
+      val factory = JsonNodeFactory.instance
+      val out = factory.arrayNode
+      types.foreach(x => out.add(x.jsonNode(memo)))
+      out
+    }
   }
 
   // start objects
@@ -340,9 +456,13 @@ package datatype {
     def avroType: AvroType = forwardDeclarationParser.lookup(original)
     def avroTypeOption: Option[AvroType] = forwardDeclarationParser.lookupOption(original)
     override def toString(): String = forwardDeclarationParser.lookupOption(original) match {
-      case Some(x) => x.toString
+      case Some(x) => x.toJson()
       case None => """{"type":"unknown"}"""
     }
+
+    def toJson() = convertToJson(jsonNode(mutable.Set[String]()))
+    def jsonNode(memo: mutable.Set[String]) = avroType.jsonNode(memo)
+
     def parser = forwardDeclarationParser
   }
   object AvroPlaceholder {

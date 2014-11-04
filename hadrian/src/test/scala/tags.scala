@@ -27,6 +27,7 @@ package test.scala {
   object Shared extends Tag("Shared")
   object SignatureMatch extends Tag("SignatureMatch")
   object DataType extends Tag("DataType")
+  object DumpState extends Tag("DumpState")
   object TypeCheck extends Tag("TypeCheck")
   object Yaml extends Tag("Yaml")
 
@@ -48,7 +49,6 @@ package test.scala {
   object Lib1Math extends Tag("Lib1Math")
   object Lib1Metric extends Tag("Lib1Metric")
   object Lib1Parse extends Tag("Lib1Parse")
-  object Lib1Record extends Tag("Lib1Record")
   object Lib1String extends Tag("Lib1String")
 
   object Lib1ProbDist extends Tag("Lib1ProbDist")

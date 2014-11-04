@@ -463,45 +463,6 @@ input: double
 output: double
 cells:
   state:
-    type: ["null", {type: record, name: State, fields: [{name: mean, type: double}, {name: variance, type: double}]}]
-    init: null
-action:
-  - cell: state
-    to:
-      params: [{state: ["null", State]}]
-      ret: State
-      do: {stat.sample.updateEWMA: [input, 0.3, state]}
-  - ifnotnull: {x: {cell: state}}
-    then: {attr: x, path: [[mean]]}
-    else: -999
-''')
-        self.assertAlmostEqual(engine.action(50.0), 50.00, places=2)
-        self.assertAlmostEqual(engine.action(52.0), 50.60, places=2)
-        self.assertAlmostEqual(engine.action(47.0), 49.52, places=2)
-        self.assertAlmostEqual(engine.action(53.0), 50.56, places=2)
-        self.assertAlmostEqual(engine.action(49.3), 50.18, places=2)
-        self.assertAlmostEqual(engine.action(50.1), 50.16, places=2)
-        self.assertAlmostEqual(engine.action(47.0), 49.21, places=2)
-        self.assertAlmostEqual(engine.action(51.0), 49.75, places=2)
-        self.assertAlmostEqual(engine.action(50.1), 49.85, places=2)
-        self.assertAlmostEqual(engine.action(51.2), 50.26, places=2)
-        self.assertAlmostEqual(engine.action(50.5), 50.33, places=2)
-        self.assertAlmostEqual(engine.action(49.6), 50.11, places=2)
-        self.assertAlmostEqual(engine.action(47.6), 49.36, places=2)
-        self.assertAlmostEqual(engine.action(49.9), 49.52, places=2)
-        self.assertAlmostEqual(engine.action(51.3), 50.05, places=2)
-        self.assertAlmostEqual(engine.action(47.8), 49.38, places=2)
-        self.assertAlmostEqual(engine.action(51.2), 49.92, places=2)
-        self.assertAlmostEqual(engine.action(52.6), 50.73, places=2)
-        self.assertAlmostEqual(engine.action(52.4), 51.23, places=2)
-        self.assertAlmostEqual(engine.action(53.6), 51.94, places=2)
-        self.assertAlmostEqual(engine.action(52.1), 51.99, places=2)
-
-        engine, = PFAEngine.fromYaml('''
-input: double
-output: double
-cells:
-  state:
     type: {type: record, name: State, fields: [{name: mean, type: double}, {name: variance, type: double}]}
     init: {mean: 50.0, variance: 0.0}
 action:
@@ -610,45 +571,6 @@ action:
         self.assertAlmostEqual(engine4.action(52.4), 51.23, places=2)
         self.assertAlmostEqual(engine4.action(53.6), 51.94, places=2)
         self.assertAlmostEqual(engine4.action(52.1), 51.99, places=2)
-
-        engineVar, = PFAEngine.fromYaml('''
-input: double
-output: double
-cells:
-  state:
-    type: ["null", {type: record, name: State, fields: [{name: mean, type: double}, {name: variance, type: double}]}]
-    init: null
-action:
-  - cell: state
-    to:
-      params: [{state: ["null", State]}]
-      ret: State
-      do: {stat.sample.updateEWMA: [input, 0.3, state]}
-  - ifnotnull: {x: {cell: state}}
-    then: {attr: x, path: [[variance]]}
-    else: -999
-''')
-        self.assertAlmostEqual(engineVar.action(50.0), 0.000, places=2)
-        self.assertAlmostEqual(engineVar.action(52.0), 0.840, places=2)
-        self.assertAlmostEqual(engineVar.action(47.0), 3.310, places=2)
-        self.assertAlmostEqual(engineVar.action(53.0), 4.860, places=2)
-        self.assertAlmostEqual(engineVar.action(49.3), 3.737, places=2)
-        self.assertAlmostEqual(engineVar.action(50.1), 2.618, places=2)
-        self.assertAlmostEqual(engineVar.action(47.0), 3.929, places=2)
-        self.assertAlmostEqual(engineVar.action(51.0), 3.422, places=2)
-        self.assertAlmostEqual(engineVar.action(50.1), 2.421, places=2)
-        self.assertAlmostEqual(engineVar.action(51.2), 2.075, places=2)
-        self.assertAlmostEqual(engineVar.action(50.5), 1.465, places=2)
-        self.assertAlmostEqual(engineVar.action(49.6), 1.138, places=2)
-        self.assertAlmostEqual(engineVar.action(47.6), 2.121, places=2)
-        self.assertAlmostEqual(engineVar.action(49.9), 1.546, places=2)
-        self.assertAlmostEqual(engineVar.action(51.3), 1.747, places=2)
-        self.assertAlmostEqual(engineVar.action(47.8), 2.290, places=2)
-        self.assertAlmostEqual(engineVar.action(51.2), 2.300, places=2)
-        self.assertAlmostEqual(engineVar.action(52.6), 3.113, places=2)
-        self.assertAlmostEqual(engineVar.action(52.4), 2.767, places=2)
-        self.assertAlmostEqual(engineVar.action(53.6), 3.117, places=2)
-        self.assertAlmostEqual(engineVar.action(52.1), 2.187, places=2)
 
         engine4Var, = PFAEngine.fromYaml('''
 input: double

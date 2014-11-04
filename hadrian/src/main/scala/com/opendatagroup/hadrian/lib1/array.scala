@@ -218,15 +218,18 @@ package object array {
   object Contains extends LibFcn {
     val name = prefix + "contains"
     val sig = Sigs(List(Sig(List("haystack" -> P.Array(P.Wildcard("A")), "needle" -> P.Array(P.Wildcard("A"))), P.Boolean),
-                        Sig(List("haystack" -> P.Array(P.Wildcard("A")), "needle" -> P.Wildcard("A")), P.Boolean)))
+                        Sig(List("haystack" -> P.Array(P.Wildcard("A")), "needle" -> P.Wildcard("A")), P.Boolean),
+                        Sig(List("haystack" -> P.Array(P.Wildcard("A")), "needle" -> P.Fcn(List(P.Wildcard("A")), P.Boolean)), P.Boolean)))
     val doc =
       <doc>
-        <desc>Return <c>true</c> if <p>haystack</p> contains <p>needle</p>, <c>false</c> otherwise.</desc>
+        <desc>Return <c>true</c> if <p>haystack</p> contains <p>needle</p> or the <p>needle</p> function evaluates to <c>true</c>, <c>false</c> otherwise.</desc>
       </doc>
     def apply[X](haystack: PFAArray[X], needle: PFAArray[X]): Boolean =
       haystack.toVector.indexOfSlice(needle.toVector) != -1
     def apply[X](haystack: PFAArray[X], needle: X): Boolean =
       haystack.toVector.indexOf(needle) != -1
+    def apply[X](haystack: PFAArray[X], needle: (X => Boolean)): Boolean =
+      haystack.toVector.find(needle) != None
   }
   provide(Contains)
 
@@ -261,13 +264,15 @@ package object array {
   object Index extends LibFcn {
     val name = prefix + "index"
     val sig = Sigs(List(Sig(List("haystack" -> P.Array(P.Wildcard("A")), "needle" -> P.Array(P.Wildcard("A"))), P.Int),
-                        Sig(List("haystack" -> P.Array(P.Wildcard("A")), "needle" -> P.Wildcard("A")), P.Int)))
+                        Sig(List("haystack" -> P.Array(P.Wildcard("A")), "needle" -> P.Wildcard("A")), P.Int),
+                        Sig(List("haystack" -> P.Array(P.Wildcard("A")), "needle" -> P.Fcn(List(P.Wildcard("A")), P.Boolean)), P.Int)))
     val doc =
       <doc>
-        <desc>Return the lowest index where <p>haystack</p> contains <p>needle</p> or -1 if <p>haystack</p> does not contain <p>needle</p>.</desc>
+        <desc>Return the lowest index where <p>haystack</p> contains <p>needle</p> or the <p>needle</p> function evaluates to <c>true</c>, <m>-1</m> if there is no such element.</desc>
       </doc>
     def apply[X](haystack: PFAArray[X], needle: PFAArray[X]): Int = haystack.toVector.indexOfSlice(needle.toVector)
     def apply[X](haystack: PFAArray[X], needle: X): Int = haystack.toVector.indexOf(needle)
+    def apply[X](haystack: PFAArray[X], needle: (X => Boolean)): Int = haystack.toVector.indexWhere(needle)
   }
   provide(Index)
 
@@ -275,13 +280,15 @@ package object array {
   object RIndex extends LibFcn {
     val name = prefix + "rindex"
     val sig = Sigs(List(Sig(List("haystack" -> P.Array(P.Wildcard("A")), "needle" -> P.Array(P.Wildcard("A"))), P.Int),
-                        Sig(List("haystack" -> P.Array(P.Wildcard("A")), "needle" -> P.Wildcard("A")), P.Int)))
+                        Sig(List("haystack" -> P.Array(P.Wildcard("A")), "needle" -> P.Wildcard("A")), P.Int),
+                        Sig(List("haystack" -> P.Array(P.Wildcard("A")), "needle" -> P.Fcn(List(P.Wildcard("A")), P.Boolean)), P.Int)))
     val doc =
       <doc>
-        <desc>Return the highest index where <p>haystack</p> contains <p>needle</p> or -1 if <p>haystack</p> does not contain <p>needle</p>.</desc>
+        <desc>Return the highest index where <p>haystack</p> contains <p>needle</p> or the <p>needle</p> function evaluates to <c>true</c>, <m>-1</m> if there is no such element.</desc>
       </doc>
     def apply[X](haystack: PFAArray[X], needle: PFAArray[X]): Int = haystack.toVector.lastIndexOfSlice(needle.toVector)
     def apply[X](haystack: PFAArray[X], needle: X): Int = haystack.toVector.lastIndexOf(needle)
+    def apply[X](haystack: PFAArray[X], needle: (X => Boolean)): Int = haystack.toVector.lastIndexWhere(needle)
   }
   provide(RIndex)
 
@@ -1391,9 +1398,9 @@ package object array {
   }
   provide(Union)
 
-  ////   intersect (Intersect)
-  object Intersect extends LibFcn {
-    val name = prefix + "intersect"
+  ////   intersection (Intersection)
+  object Intersection extends LibFcn {
+    val name = prefix + "intersection"
     val sig = Sig(List("a" -> P.Array(P.Wildcard("A")), "b" -> P.Array(P.Wildcard("A"))), P.Array(P.Wildcard("A")))
     val doc =
       <doc>
@@ -1401,7 +1408,7 @@ package object array {
       </doc>
     def apply[X](a: PFAArray[X], b: PFAArray[X]): PFAArray[X] = PFAArray.fromVector(a.toVector.toSet intersect b.toVector.toSet toVector)
   }
-  provide(Intersect)
+  provide(Intersection)
 
   ////   diff (Diff)
   object Diff extends LibFcn {
@@ -1470,9 +1477,9 @@ package object array {
   }
   provide(MapApply)
 
-  ////   mapIndex (MapIndex)
-  object MapIndex extends LibFcn {
-    val name = prefix + "mapIndex"
+  ////   mapWithIndex (MapWithIndex)
+  object MapWithIndex extends LibFcn {
+    val name = prefix + "mapWithIndex"
     val sig = Sig(List("a" -> P.Array(P.Wildcard("A")), "fcn" -> P.Fcn(List(P.Int, P.Wildcard("A")), P.Wildcard("B"))), P.Array(P.Wildcard("B")))
     val doc =
       <doc>
@@ -1480,7 +1487,7 @@ package object array {
       </doc>
     def apply[X, Y](a: PFAArray[X], fcn: (Int, X) => Y): PFAArray[Y] = PFAArray.fromVector(a.toVector.zipWithIndex map {case (x, i) => fcn(i, x)})
   }
-  provide(MapIndex)
+  provide(MapWithIndex)
 
   ////   filter (Filter)
   object Filter extends LibFcn {
@@ -1494,9 +1501,21 @@ package object array {
   }
   provide(Filter)
 
-  ////   filtermap (FilterMap)
+  ////   filterWithIndex (FilterWithIndex)
+  object FilterWithIndex extends LibFcn {
+    val name = prefix + "filterWithIndex"
+    val sig = Sig(List("a" -> P.Array(P.Wildcard("A")), "fcn" -> P.Fcn(List(P.Int, P.Wildcard("A")), P.Boolean)), P.Array(P.Wildcard("A")))
+    val doc =
+      <doc>
+        <desc>Apply <p>fcn</p> to each index, element pair of <p>a</p> and return an array of the elements for which <p>fcn</p> returns <c>true</c>.</desc>{orderNotGuaranteed}
+      </doc>
+    def apply[X](a: PFAArray[X], fcn: (Int, X) => Boolean): PFAArray[X] = PFAArray.fromVector(a.toVector.zipWithIndex collect {case (x, i) if fcn(i, x) => x})
+  }
+  provide(FilterWithIndex)
+
+  ////   filterMap (FilterMap)
   object FilterMap extends LibFcn {
-    val name = prefix + "filtermap"
+    val name = prefix + "filterMap"
     val sig = Sig(List("a" -> P.Array(P.Wildcard("A")), "fcn" -> P.Fcn(List(P.Wildcard("A")), P.Union(List(P.Wildcard("B"), P.Null)))), P.Array(P.Wildcard("B")))
     val doc =
       <doc>
@@ -1515,9 +1534,30 @@ package object array {
   }
   provide(FilterMap)
 
-  ////   flatmap (FlatMap)
+  ////   filterMapWithIndex (FilterMapWithIndex)
+  object FilterMapWithIndex extends LibFcn {
+    val name = prefix + "filterMapWithIndex"
+    val sig = Sig(List("a" -> P.Array(P.Wildcard("A")), "fcn" -> P.Fcn(List(P.Int, P.Wildcard("A")), P.Union(List(P.Wildcard("B"), P.Null)))), P.Array(P.Wildcard("B")))
+    val doc =
+      <doc>
+        <desc>Apply <p>fcn</p> to each index, element pair of <p>a</p> and return an array of the results that are not <c>null</c>.</desc>{orderNotGuaranteed}
+      </doc>
+    def apply[X, Y](a: PFAArray[X], fcn: (Int, X) => Y): PFAArray[Y] = {
+      val builder = Vector.newBuilder[Y]
+      builder.sizeHint(a.toVector.size)
+      for ((item, index) <- a.toVector.zipWithIndex)
+        fcn(index, item) match {
+          case null =>
+          case x => builder += x
+        }
+      PFAArray.fromVector(builder.result)
+    }
+  }
+  provide(FilterMapWithIndex)
+
+  ////   flatMap (FlatMap)
   object FlatMap extends LibFcn {
-    val name = prefix + "flatmap"
+    val name = prefix + "flatMap"
     val sig = Sig(List("a" -> P.Array(P.Wildcard("A")), "fcn" -> P.Fcn(List(P.Wildcard("A")), P.Array(P.Wildcard("B")))), P.Array(P.Wildcard("B")))
     val doc =
       <doc>
@@ -1527,6 +1567,19 @@ package object array {
       PFAArray.fromVector(a.toVector.flatMap(x => fcn(x).toVector))
   }
   provide(FlatMap)
+
+  ////   flatMapWithIndex (FlatMapWithIndex)
+  object FlatMapWithIndex extends LibFcn {
+    val name = prefix + "flatMapWithIndex"
+    val sig = Sig(List("a" -> P.Array(P.Wildcard("A")), "fcn" -> P.Fcn(List(P.Int, P.Wildcard("A")), P.Array(P.Wildcard("B")))), P.Array(P.Wildcard("B")))
+    val doc =
+      <doc>
+        <desc>Apply <p>fcn</p> to each index, element pair of <p>a</p> and flatten the resulting arrays into a single array.</desc>{orderNotGuaranteed}
+      </doc>
+    def apply[X, Y](a: PFAArray[X], fcn: (Int, X) => PFAArray[Y]): PFAArray[Y] =
+      PFAArray.fromVector(a.toVector.zipWithIndex flatMap {case (x, i) => fcn(i, x).toVector})
+  }
+  provide(FlatMapWithIndex)
 
   ////   reduce (Reduce)
   object Reduce extends LibFcn {
@@ -1545,7 +1598,7 @@ package object array {
 
   ////   reduceright (ReduceRight)
   object ReduceRight extends LibFcn {
-    val name = prefix + "reduceright"
+    val name = prefix + "reduceRight"
     val sig = Sig(List("a" -> P.Array(P.Wildcard("A")), "fcn" -> P.Fcn(List(P.Wildcard("A"), P.Wildcard("A")), P.Wildcard("A"))), P.Wildcard("A"))
     val doc =
       <doc>
@@ -1575,7 +1628,7 @@ package object array {
 
   ////   foldright (FoldRight)
   object FoldRight extends LibFcn {
-    val name = prefix + "foldright"
+    val name = prefix + "foldRight"
     val sig = Sig(List("a" -> P.Array(P.Wildcard("A")), "zero" -> P.Wildcard("B"), "fcn" -> P.Fcn(List(P.Wildcard("B"), P.Wildcard("A")), P.Wildcard("B"))), P.Wildcard("B"))
     val doc =
       <doc>
@@ -1655,6 +1708,27 @@ package object array {
     def apply[X, Y](a: PFAArray[X], b: PFAArray[Y], fcn: (X, Y) => Boolean): Boolean = (a.toVector corresponds b.toVector)(fcn)
   }
   provide(Corresponds)
+
+  ////   correspondsWithIndex (CorrespondsWithIndex)
+  object CorrespondsWithIndex extends LibFcn {
+    val name = prefix + "correspondsWithIndex"
+    val sig = Sig(List("a" -> P.Array(P.Wildcard("A")), "b" -> P.Array(P.Wildcard("B")), "fcn" -> P.Fcn(List(P.Int, P.Wildcard("A"), P.Wildcard("B")), P.Boolean)), P.Boolean)
+    val doc =
+      <doc>
+        <desc>Return <c>true</c> if <p>fcn</p> is <c>true</c> when applied to all triples of index, element from <p>a</p>, element from <p>b</p> (logical relation).</desc>
+        <detail>The number of <p>fcn</p> calls is not guaranteed.</detail>
+        <detail>If the lengths of <p>a</p> and <p>b</p> are not equal, this function returns <c>false</c>.</detail>
+      </doc>
+    def apply[X, Y](a: PFAArray[X], b: PFAArray[Y], fcn: (Int, X, Y) => Boolean): Boolean = {
+      val avec = a.toVector
+      val bvec = b.toVector
+      if (avec.size != bvec.size)
+        false
+      else
+        (0 until avec.size) forall {i => fcn(i, avec(i), bvec(i))}
+    }
+  }
+  provide(CorrespondsWithIndex)
 
   //////////////////////////////////////////////////////////////////// restructuring
 

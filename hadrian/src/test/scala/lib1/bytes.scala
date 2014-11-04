@@ -32,13 +32,215 @@ import test.scala._
 
 @RunWith(classOf[JUnitRunner])
 class Lib1BytesSuite extends FlatSpec with Matchers {
-//   "basic access" must "get length" taggedAs(Lib1, Lib1Bytes) in {
-//     PFAEngine.fromYaml("""
-// input: bytes
-// output: int
-// action:
-//   - {s.len: [input]}
-// """).head.action("hello") should be (5)
-//   }
+  //////////////////////////////////////////////////////////////////// testers
+
+  "tests" must "check ascii" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: boolean
+action:
+  bytes.isAscii: input
+""").head
+    engine.action(Array[Byte](104, 101, 108, 108, 111)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    engine.action(Array[Byte](104, 101, 108, -127, 111)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+  }
+
+  it must "check latin-1" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: boolean
+action:
+  bytes.isLatin1: input
+""").head
+    engine.action(Array[Byte](104, 101, 108, 108, 111)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+  }
+
+  it must "check utf-8" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: boolean
+action:
+  bytes.isUtf8: input
+""").head
+    engine.action(Array[Byte](104, 101, 108, 108, 111)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+  }
+
+  it must "check utf-16" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: boolean
+action:
+  bytes.isUtf16: input
+""").head
+    engine.action(Array[Byte](-1, -2, 104, 0, 101, 0, 108, 0, 108, 0, 111, 0)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+  }
+
+  it must "check utf-16be" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: boolean
+action:
+  bytes.isUtf16be: input
+""").head
+    engine.action(Array[Byte](0, 104, 0, 101, 0, 108, 0, 108, 0, 111)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+  }
+
+  it must "check utf-16le" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: boolean
+action:
+  bytes.isUtf16le: input
+""").head
+    engine.action(Array[Byte](104, 0, 101, 0, 108, 0, 108, 0, 111, 0)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+  }
+
+  //////////////////////////////////////////////////////////////////// decoders
+
+  "decoders" must "decode ascii" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  bytes.decodeAscii: input
+""").head
+    engine.action(Array[Byte](104, 101, 108, 108, 111)) should be ("hello")
+    evaluating { engine.action(Array[Byte](104, 101, 108, -127, 111)) } should produce [PFARuntimeException]
+  }
+
+  it must "decode latin-1" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  bytes.decodeLatin1: input
+""").head
+    engine.action(Array[Byte](104, 101, 108, 108, 111)) should be ("hello")
+  }
+
+  it must "decode utf-8" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  bytes.decodeUtf8: input
+""").head
+    engine.action(Array[Byte](104, 101, 108, 108, 111)) should be ("hello")
+  }
+
+  it must "decode utf-16" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  bytes.decodeUtf16: input
+""").head
+    engine.action(Array[Byte](-1, -2, 104, 0, 101, 0, 108, 0, 108, 0, 111, 0)) should be ("hello")
+  }
+
+  it must "decode utf-16be" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  bytes.decodeUtf16be: input
+""").head
+    engine.action(Array[Byte](0, 104, 0, 101, 0, 108, 0, 108, 0, 111)) should be ("hello")
+  }
+
+  it must "decode utf-16le" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  bytes.decodeUtf16le: input
+""").head
+    engine.action(Array[Byte](104, 0, 101, 0, 108, 0, 108, 0, 111, 0)) should be ("hello")
+  }
+
+  //////////////////////////////////////////////////////////////////// encoders
+
+  "encoders" must "encode ascii" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: string
+output: bytes
+action:
+  bytes.encodeAscii: input
+""").head
+    engine.action("hello") should be (Array[Byte](104, 101, 108, 108, 111))
+    evaluating { engine.action(new String(Array[Byte](104, 101, 108, -127, 111))) } should produce [PFARuntimeException]
+  }
+
+  it must "encode latin-1" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: string
+output: bytes
+action:
+  bytes.encodeLatin1: input
+""").head
+    engine.action("hello") should be (Array[Byte](104, 101, 108, 108, 111))
+  }
+
+  it must "encode utf-8" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: string
+output: bytes
+action:
+  bytes.encodeUtf8: input
+""").head
+    engine.action("hello") should be (Array[Byte](104, 101, 108, 108, 111))
+  }
+
+  it must "encode utf-16" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: string
+output: bytes
+action:
+  bytes.encodeUtf16: input
+""").head
+    engine.action("hello") should be (Array[Byte](-2, -1, 0, 104, 0, 101, 0, 108, 0, 108, 0, 111))
+  }
+
+  it must "encode utf-16be" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: string
+output: bytes
+action:
+  bytes.encodeUtf16be: input
+""").head
+    engine.action("hello") should be (Array[Byte](0, 104, 0, 101, 0, 108, 0, 108, 0, 111))
+  }
+
+  it must "encode utf-16le" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: string
+output: bytes
+action:
+  bytes.encodeUtf16le: input
+""").head
+    engine.action("hello") should be (Array[Byte](104, 0, 101, 0, 108, 0, 108, 0, 111, 0))
+  }
+
+  //////////////////////////////////////////////////////////////////// base64
+
+  "base64" must "convert to base64" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  bytes.toBase64: input
+""").head
+    engine.action(Array[Byte](0, 127, 64, 38, 22)) should be ("AH9AJhY=")
+  }
+
+  it must "convert from base64" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: string
+output: bytes
+action:
+  bytes.fromBase64: input
+""").head
+    engine.action("AH9AJhY=") should be (Array[Byte](0, 127, 64, 38, 22))
+  }
 
 }

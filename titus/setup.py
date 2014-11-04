@@ -45,10 +45,10 @@ setup(name="titus",
       description="Python implementation of Portable Format for Analytics (PFA): producer, converter, and consumer.",
       test_suite="test",
       install_requires=["python >= 2.7", "python < 3.0", "avro >= 1.7.6"],
-      tests_require=["python >= 2.7", "python < 3.0", "avro >= 1.7.6", "PyYAML >= 3.11", "numpy >= 1.6.2"],
+      tests_require=["python >= 2.7", "python < 3.0", "avro >= 1.7.6", "PyYAML >= 3.11", "numpy >= 1.6.2", "ply >= 3.4"],
       )
 
-### Details of dependencies:
+### details of dependencies:
 # 
 # Only tested in Python 2.7, but it ought to work in Python 2.6 (will be tested someday).
 # Will not work in Python 3.x without 2to3 conversion (also untested).
@@ -58,5 +58,6 @@ setup(name="titus",
 # 
 # PyYAML is an optional dependency; it is only used by the titus.reader.yamlToAst function (and only version 3.11 has been tested).
 # Numpy is an optional dependency; it is only used by the titus.producer modules (and only version 1.7.1 has been tested).
+# PLY is an optional dependency; it is only used by the titus.producer.prettypfa module (and only version 3.4 has been tested).
 # 
 # The test suite attempts to import all optional dependencies.

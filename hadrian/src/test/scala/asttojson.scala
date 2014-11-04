@@ -374,13 +374,13 @@ class AstToJsonSuite extends FlatSpec with Matchers {
 
   it must "literal" taggedAs(AstToJson) in {
     checkAstToJson(Literal(AvroRecord(List(AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())), "SimpleRecord"), """{"one": 1, "two": 2.2, "three": "THREE"}"""),
-    """{"type":{"type":"record","name":"SimpleRecord","doc":"","fields":[{"name":"one","type":"int","doc":""},{"name":"two","type":"double","doc":""},{"name":"three","type":"string","doc":""}]},"value":{"one":1,"two":2.2,"three":"THREE"}}""")
+    """{"type":{"type":"record","fields":[{"name":"one","type":"int"},{"name":"two","type":"double"},{"name":"three","type":"string"}],"name":"SimpleRecord"},"value":{"one":1,"two":2.2,"three":"THREE"}}""")
   }
 
   it must "new record" taggedAs(AstToJson) in {
     checkAstToJson(NewObject(Map("one" -> LiteralInt(1), "two" -> LiteralDouble(2.2), "three" -> LiteralString("THREE")),
       AvroRecord(List(AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())), "SimpleRecord"), new AvroTypeBuilder),
-      """{"new":{"one":1,"two":2.2,"three":{"string":"THREE"}},"type":{"type":"record","name":"SimpleRecord","doc":"","fields":[{"name":"one","type":"int","doc":""},{"name":"two","type":"double","doc":""},{"name":"three","type":"string","doc":""}]}}""")
+      """{"new":{"one":1,"two":2.2,"three":{"string":"THREE"}},"type":{"type":"record","fields":[{"name":"one","type":"int"},{"name":"two","type":"double"},{"name":"three","type":"string"}],"name":"SimpleRecord"}}""")
   }
 
   it must "new array" taggedAs(AstToJson) in {

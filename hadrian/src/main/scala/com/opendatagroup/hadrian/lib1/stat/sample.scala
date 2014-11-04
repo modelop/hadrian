@@ -418,19 +418,18 @@ package object sample {
   ////   updateEWMA (UpdateEWMA)
   object UpdateEWMA extends LibFcn {
     val name = prefix + "updateEWMA"
-    val sig = Sig(List("x" -> P.Double, "alpha" -> P.Double, "state" -> P.Union(List(P.Null, P.WildRecord("A", ListMap("mean" -> P.Double))))), P.Wildcard("A"))
+    val sig = Sig(List("x" -> P.Double, "alpha" -> P.Double, "state" -> P.WildRecord("A", ListMap("mean" -> P.Double))), P.Wildcard("A"))
     val doc =
       <doc>
         <desc>Update the state of an exponentially weighted moving average (EWMA).</desc>
         <param name="x">Sample value.</param>
         <param name="alpha">Weighting factor (usually a constant) between 0 and 1, inclusive.  If <p>alpha</p> is close to 1, recent data are heavily weighted at the expense of old data; if <p>alpha</p> is close to 0, the EWMA approaches a simple mean.</param>
-        <param name="state">Record of the previous <pf>mean</pf> and <pf>variance</pf>, which may be <c>null</c> to start a new sample.
+        <param name="state">Record of the previous <pf>mean</pf> and <pf>variance</pf>.
           <paramField name="mean">The exponentially weighted mean of <p>x</p>, weighted by <p>alpha</p>.</paramField>
           <paramField name="variance">The exponentially weighted variance of <p>x</p>, weighted by <p>alpha</p>.  This field is optional, but if provided, it must be a <c>double</c>.</paramField>
         </param>
-        <ret>If <p>state</p> is <c>null</c>, a new record is created with <pf>mean</pf> = <p>x</p>, <pf>variance</pf> = 0.  If <p>state</p> is a record, then this function returns an updated version of that record.  If the input <p>state</p> has fields other than <pf>mean</pf> and <pf>variance</pf>, they are copied unaltered to the output state.</ret>
+        <ret>Returns a new record with updated <pf>mean</pf> and <pf>variance</pf>.  If the input <p>state</p> has fields other than <pf>mean</pf> and <pf>variance</pf>, they are copied unaltered to the output state.</ret>
         <error>If <p>alpha</p> is less than 0 or greater than 1, an "alpha out of range" error is raised.</error>
-        <error>If <p>state</p> is <c>null</c> and the record type has fields other than <pf>mean</pf> and <pf>variance</pf>, then a "cannot initialize unrecognized fields" error is raised.  Unrecognized fields are only allowed if an initial record is provided.</error>
       </doc>
 
     override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
@@ -445,44 +444,28 @@ package object sample {
         }
       }
 
-      val hasOthers = !(record.fields.map(_.name).toSet subsetOf Set("mean", "variance"))
-
-      JavaCode("%s.MODULE$.apply(%s, %s, %s, thisEngineBase, %s, %s, %s)",
+      JavaCode("%s.MODULE$.apply(%s, %s, %s, %s)",
         this.getClass.getName,
         wrapArg(0, args, paramTypes, true),
         wrapArg(1, args, paramTypes, true),
         wrapArg(2, args, paramTypes, true),
-        javaSchema(retType, false),
-        (if (hasVariance) "true" else "false"),
-        (if (hasOthers) "true" else "false"))
+        (if (hasVariance) "true" else "false"))
     }
 
-    def apply(x: Double, alpha: Double, state: AnyRef, pfaEngineBase: PFAEngineBase, schema: Schema, hasVariance: Boolean, hasOthers: Boolean): PFARecord = {
+    def apply(x: Double, alpha: Double, state: PFARecord, hasVariance: Boolean): PFARecord = {
       if (alpha < 0.0  ||  alpha > 1.0)
         throw new PFARuntimeException("alpha out of range")
 
-      if (state == null) {
-        if (hasOthers)
-          throw new PFARuntimeException("cannot initialize unrecognized fields")
-        if (hasVariance)
-          pfaEngineBase.fromJson("""{"mean": %s, "variance": 0.0}""".format(x), schema).asInstanceOf[PFARecord]
-        else
-          pfaEngineBase.fromJson("""{"mean": %s}""".format(x), schema).asInstanceOf[PFARecord]
-      }
-      else {
-        val record = state.asInstanceOf[PFARecord]
+      val mean = state.get("mean").asInstanceOf[java.lang.Number].doubleValue
+      val diff = x - mean
+      val incr = alpha * diff
 
-        val mean = record.get("mean").asInstanceOf[java.lang.Number].doubleValue
-        val diff = x - mean
-        val incr = alpha * diff
-
-        if (hasVariance) {
-          val variance = record.get("variance").asInstanceOf[java.lang.Number].doubleValue
-          record.multiUpdate(Array("mean", "variance"), Array(mean + incr, (1.0 - alpha) * (variance + diff * incr)))
-        }
-        else
-          record.multiUpdate(Array("mean"), Array(mean + incr))
+      if (hasVariance) {
+        val variance = state.get("variance").asInstanceOf[java.lang.Number].doubleValue
+        state.multiUpdate(Array("mean", "variance"), Array(mean + incr, (1.0 - alpha) * (variance + diff * incr)))
       }
+      else
+        state.multiUpdate(Array("mean"), Array(mean + incr))
     }
   }
   provide(UpdateEWMA)
@@ -527,7 +510,7 @@ package object sample {
   ////   updateHoltWintersPeriodic (UpdateHoltWintersPeriodic)
   object UpdateHoltWintersPeriodic extends LibFcn {
     val name = prefix + "updateHoltWintersPeriodic"
-    val sig = Sig(List("x" -> P.Double, "alpha" -> P.Double, "beta" -> P.Double, "gamma" -> P.Double, "state" -> P.Union(List(P.Null, P.WildRecord("A", ListMap("level" -> P.Double, "trend" -> P.Double, "cycle" -> P.Array(P.Double), "multiplicative" -> P.Boolean))))), P.Wildcard("A"))
+    val sig = Sig(List("x" -> P.Double, "alpha" -> P.Double, "beta" -> P.Double, "gamma" -> P.Double, "state" -> P.WildRecord("A", ListMap("level" -> P.Double, "trend" -> P.Double, "cycle" -> P.Array(P.Double), "multiplicative" -> P.Boolean))), P.Wildcard("A"))
     val doc =
       <doc>
         <desc>Update the state of a time series analysis with an exponentially weighted periodic-plus-linear fit.</desc>
@@ -722,4 +705,395 @@ package object sample {
   }
   provide(ForecastHoltWinters)
 
+  // ////   fillHistogram (FillHistogram)
+  // object FillHistogram extends LibFcn {
+  //   val name = prefix + "fillHistogram"
+  //   val sig = Sigs(List(Sig(List("x" -> P.Double, "w" -> P.Double, "histogram" -> P.WildRecord("A", ListMap("numbins" -> P.Int, "low" -> P.Double, "high" -> P.Double, "values" -> P.Array(P.Double)))), P.Wildcard("A")),
+  //                       Sig(List("x" -> P.Double, "w" -> P.Double, "histogram" -> P.WildRecord("A", ListMap("low" -> P.Double, "binsize" -> P.Double, "values" -> P.Array(P.Double)))), P.Wildcard("A")),
+  //                       Sig(List("x" -> P.Double, "w" -> P.Double, "histogram" -> P.WildRecord("A", ListMap("ranges" -> P.Array(P.Array(P.Double)), "values" -> P.Array(P.Double)))), P.Wildcard("A"))))
+  //   val doc = <doc>
+  //     <desc>Update a histogram by filling it with one value.</desc>
+  //     <param name="x">Sample value.</param>
+  //     <param name="w">Sample weight; set to 1 for no weights.</param>
+  //     <param name="histogram">The histogram prior to filling.  It must have <pf>numbins</pf>, <pf>low</pf>, <pf>high</pf>, and <pf>values</pf> (fixed bins) xor it must have <pf>low</pf>, <pf>binsize</pf>, and <pf>values</pf> (number of equal-sized bins grows), xor it must have <pf>ranges</pf> and <pf>values</pf> (arbitrary interval bins).  Only one set of required fields is allowed (semantic error otherwise), and the rest of the fields are optional.
+  //       <paramField name="numbins">The fixed number of bins in the histogram.</paramField>
+  //       <paramField name="low">The low edge of the histogram range (inclusive).</paramField>
+  //       <paramField name="high">The high edge of the histogram range (exclusive).</paramField>
+  //       <paramField name="binsize">The size of a bin for a histogram whose number of bins and right edge grows with the data.</paramField>
+  //       <paramField name="ranges">Pairs of values describing arbitrary interval bins.  The first number of each pair is the inclusive left edge and the second number is the exclusive right edge.</paramField>
+  //       <paramField name="values">Histogram contents, which are updated by this function.</paramField>
+  //       <paramField name="underflow">If present, this double-valued field counts <p>x</p> values that are less than <pf>low</pf> or not contained in any <pf>ranges</pf>.</paramField>
+  //       <paramField name="overflow">If present, this double-valued field counts <p>x</p> values that are greater than <pf>high</pf>.</paramField>
+  //       <paramField name="nanflow">If present, this double-valued field counts <p>x</p> values that are <c>nan</c>.  <c>nan</c> values would never enter <pf>values</pf>, <pf>underflow</pf>, or <pf>overflow</pf>.</paramField>
+  //       <paramField anme="infflow">If present, this double-valued field counts <p>x</p> values that are infinite.  Infinite values would only enter <pf>underflow</pf> or <pf>overflow</pf> if <pf>infflow</pf> is not present, so that they are not double-counted.</paramField>
+  //     </param>
+  //     <ret>Returns an updated version of <p>histogram</p>: all fields are unchanged except for <pf>values</pf>, <pf>underflow</pf>, <pf>overflow</pf>, <pf>nanflow</pf>, and <pf>infflow</pf>.</ret>
+  //     <detail>If the histogram is growable (described by <pf>low</pf> and <pf>binsize</pf>) and <p>x</p> minus <pf>low</pf> is greater than or equal to <pf>binsize</pf> times the length of <pf>values</pf>, the <pf>values</pf> will be padded with zeros to reach it.</detail>
+  //     <detail>If the histogram is growable (described by <pf>low</pf> and <pf>binsize</pf>), only finite values can extend the size of the histogram: infinite values are entered into <pf>overflow</pf> or <pf>infflow</pf>, depending on whether <pf>infflow</pf> is present.</detail>
+  //     <detail>If the histogram is described by <pf>ranges</pf> and an element of <pf>ranges</pf> contains two equal values, then <p>x</p> is considered in the interval if it is exactly equal to the value.</detail>
+  //     <detail>If the histogram is described by <pf>ranges</pf> and <p>x</p> falls within multiple, overlapping intervals, then all matching counters are updated (values can be double-counted).</detail>
+  //     <error>If the length of <pf>values</pf> is not equal to <pf>numbins</pf> or the length of <pf>ranges</pf>, then a "wrong histogram size" error is raised.</error>
+  //     <error>If <pf>low</pf> is greater than or equal to <pf>high</pf>, then a "bad histogram range" error is raised.</error>
+  //     <error>If <pf>numbins</pf> is less than 1 or <pf>binsize</pf> is equal to 0, then a "bad histogram scale" error is raised.</error>
+  //     <error>If <pf>ranges</pf> contains an array of doubles with length not equal to 2 or if the first element is greater than the second element, then a "bad histogram ranges" error is raised.</error>
+  //   </doc>
+
+  //   override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
+  //     val record = retType.asInstanceOf[AvroRecord]
+
+  //     def has(name: String, avroType: AvroType): Boolean =
+  //       record.fieldOption(name) match {
+  //         case None => false
+  //         case Some(field) => {
+  //           if (!field.avroType.accepts(avroType))
+  //             throw new PFASemanticException(prefix + "fillHistogram is being given a record type in which the \"%s\" field is not %s: %s".format(name, avroType.toString, field.avroType.toString), None)
+  //           true
+  //         }
+  //       }
+
+  //     val method0 = has("numbins", AvroInt())  &&  has("low", AvroDouble())  &&  has("high", AvroDouble())
+  //     val method1 = has("low", AvroDouble())  &&  has("binsize", AvroDouble())
+  //     val method2 = has("ranges", AvroArray(AvroArray(AvroDouble())))
+
+  //     val method =
+  //       if      ( method0  &&  !method1  &&  !method2) 0
+  //       else if (!method0  &&   method1  &&  !method2) 1
+  //       else if (!method0  &&  !method1  &&   method2) 2
+  //       else throw new PFASemanticException(prefix + "fillHistogram must have \"numbins\", \"low\", \"high\" xor it must have \"low\", \"binsize\" xor it must have \"ranges\", but not any other combination of these fields.", None)
+
+  //     val hasUnderflow = has("underflow", AvroDouble())
+  //     val hasOverflow = has("overflow", AvroDouble())
+  //     val hasNanflow = has("nanflow", AvroDouble())
+  //     val hasInfflow = has("infflow", AvroDouble())
+
+  //     JavaCode("%s.MODULE$.apply(%s, %s, %s, %s, %s, %s, %s, %s)",
+  //       this.getClass.getName,
+  //       wrapArg(0, args, paramTypes, true),
+  //       wrapArg(1, args, paramTypes, true),
+  //       wrapArg(2, args, paramTypes, true),
+  //       method.toString,
+  //       hasUnderflow.toString,
+  //       hasOverflow.toString,
+  //       hasNanflow.toString,
+  //       hasInfflow.toString
+  //     )
+  //   }
+
+  //   def updateHistogram(w: Double, histogram: PFARecord, newValues: Vector[Double], hasUnderflow: Boolean, hasOverflow: Boolean, hasNanflow: Boolean, hasInfflow: Boolean, underflow: Boolean, overflow: Boolean, nanflow: Boolean, infflow: Boolean): PFARecord = {
+  //     var fieldNames = List("values")
+  //     var fieldValues: List[Any] = List(newValues)
+
+  //     if (hasUnderflow) {
+  //       fieldNames = "underflow" :: fieldNames
+  //       fieldValues = histogram.get("underflow").asInstanceOf[java.lang.Number].doubleValue + (if (underflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     if (hasOverflow) {
+  //       fieldNames = "overflow" :: fieldNames
+  //       fieldValues = histogram.get("overflow").asInstanceOf[java.lang.Number].doubleValue + (if (overflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     if (hasNanflow) {
+  //       fieldNames = "nanflow" :: fieldNames
+  //       fieldValues = histogram.get("nanflow").asInstanceOf[java.lang.Number].doubleValue + (if (nanflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     if (hasInfflow) {
+  //       fieldNames = "infflow" :: fieldNames
+  //       fieldValues = histogram.get("infflow").asInstanceOf[java.lang.Number].doubleValue + (if (infflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     histogram.multiUpdate(fieldNames.toArray, fieldValues.toArray)
+  //   }
+
+  //   def apply(x: Double, w: Double, histogram: PFARecord, method: Int, hasUnderflow: Boolean, hasOverflow: Boolean, hasNanflow: Boolean, hasInfflow: Boolean): PFARecord = {
+  //     val values = histogram.get("values").asInstanceOf[PFAArray[Double]].toVector
+  //     method match {
+  //       case 0 =>
+  //         val numbins = histogram.get("numbins").asInstanceOf[java.lang.Number].intValue
+  //         val low = histogram.get("low").asInstanceOf[java.lang.Number].doubleValue
+  //         val high = histogram.get("high").asInstanceOf[java.lang.Number].doubleValue
+
+  //         if (values.size != numbins)
+  //           throw new PFARuntimeException("wrong histogram size")
+  //         if (low >= high)
+  //           throw new PFARuntimeException("bad histogram range")
+  //         if (numbins < 1)
+  //           throw new PFARuntimeException("bad histogram scale")
+
+  //         val (underflow, overflow, nanflow, infflow) =
+  //           if (hasInfflow  &&  java.lang.Double.isInfinite(x))
+  //             (false, false, false, true)
+  //           else if (java.lang.Double.isNaN(x))
+  //             (false, false, true, false)
+  //           else if (x >= high)
+  //             (false, true, false, false)
+  //           else if (x < low)
+  //             (true, false, false, false)
+  //           else
+  //             (false, false, false, false)
+
+  //         val newValues =
+  //           if (!underflow  &&  !overflow  &&  !nanflow  &&  !infflow) {
+  //             val index = Math.floor((x - low) / (high - low) * numbins).toInt
+  //             values.updated(index, values(index) + w)
+  //           }
+  //           else
+  //             values
+
+  //         updateHistogram(w, histogram, newValues, hasUnderflow, hasOverflow, hasNanflow, hasInfflow, underflow, overflow, nanflow, infflow)
+
+  //       case 1 =>
+  //         val low = histogram.get("low").asInstanceOf[java.lang.Number].doubleValue
+  //         val binsize = histogram.get("binsize").asInstanceOf[java.lang.Number].doubleValue
+
+  //         if (binsize == 0.0)
+  //           throw new PFARuntimeException("bad histogram scale")
+
+  //         val (underflow, overflow, nanflow, infflow) =
+  //           if (hasInfflow  &&  java.lang.Double.isInfinite(x))
+  //             (false, false, false, true)
+  //           else if (java.lang.Double.isNaN(x))
+  //             (false, false, true, false)
+  //           else if (java.lang.Double.isInfinite(x)  &&  x > 0.0)
+  //             (false, true, false, false)
+  //           else if (x < low)
+  //             (true, false, false, false)
+  //           else
+  //             (false, false, false, false)
+
+  //         val newValues =
+  //           if (!underflow  &&  !overflow  &&  !nanflow  &&  !infflow) {
+  //             val currentHigh = low + binsize * values.size
+  //             val index = Math.floor((x - low) / (currentHigh - low) * values.size).toInt
+  //             if (index < values.size)
+  //               values.updated(index, values(index) + w)
+  //             else
+  //               values ++ Vector.fill(index - values.size)(0.0) :+ w
+  //           }
+  //           else
+  //             values
+
+  //         updateHistogram(w, histogram, newValues, hasUnderflow, hasOverflow, hasNanflow, hasInfflow, underflow, overflow, nanflow, infflow)
+
+  //       case 2 =>
+  //         val ranges = histogram.get("ranges").asInstanceOf[PFAArray[PFAArray[Double]]].toVector map {_.toVector}
+
+  //         if (values.size != ranges.size)
+  //           throw new PFARuntimeException("wrong histogram size")
+
+  //         if (ranges exists {case x: Vector[Double] => x.size != 2  ||  x.head > x.last})
+  //           throw new PFARuntimeException("bad histogram ranges")
+
+  //         val isInfinite = java.lang.Double.isInfinite(x)
+  //         val isNan = java.lang.Double.isNaN(x)
+
+  //         var newValues = values
+  //         var hitOne = false
+
+  //         if (!isInfinite  &&  !isNan)
+  //           for ((range, index) <- ranges.zipWithIndex) {
+  //             val low = range.head
+  //             val high = range.last
+
+  //             if (low == high  &&  x == low) {
+  //               newValues = newValues.updated(index, newValues(index) + w)
+  //               hitOne = true
+  //             }
+  //             else if (x >= low  &&  x < high) {
+  //               newValues = newValues.updated(index, newValues(index) + w)
+  //               hitOne = true
+  //             }
+  //           }
+
+  //         val (underflow, overflow, nanflow, infflow) =
+  //           if (hasInfflow  &&  isInfinite)
+  //             (false, false, false, true)
+  //           else if (isNan)
+  //             (false, false, true, false)
+  //           else if (!hitOne)
+  //             (true, false, false, false)
+  //           else
+  //             (false, false, false, false)
+
+  //         updateHistogram(w, histogram, newValues, hasUnderflow, hasOverflow, hasNanflow, hasInfflow, underflow, overflow, nanflow, infflow)
+  //     }
+  //   }
+  // }
+  // provide(FillHistogram)
+
+  // ////   fillHistogram2d (FillHistogram2d)
+  // object FillHistogram2d extends LibFcn {
+  //   val name = prefix + "fillHistogram2d"
+  //   val sig = Sig(List("x" -> P.Double, "y" -> P.Double, "w" -> P.Double, "histogram" -> P.WildRecord("A", ListMap("xnumbins" -> P.Int, "xlow" -> P.Double, "xhigh" -> P.Double, "ynumbins" -> P.Int, "ylow" -> P.Double, "yhigh" -> P.Double, "values" -> P.Array(P.Array(P.Double))))), P.Wildcard("A"))
+  //   val doc = <doc>
+  //     <desc>Update a two-dimensional histogram by filling it with one value.</desc>
+  //     <param name="x">Sample x value.</param>
+  //     <param name="y">Sample y value.</param>
+  //     <param name="w">Sample weight; set to 1 for no weights.</param>
+  //     <param name="histogram">The histogram prior to filling.
+  //       <paramField name="xnumbins">The number of bins in the x dimension.</paramField>
+  //       <paramField name="xlow">The low edge of the histogram range in the x dimension (inclusive).</paramField>
+  //       <paramField name="xhigh">The high edge of the histogram range in the x dimension (exclusive).</paramField>
+  //       <paramField name="ynumbins">The number of bins in the y dimension.</paramField>
+  //       <paramField name="ylow">The low edge of the histogram range in the y dimension (inclusive).</paramField>
+  //       <paramField name="yhigh">The high edge of the histogram range in the y dimension (exclusive).</paramField>
+  //       <paramField name="values">Histogram contents, which are updated by this function.  The outer array iterates over <p>x</p> and the inner array iterates over <p>y</p>.</paramField>
+  //       <paramField name="underunderflow">If present, this double-valued field counts instances in which <p>x</p> is less than <pf>xlow</pf> and <p>y</p> is less than <pf>ylow</pf>.</paramField>
+  //       <paramField name="undermidflow">If present, this double-valued field counts instances in which <p>x</p> is less than <pf>xlow</pf> and <p>y</p> between <pf>ylow</pf> (inclusive) and <pf>yhigh</pf> (exclusive).</paramField>
+  //       <paramField name="underoverflow">If present, this double-valued field counts instances in which <p>x</p> is less than <pf>xlow</pf> and <p>y</p> is greater than or equal to <pf>yhigh</pf>.</paramField>
+  //       <paramField name="midunderflow">If present, this double-valued field counts instances in which <p>x</p> is between <pf>xlow</pf> (inclusive) and <pf>xhigh</pf> (exclusive) and <p>y</p> is less than <pf>ylow</pf>.</paramField>
+  //       <paramField name="midoverflow">If present, this double-valued field counts instances in which <p>x</p> is between <pf>xlow</pf> (inclusive) and <pf>xhigh</pf> (exclusive) and <p>y</p> is greater than or equal to <pf>yhigh</pf>.</paramField>
+  //       <paramField name="overunderflow">If present, this double-valued field counts instances in which <p>x</p> is greater than or equal to <pf>xhigh</pf> and <p>y</p> is less than <pf>ylow</pf>.</paramField>
+  //       <paramField name="overmidflow">If present, this double-valued field counts instances in which <p>x</p> is greater than or equal to <pf>xhigh</pf> and <p>y</p> between <pf>ylow</pf> (inclusive) and <pf>yhigh</pf> (exclusive).</paramField>
+  //       <paramField name="overoverflow">If present, this double-valued field counts instances in which <p>x</p> is greater than or equal to <pf>xhigh</pf> and <p>y</p> is greater than or equal to <pf>yhigh</pf>.</paramField>
+  //       <paramField name="nanflow">If present, this double-valued field counts instances in which <p>x</p> or <p>y</p> is <c>nan</c>.  <c>nan</c> values would never enter any other counter.</paramField>
+  //       <paramField name="infflow">If present, this double-valued field counts instances in which <p>x</p> or <p>y</p> is infinite.  Infinite values would only enter the other under/mid/overflow counters if <pf>infflow</pf> were not present, so that they are not double-counted.</paramField>
+  //     </param>
+  //     <ret>Returns an updated version of <p>histogram</p>: all fields are unchanged except for <pf>values</pf> and the under/mid/over/nan/infflow counters.</ret>
+  //     <detail>If <p>x</p> is infinite and <p>y</p> is <c>nan</c> or <p>x</p> is <c>nan</c> and <p>y</p> is infinite, the entry is counted as <c>nan</c>, rather than infinite.</detail>
+  //     <error>If the length of <pf>values</pf> is not equal to <pf>xnumbins</pf> or the length of any element of <pf>values</pf> is not equal to <pf>ynumbins</pf>, then a "wrong histogram size" error is raised.</error>
+  //     <error>If <pf>xlow</pf> is greater than or equal to <pf>xhigh</pf> or if <pf>ylow</pf> is greater than or equal to <pf>yhigh</pf>, then a "bad histogram range" error is raised.</error>
+  //   </doc>
+
+  //   override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
+  //     val record = retType.asInstanceOf[AvroRecord]
+
+  //     def has(name: String): Boolean =
+  //       record.fieldOption(name) match {
+  //         case None => false
+  //         case Some(field) => {
+  //           if (!field.avroType.accepts(AvroDouble()))
+  //             throw new PFASemanticException(prefix + "fillHistogram2d is being given a record type in which the \"%s\" field is not a double: %s".format(name, field.avroType.toString), None)
+  //           true
+  //         }
+  //       }
+
+  //     JavaCode("%s.MODULE$.apply(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+  //       this.getClass.getName,
+  //       wrapArg(0, args, paramTypes, true),
+  //       wrapArg(1, args, paramTypes, true),
+  //       wrapArg(2, args, paramTypes, true),
+  //       wrapArg(3, args, paramTypes, true),
+  //       has("underunderflow").toString,
+  //       has("undermidflow").toString,
+  //       has("underoverflow").toString,
+  //       has("midunderflow").toString,
+  //       has("midoverflow").toString,
+  //       has("overunderflow").toString,
+  //       has("overmidflow").toString,
+  //       has("overoverflow").toString,
+  //       has("nanflow").toString,
+  //       has("infflow").toString)
+  //   }
+
+  //   def apply(x: Double, y: Double, w: Double, histogram: PFARecord,
+  //     hasUnderunderflow: Boolean, hasUndermidflow: Boolean, hasUnderoverflow: Boolean,
+  //     hasMidunderflow: Boolean,                             hasMidoverflow: Boolean,
+  //     hasOverunderflow: Boolean,  hasOvermidflow: Boolean,  hasOveroverflow: Boolean,
+  //     hasNanflow: Boolean, hasInfflow: Boolean): PFARecord = {
+
+  //     val values = histogram.get("values").asInstanceOf[PFAArray[PFAArray[Double]]].toVector map {_.toVector}
+  //     val xnumbins = histogram.get("xnumbins").asInstanceOf[java.lang.Number].intValue
+  //     val xlow = histogram.get("xlow").asInstanceOf[java.lang.Number].doubleValue
+  //     val xhigh = histogram.get("xhigh").asInstanceOf[java.lang.Number].doubleValue
+  //     val ynumbins = histogram.get("ynumbins").asInstanceOf[java.lang.Number].intValue
+  //     val ylow = histogram.get("ylow").asInstanceOf[java.lang.Number].doubleValue
+  //     val yhigh = histogram.get("yhigh").asInstanceOf[java.lang.Number].doubleValue
+
+  //     if (values.size != xnumbins  ||  values.exists(_.size != ynumbins))
+  //       throw new PFARuntimeException("wrong histogram size")
+  //     if (xlow >= xhigh  ||  ylow >= yhigh)
+  //       throw new PFARuntimeException("bad histogram range")
+
+  //     val (underunderflow, undermidflow, underoverflow, midunderflow, midoverflow, overunderflow, overmidflow, overoverflow, nanflow, infflow) =
+  //       if (java.lang.Double.isNaN(x)  ||  java.lang.Double.isNaN(y))  // do nan check first: nan wins over inf
+  //         (false, false, false, false, false, false, false, false, true, false)
+  //       else if (hasInfflow  &&  (java.lang.Double.isInfinite(x)  ||  java.lang.Double.isInfinite(y)))
+  //         (false, false, false, false, false, false, false, false, false, true)
+  //       else if (x >= xhigh  &&  y >= yhigh)
+  //         (false, false, false, false, false, false, false, true, false, false)
+  //       else if (x >= xhigh  &&  y >= ylow  &&  y < yhigh)
+  //         (false, false, false, false, false, false, true, false, false, false)
+  //       else if (x >= xhigh  &&  y < ylow)
+  //         (false, false, false, false, false, true, false, false, false, false)
+  //       else if (x >= xlow  &&  x < xhigh  &&  y >= yhigh)
+  //         (false, false, false, false, true, false, false, false, false, false)
+  //       else if (x >= xlow  &&  x < xhigh  &&  y < ylow)
+  //         (false, false, false, true, false, false, false, false, false, false)
+  //       else if (x < xlow  &&  y >= yhigh)
+  //         (false, false, true, false, false, false, false, false, false, false)
+  //       else if (x < xlow  &&  y >= ylow  &&  y < yhigh)
+  //         (false, true, false, false, false, false, false, false, false, false)
+  //       else if (x < xlow  &&  y < ylow)
+  //         (true, false, false, false, false, false, false, false, false, false)
+  //       else
+  //         (false, false, false, false, false, false, false, false, false, false)
+
+  //     val newValues =
+  //       if (!underunderflow  &&  !undermidflow  &&  !underoverflow  &&  !midunderflow  &&  !midoverflow  &&  !overunderflow  &&  !overmidflow  &&  !overoverflow  &&  !nanflow  &&  !infflow) {
+  //         val xindex = Math.floor((x - xlow) / (xhigh - xlow) * xnumbins).toInt
+  //         val yindex = Math.floor((y - ylow) / (yhigh - ylow) * ynumbins).toInt
+  //         values.updated(xindex, values(xindex).updated(yindex, values(xindex)(yindex) + w))
+  //       }
+  //       else
+  //         values
+
+  //     var fieldNames = List("values")
+  //     var fieldValues: List[Any] = List(newValues)
+
+  //     if (hasUnderunderflow) {
+  //       fieldNames = "underunderflow" :: fieldNames
+  //       fieldValues = histogram.get("underunderflow").asInstanceOf[java.lang.Number].doubleValue + (if (underunderflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     if (hasUndermidflow) {
+  //       fieldNames = "undermidflow" :: fieldNames
+  //       fieldValues = histogram.get("undermidflow").asInstanceOf[java.lang.Number].doubleValue + (if (undermidflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     if (hasUnderoverflow) {
+  //       fieldNames = "underoverflow" :: fieldNames
+  //       fieldValues = histogram.get("underoverflow").asInstanceOf[java.lang.Number].doubleValue + (if (underoverflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     if (hasMidunderflow) {
+  //       fieldNames = "midunderflow" :: fieldNames
+  //       fieldValues = histogram.get("midunderflow").asInstanceOf[java.lang.Number].doubleValue + (if (midunderflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     if (hasMidoverflow) {
+  //       fieldNames = "midoverflow" :: fieldNames
+  //       fieldValues = histogram.get("midoverflow").asInstanceOf[java.lang.Number].doubleValue + (if (midoverflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     if (hasOverunderflow) {
+  //       fieldNames = "overunderflow" :: fieldNames
+  //       fieldValues = histogram.get("overunderflow").asInstanceOf[java.lang.Number].doubleValue + (if (overunderflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     if (hasOvermidflow) {
+  //       fieldNames = "overmidflow" :: fieldNames
+  //       fieldValues = histogram.get("overmidflow").asInstanceOf[java.lang.Number].doubleValue + (if (overmidflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     if (hasOveroverflow) {
+  //       fieldNames = "overoverflow" :: fieldNames
+  //       fieldValues = histogram.get("overoverflow").asInstanceOf[java.lang.Number].doubleValue + (if (overoverflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     if (hasNanflow) {
+  //       fieldNames = "nanflow" :: fieldNames
+  //       fieldValues = histogram.get("nanflow").asInstanceOf[java.lang.Number].doubleValue + (if (nanflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     if (hasInfflow) {
+  //       fieldNames = "infflow" :: fieldNames
+  //       fieldValues = histogram.get("infflow").asInstanceOf[java.lang.Number].doubleValue + (if (infflow) w else 0.0) :: fieldValues
+  //     }
+
+  //     histogram.multiUpdate(fieldNames.toArray, fieldValues.toArray)
+  //   }
+  // }
+  // provide(FillHistogram2d)
 }

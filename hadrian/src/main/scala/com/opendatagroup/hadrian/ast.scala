@@ -220,7 +220,6 @@ package ast {
       lib1.metric.provides ++
       lib1.parse.provides ++
       lib1.prob.dist.provides ++
-      lib1.record.provides ++
       lib1.string.provides ++
       lib1.stat.change.provides ++
       lib1.stat.sample.provides ++
@@ -263,9 +262,11 @@ package ast {
 
     def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult)
     def walk(task: Task): TaskResult = walk(task, SymbolTable.blank, FunctionTable.blank, new EngineOptions(Map[String, JsonNode](), Map[String, JsonNode]()))._2
-    def jsonNode: JsonNode
 
-    override def toString(): String = convertToJson(jsonNode)
+    def toJson(lineNumbers: Boolean = true) = convertToJson(jsonNode(lineNumbers, mutable.Set[String]()))
+    def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode
+
+    override def toString(): String = toJson(false)
   }
 
   object Method extends Enumeration {
@@ -296,12 +297,13 @@ package ast {
     def output: AvroType = outputPlaceholder.avroType
 
     override def equals(other: Any): Boolean = other match {
-      case that: EngineConfig =>
+      case that: EngineConfig => {
         this.name == that.name  &&  this.method == that.method  &&  this.inputPlaceholder.toString == that.inputPlaceholder.toString  &&  this.outputPlaceholder.toString == that.outputPlaceholder.toString  &&
         this.begin == that.begin  &&  this.action == that.action  &&  this.end == that.end  &&  this.fcns == that.fcns  &&
         this.cells == that.cells  &&  this.pools == that.pools  &&  this.randseed == that.randseed  &&
         this.doc == that.doc  &&  this.version == that.version  &&  this.metadata == that.metadata  &&
         this.options == that.options  // but not pos
+      }
       case _ => false
     }
     override def hashCode(): Int = ScalaRunTime._hashCode((name, method, inputPlaceholder.toString, outputPlaceholder.toString, begin, action, end, fcns, cells, pools, randseed, doc, version, metadata, options))
@@ -418,7 +420,7 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
       out.put("name", name)
@@ -429,32 +431,32 @@ package ast {
         case Method.FOLD => "fold"
       })
 
-      out.put("input", convertFromJson(inputPlaceholder.toString))
-      out.put("output", convertFromJson(outputPlaceholder.toString))
+      out.put("input", inputPlaceholder.jsonNode(memo))
+      out.put("output", outputPlaceholder.jsonNode(memo))
 
       if (!begin.isEmpty) {
         val jsonBegin = factory.arrayNode
         for (expr <- begin)
-          jsonBegin.add(expr.jsonNode)
+          jsonBegin.add(expr.jsonNode(lineNumbers, memo))
         out.put("begin", jsonBegin)
       }
 
       val jsonAction = factory.arrayNode
       for (expr <- action)
-        jsonAction.add(expr.jsonNode)
+        jsonAction.add(expr.jsonNode(lineNumbers, memo))
       out.put("action", jsonAction)
 
       if (!end.isEmpty) {
         val jsonEnd = factory.arrayNode
         for (expr <- end)
-          jsonEnd.add(expr.jsonNode)
+          jsonEnd.add(expr.jsonNode(lineNumbers, memo))
         out.put("end", jsonEnd)
       }
 
       if (!fcns.isEmpty) {
         val jsonFcns = factory.objectNode
         for ((n, fcnDef) <- fcns)
-          jsonFcns.put(n, fcnDef.jsonNode)
+          jsonFcns.put(n, fcnDef.jsonNode(lineNumbers, memo))
         out.put("fcns", jsonFcns)
       }
 
@@ -463,14 +465,14 @@ package ast {
       if (!cells.isEmpty) {
         val jsonCells = factory.objectNode
         for ((name, cell) <- cells)
-          jsonCells.put(name, cell.jsonNode)
+          jsonCells.put(name, cell.jsonNode(lineNumbers, memo))
         out.put("cells", jsonCells)
       }
 
       if (!pools.isEmpty) {
         val jsonPools = factory.objectNode
         for ((name, pool) <- pools)
-          jsonPools.put(name, pool.jsonNode)
+          jsonPools.put(name, pool.jsonNode(lineNumbers, memo))
         out.put("pools", jsonPools)
       }
 
@@ -536,10 +538,12 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
-      out.put("type", convertFromJson(avroPlaceholder.toString))
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
+      out.put("type", avroPlaceholder.jsonNode(memo))
       out.put("init", convertFromJson(init))
       out.put("shared", shared)
       out.put("rollback", rollback)
@@ -571,10 +575,12 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
-      out.put("type", convertFromJson(avroPlaceholder.toString))
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
+      out.put("type", avroPlaceholder.jsonNode(memo))
 
       val jsonInits = factory.objectNode
       for ((name, value) <- init)
@@ -681,23 +687,24 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
       val jsonParams = factory.arrayNode
       for ((n, p) <- paramsPlaceholder) {
         val pair = factory.objectNode
-        pair.put(n, convertFromJson(p.toString))
+        pair.put(n, p.jsonNode(memo))
         jsonParams.add(pair)
       }
       out.put("params", jsonParams)
 
-      out.put("ret", convertFromJson(ret.toString))
+      out.put("ret", ret.jsonNode(memo))
 
       val jsonBody = factory.arrayNode
       for (expr <- body)
-        jsonBody.add(expr.jsonNode)
+        jsonBody.add(expr.jsonNode(lineNumbers, memo))
       out.put("do", jsonBody)
 
       out
@@ -735,9 +742,11 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
       out.put("fcn", name)
       out
     }
@@ -805,13 +814,15 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
       out.put("fcn", name)
       val jsonFill = factory.objectNode
       for ((name, arg) <- fill)
-        jsonFill.put(name, arg.jsonNode)
+        jsonFill.put(name, arg.jsonNode(lineNumbers, memo))
       out.put("fill", jsonFill)
       out
     }
@@ -884,14 +895,16 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
-      out.put("call", name.jsonNode)
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
+      out.put("call", name.jsonNode(lineNumbers, memo))
 
       val jsonArgs = factory.arrayNode
       for (expr <- args)
-        jsonArgs.add(expr.jsonNode)
+        jsonArgs.add(expr.jsonNode(lineNumbers, memo))
       out.put("args", jsonArgs)
 
       out
@@ -951,13 +964,14 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
       val jsonArgs = factory.arrayNode
       for (expr <- args)
-        jsonArgs.add(expr.jsonNode)
+        jsonArgs.add(expr.jsonNode(lineNumbers, memo))
       out.put(name, jsonArgs)
 
       out
@@ -981,7 +995,7 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = new TextNode(name)
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = new TextNode(name)
   }
   object Ref {
     case class Context(retType: AvroType, calls: Set[String], name: String) extends ExpressionContext
@@ -999,7 +1013,7 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = NullNode.getInstance
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = NullNode.getInstance
   }
   object LiteralNull {
     val desc = "(null)"
@@ -1018,7 +1032,7 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = if (value) BooleanNode.getTrue else BooleanNode.getFalse
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = if (value) BooleanNode.getTrue else BooleanNode.getFalse
   }
   object LiteralBoolean {
     val desc = "(boolean)"
@@ -1037,7 +1051,7 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = new IntNode(value)
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = new IntNode(value)
   }
   object LiteralInt {
     val desc = "(int)"
@@ -1056,7 +1070,7 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode =
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode =
       if (java.lang.Integer.MIN_VALUE <= value  &&  value <= java.lang.Integer.MAX_VALUE) {
         val factory = JsonNodeFactory.instance
         val out = factory.objectNode
@@ -1083,7 +1097,7 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
       out.put("float", new DoubleNode(value))
@@ -1107,7 +1121,7 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = new DoubleNode(value)
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = new DoubleNode(value)
   }
   object LiteralDouble {
     val desc = "(double)"
@@ -1126,7 +1140,7 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
       out.put("string", new TextNode(value))
@@ -1150,9 +1164,11 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
       out.put("base64", new BinaryNode(value))
       out
     }
@@ -1176,10 +1192,12 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
-      out.put("type", convertFromJson(avroType.toString))
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
+      out.put("type", avroType.jsonNode(memo))
       out.put("value", convertFromJson(value))
       out
     }
@@ -1241,16 +1259,17 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
       val jsonFields = factory.objectNode
       for ((name, expr) <- fields)
-        jsonFields.put(name, expr.jsonNode)
+        jsonFields.put(name, expr.jsonNode(lineNumbers, memo))
       out.put("new", jsonFields)
 
-      out.put("type", convertFromJson(avroPlaceholder.toString))
+      out.put("type", avroPlaceholder.jsonNode(memo))
       out
     }
   }
@@ -1305,16 +1324,17 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
       val jsonItems = factory.arrayNode
       for (expr <- items)
-        jsonItems.add(expr.jsonNode)
+        jsonItems.add(expr.jsonNode(lineNumbers, memo))
       out.put("new", jsonItems)
 
-      out.put("type", convertFromJson(avroPlaceholder.toString))
+      out.put("type", avroPlaceholder.jsonNode(memo))
       out
     }
   }
@@ -1351,13 +1371,14 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
       val jsonBody = factory.arrayNode
       for (expr <- body)
-        jsonBody.add(expr.jsonNode)
+        jsonBody.add(expr.jsonNode(lineNumbers, memo))
       out.put("do", jsonBody)
       out
     }
@@ -1416,13 +1437,14 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
       val jsonValues = factory.objectNode
       for ((name, expr) <- values)
-        jsonValues.put(name, expr.jsonNode)
+        jsonValues.put(name, expr.jsonNode(lineNumbers, memo))
       out.put("let", jsonValues)
 
       out
@@ -1471,13 +1493,14 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
       val jsonValues = factory.objectNode
       for ((name, expr) <- values)
-        jsonValues.put(name, expr.jsonNode)
+        jsonValues.put(name, expr.jsonNode(lineNumbers, memo))
       out.put("set", jsonValues)
 
       out
@@ -1518,13 +1541,15 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
-      out.put("attr", expr.jsonNode)
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
+      out.put("attr", expr.jsonNode(lineNumbers, memo))
       val jsonPath = factory.arrayNode
       for (p <- path)
-        jsonPath.add(p.jsonNode)
+        jsonPath.add(p.jsonNode(lineNumbers, memo))
       out.put("path", jsonPath)
       out
     }
@@ -1593,15 +1618,17 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
-      out.put("attr", expr.jsonNode)
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
+      out.put("attr", expr.jsonNode(lineNumbers, memo))
       val jsonPath = factory.arrayNode
       for (expr <- path)
-        jsonPath.add(expr.jsonNode)
+        jsonPath.add(expr.jsonNode(lineNumbers, memo))
       out.put("path", jsonPath)
-      out.put("to", to.jsonNode)
+      out.put("to", to.jsonNode(lineNumbers, memo))
       out
     }
   }
@@ -1632,14 +1659,16 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
       out.put("cell", cell)
       if (!path.isEmpty) {
         val jsonPath = factory.arrayNode
         for (expr <- path)
-          jsonPath.add(expr.jsonNode)
+          jsonPath.add(expr.jsonNode(lineNumbers, memo))
         out.put("path", jsonPath)
       }
       out
@@ -1701,17 +1730,19 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
       out.put("cell", cell)
       if (!path.isEmpty) {
         val jsonPath = factory.arrayNode
         for (expr <- path)
-          jsonPath.add(expr.jsonNode)
+          jsonPath.add(expr.jsonNode(lineNumbers, memo))
         out.put("path", jsonPath)
       }
-      out.put("to", to.jsonNode)
+      out.put("to", to.jsonNode(lineNumbers, memo))
       out
     }
   }
@@ -1745,13 +1776,15 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
       out.put("pool", pool)
       val jsonPath = factory.arrayNode
       for (expr <- path)
-        jsonPath.add(expr.jsonNode)
+        jsonPath.add(expr.jsonNode(lineNumbers, memo))
       out.put("path", jsonPath)
       out
     }
@@ -1820,16 +1853,18 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
       out.put("pool", pool)
       val jsonPath = factory.arrayNode
       for (expr <- path)
-        jsonPath.add(expr.jsonNode)
+        jsonPath.add(expr.jsonNode(lineNumbers, memo))
       out.put("path", jsonPath)
-      out.put("init", init.jsonNode)
-      out.put("to", to.jsonNode)
+      out.put("init", init.jsonNode(lineNumbers, memo))
+      out.put("to", to.jsonNode(lineNumbers, memo))
       out
     }
   }
@@ -1903,22 +1938,23 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
-      out.put("if", predicate.jsonNode)
+      out.put("if", predicate.jsonNode(lineNumbers, memo))
 
       val jsonThenClause = factory.arrayNode
       for (expr <- thenClause)
-        jsonThenClause.add(expr.jsonNode)
+        jsonThenClause.add(expr.jsonNode(lineNumbers, memo))
       out.put("then", jsonThenClause)
 
       elseClause match {
         case Some(clause) => {
           val jsonElseClause = factory.arrayNode
           for (expr <- clause)
-            jsonElseClause.add(expr.jsonNode)
+            jsonElseClause.add(expr.jsonNode(lineNumbers, memo))
           out.put("else", jsonElseClause)
         }
         case None =>
@@ -2007,20 +2043,21 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
       val jsonIfthens = factory.arrayNode
       for (ifthen <- ifthens)
-        jsonIfthens.add(ifthen.jsonNode)
+        jsonIfthens.add(ifthen.jsonNode(lineNumbers, memo))
       out.put("cond", jsonIfthens)
 
       elseClause match {
         case Some(clause) => {
           val jsonElseClause = factory.arrayNode
           for (expr <- clause)
-            jsonElseClause.add(expr.jsonNode)
+            jsonElseClause.add(expr.jsonNode(lineNumbers, memo))
           out.put("else", jsonElseClause)
         }
         case None =>
@@ -2069,14 +2106,16 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
-      out.put("while", predicate.jsonNode)
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
+      out.put("while", predicate.jsonNode(lineNumbers, memo))
 
       val jsonBody = factory.arrayNode
       for (expr <- body)
-        jsonBody.add(expr.jsonNode)
+        jsonBody.add(expr.jsonNode(lineNumbers, memo))
       out.put("do", jsonBody)
       out
     }
@@ -2120,15 +2159,17 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
       val jsonBody = factory.arrayNode
       for (expr <- body)
-        jsonBody.add(expr.jsonNode)
+        jsonBody.add(expr.jsonNode(lineNumbers, memo))
       out.put("do", jsonBody)
 
-      out.put("until", predicate.jsonNode)
+      out.put("until", predicate.jsonNode(lineNumbers, memo))
       out
     }
   }
@@ -2219,25 +2260,26 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
       val jsonValues = factory.objectNode
       for ((name, expr) <- init)
-        jsonValues.put(name, expr.jsonNode)
+        jsonValues.put(name, expr.jsonNode(lineNumbers, memo))
       out.put("for", jsonValues)
 
-      out.put("while", predicate.jsonNode)
+      out.put("while", predicate.jsonNode(lineNumbers, memo))
 
       val jsonStep = factory.objectNode
       for ((name, expr) <- step)
-        jsonStep.put(name, expr.jsonNode)
+        jsonStep.put(name, expr.jsonNode(lineNumbers, memo))
       out.put("step", jsonStep)
 
       val jsonBody = factory.arrayNode
       for (expr <- body)
-        jsonBody.add(expr.jsonNode)
+        jsonBody.add(expr.jsonNode(lineNumbers, memo))
       out.put("do", jsonBody)
 
       out
@@ -2294,15 +2336,17 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
       out.put("foreach", name)
-      out.put("in", array.jsonNode)
+      out.put("in", array.jsonNode(lineNumbers, memo))
 
       val jsonBody = factory.arrayNode
       for (expr <- body)
-        jsonBody.add(expr.jsonNode)
+        jsonBody.add(expr.jsonNode(lineNumbers, memo))
       out.put("do", jsonBody)
 
       out.put("seq", if (seq) BooleanNode.getTrue else BooleanNode.getFalse)
@@ -2365,16 +2409,18 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
       out.put("forkey", forkey)
       out.put("forval", forval)
-      out.put("in", map.jsonNode)
+      out.put("in", map.jsonNode(lineNumbers, memo))
 
       val jsonBody = factory.arrayNode
       for (expr <- body)
-        jsonBody.add(expr.jsonNode)
+        jsonBody.add(expr.jsonNode(lineNumbers, memo))
       out.put("do", jsonBody)
       out
     }
@@ -2413,16 +2459,17 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
-      out.put("as", convertFromJson(avroPlaceholder.toString))
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
+      out.put("as", avroPlaceholder.jsonNode(memo))
       out.put("named", named)
 
       val jsonBody = factory.arrayNode
       for (expr <- body)
-        jsonBody.add(expr.jsonNode)
+        jsonBody.add(expr.jsonNode(lineNumbers, memo))
       out.put("do", jsonBody)
 
       out
@@ -2501,14 +2548,16 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
-      out.put("cast", expr.jsonNode)
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
+      out.put("cast", expr.jsonNode(lineNumbers, memo))
 
       val jsonCastCase = factory.arrayNode
       for (castCase <- castCases)
-        jsonCastCase.add(castCase.jsonNode)
+        jsonCastCase.add(castCase.jsonNode(lineNumbers, memo))
       out.put("cases", jsonCastCase)
 
       out.put("partial", if (partial) BooleanNode.getTrue else BooleanNode.getFalse)
@@ -2545,11 +2594,13 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
-      out.put("upcast", expr.jsonNode)
-      out.put("as", convertFromJson(avroPlaceholder.toString))
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
+      out.put("upcast", expr.jsonNode(lineNumbers, memo))
+      out.put("as", avroPlaceholder.jsonNode(memo))
       out
     }
   }
@@ -2638,25 +2689,26 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
       val jsonExprs = factory.objectNode
       for ((name, expr) <- exprs)
-        jsonExprs.put(name, expr.jsonNode)
+        jsonExprs.put(name, expr.jsonNode(lineNumbers, memo))
       out.put("ifnotnull", jsonExprs)
 
       val jsonThenClause = factory.arrayNode
       for (expr <- thenClause)
-        jsonThenClause.add(expr.jsonNode)
+        jsonThenClause.add(expr.jsonNode(lineNumbers, memo))
       out.put("then", jsonThenClause)
 
       elseClause match {
         case Some(clause) => {
           val jsonElseClause = factory.arrayNode
           for (expr <- clause)
-            jsonElseClause.add(expr.jsonNode)
+            jsonElseClause.add(expr.jsonNode(lineNumbers, memo))
           out.put("else", jsonElseClause)
         }
         case None =>
@@ -2683,9 +2735,11 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
       out.put("doc", comment)
       out
     }
@@ -2708,9 +2762,11 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
       out.put("error", message)
 
       code match {
@@ -2723,6 +2779,65 @@ package ast {
   object Error {
     val desc = "error"
     case class Context(retType: AvroType, calls: Set[String], message: String, code: Option[Int]) extends ExpressionContext
+  }
+
+  case class Try(exprs: Seq[Expression], filter: Option[Seq[String]], pos: Option[String] = None) extends Expression {
+    override def equals(other: Any): Boolean = other match {
+      case that: Try =>
+        this.exprs == that.exprs  &&  this.filter == that.filter  // but not pos
+      case _ => false
+    }
+    override def hashCode(): Int = ScalaRunTime._hashCode((exprs, filter))
+
+    override def collect[X](pf: PartialFunction[Ast, X]): Seq[X] =
+      super.collect(pf) ++
+        exprs.flatMap(_.collect(pf))
+
+    if (exprs.size < 1)
+      throw new PFASyntaxException("\"try\" block must contain at least one expression", pos)
+
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+      val scope = symbolTable.newScope(true, true)
+      val results: Seq[(ExpressionContext, TaskResult)] = exprs.map(_.walk(task, scope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+
+      val (exprType, inferredType) =
+        results.last._1.retType match {
+          case _: ExceptionType | _: AvroNull => (AvroNull(), AvroNull())
+          case AvroUnion(types) if (types.contains(AvroNull())) => (AvroUnion(types), AvroUnion(types))
+          case AvroUnion(types) => (AvroUnion(types), AvroUnion(types :+ AvroNull()))
+          case x => (x, AvroUnion(List(x, AvroNull())))
+        }
+
+      val context = Try.Context(inferredType, results.map(_._1.calls).flatten.toSet + Try.desc, scope.inThisScope, results map {_._2}, exprType, filter)
+      (context, task(context, engineOptions))
+    }
+
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
+      val factory = JsonNodeFactory.instance
+      val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
+      val jsonExprs = factory.arrayNode
+      for (expr <- exprs)
+        jsonExprs.add(expr.jsonNode(lineNumbers, memo))
+      out.put("try", jsonExprs)
+
+      filter match {
+        case Some(x) => {
+          val fout = factory.arrayNode
+          for (str <- x)
+            fout.add(str)
+          out.put("filter", fout)
+        }
+        case None =>
+      }
+
+      out
+    }
+  }
+  object Try {
+    val desc = "try"
+    case class Context(retType: AvroType, calls: Set[String], symbols: Map[String, AvroType], exprs: Seq[TaskResult], exprType: AvroType, filter: Option[Seq[String]]) extends ExpressionContext
   }
 
   case class Log(exprs: Seq[Expression], namespace: Option[String], pos: Option[String] = None) extends Expression {
@@ -2744,13 +2859,14 @@ package ast {
       (context, task(context, engineOptions))
     }
 
-    override def jsonNode: JsonNode = {
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
       val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
 
       val jsonExprs = factory.arrayNode
       for (expr <- exprs)
-        jsonExprs.add(expr.jsonNode)
+        jsonExprs.add(expr.jsonNode(lineNumbers, memo))
       out.put("log", jsonExprs)
 
       namespace match {

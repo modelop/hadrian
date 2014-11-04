@@ -522,7 +522,7 @@ action:
                       - state
               path: [[covariance]]
         - 2
-    - a.mapIndex:
+    - a.mapWithIndex:
         - input
         - params: [{i: int}, {x: double}]
           ret: double

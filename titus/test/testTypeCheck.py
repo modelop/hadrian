@@ -21,7 +21,7 @@
 import json
 import unittest
 
-from titus.ast import *
+from titus.pfaast import *
 from titus.reader import *
 from titus.datatype import *
 

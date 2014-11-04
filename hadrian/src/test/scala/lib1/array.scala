@@ -1081,12 +1081,12 @@ action:
 """).head.action(null).asInstanceOf[PFAArray[String]].toVector.toSet should be (Set("wow", "this", "is", "guys", "different", "you", "there", "hey"))
   }
 
-  it must "intersect" taggedAs(Lib1, Lib1Array) in {
+  it must "intersection" taggedAs(Lib1, Lib1Array) in {
     PFAEngine.fromYaml("""
 input: "null"
 output: {type: array, items: string}
 action:
-  a.intersect:
+  a.intersection:
     - {value: ["hey", "there", "you", "hey", "guys", "there"], type: {type: array, items: string}}
     - {value: ["hey", "there", "wow", "this", "is", "different"], type: {type: array, items: string}}
 """).head.action(null).asInstanceOf[PFAArray[String]].toVector.toSet should be (Set("hey", "there"))
@@ -1192,12 +1192,12 @@ fcns:
 """).head.action(null).asInstanceOf[PFAArray[Long]].toVector should be (Vector(0, 2, 4, 6, 8, 10))
   }
 
-  it must "mapIndex" taggedAs(Lib1, Lib1Array) in {
+  it must "mapWithIndex" taggedAs(Lib1, Lib1Array) in {
     val x = PFAEngine.fromYaml("""
 input: "null"
 output: {type: array, items: double}
 action:
-  a.mapIndex:
+  a.mapWithIndex:
     - {value: [0.0, 1.1, 2.2, 3.3, 4.4, 5.5], type: {type: array, items: double}}
     - params: [{i: int}, {x: double}]
       ret: double
@@ -1238,12 +1238,25 @@ fcns:
 """).head.action(null).asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 2, 4))
   }
 
+  it must "filterWithIndex" taggedAs(Lib1, Lib1Array) in {
+    PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: int}
+action:
+  a.filterWithIndex:
+    - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
+    - params: [{i: int}, {x: int}]
+      ret: boolean
+      do: {"&&": [{"==": [{"%": [x, 2]}, 0]}, {"<": [i, 3]}]}
+""").head.action(null).asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 2))
+  }
+
   it must "filtermap" taggedAs(Lib1, Lib1Array) in {
     PFAEngine.fromYaml("""
 input: "null"
 output: {type: array, items: long}
 action:
-  a.filtermap:
+  a.filterMap:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
     - params: [{x: int}]
       ret: [long, "null"]
@@ -1257,7 +1270,7 @@ action:
 input: "null"
 output: {type: array, items: long}
 action:
-  a.filtermap:
+  a.filterMap:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
     - {fcn: u.maybeten}
 fcns:
@@ -1271,12 +1284,28 @@ fcns:
 """).head.action(null).asInstanceOf[PFAArray[Long]].toVector should be (Vector(10, 30, 50))
  }
 
-  it must "flatmap" taggedAs(Lib1, Lib1Array) in {
+  it must "filtermapwithindex" taggedAs(Lib1, Lib1Array) in {
     PFAEngine.fromYaml("""
 input: "null"
 output: {type: array, items: long}
 action:
-  a.flatmap:
+  a.filterMapWithIndex:
+    - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
+    - params: [{i: int}, {x: int}]
+      ret: [long, "null"]
+      do:
+        if: {"==": [{"%": [i, 2]}, 0]}
+        then: null
+        else: {"*": [x, {long: 10}]}
+""").head.action(null).asInstanceOf[PFAArray[Long]].toVector should be (Vector(10, 30, 50))
+  }
+
+  it must "flatMap" taggedAs(Lib1, Lib1Array) in {
+    PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: long}
+action:
+  a.flatMap:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
     - params: [{x: int}]
       ret: {type: array, items: long}
@@ -1287,7 +1316,7 @@ action:
 input: "null"
 output: {type: array, items: long}
 action:
-  a.flatmap:
+  a.flatMap:
     - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
     - {fcn: u.stutter}
 fcns:
@@ -1296,6 +1325,22 @@ fcns:
     ret: {type: array, items: long}
     do: {new: [x, x], type: {type: array, items: long}}
 """).head.action(null).asInstanceOf[PFAArray[Long]].toVector should be (Vector(0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5))
+  }
+
+  it must "flatMapWithIndex" taggedAs(Lib1, Lib1Array) in {
+    PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: long}
+action:
+  a.flatMapWithIndex:
+    - {value: [0, 1, 2, 3, 4, 5], type: {type: array, items: int}}
+    - params: [{i: int}, {x: int}]
+      ret: {type: array, items: long}
+      do:
+        if: {"==": [{"%": [i, 2]}, 0]}
+        then: {new: [x, x], type: {type: array, items: long}}
+        else: {value: [], type: {type: array, items: long}}
+""").head.action(null).asInstanceOf[PFAArray[Long]].toVector should be (Vector(0, 0, 2, 2, 4, 4))
   }
 
   it must "reduce" taggedAs(Lib1, Lib1Array) in {
@@ -1328,7 +1373,7 @@ fcns:
 input: "null"
 output: string
 action:
-  a.reduceright:
+  a.reduceRight:
     - {value: ["a", "b", "c", "d", "e"], type: {type: array, items: string}}
     - params: [{x: string}, {tally: string}]
       ret: string
@@ -1339,7 +1384,7 @@ action:
 input: "null"
 output: string
 action:
-  a.reduceright:
+  a.reduceRight:
     - {value: ["a", "b", "c", "d", "e"], type: {type: array, items: string}}
     - {fcn: u.monoid}
 fcns:
@@ -1382,7 +1427,7 @@ fcns:
 input: "null"
 output: string
 action:
-  a.foldright:
+  a.foldRight:
     - {value: ["a", "b", "c", "d", "e"], type: {type: array, items: string}}
     - {string: ""}
     - params: [{x: string}, {tally: string}]
@@ -1394,7 +1439,7 @@ action:
 input: "null"
 output: string
 action:
-  a.foldright:
+  a.foldRight:
     - {value: ["a", "b", "c", "d", "e"], type: {type: array, items: string}}
     - {string: ""}
     - {fcn: u.monoid}
@@ -1518,6 +1563,20 @@ action:
       ret: boolean
       do: {"==": [{"*": [x, 2]}, y]}
 """).head.action(null).asInstanceOf[Boolean].booleanValue should be (false)
+  }
+
+  it must "correspondsWithIndex" taggedAs(Lib1, Lib1Array) in {
+    PFAEngine.fromYaml("""
+input: "null"
+output: boolean
+action:
+  a.correspondsWithIndex:
+    - {value: [0, 1, 2, 3], type: {type: array, items: int}}
+    - {value: [0, 2, 4, 6], type: {type: array, items: int}}
+    - params: [{i: int}, {x: int}, {y: int}]
+      ret: boolean
+      do: {"==": [{"*": [x, 2]}, y]}
+""").head.action(null).asInstanceOf[Boolean].booleanValue should be (true)
   }
 
   //////////////////////////////////////////////////////////////////// restructuring
