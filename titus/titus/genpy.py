@@ -113,6 +113,11 @@ class GeneratePython(titus.pfaast.Task):
                  indent + "return self.tally\n"
         return prefix + "".join(indent + x + "\n" for x in codes[:-1]) + indent + "last = " + codes[-1] + "\n" + suffix
 
+    def commandsFoldMerge(self, codes, indent):
+        suffix = indent + "self.tally = last\n" + \
+                 indent + "return self.tally\n"
+        return "".join(indent + x + "\n" for x in codes[:-1]) + indent + "last = " + codes[-1] + "\n" + suffix
+
     def commandsBeginEnd(self, codes, indent):
         return "".join(indent + x + "\n" for x in codes)
 
@@ -141,11 +146,14 @@ class GeneratePython(titus.pfaast.Task):
             end, endSymbols, endCalls = context.end
 
             callGraph = {"(begin)": beginCalls, "(action)": actionCalls, "(end)": endCalls}
+            if context.merge is not None:
+                mergeTasks, mergeSymbols, mergeCalls = context.merge
+                callGraph["(merge)"] = mergeCalls
             for fname, fctx in context.fcns:
                 callGraph[fname] = fctx.calls
 
             out = ["class PFA_" + name + """(PFAEngine):
-    def __init__(self, cells, pools, config, options, log, emit, zero, rand):
+    def __init__(self, cells, pools, config, options, log, emit, zero, instance, rand):
         self.actionsStarted = 0
         self.actionsFinished = 0
         self.cells = cells
@@ -154,6 +162,7 @@ class GeneratePython(titus.pfaast.Task):
         self.options = options
         self.log = log
         self.emit = emit
+        self.instance = instance
         self.rand = rand
         self.callGraph = """ + repr(callGraph) + "\n"]
 
@@ -172,7 +181,7 @@ class GeneratePython(titus.pfaast.Task):
     def begin(self):
         state = ExecutionState(self.options, self.rand, 'action', self.parser)
         scope = DynamicScope(None)
-        scope.let({'name': self.config.name, 'metadata': self.config.metadata})
+        scope.let({'name': self.config.name, 'instance': self.instance, 'metadata': self.config.metadata})
         if self.config.version is not None:
             scope.let({'version': self.config.version})
 """ + self.commandsBeginEnd(begin, "        "))
@@ -194,12 +203,35 @@ class GeneratePython(titus.pfaast.Task):
             pool.maybeSaveBackup()
         self.actionsStarted += 1
         try:
-            scope.let({'input': input, 'name': self.config.name, 'metadata': self.config.metadata, 'actionsStarted': self.actionsStarted, 'actionsFinished': self.actionsFinished})
+            scope.let({'input': input, 'name': self.config.name, 'instance': self.instance, 'metadata': self.config.metadata, 'actionsStarted': self.actionsStarted, 'actionsFinished': self.actionsFinished})
             if self.config.version is not None:
                 scope.let({'version': self.config.version})
 """ + commands)
 
             out.append("""        except Exception:
+            for cell in self.cells.values():
+                cell.maybeRestoreBackup()
+            for pool in self.pools.values():
+                pool.maybeRestoreBackup()
+            raise
+""")
+
+            if context.merge is not None:
+                out.append("""
+    def merge(self, tallyOne, tallyTwo):
+        state = ExecutionState(self.options, self.rand, 'merge', self.parser)
+        scope = DynamicScope(None)
+        for cell in self.cells.values():
+            cell.maybeSaveBackup()
+        for pool in self.pools.values():
+            pool.maybeSaveBackup()
+        try:
+            scope.let({'tallyOne': tallyOne, 'tallyTwo': tallyTwo, 'name': self.config.name, 'instance': self.instance, 'metadata': self.config.metadata})
+            if self.config.version is not None:
+                scope.let({'version': self.config.version})
+""" + self.commandsFoldMerge(mergeTasks, "            "))
+
+                out.append("""        except Exception:
             for cell in self.cells.values():
                 cell.maybeRestoreBackup()
             for pool in self.pools.values():
@@ -216,7 +248,7 @@ class GeneratePython(titus.pfaast.Task):
     def end(self):
         state = ExecutionState(self.options, self.rand, 'action', self.parser)
         scope = DynamicScope(None)
-        scope.let({'name': self.config.name, 'metadata': self.config.metadata, 'actionsStarted': self.actionsStarted, 'actionsFinished': self.actionsFinished})
+        scope.let({'name': self.config.name, 'instance': self.instance, 'metadata': self.config.metadata, 'actionsStarted': self.actionsStarted, 'actionsFinished': self.actionsFinished})
         if self.config.version is not None:
             scope.let({'version': self.config.version})
 """ + tallyLine + self.commandsBeginEnd(end, "        "))
@@ -831,10 +863,10 @@ class PFAEngine(object):
                 rand = random.Random()
             else:
                 rand = random.Random(engineConfig.randseed)
-            for skip in xrange(index):
-                rand.random(skip)
+                for skip in xrange(index):
+                    rand = random.Random(rand.randint(0, 2**31 - 1))
 
-            engine = cls(cells, pools, engineConfig, engineOptions, genericLog, genericEmit, zero, rand)
+            engine = cls(cells, pools, engineConfig, engineOptions, genericLog, genericEmit, zero, index, rand)
 
             f = dict(functionTable.functions)
             if engineConfig.method == Method.EMIT:
@@ -871,6 +903,7 @@ class PFAEngine(object):
             self.config.end,
             self.config.fcns,
             self.config.zero,
+            self.config.merge,
             newCells,
             newPools,
             self.config.randseed,
@@ -921,12 +954,76 @@ class PFAEngine(object):
         reach = self.calledBy(fcnName)
         return CellTo.desc in reach or PoolTo.desc in reach
 
-    def avroInputIterator(self, inputStream):
-        try:
+    def avroInputIterator(self, inputStream, interpreter="avro"):
+        if interpreter == "avro":
+            return DataFileReader(inputStream, DatumReader())
+        elif interpreter == "fastavro":
             import fastavro
             return fastavro.reader(inputStream)
-        except ImportError:
-            return DataFileReader(inputStream, DatumReader())
+        elif interpreter == "correct-fastavro":
+            return FastAvroCorrector(inputStream, self.config.input)
+        else:
+            raise ValueError("interpreter must be one of \"avro\", \"fastavro\", and \"correct-fastavro\" (which corrects fastavro's handling of Unicode strings)")
 
     def avroOutputDataFileWriter(self, fileName):
         return DataFileWriter(open(fileName, "w"), DatumWriter(), self.config.output.schema)
+
+class FastAvroCorrector(object):
+    def __init__(self, inputStream, avroType):
+        import fastavro
+        self.reader = fastavro.reader(inputStream)
+        self.avroType = avroType
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        return self.correctFastAvro(self.reader.next(), self.avroType)
+
+    def correctFastAvro(self, x, avroType):
+        if isinstance(avroType, (titus.datatype.AvroString, titus.datatype.AvroEnum)) and isinstance(x, str):
+            return x.decode("utf-8", "replace")
+
+        elif isinstance(avroType, (titus.datatype.AvroBytes, titus.datatype.AvroFixed)) and isinstance(x, unicode):
+            return x.encode("utf-8", "replace")
+
+        elif isinstance(avroType, titus.datatype.AvroArray):
+            itemType = avroType.items
+            for i in xrange(len(x)):
+                x[i] = self.correctFastAvro(x[i], itemType)
+
+        elif isinstance(avroType, titus.datatype.AvroMap):
+            valueType = avroType.values
+            out = {}
+            for key, value in x.items():
+                out[key.decode("utf-8", "replace")] = self.correctFastAvro(value, valueType)
+            return out
+
+        elif isinstance(avroType, titus.datatype.AvroRecord):
+            fields = avroType.fieldsDict
+            if fields.keys() != x.keys():
+                raise KeyError("datum {} does not match record schema\n{}".format(x, avroType))
+            for key in fields:
+                x[key] = self.correctFastAvro(x[key], fields[key].avroType)
+            return x
+
+        elif isinstance(avroType, titus.datatype.AvroUnion):
+            for tpe in avroType.types:
+                if (isinstance(tpe, (titus.datatype.AvroString, titus.datatype.AvroEnum)) and isinstance(x, str)) or \
+                   (isinstance(tpe, (titus.datatype.AvroBytes, titus.datatype.AvroFixed)) and isinstance(x, unicode)) or \
+                   (isinstance(tpe, titus.datatype.AvroArray) and isinstance(x, (list, tuple))) or \
+                   (isinstance(tpe, titus.datatype.AvroMap) and isinstance(x, dict)):
+                    return self.correctFastAvro(x, tpe)
+
+                elif (isinstance(tpe, (titus.datatype.AvroString, titus.datatype.AvroEnum)) and isinstance(x, unicode)) or \
+                     (isinstance(tpe, (titus.datatype.AvroBytes, titus.datatype.AvroFixed)) and isinstance(x, str)):
+                    return x
+
+                elif isinstance(tpe, titus.datatype.AvroRecord) and isinstance(x, dict):
+                    try:
+                        return self.correctFastAvro(x, tpe)
+                    except KeyError:
+                        pass   # this is the wrong record type; one of the later record types applies
+
+        else:
+            return x

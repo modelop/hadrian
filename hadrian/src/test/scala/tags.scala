@@ -40,6 +40,7 @@ package test.scala {
   object Lib1 extends Tag("Lib1")
   object Lib1Array extends Tag("Lib1Array")
   object Lib1Bytes extends Tag("Lib1Bytes")
+  object Lib1Cast extends Tag("Lib1Cast")
   object Lib1Core extends Tag("Lib1Core")
   object Lib1Enum extends Tag("Lib1Enum")
   object Lib1Fixed extends Tag("Lib1Fixed")

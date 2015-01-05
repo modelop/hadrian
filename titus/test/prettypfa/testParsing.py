@@ -37,12 +37,13 @@ begin: 2 + 2
 action: input + tally
 end: {3 + 3; 4 + 4}
 zero: [1, 2, 3]
+merge: tallyOne + tallyTwo
 randseed: 12345
 doc: "hello world"
 version: 12
 metadata: {this: good}
 options: {"wow": "wee"}
-''', lineNumbers=False, check=False), {"name": "Test", "input": "double", "output": "double", "method": "fold", "begin": [{"+": [2, 2]}], "action": [{"+": ["input", "tally"]}], "end": [{"+": [3, 3]}, {"+": [4, 4]}], "zero": [1, 2, 3], "randseed": 12345, "doc": "hello world", "version": 12, "metadata": {"this": "good"}, "options": {"wow": "wee"}})
+''', lineNumbers=False, check=False), {"name": "Test", "input": "double", "output": "double", "method": "fold", "begin": [{"+": [2, 2]}], "action": [{"+": ["input", "tally"]}], "end": [{"+": [3, 3]}, {"+": [4, 4]}], "zero": [1, 2, 3], "merge": [{"+": ["tallyOne", "tallyTwo"]}], "randseed": 12345, "doc": "hello world", "version": 12, "metadata": {"this": "good"}, "options": {"wow": "wee"}})
 
     def testCells(self):
         def test(expr, asjson):
@@ -837,6 +838,73 @@ fcns:
                     print
                     print test
                 self.assertEqual(tested, asjson)
+
+    def testTypedefs(self):
+        self.assertEqual(titus.prettypfa.jsonNode(r'''
+name: test
+input: some
+output: some
+action: input + json(some, 5)
+types:
+  some = int
+''', lineNumbers=False), {"name": "test", "input": "int", "output": "int", "method": "map", "action": [{"+": ["input", 5]}]})
+
+        self.assertEqual(titus.prettypfa.jsonNode(r'''
+name: test
+input: some
+output: some
+action: a.concat(input, new(some, 1, 2, 3))
+types:
+  some = array(int)
+''', lineNumbers=False), {"name": "test", "input": {"items": "int", "type": "array"}, "output": {"items": "int", "type": "array"}, "method": "map", "action": [{"a.concat": ["input", {"type": {"items": "int", "type": "array"}, "new": [1, 2, 3]}]}]})
+
+        checkme = titus.prettypfa.jsonNode(r'''
+name: test
+input: some
+output: some
+action: new(some, one: input.one, two: input.two, three: input.three)
+types:
+  some = record(one: int, two: double, three: string)
+''', lineNumbers=False)
+        checkname = checkme["input"]["name"]
+        self.assertEqual(checkme, {"name": "test", "input": {"fields": [{"type": "int", "name": "one"}, {"type": "double", "name": "two"}, {"type": "string", "name": "three"}], "type": "record", "name": checkname}, "output": checkname, "method": "map", "action": [{"type": checkname, "new": {"three": {"attr": "input", "path": [{"string": "three"}]}, "two": {"attr": "input", "path": [{"string": "two"}]}, "one": {"attr": "input", "path": [{"string": "one"}]}}}]})
+
+        self.assertEqual(titus.prettypfa.jsonNode(r'''
+name: test
+input: MyRecord
+output: some
+action: new(some, one: input.one, two: input.two, three: input.three)
+types:
+  some = record(MyRecord, one: int, two: double, three: string)
+''', lineNumbers=False), {"name": "test", "input": {"fields": [{"type": "int", "name": "one"}, {"type": "double", "name": "two"}, {"type": "string", "name": "three"}], "type": "record", "name": "MyRecord"}, "output": "MyRecord", "method": "map", "action": [{"type": "MyRecord", "new": {"three": {"attr": "input", "path": [{"string": "three"}]}, "two": {"attr": "input", "path": [{"string": "two"}]}, "one": {"attr": "input", "path": [{"string": "one"}]}}}]})
+
+        self.assertEqual(titus.prettypfa.jsonNode(r'''
+name: test
+input: MyRecord
+output: MyRecord
+action: new(MyRecord, one: input.one, two: input.two, three: input.three)
+types:
+  record(MyRecord, one: int, two: double, three: string)
+''', lineNumbers=False), {"name": "test", "input": {"fields": [{"type": "int", "name": "one"}, {"type": "double", "name": "two"}, {"type": "string", "name": "three"}], "type": "record", "name": "MyRecord"}, "output": "MyRecord", "method": "map", "action": [{"type": "MyRecord", "new": {"three": {"attr": "input", "path": [{"string": "three"}]}, "two": {"attr": "input", "path": [{"string": "two"}]}, "one": {"attr": "input", "path": [{"string": "one"}]}}}]})
+
+        self.assertEqual(titus.prettypfa.jsonNode(r'''
+name: test
+input: com.wowie.MyRecord
+output: com.wowie.MyRecord
+action: new(com.wowie.MyRecord, one: input.one, two: input.two, three: input.three)
+types:
+  record(com.wowie.MyRecord, one: int, two: double, three: string)
+''', lineNumbers=False), {"name": "test", "input": {"namespace": "com.wowie", "type": "record", "name": "MyRecord", "fields": [{"type": "int", "name": "one"}, {"type": "double", "name": "two"}, {"type": "string", "name": "three"}]}, "output": "com.wowie.MyRecord", "method": "map", "action": [{"type": "com.wowie.MyRecord", "new": {"three": {"attr": "input", "path": [{"string": "three"}]}, "two": {"attr": "input", "path": [{"string": "two"}]}, "one": {"attr": "input", "path": [{"string": "one"}]}}}]})
+
+        self.assertEqual(titus.prettypfa.jsonNode(r'''
+name: test
+input: MyRecord
+output: some
+action: input.one
+types:
+  record(MyRecord, one: int, two: double, three: string);
+  some = int;
+''', lineNumbers=False), {"name": "test", "input": {"fields": [{"type": "int", "name": "one"}, {"type": "double", "name": "two"}, {"type": "string", "name": "three"}], "type": "record", "name": "MyRecord"}, "output": "int", "method": "map", "action": [{"attr": "input", "path": [{"string": "one"}]}]})
 
 if __name__ == "__main__":
     unittest.main()

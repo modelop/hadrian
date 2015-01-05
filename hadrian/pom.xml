@@ -27,7 +27,7 @@ limitations under the License.
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian</artifactId>
-  <version>0.5.4</version>
+  <version>0.5.9</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -42,7 +42,7 @@ limitations under the License.
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
     <scala.tools.version>2.10</scala.tools.version>
-    <scala.version>2.10.3</scala.version>
+    <scala.version>2.10.4</scala.version>
     <encoding>UTF-8</encoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
@@ -59,7 +59,7 @@ limitations under the License.
     <!-- jackson-mapper-asl-1.9.13.jar -->
     <!-- janino-2.7.4.jar -->
     <!-- paranamer-2.3.jar -->
-    <!-- scala-library-2.10.3.jar -->
+    <!-- scala-library-2.10.4.jar -->
     <!-- slf4j-api-1.6.4.jar -->
     <!-- snakeyaml-1.13.jar -->
     <!-- snappy-java-1.0.5.jar -->
@@ -205,41 +205,43 @@ limitations under the License.
           <junitxml>.</junitxml>
 
 <tagsToInclude>
+    JVMCompilation
 </tagsToInclude>
 
 <tagsToExclude>
-    AstToJson,
-    Data,
-    DataType,
-    DumpState,
-    JsonToAst,
-    JVMCompilation,
-    Lib1Array,
-    Lib1Bytes,
-    Lib1Core,
-    Lib1Enum,
-    Lib1Fixed,
-    Lib1Impute,
-    Lib1LA,
-    Lib1Map,
-    Lib1Math,
-    Lib1Metric,
-    Lib1ModelCluster,
-    Lib1ModelTree,
-    Lib1Parse,
-    Lib1ProbDist,
-    Lib1Record,
-    Lib1StatChange,
-    Lib1StatSample,
-    Lib1String,
-    MakeDocsLatex,
-    MultiThreaded,
+    AstToJson
+    Data
+    DataType
+    DumpState
+    JsonToAst
+
+    Lib1Array
+    Lib1Bytes
+    Lib1Cast
+    Lib1Core
+    Lib1Enum
+    Lib1Fixed
+    Lib1Impute
+    Lib1LA
+    Lib1Map
+    Lib1Math
+    Lib1Metric
+    Lib1ModelCluster
+    Lib1ModelTree
+    Lib1Parse
+    Lib1ProbDist
+    Lib1Record
+    Lib1StatChange
+    Lib1StatSample
+    Lib1String
+    MakeDocsLatex
+    MultiThreaded
     RandomJson
-    Shared,
-    SignatureMatch,
-    Speed,
-    ThreadSafety,
-    TypeCheck,
+    Shared
+    SignatureMatch
+    Speed
+    ThreadSafety
+    TypeCheck
     Yaml
 </tagsToExclude>
 

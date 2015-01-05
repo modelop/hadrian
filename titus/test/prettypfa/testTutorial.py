@@ -166,6 +166,7 @@ output: double
 method: fold
 zero: 0
 action: input + tally
+merge: tallyOne + tallyTwo
 ''', '''
 1.0
 3.0
@@ -176,37 +177,26 @@ action: input + tally
 
     def testTutorial1_7(self):
         self.check('''
-"hello"
-"my"
-"darling"
-"hello"
-"my"
-"honey"
-"hello"
-"my"
-"ragtime"
-"gal"
+1
+2
+3
+4
+5
 ''', r'''
-input: string
+input: int
 output: string
 method: fold
 zero: ""
 action:
-    if (s.len(input) > s.len(tally))
-        input
-    else
-        tally
+  s.concat(tally, s.number(input))
+merge:
+  s.concat(tallyOne, tallyTwo)
 ''', '''
-"hello"
-"hello"
-"darling"
-"darling"
-"darling"
-"darling"
-"darling"
-"darling"
-"darling"
-"darling"
+"1"
+"12"
+"123"
+"1234"
+"12345"
 ''')
 
     def testTutorial2_2(self):

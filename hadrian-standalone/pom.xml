@@ -7,14 +7,14 @@
 
   <groupId>com.opendatagroup.hadrian</groupId>
   <artifactId>hadrian-standalone</artifactId>
-  <version>0.5.4</version>
+  <version>0.5.9</version>
   <packaging>jar</packaging>
 
   <properties>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
     <scala.tools.version>2.10</scala.tools.version>
-    <scala.version>2.10.3</scala.version>
+    <scala.version>2.10.4</scala.version>
     <encoding>UTF-8</encoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
@@ -23,7 +23,7 @@
     <dependency>
       <groupId>com.opendatagroup</groupId>
       <artifactId>hadrian</artifactId>
-      <version>0.5.4</version>
+      <version>0.5.9</version>
     </dependency>
 
     <dependency>

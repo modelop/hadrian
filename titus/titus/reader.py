@@ -252,6 +252,7 @@ def _readEngineConfig(data, avroTypeBuilder):
     _end = []
     _fcns = {}
     _zero = None
+    _merge = None
     _cells = {}
     _pools = {}
     _randseed = None
@@ -291,6 +292,11 @@ def _readEngineConfig(data, avroTypeBuilder):
                 _end = [_readExpression(data[key], key, avroTypeBuilder)]
         elif key == "fcns": _fcns = _readFcnDefMap(data[key], key, avroTypeBuilder)
         elif key == "zero": _zero = _readJsonToString(data[key], key)
+        elif key == "merge":
+            if isinstance(data[key], (list, tuple)):
+                _merge = _readExpressionArray(data[key], key, avroTypeBuilder)
+            else:
+                _merge = [_readExpression(data[key], key, avroTypeBuilder)]
         elif key == "cells": _cells = _readCells(data[key], key, avroTypeBuilder)
         elif key == "pools": _pools = _readPools(data[key], key, avroTypeBuilder)
         elif key == "randseed": _randseed = _readLong(data[key], key)
@@ -304,14 +310,11 @@ def _readEngineConfig(data, avroTypeBuilder):
     if "name" not in keys:
         _name = titus.util.uniqueEngineName()
 
-    if _method == Method.FOLD and "zero" not in keys:
-        raise PFASyntaxException("folding engines must include a \"zero\" to begin the calculation", at)
-
     required = set(["action", "input", "output"])
     if keys.intersection(required) != required:
         raise PFASyntaxException("missing top-level fields: {}".format(", ".join(required.difference(keys))), at)
     else:
-        return EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _cells, _pools, _randseed, _doc, _version, _metadata, _options, at)
+        return EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _merge, _cells, _pools, _randseed, _doc, _version, _metadata, _options, at)
 
 def _readJsonToString(data, dot):
     return json.dumps(_stripAtSigns(data))

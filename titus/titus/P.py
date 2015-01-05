@@ -228,7 +228,7 @@ def toType(pat):
         if len(namebits) == 1:
             return AvroFixed(pat.size, namebits[-1], None)
         else:
-            return AvroFixed(pat.size, namebits[-1], namebits[:-1])
+            return AvroFixed(pat.size, namebits[-1], ".".join(namebits[:-1]))
     elif isinstance(pat, Fixed):
         return AvroFixed(pat.size)
 
@@ -237,7 +237,7 @@ def toType(pat):
         if len(namebits) == 1:
             return AvroEnum(pat.symbols, namebits[-1], None)
         else:
-            return AvroEnum(pat.symbols, namebits[-1], namebits[:-1])
+            return AvroEnum(pat.symbols, namebits[-1], ".".join(namebits[:-1]))
     elif isinstance(pat, Enum):
         return AvroEnum(pat.symbols)
 
@@ -246,7 +246,7 @@ def toType(pat):
         if len(namebits) == 1:
             return AvroRecord([AvroField(k, toType(v)) for k, v in pat.fields.items()], namebits[-1], None)
         else:
-            return AvroRecord([AvroField(k, toType(v)) for k, v in pat.fields.items()], namebits[-1], namebits[:-1])
+            return AvroRecord([AvroField(k, toType(v)) for k, v in pat.fields.items()], namebits[-1], ".".join(namebits[:-1]))
     elif isinstance(pat, Record):
         return AvroRecord([AvroField(k, toType(v)) for k, v in pat.fields.items()])
 

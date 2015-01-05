@@ -94,7 +94,55 @@
 
 **After tag v0.5.4:**
 
-* Added stat.histogram, stat.histogram2d, stat.top, stat.bottom (Hadrian, Titus, and PFA)    NOT DONE!
+  * Added stat.histogram, stat.histogram2d, stat.topN (Hadrian, Titus, and PFA).
+
+  * Fixed a namespace bug in P.py (Titus).
+
+  * Added ability to read and write JSON data in Hadrian Standalone.
+
+**After tag v0.5.5:**
+
+  * Loosened type restrictions on the "new" special form: now it promotes values to the requested type, rather than requiring them to be exactly that type (Hadrian, Titus, and PFA).
+
+  * Fixed bug in PrettyPFA "do" handling (Titus).
+
+  * Fixed bugs in Hadrian-Standalone state output: special cases overlooked in development (Hadrian-Standalone).
+
+  * Fixed line number bugs in PrettyPFA (Titus).
+
+**After tag v0.5.6:**
+
+  * Added casting functions as cast.* (Hadrian, Titus, PFA).
+
+  * Added avscToPretty to turn Avro avsc files into PrettyPFA fragments (Titus).
+
+  * Added update(recordExpr, field: newValue) syntax to PrettyPFA (Titus).
+
+  * Fixed FcnRefFill special case for PrettyPFA (Titus).
+
+  * Added merge as a required top-level field for fold-type engines (Hadrian, Titus, PFA).
+
+  * Fixed random generator seeds so that a collection of engine instances will have different seeds, based on the master seed (Hadrian, Titus).
+
+  * Added "types" section to PrettyPFA to centralize type declarations (Titus).
+
+**After tag v0.5.7:**
+
+  * Fixed bug: missing code in P.fromType that was already correctly implemented in Titus (Hadrian).
+
+**After tag v0.5.8:**
+
+  * Added ability to load one PFAEngine class's output into another PFAEngine class's input and create data that is not yet associated with any PFAEngine (Hadrian).
+
+  * Added PFAEngine.factoryFrom* methods to make engine factories (Hadrian).
+
+  * Added ability to load PFA data into type-safe Scala classes (Hadrian).
+
+  * Added "instance" as an integer-valued predefined field everywhere that "name" is defined (Hadrian, Titus, and PFA).
+
+  * Added jsonOutputDataFileWriter for JSON output with the same interface as avroOutputDataFileWriter (Hadrian).
+
+  * Added a wrapper around fastavro to correct its behavior regarding Unicode strings (Titus).
 
 **Future:**
 

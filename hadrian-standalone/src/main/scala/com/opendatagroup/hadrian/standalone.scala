@@ -17,7 +17,7 @@ import com.opendatagroup.hadrian.util.convertFromJson
 object Main {
   case class SaveState(baseName: String = "state_", freqSeconds: Int = 600)
 
-  case class Config(numberOfEngines: Int = 1, queueSizeLimit: Int = 100, engine: File = new File(""), output: File = new File(""), messages: Option[File] = None, inputs: Seq[File] = Nil, flush: Boolean = false, json: Boolean = false, saveState: Option[SaveState] = None)
+  case class Config(numberOfEngines: Int = 1, queueSizeLimit: Int = 100, engine: File = new File(""), output: File = new File(""), messages: Option[File] = None, inputs: Seq[File] = Nil, flush: Boolean = false, saveState: Option[SaveState] = None)
 
   class MessageException(msg: String) extends Exception(msg)
 
@@ -80,16 +80,11 @@ object Main {
         .action((_, c) => c.copy(flush = true))
         .text("flush output buffer after every result")
 
-      opt[Unit]('j', "json")
-        .optional
-        .action((_, c) => c.copy(json = true))
-        .text("write output as JSON, rather than Avro")
-
       opt[String]('s', "saveState")
         .optional
         .valueName("baseNameOrPath")
         .validate({x =>
-          val y = new File(x.split("/").init.mkString("/"))
+          val y = new File(x.split("/").init.mkString("/") + "/")
           if (y.exists)
             success
           else
@@ -112,17 +107,17 @@ object Main {
 
       help("help") text("print this help message")
 
-      arg[File]("input1.avro[, input2.avro[, ...]]")
+      arg[File]("input1.avro|json[, input2.avro|json[, ...]]")
         .minOccurs(1)
         .maxOccurs(1024)
         .validate({x =>
-          if (x.getName.endsWith(".avro"))
+          if (x.getName.endsWith(".avro")  ||  x.getName.endsWith(".json"))
             if (x.exists)
               success
             else
               failure(x.getAbsolutePath + " does not exist")
           else
-            failure("input file names must end with .avro")})
+            failure("input file names must end with .avro or .json")})
         .action((x, c) => c.copy(inputs = c.inputs :+ x))
         .text("input file names (may be named pipes to avoid disk access with streams)")
 
@@ -302,29 +297,40 @@ the engines are running.
 
         new Thread(new Runnable {
           def run(): Unit = {
-            println("waiting")
+            while(true) {
+              Thread.sleep(saveState.freqSeconds * 1000L)
 
-            Thread.sleep(saveState.freqSeconds * 1000L)
+              logger.log(logging.Level.INFO, "Attempting to write scoring engine states:")
 
-            println("running")
+              val timestamp = new java.sql.Timestamp((new java.util.Date).getTime).toString.take(19).replace(" ", "T")
+              val snapshots = engines map {_.snapshot}
 
-            val timestamp = new java.sql.Timestamp((new java.util.Date).getTime).toString.take(19).replace(" ", "T")
-            val snapshots = engines map {_.snapshot}
+              for ((engine, index) <- engines.zipWithIndex) {
+                val fileName =
+                  if (engines.size > 1) {
+                    val digits = Math.ceil(Math.log10(engines.size)).toInt
+                    val formatter = "%0" + digits.toString + "d"
+                    saveState.baseName + "engine" + formatter.format(index) + "_" + timestamp + ".pfa"
+                  }
+                  else
+                    saveState.baseName + timestamp + ".pfa"
 
-            for ((engine, index) <- engines.zipWithIndex) {
-              val fileName =
-                if (engines.size > 1) {
-                  val digits = Math.floor(Math.log10(engines.size)).toInt
-                  val formatter = "%0" + digits.toString + "d"
-                  saveState.baseName + "engine" + formatter.format(index) + "_" + timestamp + ".pfa"
-                }
-                else
-                  saveState.baseName + timestamp + ".pfa"
+                val snapshot = snapshots(index).toString
+                val size =
+                  if (snapshot.size < 1024)
+                    s"${snapshot.size} bytes"
+                  else if (snapshot.size < 1024*1024)
+                    s"${snapshot.size / 1024} K"
+                  else if (snapshot.size < 1024*1024*1024)
+                    s"${snapshot.size / 1024 / 1024} MB"
+                  else
+                    s"${snapshot.size / 1024 / 1024 / 1024} GB"
+                logger.log(logging.Level.INFO, s"    writing to $fileName ($size)")
 
-              println("fileName", fileName)
-
-              val out = new java.io.PrintWriter(new File(fileName))
-              out.print(snapshots(index).toString)
+                val out = new java.io.PrintWriter(new File(fileName))
+                out.print(snapshot)
+                out.close()
+              }
             }
           }
         }, "Hadrian-saveState")
@@ -338,7 +344,11 @@ the engines are running.
         inputThreads = new Thread(new Runnable {
           def run(): Unit = {
             val namedPipe = new java.io.FileInputStream(pipe.getAbsolutePath)
-            val inputIterator = engines.head.avroInputIterator[AnyRef](namedPipe)
+            val inputIterator =
+              if (pipe.getAbsolutePath.endsWith(".json"))
+                engines.head.jsonInputIterator[AnyRef](namedPipe)
+              else
+                engines.head.avroInputIterator[AnyRef](namedPipe)
             while (inputIterator.hasNext) {
               while (inputQueueSize.get > config.queueSizeLimit  ||  outputQueueSize.get > config.queueSizeLimit)
                 Thread.sleep(1)
@@ -352,7 +362,7 @@ the engines are running.
 
       logger.log(logging.Level.INFO, "Setting up output thread")
       val outputFile =
-        if (config.json)
+        if (config.output.getAbsolutePath.endsWith(".json"))
           Left(new java.io.PrintWriter(config.output.getAbsolutePath))
         else
           Right(engines.head.avroOutputDataFileWriter(config.output.getAbsolutePath))

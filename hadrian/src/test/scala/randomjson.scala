@@ -308,8 +308,10 @@ class RandomJsonSuite extends FlatSpec with Matchers {
       out.put("end", expressions(rng.nextInt(3)))
     if (rng.nextBoolean())
       out.put("fcns", functions(rng.nextInt(3)))
-    if (method == "fold")
+    if (method == "fold") {
       out.put("zero", data())
+      out.put("merge", expressions(1 + rng.nextInt(2)))
+    }
     if (rng.nextBoolean())
       out.put("cells", cells(rng.nextInt(3)))
     if (rng.nextBoolean())

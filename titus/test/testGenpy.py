@@ -53,6 +53,7 @@ output: string
 method: fold
 zero: "!!!"
 action: {s.concat: [name, tally]}
+merge: {s.concat: [tallyOne, tallyTwo]}
 ''')
         self.assertEqual(engine.action(None), "ThisIsMyName!!!")
 
@@ -75,6 +76,25 @@ end: {log: {s.concat: [name, {string: "!!!"}]}}
 ''')
         engine.log = lambda x, ns: self.assertEqual(x, ["ThisIsMyName!!!"])
         engine.end()
+
+        engines = PFAEngine.fromYaml('''
+name: WeAllHaveTheSameName
+input: "null"
+output: {type: array, items: string}
+action:
+  - let: {out: {type: {type: array, items: string}, value: []}}
+  - for: {i: 0}
+    while: {"<": [i, instance]}
+    step: {i: {+: [i, 1]}}
+    do:
+      set: {out: {a.append: [out, name]}}
+  - out
+''', multiplicity=10)
+        for index, engine in enumerate(engines):
+            output = engine.action(None)
+            self.assertEqual(len(output), index)
+            if len(output) > 0:
+                self.assertEqual(output[0], "WeAllHaveTheSameName")
 
     def testMetadataRefuseToChangeName(self):
         def bad():
@@ -110,6 +130,7 @@ zero: null
 action:
   - set: {name: {string: SomethingElse}}
   - null
+merge: null
 ''')
         self.assertRaises(PFASemanticException, bad)
 
@@ -162,6 +183,7 @@ output: int
 method: fold
 zero: 1000
 action: {+: [version, tally]}
+merge: {+: [tallyOne, tallyTwo]}
 ''')
         self.assertEqual(engine.action(None), 1123)
 
@@ -239,6 +261,7 @@ output: string
 method: fold
 zero: "!!!"
 action: {s.concat: [metadata.hello, tally]}
+merge: {s.concat: [tallyOne, tallyTwo]}
 ''')
         self.assertEqual(engine.action(None), "there!!!")
 
@@ -357,6 +380,7 @@ action:
   else:
     - error: "yowzers!"
     - {new: [], type: {type: array, items: long}}
+merge: {a.concat: [tallyOne, tallyTwo]}
 ''')
         try:
             self.assertEqual(engine.action(True), [1, 0])
@@ -382,7 +406,32 @@ action:
             self.assertEqual(engine.action(True), [5, 2])
         except:
             pass
-        
+
+    def testCorrectlyUseMerge(self):
+        engineOne, engineTwo = PFAEngine.fromYaml('''
+input: int
+output: string
+method: fold
+zero: "-"
+action: {s.concat: [tally, {s.number: input}]}
+merge: {s.concat: [tallyOne, tallyTwo]}
+''', multiplicity=2)
+
+        self.assertEqual(engineOne.action(1), "-1")
+        self.assertEqual(engineOne.action(2), "-12")
+        self.assertEqual(engineOne.action(3), "-123")
+        self.assertEqual(engineOne.action(4), "-1234")
+
+        self.assertEqual(engineTwo.action(9), "-9")
+        self.assertEqual(engineTwo.action(8), "-98")
+        self.assertEqual(engineTwo.action(7), "-987")
+        self.assertEqual(engineTwo.action(6), "-9876")
+
+        self.assertEqual(engineOne.merge(engineOne.tally, engineTwo.tally), "-1234-9876")
+        self.assertEqual(engineOne.action(5), "-1234-98765")
+
+        self.assertEqual(engineTwo.action(5), "-98765")
+
     def testLiteralNull(self):
         engine, = PFAEngine.fromYaml('''
 input: "null"
@@ -2485,8 +2534,8 @@ input: double
 output: double
 method: fold
 zero: 0
-action:
-  - {+: [input, tally]}
+action: {+: [input, tally]}
+merge: {+: [tallyOne, tallyTwo]}
 ''')
         
         self.assertEqual(engine.action(5), 5.0)
@@ -2512,6 +2561,7 @@ fcns:
     ret: double
     do:
       - {+: [x, tally]}
+merge: {+: [tallyOne, tallyTwo]}
 '''))
 
     def testButPassingTallyInIsFine(self):
@@ -2530,6 +2580,7 @@ fcns:
     ret: double
     do:
       - {+: [x, t]}
+merge: {+: [tallyOne, tallyTwo]}
 ''')
         
         self.assertEqual(engine.action(5), 5.0)

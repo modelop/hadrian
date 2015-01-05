@@ -18,13 +18,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
+
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
 from titus.signature import Sig
 from titus.signature import Sigs
 from titus.datatype import *
 from titus.errors import *
-from titus.util import div
+from titus.util import div, callfcn
 import titus.P as P
 
 provides = {}
@@ -418,3 +420,286 @@ class ForecastHoltWinters(LibFcn):
 
 provide(ForecastHoltWinters())
 
+class FillHistogram(LibFcn):
+    name = prefix + "fillHistogram"
+    sig = Sigs([Sig([{"x": P.Double()}, {"w": P.Double()}, {"histogram": P.WildRecord("A", {"numbins": P.Int(), "low": P.Double(), "high": P.Double(), "values": P.Array(P.Double())})}], P.Wildcard("A")),
+                Sig([{"x": P.Double()}, {"w": P.Double()}, {"histogram": P.WildRecord("A", {"low": P.Double(), "binsize": P.Double(), "values": P.Array(P.Double())})}], P.Wildcard("A")),
+                Sig([{"x": P.Double()}, {"w": P.Double()}, {"histogram": P.WildRecord("A", {"ranges": P.Array(P.Array(P.Double())), "values": P.Array(P.Double())})}], P.Wildcard("A"))])
+
+    def genpy(self, paramTypes, args):
+        def has(name, avroType):
+            for x in paramTypes[2].fields:
+                if x.name == name:
+                    if not x.avroType.accepts(avroType):
+                        raise PFASemanticException("{} is being given a record type in which the \"{}\" field is not {}: {}".format(self.name, name, avroType, x.avroType), None)
+                    return True
+            return False
+
+        method0 = has("numbins", AvroInt()) and has("low", AvroDouble()) and has("high", AvroDouble())
+        method1 = has("low", AvroDouble()) and has("binsize", AvroDouble())
+        method2 = has("ranges", AvroArray(AvroArray(AvroDouble())))
+
+        if       method0 and not method1 and not method2:
+            method = 0
+        elif not method0 and     method1 and not method2:
+            method = 1
+        elif not method0 and not method1 and     method2:
+            method = 2
+        else:
+            raise PFASemanticException(prefix + "fillHistogram must have \"numbins\", \"low\", \"high\" xor it must have \"low\", \"binsize\" xor it must have \"ranges\", but not any other combination of these fields.", None)
+
+        hasUnderflow = has("underflow", AvroDouble())
+        hasOverflow = has("overflow", AvroDouble())
+        hasNanflow = has("nanflow", AvroDouble())
+        hasInfflow = has("infflow", AvroDouble())
+
+        return "self.f[{}]({}, {}, {}, {}, {}, {})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args), method, hasUnderflow, hasOverflow, hasNanflow, hasInfflow)
+
+    def updateHistogram(self, w, histogram, newValues, hasUnderflow, hasOverflow, hasNanflow, hasInfflow, underflow, overflow, nanflow, infflow):
+        updator = {"values": newValues}
+        if (hasUnderflow):
+            updator["underflow"] = histogram["underflow"] + (w if underflow else 0.0)
+        if (hasOverflow):
+            updator["overflow"] = histogram["overflow"] + (w if overflow else 0.0)
+        if (hasNanflow):
+            updator["nanflow"] = histogram["nanflow"] + (w if nanflow else 0.0)
+        if (hasInfflow):
+            updator["infflow"] = histogram["infflow"] + (w if infflow else 0.0)
+        return dict(histogram, **updator)
+
+    def __call__(self, state, scope, paramTypes, x, w, histogram, method, hasUnderflow, hasOverflow, hasNanflow, hasInfflow):
+        values = histogram["values"]
+
+        if method == 0:
+            numbins, low, high = histogram["numbins"], histogram["low"], histogram["high"]
+
+            if len(values) != numbins:
+                raise PFARuntimeException("wrong histogram size")
+            if low >= high:
+                raise PFARuntimeException("bad histogram range")
+            if numbins < 1:
+                raise PFARuntimeException("bad histogram scale")
+
+            if hasInfflow and math.isinf(x):
+                underflow, overflow, nanflow, infflow = False, False, False, True
+            elif math.isnan(x):
+                underflow, overflow, nanflow, infflow = False, False, True, False
+            elif x >= high:
+                underflow, overflow, nanflow, infflow = False, True, False, False
+            elif x < low:
+                underflow, overflow, nanflow, infflow = True, False, False, False
+            else:
+                underflow, overflow, nanflow, infflow = False, False, False, False
+
+            if not underflow and not overflow and not nanflow and not infflow:
+                try:
+                    index = int(math.floor((x - low) / (high - low) * numbins))
+                except ZeroDivisionError:
+                    index = 0
+                newValues = values[:]
+                newValues[index] = newValues[index] + w
+            else:
+                newValues = values
+
+            return self.updateHistogram(w, histogram, newValues, hasUnderflow, hasOverflow, hasNanflow, hasInfflow, underflow, overflow, nanflow, infflow)
+
+        elif method == 1:
+            low, binsize = histogram["low"], histogram["binsize"]
+
+            if binsize == 0.0:
+                raise PFARuntimeException("bad histogram scale")
+
+            if hasInfflow and math.isinf(x):
+                underflow, overflow, nanflow, infflow = False, False, False, True
+            elif math.isnan(x):
+                underflow, overflow, nanflow, infflow = False, False, True, False
+            elif math.isinf(x) and x > 0.0:
+                underflow, overflow, nanflow, infflow = False, True, False, False
+            elif x < low:
+                underflow, overflow, nanflow, infflow = True, False, False, False
+            else:
+                underflow, overflow, nanflow, infflow = False, False, False, False
+                
+            if not underflow and not overflow and not nanflow and not infflow:
+                currentHigh = low + binsize * len(values)
+                try:
+                    index = int(math.floor((x - low) / (currentHigh - low) * len(values)))
+                except ZeroDivisionError:
+                    index = 0
+                if index < len(values):
+                    newValues = values[:]
+                    newValues[index] = newValues[index] + w
+                else:
+                    newValues = values + [0.0] * (index - len(values)) + [w]
+
+            else:
+                newValues = values
+
+            return self.updateHistogram(w, histogram, newValues, hasUnderflow, hasOverflow, hasNanflow, hasInfflow, underflow, overflow, nanflow, infflow)
+
+        elif method == 2:
+            ranges = histogram["ranges"]
+
+            if len(values) != len(ranges):
+                raise PFARuntimeException("wrong histogram size")
+
+            if any(len(x) != 2 or x[0] > x[1] for x in ranges):
+                raise PFARuntimeException("bad histogram ranges")
+
+            isInfinite = math.isinf(x)
+            isNan = math.isnan(x)
+
+            newValues = values[:]
+            hitOne = False
+
+            if not isInfinite and not isNan:
+                for index, rang in enumerate(ranges):
+                    low = rang[0]
+                    high = rang[1]
+
+                    if low == high and x == low:
+                        newValues[index] = newValues[index] + w
+                        hitOne = True
+
+                    elif x >= low and x < high:
+                        newValues[index] = newValues[index] + w
+                        hitOne = True
+
+            if hasInfflow and isInfinite:
+                underflow, overflow, nanflow, infflow = False, False, False, True
+            elif isNan:
+                underflow, overflow, nanflow, infflow = False, False, True, False
+            elif not hitOne:
+                underflow, overflow, nanflow, infflow = True, False, False, False
+            else:
+                underflow, overflow, nanflow, infflow = False, False, False, False
+
+            return self.updateHistogram(w, histogram, newValues, hasUnderflow, hasOverflow, hasNanflow, hasInfflow, underflow, overflow, nanflow, infflow)
+
+provide(FillHistogram())
+
+class FillHistogram2d(LibFcn):
+    name = prefix + "fillHistogram2d"
+    sig = Sig([{"x": P.Double()}, {"y": P.Double()}, {"w": P.Double()}, {"histogram": P.WildRecord("A", {"xnumbins": P.Int(), "xlow": P.Double(), "xhigh": P.Double(), "ynumbins": P.Int(), "ylow": P.Double(), "yhigh": P.Double(), "values": P.Array(P.Array(P.Double()))})}], P.Wildcard("A"))
+
+    def genpy(self, paramTypes, args):
+        def has(name):
+            for x in paramTypes[3].fields:
+                if x.name == name:
+                    if not x.avroType.accepts(AvroDouble()):
+                        raise PFASemanticException("{} is being given a record type in which the \"{}\" field is not a double: {}".format(self.name, name, x.avroType), None)
+                    return True
+            return False
+
+        return "self.f[{}]({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})".format(
+            repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args),
+            has("underunderflow"),
+            has("undermidflow"),
+            has("underoverflow"),
+            has("midunderflow"),
+            has("midoverflow"),
+            has("overunderflow"),
+            has("overmidflow"),
+            has("overoverflow"),
+            has("nanflow"),
+            has("infflow"))
+
+    def __call__(self, state, scope, paramTypes, x, y, w, histogram,
+                 hasUnderunderflow, hasUndermidflow, hasUnderoverflow,
+                 hasMidunderflow,                    hasMidoverflow,
+                 hasOverunderflow,  hasOvermidflow,  hasOveroverflow,
+                 hasNanflow, hasInfflow):
+
+        values = histogram["values"]
+        xnumbins = histogram["xnumbins"]
+        xlow = histogram["xlow"]
+        xhigh = histogram["xhigh"]
+        ynumbins = histogram["ynumbins"]
+        ylow = histogram["ylow"]
+        yhigh = histogram["yhigh"]
+
+        if len(values) != xnumbins or any(len(x) != ynumbins for x in values):
+            raise PFARuntimeException("wrong histogram size")
+        if xlow >= xhigh or ylow >= yhigh:
+            raise PFARuntimeException("bad histogram range")
+
+        if math.isnan(x) or math.isnan(y):  # do nan check first: nan wins over inf
+            underunderflow, undermidflow, underoverflow, midunderflow, midoverflow, overunderflow, overmidflow, overoverflow, nanflow, infflow = False, False, False, False, False, False, False, False, True, False
+        elif hasInfflow and (math.isinf(x) or math.isinf(y)):
+            underunderflow, undermidflow, underoverflow, midunderflow, midoverflow, overunderflow, overmidflow, overoverflow, nanflow, infflow = False, False, False, False, False, False, False, False, False, True
+        elif x >= xhigh and y >= yhigh:
+            underunderflow, undermidflow, underoverflow, midunderflow, midoverflow, overunderflow, overmidflow, overoverflow, nanflow, infflow = False, False, False, False, False, False, False, True, False, False
+        elif x >= xhigh and y >= ylow and y < yhigh:
+            underunderflow, undermidflow, underoverflow, midunderflow, midoverflow, overunderflow, overmidflow, overoverflow, nanflow, infflow = False, False, False, False, False, False, True, False, False, False
+        elif x >= xhigh and y < ylow:
+            underunderflow, undermidflow, underoverflow, midunderflow, midoverflow, overunderflow, overmidflow, overoverflow, nanflow, infflow = False, False, False, False, False, True, False, False, False, False
+        elif x >= xlow and x < xhigh and y >= yhigh:
+            underunderflow, undermidflow, underoverflow, midunderflow, midoverflow, overunderflow, overmidflow, overoverflow, nanflow, infflow = False, False, False, False, True, False, False, False, False, False
+        elif x >= xlow and x < xhigh and y < ylow:
+            underunderflow, undermidflow, underoverflow, midunderflow, midoverflow, overunderflow, overmidflow, overoverflow, nanflow, infflow = False, False, False, True, False, False, False, False, False, False
+        elif x < xlow and y >= yhigh:
+            underunderflow, undermidflow, underoverflow, midunderflow, midoverflow, overunderflow, overmidflow, overoverflow, nanflow, infflow = False, False, True, False, False, False, False, False, False, False
+        elif x < xlow and y >= ylow and y < yhigh:
+            underunderflow, undermidflow, underoverflow, midunderflow, midoverflow, overunderflow, overmidflow, overoverflow, nanflow, infflow = False, True, False, False, False, False, False, False, False, False
+        elif x < xlow and y < ylow:
+            underunderflow, undermidflow, underoverflow, midunderflow, midoverflow, overunderflow, overmidflow, overoverflow, nanflow, infflow = True, False, False, False, False, False, False, False, False, False
+        else:
+            underunderflow, undermidflow, underoverflow, midunderflow, midoverflow, overunderflow, overmidflow, overoverflow, nanflow, infflow = False, False, False, False, False, False, False, False, False, False
+
+        if not underunderflow and not undermidflow and not underoverflow and not midunderflow and not midoverflow and not overunderflow and not overmidflow and not overoverflow and not nanflow and not infflow:
+            try:
+                xindex = int(math.floor((x - xlow) / (xhigh - xlow) * xnumbins))
+            except ZeroDivisionError:
+                xindex = 0
+            try:
+                yindex = int(math.floor((y - ylow) / (yhigh - ylow) * ynumbins))
+            except ZeroDivisionError:
+                yindex = 0
+            newValues = [x[:] for x in values]
+            newValues[xindex][yindex] = newValues[xindex][yindex] + w
+        else:
+            newValues = values
+
+        updator = {"values": newValues}
+        if hasUnderunderflow:
+            updator["underunderflow"] = histogram["underunderflow"] + (w if underunderflow else 0.0)
+        if hasUndermidflow:
+            updator["undermidflow"] = histogram["undermidflow"] + (w if undermidflow else 0.0)
+        if hasUnderoverflow:
+            updator["underoverflow"] = histogram["underoverflow"] + (w if underoverflow else 0.0)
+        if hasMidunderflow:
+            updator["midunderflow"] = histogram["midunderflow"] + (w if midunderflow else 0.0)
+        if hasMidoverflow:
+            updator["midoverflow"] = histogram["midoverflow"] + (w if midoverflow else 0.0)
+        if hasOverunderflow:
+            updator["overunderflow"] = histogram["overunderflow"] + (w if overunderflow else 0.0)
+        if hasOvermidflow:
+            updator["overmidflow"] = histogram["overmidflow"] + (w if overmidflow else 0.0)
+        if hasOveroverflow:
+            updator["overoverflow"] = histogram["overoverflow"] + (w if overoverflow else 0.0)
+        if hasNanflow:
+            updator["nanflow"] = histogram["nanflow"] + (w if nanflow else 0.0)
+        if hasInfflow:
+            updator["infflow"] = histogram["infflow"] + (w if infflow else 0.0)
+
+        return dict(histogram, **updator)
+
+provide(FillHistogram2d())
+
+class TopN(LibFcn):
+    name = prefix + "topN"
+    sig = Sig([{"x": P.Wildcard("A")}, {"top": P.Array(P.Wildcard("A"))}, {"n": P.Int()}, {"lessThan": P.Fcn([P.Wildcard("A"), P.Wildcard("A")], P.Boolean())}], P.Array(P.Wildcard("A")))
+    def __call__(self, state, scope, paramTypes, x, top, n, lessThan):
+        index = 0
+        for best in top:
+            if callfcn(state, scope, lessThan, [best, x]):
+                break
+            index += 1
+        if index == len(top):
+            out = top + [x]
+        else:
+            above, below = top[:index], top[index:]
+            out = above + [x] + below
+        return out[:n]
+
+provide(TopN())

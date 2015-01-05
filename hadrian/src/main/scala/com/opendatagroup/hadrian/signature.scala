@@ -100,7 +100,7 @@ package signature {
       case _ => throw new IncompatibleTypes("cannot convert generic pattern to concrete type")
     }
 
-    def fromType(t: Type): Pattern = t match {
+    def fromType(t: Type, memo: Set[String] = Set[String]()): Pattern = t match {
       case AvroNull() => Null
       case AvroBoolean() => Boolean
       case AvroInt() => Int
@@ -110,9 +110,9 @@ package signature {
       case AvroBytes() => Bytes
       case AvroString() => String
 
-      case AvroArray(items) => Array(fromType(items))
-      case AvroMap(values) => Map(fromType(values))
-      case AvroUnion(types) => Union(types.map(fromType(_)).toList)
+      case AvroArray(items) => Array(fromType(items, memo))
+      case AvroMap(values) => Map(fromType(values, memo))
+      case AvroUnion(types) => Union(types map {x => fromType(x, memo)} toList)
 
       case AvroFixed(size, name, Some(namespace), _, _) => Fixed(size, Some(namespace + "." + name))
       case AvroFixed(size, name, None, _, _) => Fixed(size, Some(name))
@@ -120,12 +120,18 @@ package signature {
       case AvroEnum(symbols, name, Some(namespace), _, _) => Enum(symbols, Some(namespace + "." + name))
       case AvroEnum(symbols, name, None, _, _) => Enum(symbols, Some(name))
 
-      case AvroRecord(fields, name, Some(namespace), _, _) => Record(scala.collection.immutable.Map[String, Pattern](), Some(namespace + "." + name))
-      case AvroRecord(fields, name, None, _, _) => Record(scala.collection.immutable.Map[String, Pattern](), Some(name))
+      case AvroRecord(fields, name, Some(namespace), _, _) => fillRecord(fields, namespace + "." + name, memo)
+      case AvroRecord(fields, name, None, _, _) => fillRecord(fields, name, memo)
 
-      case FcnType(params, ret) => Fcn(params.map(fromType).toList, fromType(ret))
+      case FcnType(params, ret) => Fcn(params map {x => fromType(x, memo)} toList, fromType(ret, memo))
       case _: ExceptionType => throw new IncompatibleTypes("exception type cannot be used in argument patterns")
     }
+
+    private def fillRecord(fields: Seq[AvroField], name: String, memo: Set[String]): Record =
+      if (memo.contains(name))
+        Record(scala.collection.immutable.Map[String, Pattern](), Some(name))
+      else
+        Record(fields map {f: AvroField => (f.name, fromType(f.avroType, memo union Set(name)))} toMap, Some(name))
 
     def mustBeAvro(t: Type): AvroType = t match {
       case x: AvroType => x

@@ -1025,3 +1025,411 @@ action:
         self.assertAlmostEqual(engine.action(6.0), 4.00, places=2)
         self.assertAlmostEqual(engine.action(4.0), 2.00, places=2)
         self.assertAlmostEqual(engine.action(2.0), 8.00, places=2)
+
+    def testFillASimpleHistogram(self):
+        engine, = PFAEngine.fromYaml('''
+input: double
+output: {type: array, items: double}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: numbins, type: int}
+        - {name: low, type: double}
+        - {name: high, type: double}
+        - {name: values, type: {type: array, items: double}}
+    init:
+      numbins: 10
+      low: -100.0
+      high: 0.0
+      values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+action:
+  attr:
+    cell: histogram
+    to:
+      params: [{old: Histogram}]
+      ret: Histogram
+      do: {stat.sample.fillHistogram: [input, 1.0, old]}
+  path: [{string: values}]
+''')
+        self.assertEqual(engine.action(-50.0), [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action(-20.0), [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0])
+        self.assertEqual(engine.action(-80.0), [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0])
+        self.assertEqual(engine.action(50.0), [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0])
+        self.assertEqual(engine.action(0.0), [0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0])
+        self.assertEqual(engine.action(-100.0), [1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0])
+        self.assertEqual(engine.action(-50.0), [1.0, 0.0, 1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 1.0, 0.0])
+        self.assertEqual(engine.action(float("inf")), [1.0, 0.0, 1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 1.0, 0.0])
+        self.assertEqual(engine.action(float("-inf")), [1.0, 0.0, 1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 1.0, 0.0])
+        self.assertEqual(engine.action(float("nan")), [1.0, 0.0, 1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 1.0, 0.0])
+
+    def testFillAHistogramWithOverflowCounters(self):
+        engine, = PFAEngine.fromYaml('''
+input: double
+output: {type: array, items: double}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: numbins, type: int}
+        - {name: low, type: double}
+        - {name: high, type: double}
+        - {name: values, type: {type: array, items: double}}
+        - {name: underflow, type: double}
+        - {name: overflow, type: double}
+        - {name: nanflow, type: double}
+        - {name: infflow, type: double}
+    init:
+      numbins: 10
+      low: -100.0
+      high: 0.0
+      values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      underflow: 0.0
+      overflow: 0.0
+      nanflow: 0.0
+      infflow: 0.0
+action:
+  - let:
+      out:
+        cell: histogram
+        to:
+          params: [{old: Histogram}]
+          ret: Histogram
+          do: {stat.sample.fillHistogram: [input, 1.0, old]}
+  - type: {type: array, items: double}
+    new: [out.underflow, out.overflow, out.nanflow, out.infflow]
+''')
+        self.assertEqual(engine.action(-50.0), [0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action(-20.0), [0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action(-80.0), [0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action(50.0), [0.0, 1.0, 0.0, 0.0])
+        self.assertEqual(engine.action(0.0), [0.0, 2.0, 0.0, 0.0])
+        self.assertEqual(engine.action(-100.0), [0.0, 2.0, 0.0, 0.0])
+        self.assertEqual(engine.action(-50.0), [0.0, 2.0, 0.0, 0.0])
+        self.assertEqual(engine.action(float("inf")), [0.0, 2.0, 0.0, 1.0])
+        self.assertEqual(engine.action(float("-inf")), [0.0, 2.0, 0.0, 2.0])
+        self.assertEqual(engine.action(float("nan")), [0.0, 2.0, 1.0, 2.0])
+
+    def testFillAHistogramWithoutInfflow(self):
+        engine, = PFAEngine.fromYaml('''
+input: double
+output: {type: array, items: double}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: numbins, type: int}
+        - {name: low, type: double}
+        - {name: high, type: double}
+        - {name: values, type: {type: array, items: double}}
+        - {name: underflow, type: double}
+        - {name: overflow, type: double}
+        - {name: nanflow, type: double}
+    init:
+      numbins: 10
+      low: -100.0
+      high: 0.0
+      values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      underflow: 0.0
+      overflow: 0.0
+      nanflow: 0.0
+action:
+  - let:
+      out:
+        cell: histogram
+        to:
+          params: [{old: Histogram}]
+          ret: Histogram
+          do: {stat.sample.fillHistogram: [input, 1.0, old]}
+  - type: {type: array, items: double}
+    new: [out.underflow, out.overflow, out.nanflow]
+''')
+        self.assertEqual(engine.action(-50.0), [0.0, 0.0, 0.0])
+        self.assertEqual(engine.action(-20.0), [0.0, 0.0, 0.0])
+        self.assertEqual(engine.action(-80.0), [0.0, 0.0, 0.0])
+        self.assertEqual(engine.action(50.0), [0.0, 1.0, 0.0])
+        self.assertEqual(engine.action(0.0), [0.0, 2.0, 0.0])
+        self.assertEqual(engine.action(-100.0), [0.0, 2.0, 0.0])
+        self.assertEqual(engine.action(-50.0), [0.0, 2.0, 0.0])
+        self.assertEqual(engine.action(float("inf")), [0.0, 3.0, 0.0])
+        self.assertEqual(engine.action(float("-inf")), [1.0, 3.0, 0.0])
+        self.assertEqual(engine.action(float("nan")), [1.0, 3.0, 1.0])
+
+    def testFillAGrowableHistogram(self):
+        engine, = PFAEngine.fromYaml('''
+input: double
+output: {type: array, items: double}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: low, type: double}
+        - {name: binsize, type: double}
+        - {name: values, type: {type: array, items: double}}
+    init:
+      low: 10.0
+      binsize: 2.0
+      values: []
+action:
+  attr:
+    cell: histogram
+    to:
+      params: [{old: Histogram}]
+      ret: Histogram
+      do: {stat.sample.fillHistogram: [input, 1.0, old]}
+  path: [{string: values}]
+''')
+        self.assertEqual(engine.action(5.0), [])
+        self.assertEqual(engine.action(10.0), [1.0])
+        self.assertEqual(engine.action(20.0), [1.0, 0.0, 0.0, 0.0, 0.0, 1.0])
+        self.assertEqual(engine.action(15.0), [1.0, 0.0, 1.0, 0.0, 0.0, 1.0])
+        self.assertEqual(engine.action(5.0), [1.0, 0.0, 1.0, 0.0, 0.0, 1.0])
+        self.assertEqual(engine.action(float("inf")), [1.0, 0.0, 1.0, 0.0, 0.0, 1.0])
+        self.assertEqual(engine.action(float("-inf")), [1.0, 0.0, 1.0, 0.0, 0.0, 1.0])
+        self.assertEqual(engine.action(float("nan")), [1.0, 0.0, 1.0, 0.0, 0.0, 1.0])
+
+    def testFillAVariableBinWidthHistogram(self):
+        engine, = PFAEngine.fromYaml('''
+input: double
+output: {type: array, items: double}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: ranges, type: {type: array, items: {type: array, items: double}}}
+        - {name: values, type: {type: array, items: double}}
+    init:
+      ranges: [[0.0, 5.0], [5.0, 10.0], [0.0, 10.0]]
+      values: [0.0, 0.0, 0.0]
+action:
+  attr:
+    cell: histogram
+    to:
+      params: [{old: Histogram}]
+      ret: Histogram
+      do: {stat.sample.fillHistogram: [input, 1.0, old]}
+  path: [{string: values}]
+''')
+        self.assertEqual(engine.action(5.0), [0.0, 1.0, 1.0])
+        self.assertEqual(engine.action(3.0), [1.0, 1.0, 2.0])
+        self.assertEqual(engine.action(0.0), [2.0, 1.0, 3.0])
+        self.assertEqual(engine.action(10.0), [2.0, 1.0, 3.0])
+        self.assertEqual(engine.action(8.0), [2.0, 2.0, 4.0])
+        self.assertEqual(engine.action(float("inf")), [2.0, 2.0, 4.0])
+        self.assertEqual(engine.action(float("-inf")), [2.0, 2.0, 4.0])
+        self.assertEqual(engine.action(float("nan")), [2.0, 2.0, 4.0])
+
+    def testFillATwoDimensionalHistogram(self):
+        engine, = PFAEngine.fromYaml('''
+input: {type: array, items: double}
+output: {type: array, items: {type: array, items: double}}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: xnumbins, type: int}
+        - {name: xlow, type: double}
+        - {name: xhigh, type: double}
+        - {name: ynumbins, type: int}
+        - {name: ylow, type: double}
+        - {name: yhigh, type: double}
+        - {name: values, type: {type: array, items: {type: array, items: double}}}
+    init:
+      xnumbins: 5
+      ynumbins: 4
+      xlow: 0.0
+      xhigh: 5.0
+      ylow: 0.0
+      yhigh: 4.0
+      values:
+        - [0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0]
+action:
+  attr:
+    cell: histogram
+    to:
+      params: [{old: Histogram}]
+      ret: Histogram
+      do:
+        stat.sample.fillHistogram2d:
+          - {attr: input, path: [0]}
+          - {attr: input, path: [1]}
+          - 1.0
+          - old
+  path: [{string: values}]
+''')
+        self.assertEqual(engine.action([-10.0, -10.0]), [[0.0, 0.0, 0.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0]])
+        self.assertEqual(engine.action([  2.0,   2.0]), [[0.0, 0.0, 0.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0],
+                                                         [0.0, 0.0, 1.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0]])
+        self.assertEqual(engine.action([  2.0,   2.0]), [[0.0, 0.0, 0.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0],
+                                                         [0.0, 0.0, 2.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0]])
+        self.assertEqual(engine.action([  0.0,   2.0]), [[0.0, 0.0, 1.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0],
+                                                         [0.0, 0.0, 2.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0],
+                                                         [0.0, 0.0, 0.0, 0.0]])
+
+    def testFillATwoDimensionalHistogramWithOverflowBins(self):
+        engine, = PFAEngine.fromYaml('''
+input: {type: array, items: double}
+output: {type: array, items: double}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: xnumbins, type: int}
+        - {name: xlow, type: double}
+        - {name: xhigh, type: double}
+        - {name: ynumbins, type: int}
+        - {name: ylow, type: double}
+        - {name: yhigh, type: double}
+        - {name: values, type: {type: array, items: {type: array, items: double}}}
+        - {name: underunderflow, type: double}
+        - {name: undermidflow, type: double}
+        - {name: underoverflow, type: double}
+        - {name: midunderflow, type: double}
+        - {name: midoverflow, type: double}
+        - {name: overunderflow, type: double}
+        - {name: overmidflow, type: double}
+        - {name: overoverflow, type: double}
+        - {name: nanflow, type: double}
+        - {name: infflow, type: double}
+    init:
+      xnumbins: 5
+      ynumbins: 5
+      xlow: 0.0
+      xhigh: 5.0
+      ylow: 0.0
+      yhigh: 5.0
+      values:
+        - [0.0, 0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0, 0.0]
+      underunderflow: 0.0
+      undermidflow: 0.0
+      underoverflow: 0.0
+      midunderflow: 0.0
+      midoverflow: 0.0
+      overunderflow: 0.0
+      overmidflow: 0.0
+      overoverflow: 0.0
+      nanflow: 0.0
+      infflow: 0.0
+action:
+  - let:
+      hist:
+        cell: histogram
+        to:
+          params: [{old: Histogram}]
+          ret: Histogram
+          do:
+            stat.sample.fillHistogram2d:
+              - {attr: input, path: [0]}
+              - {attr: input, path: [1]}
+              - 1.0
+              - old
+  - type: {type: array, items: double}
+    new: [hist.underunderflow, hist.undermidflow, hist.underoverflow, hist.midunderflow, hist.midoverflow, hist.overunderflow, hist.overmidflow, hist.overoverflow, hist.nanflow, hist.infflow]
+''')
+        self.assertEqual(engine.action([2.0, 2.0]), [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action([-10.0, -10.0]), [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action([-10.0, 2.0]), [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action([-10.0, 10.0]), [1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action([2.0, -10.0]), [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action([2.0, 2.0]), [1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action([2.0, 10.0]), [1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action([10.0, -10.0]), [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action([10.0, 2.0]), [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0])
+        self.assertEqual(engine.action([10.0, 10.0]), [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0])
+        self.assertEqual(engine.action([float("nan"), 10.0]), [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0])
+        self.assertEqual(engine.action([10.0, float("nan")]), [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 0.0])
+        self.assertEqual(engine.action([float("inf"), 10.0]), [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.0])
+        self.assertEqual(engine.action([float("-inf"), 10.0]), [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0])
+        self.assertEqual(engine.action([10.0, float("inf")]), [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 3.0])
+        self.assertEqual(engine.action([10.0, float("-inf")]), [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 4.0])
+
+    def testMaintainATop5List(self):
+        engine, = PFAEngine.fromYaml("""
+input: double
+output: {type: array, items: double}
+cells:
+  state:
+    type: {type: array, items: double}
+    init: []
+action:
+  - cell: state
+    to:
+      params: [{old: {type: array, items: double}}]
+      ret: {type: array, items: double}
+      do: {stat.sample.topN: [input, old, 5, {fcn: u.lt}]}
+fcns:
+  lt:
+    params: [{x: double}, {y: double}]
+    ret: boolean
+    do: {"<": [x, y]}
+""")
+        self.assertEqual(engine.action(2.0), [2.0])
+        self.assertEqual(engine.action(1.0), [2.0, 1.0])
+        self.assertEqual(engine.action(1.5), [2.0, 1.5, 1.0])
+        self.assertEqual(engine.action(3.0), [3.0, 2.0, 1.5, 1.0])
+        self.assertEqual(engine.action(0.9), [3.0, 2.0, 1.5, 1.0, 0.9])
+        self.assertEqual(engine.action(1.0), [3.0, 2.0, 1.5, 1.0, 1.0])
+        self.assertEqual(engine.action(4.0), [4.0, 3.0, 2.0, 1.5, 1.0])
+
+    def testMaintainATop5ListOfStrings(self):
+        engine, = PFAEngine.fromYaml("""
+input: string
+output: {type: array, items: string}
+cells:
+  state:
+    type: {type: array, items: string}
+    init: []
+action:
+  - cell: state
+    to:
+      params: [{old: {type: array, items: string}}]
+      ret: {type: array, items: string}
+      do: {stat.sample.topN: [input, old, 5, {fcn: u.lt}]}
+fcns:
+  lt:
+    params: [{x: string}, {y: string}]
+    ret: boolean
+    do: {"<": [{s.len: x}, {s.len: y}]}
+""")
+
+        self.assertEqual(engine.action("two"), ["two"])
+        self.assertEqual(engine.action("u"), ["two", "u"])
+        self.assertEqual(engine.action("to"), ["two", "to", "u"])
+        self.assertEqual(engine.action("three"), ["three", "two", "to", "u"])
+        self.assertEqual(engine.action(""), ["three", "two", "to", "u", ""])
+        self.assertEqual(engine.action("Z"), ["three", "two", "to", "u", "Z"])
+        self.assertEqual(engine.action("wowie-wow"), ["wowie-wow", "three", "two", "to", "u"])

@@ -25,6 +25,7 @@ from collections import OrderedDict
 
 import titus.lib1.array
 import titus.lib1.bytes
+import titus.lib1.cast
 import titus.lib1.core
 import titus.lib1.enum
 import titus.lib1.fixed
@@ -198,6 +199,7 @@ class FunctionTable(object):
         functions = {}
         functions.update(titus.lib1.array.provides)
         functions.update(titus.lib1.bytes.provides)
+        functions.update(titus.lib1.cast.provides)
         functions.update(titus.lib1.core.provides)
         functions.update(titus.lib1.enum.provides)
         functions.update(titus.lib1.fixed.provides)
@@ -299,6 +301,7 @@ class EngineConfig(Ast):
                  end,
                  fcns,
                  zero,
+                 merge,
                  cells,
                  pools,
                  randseed,
@@ -307,8 +310,18 @@ class EngineConfig(Ast):
                  metadata,
                  options,
                  pos=None):
+
         if len(self.action) < 1:
             raise PFASyntaxException("\"action\" must contain least one expression", self.pos)
+
+        if method == Method.FOLD and (zero is None or merge is None):
+            raise PFASyntaxException("folding engines must include \"zero\" and \"merge\" top-level fields", pos)
+
+        if method != Method.FOLD and (zero is not None or merge is not None):
+            raise PFASyntaxException("non-folding engines must not include \"zero\" and \"merge\" top-level fields", pos)
+
+        if merge is not None and len(merge) < 1:
+            raise PFASyntaxException("\"merge\" must contain least one expression", self.pos)
 
     def toString(self):
         return '''EngineConfig(name={name},
@@ -320,6 +333,7 @@ class EngineConfig(Ast):
     end={end},
     fcns={fcns},
     zero={zero},
+    merge={merge},
     cells={cells},
     pools={pools},
     randseed={randseed},
@@ -335,6 +349,7 @@ class EngineConfig(Ast):
                          end=self.end,
                          fcns=self.fcns,
                          zero=self.zero,
+                         merge=self.merge,
                          cells=self.cells,
                          pools=self.pools,
                          randseed=self.randseed,
@@ -386,6 +401,7 @@ class EngineConfig(Ast):
 
         beginScopeWrapper = topWrapper.newScope(True, False)
         beginScopeWrapper.put("name", AvroString())
+        beginScopeWrapper.put("instance", AvroInt())
         if self.version is not None:
             beginScopeWrapper.put("version", AvroInt())
         beginScopeWrapper.put("metadata", AvroMap(AvroString()))
@@ -395,12 +411,36 @@ class EngineConfig(Ast):
         beginResults = [x[1] for x in beginContextResults]
         beginCalls = set(titus.util.flatten([x[0].calls for x in beginContextResults]))
 
-        # this will go into end and action, but not begin
+        if self.merge is not None:
+            mergeScopeWrapper = topWrapper.newScope(True, False)
+            mergeScopeWrapper.put("tallyOne", self.output)
+            mergeScopeWrapper.put("tallyTwo", self.output)
+            mergeScopeWrapper.put("name", AvroString())
+            mergeScopeWrapper.put("instance", AvroInt())
+            if self.version is not None:
+                mergeScopeWrapper.put("version", AvroInt())
+            mergeScopeWrapper.put("metadata", AvroMap(AvroString()))
+            mergeScope = mergeScopeWrapper.newScope(True, False)
+
+            mergeContextResults = [x.walk(task, mergeScope, withUserFunctions, engineOptions) for x in self.merge]
+            mergeCalls = set(titus.util.flatten([x[0].calls for x in mergeContextResults]))
+
+            if not self.output.accepts(mergeContextResults[-1][0].retType):
+                raise PFASemanticException("merge's inferred output type is {} but the declared output type is {}".format(mergeContextResults[-1][0].retType, self.output), self.pos)
+
+            mergeOption = ([x[1] for x in mergeContextResults],
+                           dict(list(mergeScopeWrapper.inThisScope.items()) + list(mergeScope.inThisScope.items())),
+                           mergeCalls)
+        else:
+            mergeOption = None
+
+        # this will go into end and action, but not begin or merge
         if self.method == Method.FOLD:
             topWrapper.put("tally", self.output)
 
         endScopeWrapper = topWrapper.newScope(True, False)
         endScopeWrapper.put("name", AvroString())
+        endScopeWrapper.put("instance", AvroInt())
         if self.version is not None:
             endScopeWrapper.put("version", AvroInt())
         endScopeWrapper.put("metadata", AvroMap(AvroString()))
@@ -415,6 +455,7 @@ class EngineConfig(Ast):
         actionScopeWrapper = topWrapper.newScope(True, False)
         actionScopeWrapper.put("input", self.input)
         actionScopeWrapper.put("name", AvroString())
+        actionScopeWrapper.put("instance", AvroInt())
         if self.version is not None:
             actionScopeWrapper.put("version", AvroInt())
         actionScopeWrapper.put("metadata", AvroMap(AvroString()))
@@ -446,6 +487,7 @@ class EngineConfig(Ast):
              endCalls),
             userFcnContexts,
             self.zero,
+            mergeOption,
             self.cells,
             self.pools,
             self.randseed,
@@ -483,6 +525,9 @@ class EngineConfig(Ast):
         if self.zero is not None:
             out["zero"] = json.loads(self.zero)
 
+        if self.merge is not None:
+            out["merge"] = [x.jsonNode(lineNumbers, memo) for x in self.merge]
+
         if self.randseed is not None:
             out["randseed"] = self.randseed
 
@@ -513,6 +558,7 @@ class EngineConfig(Ast):
                      end,
                      fcns,
                      zero,
+                     merge,
                      cells,
                      pools,
                      randseed,
@@ -1151,26 +1197,25 @@ class NewObject(Expression):
             fieldNameTypeExpr.append((name, exprContext.retType, exprResult))
 
         if isinstance(self.avroType, AvroRecord):
-            record = self.avroType
-            newType = AvroRecord([AvroField(n, fieldType) for n, fieldType, xr in fieldNameTypeExpr], self.avroType.name, self.avroType.namespace)
-            if not record.accepts(newType) or not newType.accepts(record):
-                raise PFASemanticException("record constructed with \"new\" has incorrectly-typed fields: {} rather than {}".format(newType, record), self.pos)
-            retType = record
+            fldsMap = dict((n, f.avroType) for n, f in self.avroType.fieldsDict.items())
+            for n, t, xr in fieldNameTypeExpr:
+                fieldType = fldsMap.get(n)
+                if fieldType is None:
+                    raise PFASemanticException("record constructed with \"new\" has unexpected field named \"{}\"".format(n), self.pos)
+                if not fieldType.accepts(t):
+                    raise PFASemanticException("record constructed with \"new\" is has wrong field type for \"{}\": {} rather than {}".format(n, t, fieldType), self.pos)
+            if set(fldsMap.keys()) != set(n for n, t, xr in fieldNameTypeExpr):
+                raise PFASemanticException("record constructed with \"new\" is missing fields: {} rather than {}".format(sorted(n for n, t, xr in fieldNameTypeExpr), sorted(fldsMap.keys())), self.pos)
 
         elif isinstance(self.avroType, AvroMap):
-            if len(fieldNameTypeExpr) > 0:
-                try:
-                    newType = LabelData.broadestType([x[1] for x in fieldNameTypeExpr])
-                except IncompatibleTypes as err:
-                    raise PFASemanticException(str(err), self.pos)
-                if not self.avroType.values.accepts(newType):
-                    raise PFASemanticException("map constructed with \"new\" has incorrectly-typed items: {} rather than {}".format(newType, self.avroType.values), self.pos)
-            retType = AvroMap(self.avroType.values)
+            for n, t, xr in fieldNameTypeExpr:
+                if not self.avroType.values.accepts(t):
+                    raise PFASemanticException("map constructed with \"new\" has wrong type for value associated with key \"{}\": {} rather than {}".format(n, t, self.avroType.values), self.pos)
 
         else:
             raise PFASemanticException("object constructed with \"new\" must have record or map type, not {}".format(self.avroType), self.pos)
 
-        context = self.Context(retType, calls.union(set([self.desc])), dict((x[0], x[2]) for x in fieldNameTypeExpr))
+        context = self.Context(self.avroType, calls.union(set([self.desc])), dict((x[0], x[2]) for x in fieldNameTypeExpr))
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
@@ -1217,18 +1262,14 @@ class NewArray(Expression):
             itemTypeExpr.append((exprContext.retType, exprResult))
 
         if isinstance(self.avroType, AvroArray):
-            if len(itemTypeExpr) > 0:
-                try:
-                    newType = LabelData.broadestType([x[0] for x in itemTypeExpr])
-                except IncompatibleTypes as err:
-                    raise PFASemanticException(str(err), self.pos)
-                if not self.avroType.items.accepts(newType):
-                    raise PFASemanticException("array constructed with \"new\" has incorrectly-typed items: {} rather than {}".format(newType, self.items), self.pos)
-            retType = self.avroType
+            for i, (t, xr) in enumerate(itemTypeExpr):
+                if not self.avroType.items.accepts(t):
+                    raise PFASemanticException("array constructed with \"new\" has wrong type for item {}: {} rather than {}".format(i, t, self.avroType.items), self.pos)
+
         else:
             raise PFASemanticException("array constructed with \"new\" must have array type, not {}".format(self.avroType), self.pos)
 
-        context = self.Context(retType, calls.union(set([self.desc])), [x[1] for x in itemTypeExpr])
+        context = self.Context(self.avroType, calls.union(set([self.desc])), [x[1] for x in itemTypeExpr])
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
@@ -1605,6 +1646,7 @@ class PoolTo(Expression, HasPath):
         toContext, toResult = self.to.walk(task, symbolTable, functionTable, engineOptions)
 
         initContext, initResult = self.init.walk(task, symbolTable, functionTable, engineOptions)
+
         if not poolType.accepts(initContext.retType):
             raise PFASemanticException("pool has type {} but attempting to init with type {}".format(repr(poolType), repr(initContext.retType)), self.pos)
 

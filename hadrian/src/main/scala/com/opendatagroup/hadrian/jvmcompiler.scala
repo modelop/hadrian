@@ -34,7 +34,6 @@ import org.codehaus.janino.util.resource.ResourceFinder
 
 import org.apache.avro.file.DataFileStream
 import org.apache.avro.file.DataFileWriter
-import org.apache.avro.io.DatumWriter
 import org.apache.avro.io.DecoderFactory
 import org.apache.avro.io.EncoderFactory
 import org.apache.avro.io.JsonEncoder
@@ -132,6 +131,10 @@ import com.opendatagroup.hadrian.datatype.AvroField
 import com.opendatagroup.hadrian.datatype.AvroUnion
 import com.opendatagroup.hadrian.datatype.ForwardDeclarationParser
 
+import com.opendatagroup.hadrian.data.AvroOutputDataFileWriter
+import com.opendatagroup.hadrian.data.JsonOutputDataFileWriter
+import com.opendatagroup.hadrian.data.OutputDataFileWriter
+import com.opendatagroup.hadrian.data.PFADataTranslator
 import com.opendatagroup.hadrian.data.PFADatumReader
 import com.opendatagroup.hadrian.data.PFADatumWriter
 import com.opendatagroup.hadrian.data.PFAMap
@@ -286,6 +289,12 @@ package jvmcompiler {
       case x2: java.lang.Long => asJInt(x2)
     }
 
+    def maybeJInt(x: AnyRef): AnyRef = x match {
+      case null => x
+      case x1: java.lang.Integer => x1
+      case _ => x
+    }
+
     def asLong(x: Int): Long = x.toLong
     def asLong(x: Long): Long = x
     def asLong(x: java.lang.Integer): Long = x.longValue
@@ -302,6 +311,13 @@ package jvmcompiler {
     def asJLong(x: AnyRef): java.lang.Long = x match {
       case x1: java.lang.Integer => java.lang.Long.valueOf(x1.longValue)
       case x2: java.lang.Long => x2
+    }
+
+    def maybeJLong(x: AnyRef): AnyRef = x match {
+      case null => x
+      case x1: java.lang.Integer => java.lang.Long.valueOf(x1.longValue)
+      case x2: java.lang.Long => x2
+      case _ => x
     }
 
     def asFloat(x: Int): Float = x.toFloat
@@ -326,6 +342,14 @@ package jvmcompiler {
       case x1: java.lang.Integer => java.lang.Float.valueOf(x1.floatValue)
       case x2: java.lang.Long => java.lang.Float.valueOf(x2.floatValue)
       case x3: java.lang.Float => x3
+    }
+
+    def maybeJFloat(x: AnyRef): AnyRef = x match {
+      case null => x
+      case x1: java.lang.Integer => java.lang.Float.valueOf(x1.floatValue)
+      case x2: java.lang.Long => java.lang.Float.valueOf(x2.floatValue)
+      case x3: java.lang.Float => x3
+      case _ => x
     }
 
     def asDouble(x: Int): Double = x.toDouble
@@ -358,6 +382,15 @@ package jvmcompiler {
       case x4: java.lang.Double => x4
     }
 
+    def maybeJDouble(x: AnyRef): AnyRef = x match {
+      case null => x
+      case x1: java.lang.Integer => java.lang.Double.valueOf(x1.doubleValue)
+      case x2: java.lang.Long => java.lang.Double.valueOf(x2.doubleValue)
+      case x3: java.lang.Float => java.lang.Double.valueOf(x3.doubleValue)
+      case x4: java.lang.Double => x4
+      case _ => x
+    }
+
     def wrapExpr(x: String, avroType: AvroType, boxed: Boolean): String = (avroType, boxed) match {
       case (_: AvroBoolean, false) => "com.opendatagroup.hadrian.jvmcompiler.W.asBool(" + x + ")"
       case (_: AvroInt, false) => "com.opendatagroup.hadrian.jvmcompiler.W.asInt(" + x + ")"
@@ -369,6 +402,17 @@ package jvmcompiler {
       case (_: AvroLong, true) => "com.opendatagroup.hadrian.jvmcompiler.W.asJLong(" + x + ")"
       case (_: AvroFloat, true) => "com.opendatagroup.hadrian.jvmcompiler.W.asJFloat(" + x + ")"
       case (_: AvroDouble, true) => "com.opendatagroup.hadrian.jvmcompiler.W.asJDouble(" + x + ")"
+      case (u: AvroUnion, _) =>
+        if (u.types.exists(_.isInstanceOf[AvroDouble]))
+          "com.opendatagroup.hadrian.jvmcompiler.W.maybeJDouble(" + x + ")"
+        else if (u.types.exists(_.isInstanceOf[AvroFloat]))
+          "com.opendatagroup.hadrian.jvmcompiler.W.maybeJFloat(" + x + ")"
+        else if (u.types.exists(_.isInstanceOf[AvroLong]))
+          "com.opendatagroup.hadrian.jvmcompiler.W.maybeJLong(" + x + ")"
+        else if (u.types.exists(_.isInstanceOf[AvroInt]))
+          "com.opendatagroup.hadrian.jvmcompiler.W.maybeJInt(" + x + ")"
+        else
+          x
       case _ => x
     }
 
@@ -404,6 +448,8 @@ package jvmcompiler {
     private var _typeParser: ForwardDeclarationParser = null
     def typeParser: ForwardDeclarationParser = _typeParser
 
+    var _instance: Int = -1
+    def instance: Int = _instance
     var _metadata: PFAMap[String] = null
     var _actionsStarted: Long = 0L
     var _actionsFinished: Long = 0L
@@ -465,17 +511,24 @@ package jvmcompiler {
     private val privatePools = mutable.Map[String, java.util.HashMap[String, AnyRef]]()
     private val publicPools = mutable.Map[String, SharedMap]()
 
-    def initialize(config: EngineConfig, options: EngineOptions, sharedState: Option[SharedState], thisClass: java.lang.Class[_], context: EngineConfig.Context): Unit = {
+    def initialize(config: EngineConfig, options: EngineOptions, sharedState: Option[SharedState], thisClass: java.lang.Class[_], context: EngineConfig.Context, index: Int): Unit = {
       _config = config
       _options = options
+
+      val mergeCalls = context.merge match {
+        case Some((_, _, x)) => Map("(merge)" -> x)
+        case None => Map[String, Set[String]]()
+      }
       _callGraph =
         (context.fcns map {case (fname, fctx) => (fname, fctx.calls)}) ++
           Map("(begin)" -> context.begin._3) ++
           Map("(action)" -> context.action._3) ++
-          Map("(end)" -> context.end._3)
+          Map("(end)" -> context.end._3) ++
+          mergeCalls
 
       _typeParser = context.parser
 
+      _instance = index
       _metadata = PFAMap.fromMap(config.metadata)
 
       // make sure that functions used in CellTo and PoolTo do not themselves call CellTo or PoolTo (which could lead to deadlock)
@@ -590,10 +643,14 @@ package jvmcompiler {
       _outputType = context.output
       _namedTypes = context.compiledTypes map {x => (x.fullName, x)} toMap
 
+      inputTranslator = new PFADataTranslator(inputType, classLoader)
+
       // ...
 
       config.randseed match {
-        case Some(x) => _randomGenerator = new Random(x)
+        case Some(x) =>
+          _randomGenerator = new Random(x)
+          0 until index foreach {skip => _randomGenerator = new Random(_randomGenerator.nextInt)}
         case None => _randomGenerator = new Random()
       }
     }
@@ -687,6 +744,7 @@ package jvmcompiler {
         config.end,
         config.fcns,
         config.zero,
+        config.merge,
         newCells,
         newPools,
         config.randseed,
@@ -792,15 +850,25 @@ package jvmcompiler {
       }
     }
 
-    def avroOutputDataFileWriter(fileName: String): DataFileWriter[AnyRef] = {
+    def avroOutputDataFileWriter(fileName: String): AvroOutputDataFileWriter = {
       val writer = new PFADatumWriter[AnyRef](outputType.schema, specificData)
-      val out = new DataFileWriter[AnyRef](writer)
+      val out = new AvroOutputDataFileWriter(writer)
       out.create(outputType.schema, new java.io.File(fileName))
       out
     }
 
+    def jsonOutputDataFileWriter(fileName: String): JsonOutputDataFileWriter = {
+      val outputStream = new java.io.FileOutputStream(fileName)
+      val encoder = EncoderFactory.get.jsonEncoder(outputType.schema, outputStream)
+      val writer = new PFADatumWriter[AnyRef](outputType.schema, specificData)
+      new JsonOutputDataFileWriter(writer, encoder, outputStream)
+    }
+
     def jsonOutput(obj: AnyRef): String = toJson(obj, outputType.schema)
 
+    val classLoader: java.lang.ClassLoader
+    private var inputTranslator: PFADataTranslator = null
+    def fromPFAData(datum: AnyRef): AnyRef = inputTranslator.translate(datum)
   }
 
   trait PFAEngine[INPUT <: AnyRef, OUTPUT <: AnyRef] {
@@ -816,6 +884,8 @@ package jvmcompiler {
 
     def typeParser: ForwardDeclarationParser
 
+    def instance: Int
+
     val classLoader: java.lang.ClassLoader
     def begin(): Unit
     def action(input: INPUT): OUTPUT
@@ -826,6 +896,7 @@ package jvmcompiler {
     val namedTypes: Map[String, AvroCompiled]
     val inputType: AvroType
     val outputType: AvroType
+
     def fromJson(json: String, avroType: AvroType): AnyRef
     def fromAvro(avro: Array[Byte], avroType: AvroType): AnyRef
     def toJson(obj: AnyRef, avroType: AvroType): String
@@ -834,8 +905,11 @@ package jvmcompiler {
     def jsonInputIterator[X](inputStream: InputStream): java.util.Iterator[X]
     def jsonInputIterator[X](inputIterator: java.util.Iterator[String]): java.util.Iterator[X]
     def jsonInputIterator[X](inputIterator: scala.collection.Iterator[String]): scala.collection.Iterator[X]
-    def avroOutputDataFileWriter(fileName: String): DataFileWriter[AnyRef]
+    def avroOutputDataFileWriter(fileName: String): AvroOutputDataFileWriter
+    def jsonOutputDataFileWriter(fileName: String): JsonOutputDataFileWriter
     def jsonOutput(obj: AnyRef): String
+
+    def fromPFAData(datum: AnyRef): AnyRef
 
     def randomGenerator: Random
 
@@ -864,7 +938,7 @@ package jvmcompiler {
     def fcn22(name: String): Function22[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
   }
   object PFAEngine {
-    def fromAst(engineConfig: EngineConfig, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, multiplicity: Int = 1, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): Seq[PFAEngine[AnyRef, AnyRef]] = {
+    def factoryFromAst(engineConfig: EngineConfig, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): (() => PFAEngine[AnyRef, AnyRef]) = {
       val engineOptions = new EngineOptions(engineConfig.options, options)
 
       val (context: EngineConfig.Context, code) =
@@ -901,19 +975,41 @@ package jvmcompiler {
       }, resourceFinder, null)
 
       val clazz = javaSourceClassLoader.loadClass(engineName)
-      val constructor = clazz.getConstructor(classOf[EngineConfig], classOf[EngineOptions], classOf[Option[SharedState]], classOf[EngineConfig.Context])
+      val constructor = clazz.getConstructor(classOf[EngineConfig], classOf[EngineOptions], classOf[Option[SharedState]], classOf[EngineConfig.Context], classOf[java.lang.Integer])
 
       val sharedStateToUse = sharedState match {
         case None => Some(new SharedState(new SharedMapInMemory, engineConfig.pools.keys map {(_, new SharedMapInMemory)} toMap))
         case x => x
       }
 
-      try {
-        Vector.fill(multiplicity)(constructor.newInstance(engineConfig, engineOptions, sharedStateToUse, context).asInstanceOf[PFAEngine[AnyRef, AnyRef]])
+      var index = 0;
+      {() =>
+        try {
+          synchronized {
+            val out = constructor.newInstance(engineConfig, engineOptions, sharedStateToUse, context, java.lang.Integer.valueOf(index)).asInstanceOf[PFAEngine[AnyRef, AnyRef]]
+            index += 1
+            out
+          }
+        }
+        catch {
+          case err: java.lang.reflect.InvocationTargetException => throw err.getCause
+        }
       }
-      catch {
-        case err: java.lang.reflect.InvocationTargetException => throw err.getCause
-      }
+    }
+
+    def factoryFromJson(src: AnyRef, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): (() => PFAEngine[AnyRef, AnyRef]) = src match {
+      case x: String => factoryFromAst(jsonToAst(x), options, sharedState, parentClassLoader, debug)
+      case x: java.io.File => factoryFromAst(jsonToAst(x), options, sharedState, parentClassLoader, debug)
+      case x: java.io.InputStream => factoryFromAst(jsonToAst(x), options, sharedState, parentClassLoader, debug)
+      case x => throw new IllegalArgumentException("cannot read model from objects of type " + src.getClass.getName)
+    }
+
+    def factoryFromYaml(src: String, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): (() => PFAEngine[AnyRef, AnyRef]) =
+      factoryFromJson(yamlToJson(src), options, sharedState, parentClassLoader, debug)
+
+    def fromAst(engineConfig: EngineConfig, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, multiplicity: Int = 1, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): Seq[PFAEngine[AnyRef, AnyRef]] = {
+      val factory = factoryFromAst(engineConfig, options, sharedState, parentClassLoader, debug)
+      0 until multiplicity map {x => factory()}
     }
 
     def fromJson(src: AnyRef, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, multiplicity: Int = 1, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): Seq[PFAEngine[AnyRef, AnyRef]] = src match {
@@ -935,6 +1031,7 @@ package jvmcompiler {
 
   trait PFAFoldEngine[INPUT <: AnyRef, OUTPUT <: AnyRef] extends PFAEngine[INPUT, OUTPUT] {
     var tally: OUTPUT
+    def merge(tallyOne: OUTPUT, tallyTwo: OUTPUT): OUTPUT
   }
 
   //////////////////////////////////////////////////////////// transformation of individual forms
@@ -1001,6 +1098,7 @@ package jvmcompiler {
           endCalls: Set[String]),
         fcn: Map[String, FcnDef.Context],
         zero: Option[String],
+        merge: Option[(Seq[TaskResult], Map[String, AvroType], Set[String])],
         cells: Map[String, Cell],
         pools: Map[String, Pool],
         randseed: Option[Long],
@@ -1043,7 +1141,14 @@ public class %s extends com.opendatagroup.hadrian.data.PFARecord%s {
 
     public %s() { }
 
+    public %s(Object[] fields) {
+%s    }
+
 %s
+
+    public Object[] getAll() {
+        return new Object[]{%s};
+    }
 
     public Object get(int field$) {
 switch (field$) {
@@ -1099,8 +1204,11 @@ return out;
               fields map {"\"" + _.name + "\""} mkString(", "),
               fields map {x: AvroField => javaSchema(x.avroType, true)} mkString(", "),
               t(namespace, name, false),
+              t(namespace, name, false),
+              fields.zipWithIndex map {case (AvroField(fname, ftype, _, _, _, _), index: Int) => "this.%s = (%s)fields[%d];\n".format(s(fname), javaType(ftype, true, true, true), index)} mkString,
               fields map {case AvroField(fname, ftype, _, _, _, _) =>
                 """public %s %s;""".format(javaType(ftype, false, true, true), s(fname))} mkString("\n"),
+              fields map {case AvroField(fname, _, _, _, _, _) => s(fname)} mkString(", "),
               (fields zipWithIndex) map {case (AvroField(fname, ftype, _, _, _, _), i) =>
                 """case %d: return %s;""".format(i, s(fname))} mkString("\n"),
               (fields zipWithIndex) map {case (AvroField(fname, ftype, _, _, _, _), i) =>
@@ -1137,11 +1245,17 @@ public class %s extends com.opendatagroup.hadrian.data.PFAFixed {
         super();
         bytes(b);
     }
+
+    public %s(com.opendatagroup.hadrian.data.AnyPFAFixed that) {
+        super();
+        bytes(that.bytes());
+    }
 }
 """,          namespace map {"package " + _ + ";"} mkString(""),
               t(namespace, name, false),
               javaSchema(avroCompiled, true),
               size.toString,
+              t(namespace, name, false),
               t(namespace, name, false),
               t(namespace, name, false)))
           }
@@ -1158,6 +1272,10 @@ public class %s extends com.opendatagroup.hadrian.data.PFAEnumSymbol implements 
 
     public %s(org.apache.avro.Schema schema, String symbol) {
         _value = strToInt(symbol);
+    }
+
+    public %s(com.opendatagroup.hadrian.data.AnyPFAEnumSymbol that) {
+        _value = this.strToInt(that.toString());
     }
 
     public boolean equals(Object o) {
@@ -1185,6 +1303,7 @@ public class %s extends com.opendatagroup.hadrian.data.PFAEnumSymbol implements 
               t(namespace, name, false),
               t(namespace, name, false),
               t(namespace, name, false),
+              t(namespace, name, false),
               symbols map {x => "\"" + StringEscapeUtils.escapeJava(x) + "\""} mkString(", "),
               (symbols zipWithIndex) map {case (x, i) => "put(\"%s\", %d);".format(StringEscapeUtils.escapeJava(x), i)} mkString(" ")))
           }
@@ -1198,6 +1317,7 @@ public void apply() {
 timeout = options().timeout_begin();
 startTime = System.currentTimeMillis();
 %s = "%s";
+%s = _instance();
 %s
 %s = _metadata();
 %s
@@ -1205,6 +1325,7 @@ startTime = System.currentTimeMillis();
             symbolFields(beginSymbols),
             s("name"),
             StringEscapeUtils.escapeJava(engineName),
+            s("instance"),
             version match {
               case Some(x) => s("version") + " = " + x.toString + ";"
               case None => ""
@@ -1229,6 +1350,7 @@ timeout = options().timeout_action();
 startTime = System.currentTimeMillis();
 %s = input;
 %s = "%s";
+%s = _instance();
 %s
 %s = _metadata();
 %s = _actionsStarted();
@@ -1252,6 +1374,7 @@ return out;
                 s("input"),
                 s("name"),
                 StringEscapeUtils.escapeJava(engineName),
+                s("instance"),
                 version match {
                   case Some(x) => s("version") + " = " + x.toString + ";"
                   case None => ""
@@ -1282,6 +1405,7 @@ timeout = options().timeout_action();
 startTime = System.currentTimeMillis();
 %s = input;
 %s = "%s";
+%s = _instance();
 %s
 %s = _metadata();
 %s = _actionsStarted();
@@ -1314,6 +1438,7 @@ return null;
                 s("input"),
                 s("name"),
                 StringEscapeUtils.escapeJava(engineName),
+                s("instance"),
                 version match {
                   case Some(x) => s("version") + " = " + x.toString + ";"
                   case None => ""
@@ -1324,20 +1449,7 @@ return null;
                 block(action, ReturnMethod.NONE, AvroNull())))
 
           case Method.FOLD =>
-            ("com.opendatagroup.hadrian.jvmcompiler.PFAFoldEngine<%s, %s>".format(javaType(input, true, true, true), javaType(output, true, true, true)),
-              """    private %s %s;
-    public %s tally() { return %s; }
-    public void tally_$eq(%s newTally) { %s = newTally; }
-%s
-    public void initialize(com.opendatagroup.hadrian.ast.EngineConfig config, com.opendatagroup.hadrian.options.EngineOptions options, scala.Option<com.opendatagroup.hadrian.shared.SharedState> state, Class<%s> thisClass, com.opendatagroup.hadrian.ast.EngineConfig.Context context) {
-        super.initialize(config, options, state, thisClass, context);
-        try {
-            %s = (%s)fromJson("%s", %s);
-        }
-        catch (Exception err) {
-            throw new com.opendatagroup.hadrian.errors.PFAInitializationException("zero does not conform to output type " + %s.toString());
-        }
-    }
+            val actionMethod = """
 %s
     public %s action(%s input) {
 synchronized(runlock) {
@@ -1351,6 +1463,7 @@ timeout = options().timeout_action();
 startTime = System.currentTimeMillis();
 %s = input;
 %s = "%s";
+%s = _instance();
 %s
 %s = _metadata();
 %s = _actionsStarted();
@@ -1364,39 +1477,109 @@ throw err;
 }
 _actionsFinished_$eq(_actionsFinished() + 1L);
 return %s;
-} }""".format(
-                javaType(output, true, true, true),
-                s("tally"),
-                javaType(output, true, true, true),
-                s("tally"),
-                javaType(output, true, true, true),
-                s("tally"),
-                if (!output.isInstanceOf[AvroUnion]) """    public void tally_$eq(Object newTally) { %s = (%s)newTally; }""".format(s("tally"), javaType(output, true, true, true)) else "",
-                thisClassName,
-                s("tally"),
-                javaType(output, true, true, true),
-                StringEscapeUtils.escapeJava(zero.get),
-                javaSchema(output, false),
-                javaSchema(output, false),
-                if (!input.isInstanceOf[AvroUnion]) """    public Object action(Object input) { return (Object)action((%s)input); }""".format(javaType(input, true, true, true)) else "",
-                javaType(output, true, true, true),
-                javaType(input, true, true, true),
-                s("tally"),
-                symbolFields(actionSymbols),
-                javaType(output, true, true, true),
-                javaType(input, true, true, true),
-                s("input"),
-                s("name"),
-                StringEscapeUtils.escapeJava(engineName),
-                version match {
-                  case Some(x) => s("version") + " = " + x.toString + ";"
-                  case None => ""
-                },
-                s("metadata"),
-                s("actionsStarted"),
-                s("actionsFinished"),
-                block(action, ReturnMethod.RETURN, output),
-                s("tally")))
+} }""".format(if (!input.isInstanceOf[AvroUnion]) """    public Object action(Object input) { return (Object)action((%s)input); }""".format(javaType(input, true, true, true)) else "",
+              javaType(output, true, true, true),
+              javaType(input, true, true, true),
+              s("tally"),
+              symbolFields(actionSymbols),
+              javaType(output, true, true, true),
+              javaType(input, true, true, true),
+              s("input"),
+              s("name"),
+              StringEscapeUtils.escapeJava(engineName),
+              s("instance"),
+              version match {
+                case Some(x) => s("version") + " = " + x.toString + ";"
+                case None => ""
+              },
+              s("metadata"),
+              s("actionsStarted"),
+              s("actionsFinished"),
+              block(action, ReturnMethod.RETURN, output),
+              s("tally"))
+
+            val mergeMethod = merge match {
+              case Some((mergeTasks: Seq[TaskResult], mergeSymbols: Map[String, AvroType], mergeCalls: Set[String])) =>
+                """
+%s
+    public %s merge(%s tallyOne, %s tallyTwo) {
+synchronized(runlock) {
+rollbackSave();
+try {
+%s = (new Object() {
+%s
+public %s apply(%s tallyOne, %s tallyTwo) {
+timeout = options().timeout_action();
+startTime = System.currentTimeMillis();
+%s = tallyOne;
+%s = tallyTwo;
+%s = "%s";
+%s = _instance();
+%s
+%s = _metadata();
+%s
+} }).apply(tallyOne, tallyTwo);
+}
+catch (Throwable err) {
+rollback();
+throw err;
+}
+return %s;
+} }""".format(if (!output.isInstanceOf[AvroUnion]) """    public Object merge(Object tallyOne, Object tallyTwo) { return (Object)merge((%s)tallyOne, (%s)tallyTwo); }""".format(javaType(output, true, true, true), javaType(output, true, true, true)) else "",
+              javaType(output, true, true, true),
+              javaType(output, true, true, true),
+              javaType(output, true, true, true),
+              s("tally"),
+              symbolFields(mergeSymbols),
+              javaType(output, true, true, true),
+              javaType(output, true, true, true),
+              javaType(output, true, true, true),
+              s("tallyOne"),
+              s("tallyTwo"),
+              s("name"),
+              StringEscapeUtils.escapeJava(engineName),
+              s("instance"),
+              version match {
+                case Some(x) => s("version") + " = " + x.toString + ";"
+                case None => ""
+              },
+              s("metadata"),
+              block(mergeTasks, ReturnMethod.RETURN, output),
+              s("tally"))
+
+              case None => throw new Exception
+            }
+
+            ("com.opendatagroup.hadrian.jvmcompiler.PFAFoldEngine<%s, %s>".format(javaType(input, true, true, true), javaType(output, true, true, true)),
+              """    private %s %s;
+    public %s tally() { return %s; }
+    public void tally_$eq(%s newTally) { %s = newTally; }
+%s
+    public void initialize(com.opendatagroup.hadrian.ast.EngineConfig config, com.opendatagroup.hadrian.options.EngineOptions options, scala.Option<com.opendatagroup.hadrian.shared.SharedState> state, Class<%s> thisClass, com.opendatagroup.hadrian.ast.EngineConfig.Context context, int index) {
+        super.initialize(config, options, state, thisClass, context, index);
+        try {
+            %s = (%s)fromJson("%s", %s);
+        }
+        catch (Exception err) {
+            throw new com.opendatagroup.hadrian.errors.PFAInitializationException("zero does not conform to output type " + %s.toString());
+        }
+    }
+%s
+%s""".format(javaType(output, true, true, true),
+             s("tally"),
+             javaType(output, true, true, true),
+             s("tally"),
+             javaType(output, true, true, true),
+             s("tally"),
+             if (!output.isInstanceOf[AvroUnion]) """    public void tally_$eq(Object newTally) { %s = (%s)newTally; }""".format(s("tally"), javaType(output, true, true, true)) else "",
+             thisClassName,
+             s("tally"),
+             javaType(output, true, true, true),
+             StringEscapeUtils.escapeJava(zero.get),
+             javaSchema(output, false),
+             javaSchema(output, false),
+             actionMethod,
+             mergeMethod))
         }
 
         val endMethod =
@@ -1406,6 +1589,7 @@ public void apply() {
 timeout = options().timeout_end();
 startTime = System.currentTimeMillis();
 %s = "%s";
+%s = _instance();
 %s
 %s = _metadata();
 %s = _actionsStarted();
@@ -1416,6 +1600,7 @@ startTime = System.currentTimeMillis();
             symbolFields(endSymbols),
             s("name"),
             StringEscapeUtils.escapeJava(engineName),
+            s("instance"),
             version match {
               case Some(x) => s("version") + " = " + x.toString + ";"
               case None => ""
@@ -1491,7 +1676,7 @@ public com.opendatagroup.hadrian.shared.SharedMap sharedCells;
 %s
 %s
 %s
-public %s(com.opendatagroup.hadrian.ast.EngineConfig config, com.opendatagroup.hadrian.options.EngineOptions options, scala.Option<com.opendatagroup.hadrian.shared.SharedState> state, com.opendatagroup.hadrian.ast.EngineConfig.Context context) { initialize(config, options, state, %s.class, context); }
+public %s(com.opendatagroup.hadrian.ast.EngineConfig config, com.opendatagroup.hadrian.options.EngineOptions options, scala.Option<com.opendatagroup.hadrian.shared.SharedState> state, com.opendatagroup.hadrian.ast.EngineConfig.Context context, Integer index) { initialize(config, options, state, %s.class, context, index.intValue()); }
 public ClassLoader classLoader() { return getClass().getClassLoader(); }
 private long timeout;
 private long startTime;

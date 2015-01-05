@@ -210,6 +210,7 @@ package ast {
     def blank = new FunctionTable(
       lib1.array.provides ++
       lib1.bytes.provides ++
+      lib1.cast.provides ++
       lib1.core.provides ++
       lib1.enum.provides ++
       lib1.fixed.provides ++
@@ -284,6 +285,7 @@ package ast {
     end: Seq[Expression],
     fcns: Map[String, FcnDef],
     zero: Option[String],
+    merge: Option[Seq[Expression]],
     cells: Map[String, Cell],
     pools: Map[String, Pool],
     randseed: Option[Long],
@@ -300,6 +302,7 @@ package ast {
       case that: EngineConfig => {
         this.name == that.name  &&  this.method == that.method  &&  this.inputPlaceholder.toString == that.inputPlaceholder.toString  &&  this.outputPlaceholder.toString == that.outputPlaceholder.toString  &&
         this.begin == that.begin  &&  this.action == that.action  &&  this.end == that.end  &&  this.fcns == that.fcns  &&
+        this.zero == that.zero  &&  this.merge == that.merge  &&
         this.cells == that.cells  &&  this.pools == that.pools  &&  this.randseed == that.randseed  &&
         this.doc == that.doc  &&  this.version == that.version  &&  this.metadata == that.metadata  &&
         this.options == that.options  // but not pos
@@ -319,6 +322,15 @@ package ast {
 
     if (action.size < 1)
       throw new PFASyntaxException("\"action\" must contain least one expression", pos)
+
+    if (method == Method.FOLD  &&  (zero == None  ||  merge == None))
+      throw new PFASyntaxException("folding engines must include \"zero\" and \"merge\" top-level fields", pos)
+
+    if (method != Method.FOLD  &&  (zero != None  ||  merge != None))
+      throw new PFASyntaxException("non-folding engines must not include \"zero\" and \"merge\" top-level fields", pos)
+
+    if (merge != None  &&  merge.get.size < 1)
+      throw new PFASyntaxException("\"merge\" must contain least one expression", pos)
 
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
       val topWrapper = SymbolTable(Some(symbolTable), mutable.Map[String, AvroType](), cells, pools, true, false)
@@ -349,6 +361,7 @@ package ast {
 
       val beginScopeWrapper = topWrapper.newScope(true, false)
       beginScopeWrapper.put("name", AvroString())
+      beginScopeWrapper.put("instance", AvroInt())
       if (version != None) beginScopeWrapper.put("version", AvroInt())
       beginScopeWrapper.put("metadata", AvroMap(AvroString()))
       val beginScope = beginScopeWrapper.newScope(true, false)
@@ -358,12 +371,33 @@ package ast {
       val beginResults = beginContextResults map {_._2}
       val beginCalls = beginContextResults.map(_._1.calls).flatten.toSet
 
-      // this will go into end and action, but not begin
+      val mergeOption = merge map {unwrappedMerge =>
+        val mergeScopeWrapper = topWrapper.newScope(true, false)
+        mergeScopeWrapper.put("tallyOne", output)
+        mergeScopeWrapper.put("tallyTwo", output)
+        mergeScopeWrapper.put("name", AvroString())
+        mergeScopeWrapper.put("instance", AvroInt())
+        if (version != None) mergeScopeWrapper.put("version", AvroInt())
+        mergeScopeWrapper.put("metadata", AvroMap(AvroString()))
+        val mergeScope = mergeScopeWrapper.newScope(true, false)
+
+        val mergeContextResults: Seq[(ExpressionContext, TaskResult)] = unwrappedMerge.map(_.walk(task, mergeScope, withUserFunctions, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+        val mergeCalls = mergeContextResults.map(_._1.calls).flatten.toSet
+
+        if (!output.accepts(mergeContextResults.last._1.retType))
+          throw new PFASemanticException("merge's inferred output type is %s but the declared output type is %s".format(mergeContextResults.last._1.retType, output), pos)
+        (mergeContextResults map {_._2},
+          mergeScopeWrapper.inThisScope ++ mergeScope.inThisScope,
+          mergeCalls)
+      }
+
+      // this will go into end and action, but not begin or merge
       if (method == Method.FOLD)
         topWrapper.put("tally", output)
 
       val endScopeWrapper = topWrapper.newScope(true, false)
       endScopeWrapper.put("name", AvroString())
+      endScopeWrapper.put("instance", AvroInt())
       if (version != None) endScopeWrapper.put("version", AvroInt())
       endScopeWrapper.put("metadata", AvroMap(AvroString()))
       endScopeWrapper.put("actionsStarted", AvroLong())
@@ -378,6 +412,7 @@ package ast {
       val actionScopeWrapper = topWrapper.newScope(true, false)
       actionScopeWrapper.put("input", input)
       actionScopeWrapper.put("name", AvroString())
+      actionScopeWrapper.put("instance", AvroInt())
       if (version != None) actionScopeWrapper.put("version", AvroInt())
       actionScopeWrapper.put("metadata", AvroMap(AvroString()))
       actionScopeWrapper.put("actionsStarted", AvroLong())
@@ -409,6 +444,7 @@ package ast {
           endCalls),
         userFcnContexts,
         zero,
+        mergeOption,
         cells,
         pools,
         randseed,
@@ -462,6 +498,13 @@ package ast {
 
       zero foreach {x => out.put("zero", convertFromJson(x))}
 
+      merge foreach {x =>
+        val jsonMerge = factory.arrayNode
+        for (expr <- x)
+          jsonMerge.add(expr.jsonNode(lineNumbers, memo))
+        out.put("merge", jsonMerge)
+      }
+
       if (!cells.isEmpty) {
         val jsonCells = factory.objectNode
         for ((name, cell) <- cells)
@@ -509,6 +552,7 @@ package ast {
       end: (Seq[TaskResult], Map[String, AvroType], Set[String]),
       fcns: Map[String, FcnDef.Context],
       zero: Option[String],
+      merge: Option[(Seq[TaskResult], Map[String, AvroType], Set[String])],
       cells: Map[String, Cell],
       pools: Map[String, Pool],
       randseed: Option[Long],
@@ -1231,31 +1275,28 @@ package ast {
           (name, exprContext.retType, exprResult)
         }
 
-      val retType =
-        avroType match {
-          case record @ AvroRecord(_, name, namespace, _, _) => {
-            val newType = AvroRecord(for ((n, fieldType, _) <- fieldNameTypeExpr) yield AvroField(n, fieldType), name, namespace)
-            if (!record.accepts(newType)  ||  !newType.accepts(record))
-              throw new PFASemanticException("record constructed with \"new\" has incorrectly-typed fields: %s rather than %s".format(newType, record), pos)
-            record
-          }
-          case AvroMap(values) => {
-            if (!fieldNameTypeExpr.isEmpty) {
-              val newType = try {
-                LabelData.broadestType(fieldNameTypeExpr map {_._2} toList)
-              }
-              catch {
-                case err: IncompatibleTypes => throw new PFASemanticException(err.getMessage, pos)
-              }
-              if (!values.accepts(newType))
-                throw new PFASemanticException("map constructed with \"new\" has incorrectly-typed items: %s rather than %s".format(newType, values), pos)
+      avroType match {
+        case AvroRecord(flds, name, namespace, _, _) =>
+          val fldsMap = flds.map(x => (x.name, x.avroType)).toMap
+          for ((n, t, _) <- fieldNameTypeExpr)
+            fldsMap.get(n) match {
+              case None => throw new PFASemanticException("record constructed with \"new\" has unexpected field named \"%s\"".format(n), pos)
+              case Some(fieldType) =>
+                if (!fieldType.accepts(t))
+                  throw new PFASemanticException("record constructed with \"new\" is has wrong field type for \"%s\": %s rather than %s".format(n, t.toString, fieldType.toString), pos)
             }
-            avroType
-          }
-          case x => throw new PFASemanticException("object constructed with \"new\" must have record or map type, not %s".format(x), pos)
-        }
+          if (fldsMap.keySet != fieldNameTypeExpr.map(_._1).toSet)
+            throw new PFASemanticException("record constructed with \"new\" is missing fields: [%s] rather than [%s]".format(fieldNameTypeExpr.map(_._1).sorted.mkString(", "), fldsMap.keys.toSeq.sorted.mkString(", ")), pos)
 
-      val context = NewObject.Context(retType, calls.toSet + NewObject.desc, fieldNameTypeExpr map {x => (x._1, x._3)} toMap)
+        case AvroMap(values) =>
+          for ((n, t, _) <- fieldNameTypeExpr)
+            if (!values.accepts(t))
+              throw new PFASemanticException("map constructed with \"new\" has wrong type for value associated with key \"%s\": %s rather than %s".format(n, t.toString, values.toString), pos)
+
+        case x => throw new PFASemanticException("object constructed with \"new\" must have record or map type, not %s".format(x), pos)
+      }
+
+      val context = NewObject.Context(avroType, calls.toSet + NewObject.desc, fieldNameTypeExpr map {x => (x._1, x._3)} toMap)
       (context, task(context, engineOptions))
     }
 
@@ -1302,25 +1343,15 @@ package ast {
           (exprContext.retType, exprResult)
         }
 
-      val retType =
-        avroType match {
-          case AvroArray(itms) => {
-            if (!itemTypeExpr.isEmpty) {
-              val newType = try {
-                LabelData.broadestType(itemTypeExpr map {_._1} toList)
-              }
-              catch {
-                case err: IncompatibleTypes => throw new PFASemanticException(err.getMessage, pos)
-              }
-              if (!itms.accepts(newType))
-                throw new PFASemanticException("array constructed with \"new\" has incorrectly-typed items: %s rather than %s".format(newType, itms), pos)
-            }
-            avroType
-          }
-          case x => throw new PFASemanticException("array constructed with \"new\" must have array type, not %s".format(x), pos)
-        }
+      avroType match {
+        case AvroArray(itms) =>
+          for (((t, _), i) <- itemTypeExpr.zipWithIndex)
+            if (!itms.accepts(t))
+              throw new PFASemanticException("array constructed with \"new\" has wrong type for item %d: %s rather than %s".format(i, t.toString, itms.toString), pos)
+        case x => throw new PFASemanticException("array constructed with \"new\" must have array type, not %s".format(x), pos)
+      }
 
-      val context = NewArray.Context(retType, calls.toSet + NewArray.desc, itemTypeExpr map {_._2})
+      val context = NewArray.Context(avroType, calls.toSet + NewArray.desc, itemTypeExpr map {_._2})
       (context, task(context, engineOptions))
     }
 

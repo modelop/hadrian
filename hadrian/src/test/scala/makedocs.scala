@@ -38,6 +38,7 @@ class MakeDocsSuite extends FlatSpec with Matchers {
   val libfcn =
     lib1.array.provides ++
     lib1.bytes.provides ++
+    lib1.cast.provides ++
     lib1.core.provides ++
     lib1.enum.provides ++
     lib1.fixed.provides ++

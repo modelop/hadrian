@@ -1078,4 +1078,453 @@ action:
     engine2.action(java.lang.Double.valueOf(2.0)).asInstanceOf[Double] should be (8.00 +- 0.01)
 
   }
+
+  it must "fill a simple histogram" taggedAs(Lib1, Lib1StatSample) in {
+    val engine = PFAEngine.fromYaml("""
+input: double
+output: {type: array, items: double}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: numbins, type: int}
+        - {name: low, type: double}
+        - {name: high, type: double}
+        - {name: values, type: {type: array, items: double}}
+    init:
+      numbins: 10
+      low: -100.0
+      high: 0.0
+      values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+action:
+  attr:
+    cell: histogram
+    to:
+      params: [{old: Histogram}]
+      ret: Histogram
+      do: {stat.sample.fillHistogram: [input, 1.0, old]}
+  path: [{string: values}]
+""").head
+
+    engine.action(java.lang.Double.valueOf(-50.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0))
+    engine.action(java.lang.Double.valueOf(-20.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0))
+    engine.action(java.lang.Double.valueOf(-80.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0))
+    engine.action(java.lang.Double.valueOf(50.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0))
+    engine.action(java.lang.Double.valueOf(0.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0))
+    engine.action(java.lang.Double.valueOf(-100.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0))
+    engine.action(java.lang.Double.valueOf(-50.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 0.0, 1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 1.0, 0.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.POSITIVE_INFINITY)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 0.0, 1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 1.0, 0.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.NEGATIVE_INFINITY)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 0.0, 1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 1.0, 0.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.NaN)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 0.0, 1.0, 0.0, 0.0, 2.0, 0.0, 0.0, 1.0, 0.0))
+  }
+
+  it must "fill a histogram with overflow counters" taggedAs(Lib1, Lib1StatSample) in {
+    val engine = PFAEngine.fromYaml("""
+input: double
+output: {type: array, items: double}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: numbins, type: int}
+        - {name: low, type: double}
+        - {name: high, type: double}
+        - {name: values, type: {type: array, items: double}}
+        - {name: underflow, type: double}
+        - {name: overflow, type: double}
+        - {name: nanflow, type: double}
+        - {name: infflow, type: double}
+    init:
+      numbins: 10
+      low: -100.0
+      high: 0.0
+      values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      underflow: 0.0
+      overflow: 0.0
+      nanflow: 0.0
+      infflow: 0.0
+action:
+  - let:
+      out:
+        cell: histogram
+        to:
+          params: [{old: Histogram}]
+          ret: Histogram
+          do: {stat.sample.fillHistogram: [input, 1.0, old]}
+  - type: {type: array, items: double}
+    new: [out.underflow, out.overflow, out.nanflow, out.infflow]
+""").head
+
+    engine.action(java.lang.Double.valueOf(-50.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 0.0))
+    engine.action(java.lang.Double.valueOf(-20.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 0.0))
+    engine.action(java.lang.Double.valueOf(-80.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 0.0))
+    engine.action(java.lang.Double.valueOf(50.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 1.0, 0.0, 0.0))
+    engine.action(java.lang.Double.valueOf(0.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 2.0, 0.0, 0.0))
+    engine.action(java.lang.Double.valueOf(-100.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 2.0, 0.0, 0.0))
+    engine.action(java.lang.Double.valueOf(-50.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 2.0, 0.0, 0.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.POSITIVE_INFINITY)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 2.0, 0.0, 1.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.NEGATIVE_INFINITY)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 2.0, 0.0, 2.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.NaN)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 2.0, 1.0, 2.0))
+  }
+
+  it must "fill a histogram without infflow" taggedAs(Lib1, Lib1StatSample) in {
+    val engine = PFAEngine.fromYaml("""
+input: double
+output: {type: array, items: double}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: numbins, type: int}
+        - {name: low, type: double}
+        - {name: high, type: double}
+        - {name: values, type: {type: array, items: double}}
+        - {name: underflow, type: double}
+        - {name: overflow, type: double}
+        - {name: nanflow, type: double}
+    init:
+      numbins: 10
+      low: -100.0
+      high: 0.0
+      values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      underflow: 0.0
+      overflow: 0.0
+      nanflow: 0.0
+action:
+  - let:
+      out:
+        cell: histogram
+        to:
+          params: [{old: Histogram}]
+          ret: Histogram
+          do: {stat.sample.fillHistogram: [input, 1.0, old]}
+  - type: {type: array, items: double}
+    new: [out.underflow, out.overflow, out.nanflow]
+""").head
+
+    engine.action(java.lang.Double.valueOf(-50.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0))
+    engine.action(java.lang.Double.valueOf(-20.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0))
+    engine.action(java.lang.Double.valueOf(-80.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0))
+    engine.action(java.lang.Double.valueOf(50.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 1.0, 0.0))
+    engine.action(java.lang.Double.valueOf(0.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 2.0, 0.0))
+    engine.action(java.lang.Double.valueOf(-100.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 2.0, 0.0))
+    engine.action(java.lang.Double.valueOf(-50.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 2.0, 0.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.POSITIVE_INFINITY)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 3.0, 0.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.NEGATIVE_INFINITY)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 3.0, 0.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.NaN)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 3.0, 1.0))
+  }
+
+  it must "fill a growable histogram" taggedAs(Lib1, Lib1StatSample) in {
+    val engine = PFAEngine.fromYaml("""
+input: double
+output: {type: array, items: double}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: low, type: double}
+        - {name: binsize, type: double}
+        - {name: values, type: {type: array, items: double}}
+    init:
+      low: 10.0
+      binsize: 2.0
+      values: []
+action:
+  attr:
+    cell: histogram
+    to:
+      params: [{old: Histogram}]
+      ret: Histogram
+      do: {stat.sample.fillHistogram: [input, 1.0, old]}
+  path: [{string: values}]
+""").head
+
+    engine.action(java.lang.Double.valueOf(5.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector())
+    engine.action(java.lang.Double.valueOf(10.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0))
+    engine.action(java.lang.Double.valueOf(20.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 0.0, 0.0, 0.0, 0.0, 1.0))
+    engine.action(java.lang.Double.valueOf(15.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 0.0, 1.0, 0.0, 0.0, 1.0))
+    engine.action(java.lang.Double.valueOf(5.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 0.0, 1.0, 0.0, 0.0, 1.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.POSITIVE_INFINITY)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 0.0, 1.0, 0.0, 0.0, 1.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.NEGATIVE_INFINITY)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 0.0, 1.0, 0.0, 0.0, 1.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.NaN)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 0.0, 1.0, 0.0, 0.0, 1.0))
+  }
+
+  it must "fill a variable bin width histogram" taggedAs(Lib1, Lib1StatSample) in {
+    val engine = PFAEngine.fromYaml("""
+input: double
+output: {type: array, items: double}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: ranges, type: {type: array, items: {type: array, items: double}}}
+        - {name: values, type: {type: array, items: double}}
+    init:
+      ranges: [[0.0, 5.0], [5.0, 10.0], [0.0, 10.0]]
+      values: [0.0, 0.0, 0.0]
+action:
+  attr:
+    cell: histogram
+    to:
+      params: [{old: Histogram}]
+      ret: Histogram
+      do: {stat.sample.fillHistogram: [input, 1.0, old]}
+  path: [{string: values}]
+""").head
+
+    engine.action(java.lang.Double.valueOf(5.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 1.0, 1.0))
+    engine.action(java.lang.Double.valueOf(3.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(1.0, 1.0, 2.0))
+    engine.action(java.lang.Double.valueOf(0.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(2.0, 1.0, 3.0))
+    engine.action(java.lang.Double.valueOf(10.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(2.0, 1.0, 3.0))
+    engine.action(java.lang.Double.valueOf(8.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(2.0, 2.0, 4.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.POSITIVE_INFINITY)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(2.0, 2.0, 4.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.NEGATIVE_INFINITY)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(2.0, 2.0, 4.0))
+    engine.action(java.lang.Double.valueOf(java.lang.Double.NaN)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(2.0, 2.0, 4.0))
+  }
+
+  it must "fill a two-dimensional histogram" taggedAs(Lib1, Lib1StatSample) in {
+    val engine = PFAEngine.fromYaml("""
+input: {type: array, items: double}
+output: {type: array, items: {type: array, items: double}}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: xnumbins, type: int}
+        - {name: xlow, type: double}
+        - {name: xhigh, type: double}
+        - {name: ynumbins, type: int}
+        - {name: ylow, type: double}
+        - {name: yhigh, type: double}
+        - {name: values, type: {type: array, items: {type: array, items: double}}}
+    init:
+      xnumbins: 5
+      ynumbins: 4
+      xlow: 0.0
+      xhigh: 5.0
+      ylow: 0.0
+      yhigh: 4.0
+      values:
+        - [0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0]
+action:
+  attr:
+    cell: histogram
+    to:
+      params: [{old: Histogram}]
+      ret: Histogram
+      do:
+        stat.sample.fillHistogram2d:
+          - {attr: input, path: [0]}
+          - {attr: input, path: [1]}
+          - 1.0
+          - old
+  path: [{string: values}]
+""").head
+
+    engine.action(PFAArray.fromVector(Vector(-10.0, -10.0))).asInstanceOf[PFAArray[PFAArray[Double]]].toVector map {_.toVector} should be (
+      Vector(Vector(0.0, 0.0, 0.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0)))
+
+    engine.action(PFAArray.fromVector(Vector(2.0, 2.0))).asInstanceOf[PFAArray[PFAArray[Double]]].toVector map {_.toVector} should be (
+      Vector(Vector(0.0, 0.0, 0.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0),
+             Vector(0.0, 0.0, 1.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0)))
+
+    engine.action(PFAArray.fromVector(Vector(2.0, 2.0))).asInstanceOf[PFAArray[PFAArray[Double]]].toVector map {_.toVector} should be (
+      Vector(Vector(0.0, 0.0, 0.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0),
+             Vector(0.0, 0.0, 2.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0)))
+
+    engine.action(PFAArray.fromVector(Vector(0.0, 2.0))).asInstanceOf[PFAArray[PFAArray[Double]]].toVector map {_.toVector} should be (
+      Vector(Vector(0.0, 0.0, 1.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0),
+             Vector(0.0, 0.0, 2.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0),
+             Vector(0.0, 0.0, 0.0, 0.0)))
+  }
+
+  it must "fill a two-dimensional histogram with overflow bins" taggedAs(Lib1, Lib1StatSample) in {
+    val engine = PFAEngine.fromYaml("""
+input: {type: array, items: double}
+output: {type: array, items: double}
+cells:
+  histogram:
+    type:
+      type: record
+      name: Histogram
+      fields:
+        - {name: xnumbins, type: int}
+        - {name: xlow, type: double}
+        - {name: xhigh, type: double}
+        - {name: ynumbins, type: int}
+        - {name: ylow, type: double}
+        - {name: yhigh, type: double}
+        - {name: values, type: {type: array, items: {type: array, items: double}}}
+        - {name: underunderflow, type: double}
+        - {name: undermidflow, type: double}
+        - {name: underoverflow, type: double}
+        - {name: midunderflow, type: double}
+        - {name: midoverflow, type: double}
+        - {name: overunderflow, type: double}
+        - {name: overmidflow, type: double}
+        - {name: overoverflow, type: double}
+        - {name: nanflow, type: double}
+        - {name: infflow, type: double}
+    init:
+      xnumbins: 5
+      ynumbins: 5
+      xlow: 0.0
+      xhigh: 5.0
+      ylow: 0.0
+      yhigh: 5.0
+      values:
+        - [0.0, 0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0, 0.0]
+        - [0.0, 0.0, 0.0, 0.0, 0.0]
+      underunderflow: 0.0
+      undermidflow: 0.0
+      underoverflow: 0.0
+      midunderflow: 0.0
+      midoverflow: 0.0
+      overunderflow: 0.0
+      overmidflow: 0.0
+      overoverflow: 0.0
+      nanflow: 0.0
+      infflow: 0.0
+action:
+  - let:
+      hist:
+        cell: histogram
+        to:
+          params: [{old: Histogram}]
+          ret: Histogram
+          do:
+            stat.sample.fillHistogram2d:
+              - {attr: input, path: [0]}
+              - {attr: input, path: [1]}
+              - 1.0
+              - old
+  - type: {type: array, items: double}
+    new: [hist.underunderflow, hist.undermidflow, hist.underoverflow, hist.midunderflow, hist.midoverflow, hist.overunderflow, hist.overmidflow, hist.overoverflow, hist.nanflow, hist.infflow]
+""").head
+
+    engine.action(PFAArray.fromVector(Vector(2.0, 2.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    engine.action(PFAArray.fromVector(Vector(-10.0, -10.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    engine.action(PFAArray.fromVector(Vector(-10.0, 2.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    engine.action(PFAArray.fromVector(Vector(-10.0, 10.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    engine.action(PFAArray.fromVector(Vector(2.0, -10.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    engine.action(PFAArray.fromVector(Vector(2.0, 2.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    engine.action(PFAArray.fromVector(Vector(2.0, 10.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    engine.action(PFAArray.fromVector(Vector(10.0, -10.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0))
+    engine.action(PFAArray.fromVector(Vector(10.0, 2.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0))
+    engine.action(PFAArray.fromVector(Vector(10.0, 10.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0))
+    engine.action(PFAArray.fromVector(Vector(java.lang.Double.NaN, 10.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0))
+    engine.action(PFAArray.fromVector(Vector(10.0, java.lang.Double.NaN))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 0.0))
+    engine.action(PFAArray.fromVector(Vector(java.lang.Double.POSITIVE_INFINITY, 10.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.0))
+    engine.action(PFAArray.fromVector(Vector(java.lang.Double.NEGATIVE_INFINITY, 10.0))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0))
+    engine.action(PFAArray.fromVector(Vector(10.0, java.lang.Double.POSITIVE_INFINITY))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 3.0))
+    engine.action(PFAArray.fromVector(Vector(10.0, java.lang.Double.NEGATIVE_INFINITY))).asInstanceOf[PFAArray[Double]].toVector should be (
+      Vector(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 4.0))
+  }
+
+  it must "maintain a top 5 list" taggedAs(Lib1, Lib1StatSample) in {
+    val engine = PFAEngine.fromYaml("""
+input: double
+output: {type: array, items: double}
+cells:
+  state:
+    type: {type: array, items: double}
+    init: []
+action:
+  - cell: state
+    to:
+      params: [{old: {type: array, items: double}}]
+      ret: {type: array, items: double}
+      do: {stat.sample.topN: [input, old, 5, {fcn: u.lt}]}
+fcns:
+  lt:
+    params: [{x: double}, {y: double}]
+    ret: boolean
+    do: {"<": [x, y]}
+""").head
+
+    engine.action(java.lang.Double.valueOf(2.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(2.0))
+    engine.action(java.lang.Double.valueOf(1.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(2.0, 1.0))
+    engine.action(java.lang.Double.valueOf(1.5)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(2.0, 1.5, 1.0))
+    engine.action(java.lang.Double.valueOf(3.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(3.0, 2.0, 1.5, 1.0))
+    engine.action(java.lang.Double.valueOf(0.9)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(3.0, 2.0, 1.5, 1.0, 0.9))
+    engine.action(java.lang.Double.valueOf(1.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(3.0, 2.0, 1.5, 1.0, 1.0))
+    engine.action(java.lang.Double.valueOf(4.0)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(4.0, 3.0, 2.0, 1.5, 1.0))
+  }
+
+  it must "maintain a top 5 list of strings" taggedAs(Lib1, Lib1StatSample) in {
+    val engine = PFAEngine.fromYaml("""
+input: string
+output: {type: array, items: string}
+cells:
+  state:
+    type: {type: array, items: string}
+    init: []
+action:
+  - cell: state
+    to:
+      params: [{old: {type: array, items: string}}]
+      ret: {type: array, items: string}
+      do: {stat.sample.topN: [input, old, 5, {fcn: u.lt}]}
+fcns:
+  lt:
+    params: [{x: string}, {y: string}]
+    ret: boolean
+    do: {"<": [{s.len: x}, {s.len: y}]}
+""").head
+
+    engine.action("two").asInstanceOf[PFAArray[String]].toVector should be (Vector("two"))
+    engine.action("u").asInstanceOf[PFAArray[String]].toVector should be (Vector("two", "u"))
+    engine.action("to").asInstanceOf[PFAArray[String]].toVector should be (Vector("two", "to", "u"))
+    engine.action("three").asInstanceOf[PFAArray[String]].toVector should be (Vector("three", "two", "to", "u"))
+    engine.action("").asInstanceOf[PFAArray[String]].toVector should be (Vector("three", "two", "to", "u", ""))
+    engine.action("Z").asInstanceOf[PFAArray[String]].toVector should be (Vector("three", "two", "to", "u", "Z"))
+    engine.action("wowie-wow").asInstanceOf[PFAArray[String]].toVector should be (Vector("wowie-wow", "three", "two", "to", "u"))
+  }
+
 }

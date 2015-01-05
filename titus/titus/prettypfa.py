@@ -96,8 +96,9 @@ class Token(object):
         return "{}({})".format(self.t, self.v)
 
 class InterpretationState(object):
-    def __init__(self, avroTypeBuilder):
-        self.avroTypeBuilder = avroTypeBuilder
+    def __init__(self):
+        self.avroTypeBuilder = AvroTypeBuilder()
+        self.avroTypeAlias = {}
         self.functionNames = set(titus.pfaast.FunctionTable.blank().functions)
         self.cellNames = set()
         self.poolNames = set()
@@ -116,6 +117,11 @@ class Section(object):
             pass
         elif name == "output":
             pass
+        elif name == "types":
+            if isinstance(content, MiniCall) and content.name == "do":
+                self.content = content.args
+            elif not isinstance(content, (list, tuple)):
+                self.content = [content]
         elif name == "begin":
             if isinstance(content, MiniCall) and content.name == "do":
                 self.content = content.args
@@ -135,6 +141,11 @@ class Section(object):
             pass
         elif name == "zero":
             pass
+        elif name == "merge":
+            if isinstance(content, MiniCall) and content.name == "do":
+                self.content = content.args
+            elif not isinstance(content, (list, tuple)):
+                self.content = [content]
         elif name == "cells":
             pass
         elif name == "pools":
@@ -155,17 +166,17 @@ class Section(object):
     def __repr__(self):
         return "Section({}, {} at {})".format(self.name, self.content, self.pos)
 
-    def input(self, avroTypeBuilder):
-        return avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.content.asType()))
+    def input(self, state):
+        return state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.content.asType(state)))
 
-    def output(self, avroTypeBuilder):
-        return avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.content.asType()))
+    def output(self, state):
+        return state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.content.asType(state)))
 
-    def cells(self, avroTypeBuilder):
-        return dict(x.asCell(avroTypeBuilder) for x in self.content)
+    def cells(self, state):
+        return dict(x.asCell(state) for x in self.content)
 
-    def pools(self, avroTypeBuilder):
-        return dict(x.asPool(avroTypeBuilder) for x in self.content)
+    def pools(self, state):
+        return dict(x.asPool(state) for x in self.content)
 
     def method(self):
         if isinstance(self.content, MiniString):
@@ -183,6 +194,10 @@ class Section(object):
         else:
             raise PrettyPfaException("method must be \"map\", \"emit\", or \"fold\" at PrettyPFA line {}".format(self.lineno))
 
+    def types(self, state):
+        for x in self.content:
+            x.defType(state)
+
     def begin(self, state):
         return [x.asExpr(state) for x in self.content]
 
@@ -197,6 +212,9 @@ class Section(object):
 
     def zero(self):
         return jsonlib.dumps(self.content.asJson())
+
+    def merge(self, state):
+        return [x.asExpr(state) for x in self.content]
 
     def randseed(self):
         if not isinstance(self.content, MiniNumber) or not isinstance(self.content.value, (int, long)):
@@ -234,16 +252,18 @@ class MiniAst(object):
             return "PrettyPFA lines {}-{}".format(self.low, self.high)
     def asExpr(self, state):
         raise PrettyPfaException("{} ({}) is not an expression at {}".format(self, type(self), self.pos))
-    def asType(self):
+    def asType(self, state):
         raise PrettyPfaException("{} ({}) is not a type specification at {}".format(self, type(self), self.pos))
     def asJson(self):
         raise PrettyPfaException("{} ({}) is not JSON at {}".format(self, type(self), self.pos))
     def asFcn(self):
         raise PrettyPfaException("{} ({}) is not a function definition at {}".format(self, type(self), self.pos))
-    def asCell(self, avroTypeBuilder):
+    def asCell(self, state):
         raise PrettyPfaException("{} ({}) is not a cell definition at {}".format(self, type(self), self.pos))
-    def asPool(self, avroTypeBuilder):
+    def asPool(self, state):
         raise PrettyPfaException("{} ({}) is not a cell definition at {}".format(self, type(self), self.pos))
+    def defType(self, state):
+        raise PrettyPfaException("{} ({}) is not a type definition at {}".format(self, type(self), self.pos))
 
 class MiniGenGet(MiniAst):
     def __init__(self, expr, args, low, high):
@@ -300,10 +320,10 @@ class MiniTo(MiniAst):
         if self.direct:
             if isinstance(to, FcnRef):
                 raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {} at {}".format(to.name, to.pos))
-            elif isinstance(to, FcnDef):
+            elif isinstance(to, (FcnDef, FcnRefFill)):
                 raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {} at {}".format(to, to.pos))
         else:
-            if not isinstance(to, (FcnRef, FcnDef)):
+            if not isinstance(to, (FcnRef, FcnDef, FcnRefFill)):
                 raise PrettyPfaException("indirect assignments (with a \"to\" keyword) must refer to functions, not {} at {}".format(to, to.pos))
             if base in state.poolNames:
                 if self.init is None:
@@ -369,8 +389,11 @@ class MiniDotName(MiniAst):
                     return PoolGet(self.name, [], self.pos)
                 else:
                     return Ref(self.name, self.pos)
-    def asType(self):
-        return self.name
+    def asType(self, state):
+        if self.name in state.avroTypeAlias:
+            return state.avroTypeAlias[self.name]
+        else:
+            return self.name
     def asJson(self):
         return self.name
 
@@ -420,7 +443,7 @@ class MiniCall(MiniAst):
         if self.name == "json":
             if len(self.args) != 2:
                 raise PrettyPfaException("json function must have 2 arguments, not {}, at {}".format(len(self.args), self.pos))
-            td = self.args[0].asType()
+            td = self.args[0].asType(state)
             v = self.args[1].asJson()
             if td == "null":
                 return LiteralNull(self.pos)
@@ -469,15 +492,26 @@ class MiniCall(MiniAst):
                 raise PrettyPfaException("bytes function must have 1 argument, not {}, at {}".format(len(self.args), self.pos))
             return LiteralBase64(base64.b64decode(self.args[0].asJson()), self.pos)
 
+        elif self.name == "do":
+            return Do([x.asExpr(state) for x in self.args])
+
         elif self.name == "apply":
             if len(self.args) < 1:
                 raise PrettyPfaException("apply function must have at least 1 argument, not {}, at {}".format(len(self.args), self.pos))
             return CallUserFcn(self.args[0].asExpr(state), [x.asExpr(state) for x in self.args[1:]], self.pos)
 
+        elif self.name == "update":
+            if len(self.args) != 2:
+                raise PrettyPfaException("update function must have exactly 2 arguments, not {}, at {}".format(len(self.args), self.pos))
+            rec = self.args[0].asExpr(state)
+            if not isinstance(self.args[1], MiniParam):
+                raise PrettyPfaException("update function second argument must be a key-value pair, not a plain expression, at {}".format(self.pos))
+            return AttrTo(rec, [LiteralString(self.args[1].name, self.pos)], self.args[1].typeExpr.asExpr(state), self.pos)
+
         elif self.name == "new":
             if len(self.args) < 2:
                 raise PrettyPfaException("new function must have at least 2 arguments, not {}, at {}".format(len(self.args), self.pos))
-            td = self.args[0].asType()
+            td = self.args[0].asType(state)
             if isinstance(td, dict) and td.get("type") == "array":
                 if any(isinstance(x, MiniParam) for x in self.args[1:]):
                     raise PrettyPfaException("new array must only consist of plain expressions, not key-value pairs, at {}".format(self.pos))
@@ -490,7 +524,7 @@ class MiniCall(MiniAst):
         elif self.name == "upcast":
             if len(self.args) != 2:
                 raise PrettyPfaException("upcast function requires exactly 2 arguments, not {}, at {}".format(len(self.args), self.pos))
-            t = state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.args[0].asType()))
+            t = state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.args[0].asType(state)))
             v = self.args[1].asExpr(state)
             return Upcast(v, t, self.pos)
 
@@ -549,7 +583,7 @@ class MiniCall(MiniAst):
         else:
             return Call(self.name, [x.asExpr(state) for x in self.args], self.pos)
 
-    def asType(self):
+    def asType(self, state):
         def split(name):
             if "." in name:
                 pieces = name.split(".")
@@ -560,17 +594,17 @@ class MiniCall(MiniAst):
         if self.name == "array":
             if len(self.args) != 1:
                 raise PrettyPfaException("array type should have 1 argument, not {}, at {}".format(len(self.args), self.pos))
-            return {"type": "array", "items": self.args[0].asType()}
+            return {"type": "array", "items": self.args[0].asType(state)}
 
         elif self.name == "map":
             if len(self.args) != 1:
                 raise PrettyPfaException("map type should have 1 argument, not {}, at {}".format(len(self.args), self.pos))
-            return {"type": "map", "values": self.args[0].asType()}
+            return {"type": "map", "values": self.args[0].asType(state)}
 
         elif self.name == "union":
             if len(self.args) < 2:
                 raise PrettyPfaException("union type should have at least 2 arguments, not {}, at {}".format(len(self.args), self.pos))
-            return [x.asType() for x in self.args]
+            return [x.asType(state) for x in self.args]
 
         elif self.name == "fixed":
             if len(self.args) < 1 or len(self.args) > 2:
@@ -617,7 +651,7 @@ class MiniCall(MiniAst):
             others = []
             for arg in self.args:
                 if isinstance(arg, MiniParam):
-                    fields.append({"name": arg.name, "type": arg.typeExpr.asType()})
+                    fields.append({"name": arg.name, "type": arg.typeExpr.asType(state)})
                 else:
                     others.append(arg)
 
@@ -635,6 +669,17 @@ class MiniCall(MiniAst):
 
         else:
             raise PrettyPfaException("unrecognized type function \"{}\" at {}".format(self.name, self.pos))
+
+    def defType(self, state):
+        if self.name in ("record", "enum", "fixed"):
+            jsonNode = self.asType(state)
+            alias = jsonNode["name"]
+            if "namespace" in jsonNode:
+                alias = jsonNode["namespace"] + "." + alias
+            state.avroTypeAlias[alias] = jsonNode
+            state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(jsonNode))
+        else:
+            super(MiniCall, self).defType(state)
 
 class MiniBlock(MiniAst):
     def __init__(self, exprs, low, high):
@@ -667,7 +712,7 @@ class MiniParam(MiniAst):
     def __repr__(self):
         return "MiniParam({}, {})".format(self.name, repr(self.typeExpr))
     def asExpr(self, state):
-        return {self.name: state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.typeExpr.asType()))}
+        return {self.name: state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.typeExpr.asType(state)))}
 
 class MiniFcnDef(MiniAst):
     def __init__(self, parameters, retType, definition, low, high):
@@ -679,7 +724,7 @@ class MiniFcnDef(MiniAst):
         return "MiniFcnDef({}, {}, {})".format(", ".join(map(repr, self.parameters)), repr(self.retType), ", ".join(map(repr, self.definition)))
     def asExpr(self, state):
         return FcnDef([x.asExpr(state) for x in self.parameters],
-                      state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.retType.asType())),
+                      state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.retType.asType(state))),
                       [x.asExpr(state) for x in self.definition])
 
 class MiniNamedFcnDef(MiniAst):
@@ -693,7 +738,7 @@ class MiniNamedFcnDef(MiniAst):
         return "MiniNamedFcnDef({}, {}, {}, {})".format(self.name, ", ".join(map(repr, self.parameters)), repr(self.retType), ", ".join(map(repr, self.definition)))
     def asFcn(self, state):
         return (self.name, FcnDef([x.asExpr(state) for x in self.parameters],
-                                  state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.retType.asType())),
+                                  state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.retType.asType(state))),
                                   [x.asExpr(state) for x in self.definition]))
 
 class MiniCellPool(MiniAst):
@@ -706,17 +751,17 @@ class MiniCellPool(MiniAst):
         super(MiniCellPool, self).__init__(low, high)
     def __repr__(self):
         return "MiniCellPool({}, {}, {}, {}, {})".format(self.name, self.objType, self.init, self.shared, self.rollback)
-    def asCell(self, avroTypeBuilder):
-        return (self.name, Cell(avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.objType.asType())),
+    def asCell(self, state):
+        return (self.name, Cell(state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.objType.asType(state))),
                                 jsonlib.dumps(self.init.asJson()),
                                 self.shared,
                                 self.rollback,
                                 self.pos))
-    def asPool(self, avroTypeBuilder):
+    def asPool(self, state):
         init = self.init.asJson()
         if not isinstance(init, dict):
             raise PrettyPfaException("pool's init must be a JSON object, not {}, at {}".format(init, self.pos))
-        return (self.name, Pool(avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.objType.asType())),
+        return (self.name, Pool(state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.objType.asType(state))),
                                 dict((k, jsonlib.dumps(v)) for k, v in init.items()),
                                 self.shared,
                                 self.rollback,
@@ -764,7 +809,7 @@ class MiniAsBlock(MiniAst):
     def __repr__(self):
         return "MiniAsBlock({}, {}, {})".format(self.astype, self.named, self.body)
     def asExpr(self, state):
-        t = state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.astype.asType()))
+        t = state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.astype.asType(state)))
         if isinstance(self.body, MiniCall) and self.body.name == "do":
             body = [x.asExpr(state) for x in self.body.args]
         elif isinstance(self.body, (list, tuple)):
@@ -963,6 +1008,15 @@ class MiniAssignment(MiniAst):
         else:
             return SetVar(dict((k, v.asExpr(state)) for k, v in self.pairs.items()), self.pos)
 
+    def defType(self, state):
+        if self.qualifier is None and len(self.pairs) == 1:
+            (alias, typeExpr), = self.pairs.items()
+            jsonNode = typeExpr.asType(state)
+            state.avroTypeAlias[alias] = jsonNode
+            state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(jsonNode))
+        else:
+            super(MiniAssignment, self).defType(state)
+
 class Parser(object):
     def __init__(self):
         self.initialized = False
@@ -993,6 +1047,10 @@ class Parser(object):
 
         literals = [",", ";", ":", "=", "@"]
 
+        def insertArrow(lines, which):
+            lines[which] = lines[which] + "     <----"
+            return lines
+
         def t_COMMENT(t):
             r"//.*"
             pass
@@ -1004,7 +1062,7 @@ class Parser(object):
 
         def t_SECTION_HEADER(t):
             r"(\r\n?|\n)+[a-z]+:"
-            t.lexer.lineno += len(re.findall(r"(\r\n?|\n)+", t.value))
+            t.lexer.lineno += len(re.findall(r"(\r\n?|\n)", t.value))
             t.value = Token("SECTION_HEADER", t.value.lstrip("\n")[:-1], t.lexer.lineno)
             return t
 
@@ -1179,10 +1237,12 @@ class Parser(object):
 
         def t_newline(t):
             r"(\r\n?|\n)+"
-            t.lexer.lineno += len(re.findall(r"(\r\n?|\n)+", t.value))
+            t.lexer.lineno += len(re.findall(r"(\r\n?|\n)", t.value))
 
         def t_error(t):
-            raise PrettyPfaException("Tokenizing syntax error: \"{}\" at PrettyPFA line {}".format(t.value[0], t.lexer.lineno))
+            lineno = t.lexer.lineno
+            offendingLine = "\n".join(insertArrow(self.text.split("\n")[(lineno - 1):(lineno + 2)], 1))
+            raise PrettyPfaException("Tokenizing syntax error: \"{}\" at PrettyPFA line {}:\n{}".format(t.value[0], lineno, offendingLine))
 
         self.lexer = lex.lex()
 
@@ -1201,6 +1261,7 @@ class Parser(object):
             _end = []
             _fcns = {}
             _zero = None
+            _merge = None
             _cells = {}
             _pools = {}
             _randseed = None
@@ -1217,17 +1278,20 @@ class Parser(object):
             if "method" in keys:
                 _method = sectionDict["method"].method()
 
-            avroTypeBuilder = AvroTypeBuilder()
-            if "input" in keys:
-                _input = sectionDict["input"].input(avroTypeBuilder)
-            if "output" in keys:
-                _output = sectionDict["output"].output(avroTypeBuilder)
-            if "cells" in keys:
-                _cells = sectionDict["cells"].cells(avroTypeBuilder)
-            if "pools" in keys:
-                _pools = sectionDict["pools"].pools(avroTypeBuilder)
+            state = InterpretationState()
 
-            state = InterpretationState(avroTypeBuilder)
+            if "types" in keys:
+                sectionDict["types"].types(state)
+
+            if "input" in keys:
+                _input = sectionDict["input"].input(state)
+            if "output" in keys:
+                _output = sectionDict["output"].output(state)
+            if "cells" in keys:
+                _cells = sectionDict["cells"].cells(state)
+            if "pools" in keys:
+                _pools = sectionDict["pools"].pools(state)
+
             if "fcns" in keys:
                 for x in sectionDict["fcns"].content:
                     if isinstance(x, MiniNamedFcnDef):
@@ -1246,6 +1310,8 @@ class Parser(object):
 
             if "zero" in keys:
                 _zero = sectionDict["zero"].zero()
+            if "merge" in keys:
+                _merge = sectionDict["merge"].merge(state)
             if "randseed" in keys:
                 _randseed = sectionDict["randseed"].randseed()
             if "doc" in keys:
@@ -1257,15 +1323,12 @@ class Parser(object):
             if "options" in keys:
                 _options = sectionDict["options"].options()
 
-            if _method == Method.FOLD and "zero" not in keys:
-                raise PFASyntaxException("folding engines must include a \"zero\" to begin the calculation", "PrettyPFA document")
-
             required = set(["action", "input", "output"])
             if keys.intersection(required) != required:
                 raise PFASyntaxException("missing top-level fields: {}".format(", ".join(required.difference(keys))), "PrettyPFA document")
             else:
-                p[0] = EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _cells, _pools, _randseed, _doc, _version, _metadata, _options, "PrettyPFA document")
-                avroTypeBuilder.resolveTypes()
+                p[0] = EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _merge, _cells, _pools, _randseed, _doc, _version, _metadata, _options, "PrettyPFA document")
+                state.avroTypeBuilder.resolveTypes()
 
         def p_section(p):
             r'''section : SECTION_HEADER_START anything
@@ -1792,13 +1855,16 @@ class Parser(object):
             if p is None:
                 raise PrettyPfaException("Parsing syntax error")
             else:
-                raise PrettyPfaException("Parsing syntax error on line {}".format(p.lineno))
+                lineno = p.lineno
+                offendingLine = "\n".join(insertArrow(self.text.split("\n")[(lineno - 1):(lineno + 2)], 1))
+                raise PrettyPfaException("Parsing syntax error on line {}:\n{}".format(p.lineno, offendingLine))
 
         self.yacc = yacc.yacc(debug=False, write_tables=False)
         self.initialized = True
 
     def parse(self, text):
         self.lexer.lineno = 1
+        self.text = text
         return self.yacc.parse(text)
 
 parser = Parser()
@@ -1826,3 +1892,45 @@ def json(text, lineNumbers=True, check=True):
 
 def engine(text, options=None, sharedState=None, multiplicity=1, style="pure", debug=False):
     return PFAEngine.fromAst(ast(text), options, sharedState, multiplicity, style, debug)
+
+def avscToPretty(avsc, indent=0):
+    if isinstance(avsc, basestring):
+        return " " * indent + avsc
+    elif isinstance(avsc, dict) and "type" in avsc:
+        tpe = avsc["type"]
+
+        if tpe in ("null", "boolean", "int", "long", "float", "double", "bytes", "string"):
+            return " " * indent + tpe
+
+        elif tpe == "array":
+            return " " * indent + "array(" + avscToPretty(avsc["items"], indent + 6).lstrip() + ")"
+
+        elif tpe == "map":
+            return " " * indent + "map(" + avscToPretty(avsc["values"], indent + 4).lstrip() + ")"
+
+        elif tpe == "record":
+            name = avsc["name"]
+            if "namespace" in avsc and len(avsc["namespace"]) > 0:
+                name = avsc["namespace"] + "." + name
+            fields = []
+            for f in avsc["fields"]:
+                fields.append(" " * (indent + 7) + f["name"] + ": " + avscToPretty(f["type"], indent + 7 + len(f["name"]) + 2).lstrip())
+            return " " * indent + "record(" + name + ",\n" + ",\n".join(fields) + ")"
+
+        elif tpe == "fixed":
+            name = avsc["name"]
+            if "namespace" in avsc and len(avsc["namespace"]) > 0:
+                name = avsc["namespace"] + "." + name
+            return " " * indent + "fixed(" + name + ", size: " + str(avsc["size"]) + ")"
+
+        elif tpe == "enum":
+            name = avsc["name"]
+            if "namespace" in avsc and len(avsc["namespace"]) > 0:
+                name = avsc["namespace"] + "." + name
+            return " " * indent + "enum(" + name + ", symbols: [" + ", ".join(x for x in avsc["symbols"]) + "])"
+
+    elif isinstance(avsc, (list, tuple)):
+        variants = []
+        for x in avsc:
+            variants.append(avscToPretty(x, indent + 6))
+        return " " * indent + "union(" + ",\n".join(variants).lstrip() + ")"

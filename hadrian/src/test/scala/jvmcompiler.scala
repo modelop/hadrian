@@ -29,11 +29,16 @@ import org.scalatest.Matchers
 
 import com.opendatagroup.hadrian.ast._
 import com.opendatagroup.hadrian.data._
+import com.opendatagroup.hadrian.datatype._
 import com.opendatagroup.hadrian.errors._
 import com.opendatagroup.hadrian.jvmcompiler._
 import com.opendatagroup.hadrian.reader._
 import com.opendatagroup.hadrian.yaml._
 import test.scala._
+
+case class MyTestRecord(one: Int, two: Double, three: String)
+case class MyTestRecord2(one: Seq[Int], two: Map[String, Double])
+case class MyTestRecord3(first: MyTestRecord, second: MyTestRecord2)
 
 @RunWith(classOf[JUnitRunner])
 class JVMCompilationSuite extends FlatSpec with Matchers {
@@ -87,6 +92,7 @@ output: string
 method: fold
 zero: "!!!"
 action: {s.concat: [name, tally]}
+merge: {s.concat: [tallyOne, tallyTwo]}
 """).head.action(null) should be ("ThisIsMyName!!!")
 
     val beginEngine = PFAEngine.fromYaml("""
@@ -108,6 +114,25 @@ end: {log: {s.concat: [name, {string: "!!!"}]}}
 """).head
     endEngine.log = {(x: String, ns: Option[String]) => x should be (""""ThisIsMyName!!!"""")}
     endEngine.end()
+
+    val engines = PFAEngine.fromYaml("""
+name: WeAllHaveTheSameName
+input: "null"
+output: {type: array, items: string}
+action:
+  - let: {out: {type: {type: array, items: string}, value: []}}
+  - for: {i: 0}
+    while: {"<": [i, instance]}
+    step: {i: {+: [i, 1]}}
+    do:
+      set: {out: {a.append: [out, name]}}
+  - out
+""", multiplicity = 10)
+    for ((engine, index) <- engines.zipWithIndex) {
+      val output = engine.action(null).asInstanceOf[PFAArray[String]].toVector
+      output.size should be (index)
+      output.headOption foreach {_ should be ("WeAllHaveTheSameName")}
+    }
   }
 
   it must "refuse to change name" taggedAs(JVMCompilation) in {
@@ -139,6 +164,7 @@ zero: null
 action:
   - set: {name: {string: SomethingElse}}
   - null
+merge: null
 """).head } should produce [PFASemanticException]
 
     evaluating { PFAEngine.fromYaml("""
@@ -186,6 +212,7 @@ output: int
 method: fold
 zero: 1000
 action: {+: [version, tally]}
+merge: {+: [tallyOne, tallyTwo]}
 """).head.action(null) should be (1123)
 
     evaluating { PFAEngine.fromYaml("""
@@ -256,6 +283,7 @@ output: string
 method: fold
 zero: "!!!"
 action: {s.concat: [metadata.hello, tally]}
+merge: {s.concat: [tallyOne, tallyTwo]}
 """).head.action(null) should be ("there!!!")
 
     val beginEngine = PFAEngine.fromYaml("""
@@ -378,6 +406,7 @@ action:
   else:
     - error: "yowzers!"
     - {new: [], type: {type: array, items: long}}
+merge: {a.concat: [tallyOne, tallyTwo]}
 """).head
 
     try {
@@ -404,6 +433,32 @@ action:
       engine.action(java.lang.Boolean.valueOf(true)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(5L, 2L))
     }
     catch {case err: Exception =>}
+  }
+
+  it must "correctly use merge" taggedAs(JVMCompilation) in {
+    val Seq(engineOne, engineTwo) = PFAEngine.fromYaml("""
+input: int
+output: string
+method: fold
+zero: "-"
+action: {s.concat: [tally, {s.number: input}]}
+merge: {s.concat: [tallyOne, tallyTwo]}
+""", multiplicity = 2) map {_.asInstanceOf[PFAFoldEngine[AnyRef, AnyRef]]}
+
+    engineOne.action(java.lang.Integer.valueOf(1)) should be ("-1")
+    engineOne.action(java.lang.Integer.valueOf(2)) should be ("-12")
+    engineOne.action(java.lang.Integer.valueOf(3)) should be ("-123")
+    engineOne.action(java.lang.Integer.valueOf(4)) should be ("-1234")
+
+    engineTwo.action(java.lang.Integer.valueOf(9)) should be ("-9")
+    engineTwo.action(java.lang.Integer.valueOf(8)) should be ("-98")
+    engineTwo.action(java.lang.Integer.valueOf(7)) should be ("-987")
+    engineTwo.action(java.lang.Integer.valueOf(6)) should be ("-9876")
+
+    engineOne.merge(engineOne.tally, engineTwo.tally) should be ("-1234-9876")
+    engineOne.action(java.lang.Integer.valueOf(5)) should be ("-1234-98765")
+
+    engineTwo.action(java.lang.Integer.valueOf(5)) should be ("-98765")
   }
 
   "JVM expression compilation" must "do simple literals" taggedAs(JVMCompilation) in {
@@ -463,6 +518,31 @@ output: {type: record, name: SimpleRecord, fields: [{name: one, type: int}, {nam
 action:
   - {new: {one: 1, two: 2.2}, type: SimpleRecord}
 """).head } should produce [PFASemanticException]
+  }
+
+  it must "promote types in a new record" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: "null"
+output: {type: record, name: SimpleRecord, fields: [{name: one, type: int}, {name: two, type: long}, {name: three, type: float}, {name: four, type: double}]}
+action:
+  - {new: {one: 1, two: 2, three: 3, four: 4}, type: SimpleRecord}
+""").head
+    val out = engine.action(null).asInstanceOf[PFARecord]
+    out.get("one").getClass.getName should be ("java.lang.Integer")
+    out.get("two").getClass.getName should be ("java.lang.Long")
+    out.get("three").getClass.getName should be ("java.lang.Float")
+    out.get("four").getClass.getName should be ("java.lang.Double")
+
+    val engine2 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: record, name: SimpleRecord, fields: [{name: one, type: [double, "null"]}, {name: two, type: [double, "null"]}]}
+action:
+  - {new: {one: 1, two: null}, type: SimpleRecord}
+""").head
+    val out2 = engine2.action(null).asInstanceOf[PFARecord]
+    out2.get("one").getClass.getName should be ("java.lang.Double")
+    out2.get("one").asInstanceOf[java.lang.Double].doubleValue should be (1.0)
+    out2.get("two") should be (null)
   }
 
   it must "do new record with inline types" taggedAs(JVMCompilation) in {
@@ -2044,8 +2124,8 @@ input: double
 output: double
 method: fold
 zero: 0
-action:
-  - {+: [input, tally]}
+action: {+: [input, tally]}
+merge: {+: [tallyOne, tallyTwo]}
 """).head
 
     engine.action(java.lang.Double.valueOf(5)) should be (java.lang.Double.valueOf(5))
@@ -2072,6 +2152,7 @@ fcns:
     ret: double
     do:
       - {+: [x, tally]}
+merge: {+: [tallyOne, tallyTwo]}
 """).head } should produce [PFASemanticException]
   }
 
@@ -2091,6 +2172,7 @@ fcns:
     ret: double
     do:
       - {+: [x, t]}
+merge: {+: [tallyOne, tallyTwo]}
 """).head
 
     engine.action(java.lang.Double.valueOf(5)) should be (java.lang.Double.valueOf(5))
@@ -4105,4 +4187,538 @@ action:
     engine.action(java.lang.Integer.valueOf(5)) should be (java.lang.Integer.valueOf(5))
   }
 
+  "translator" must "translate PFA data" taggedAs(JVMCompilation) in {
+    val engine1 = PFAEngine.fromYaml("""
+name: TestMe
+input: "null"
+output:
+  type: array
+  items:
+    type: record
+    name: Whatever
+    fields:
+      - {name: a, type: int}
+      - {name: b, type: double}
+      - {name: c, type: string}
+action:
+  type:
+    type: array
+    items: Whatever
+  value:
+    [{a: 1, b: 1.1, c: ONE}, {a: 2, b: 2.2, c: TWO}, {a: 3, b: 3.3, c: THREE}]
+""").head
+
+    val engine2 = PFAEngine.fromYaml("""
+name: TestMe
+input:
+  type: array
+  items:
+    type: record
+    name: Whatever
+    fields:
+      - {name: a, type: int}
+      - {name: b, type: double}
+      - {name: c, type: string}
+output:
+  type: array
+  items: Whatever
+action:
+  type:
+    type: array
+    items: Whatever
+  new:
+    - type: Whatever
+      new: {a: {+: [input.0.a, 100]}, b: {+: [input.0.b, 100]}, c: {s.concat: [input.0.c, ["-100"]]}}
+    - type: Whatever
+      new: {a: {+: [input.1.a, 100]}, b: {+: [input.1.b, 100]}, c: {s.concat: [input.1.c, ["-100"]]}}
+    - type: Whatever
+      new: {a: {+: [input.2.a, 100]}, b: {+: [input.2.b, 100]}, c: {s.concat: [input.2.c, ["-100"]]}}
+""").head
+
+    val out1 = engine1.action(null)
+    out1.toString should be ("""[{"a": 1, "b": 1.1, "c": "ONE"}, {"a": 2, "b": 2.2, "c": "TWO"}, {"a": 3, "b": 3.3, "c": "THREE"}]""")
+
+    evaluating { engine2.action(out1) } should produce [java.lang.ClassCastException]
+
+    val out2 = engine2.action(engine2.fromPFAData(out1))
+    out2.toString should be ("""[{"a": 101, "b": 101.1, "c": "ONE-100"}, {"a": 102, "b": 102.2, "c": "TWO-100"}, {"a": 103, "b": 103.3, "c": "THREE-100"}]""")
+  }
+
+  def testGenericLoadAndConvert(avroType: AvroType, jsonData: String, yamlEngine: String, debug: Boolean = false): Unit = {
+    val datum = fromJson(jsonData, avroType)
+    if (debug)
+      println(toJson(datum, avroType))
+    toJson(datum, avroType) should be (jsonData)
+
+    val engine = PFAEngine.fromYaml(yamlEngine).head
+    val translated = engine.fromPFAData(datum)
+    if (debug)
+      println(toJson(translated, avroType))
+    toJson(translated, avroType) should be (jsonData)
+
+    val result = engine.action(translated)
+    if (debug)
+      println(toJson(result, avroType))
+    toJson(result, avroType) should be (jsonData)
+  }
+
+  "generic data" must "load correctly" taggedAs(JVMCompilation) in {
+    testGenericLoadAndConvert(AvroNull(), """null""", """
+input: "null"
+output: "null"
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroBoolean(), """true""", """
+input: boolean
+output: boolean
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroInt(), """3""", """
+input: int
+output: int
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroLong(), """3""", """
+input: long
+output: long
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroFloat(), """3.14""", """
+input: float
+output: float
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroDouble(), """3.14""", """
+input: double
+output: double
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroBytes(), """"aGVsbG8="""", """
+input: bytes
+output: bytes
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroFixed(5, "MyType"), """"hello"""", """
+input:
+  type: fixed
+  name: MyType
+  size: 5
+output: MyType
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroString(), """"hello"""", """
+input: string
+output: string
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroEnum(Seq("one", "two", "three"), "MyType"), """"three"""", """
+input:
+  type: enum
+  name: MyType
+  symbols: [one, two, three]
+output: MyType
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroArray(AvroInt()), """[1,2,3]""", """
+input:
+  type: array
+  items: int
+output:
+  type: array
+  items: int
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroArray(AvroEnum(Seq("one", "two", "three"), "MyType")), """["one","two","three"]""", """
+input:
+  type: array
+  items:
+    type: enum
+    name: MyType
+    symbols: [one, two, three]
+output:
+  type: array
+  items: MyType
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroMap(AvroInt()), """{"uno":1,"dos":2,"tres":3}""", """
+input:
+  type: map
+  values: int
+output:
+  type: map
+  values: int
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroRecord(Seq(AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())), "MyType"), """{"one":1,"two":2.2,"three":"THREE"}""", """
+input:
+  type: record
+  name: MyType
+  fields:
+    - {name: one, type: int}
+    - {name: two, type: double}
+    - {name: three, type: string}
+output: MyType
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroUnion(Seq(AvroInt(), AvroString(), AvroArray(AvroString()))), """{"int":3}""", """
+input: [int, string, {type: array, items: string}]
+output: [int, string, {type: array, items: string}]
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroUnion(Seq(AvroInt(), AvroString(), AvroArray(AvroString()))), """{"string":"THREE"}""", """
+input: [int, string, {type: array, items: string}]
+output: [int, string, {type: array, items: string}]
+action: input
+""")
+
+
+    testGenericLoadAndConvert(AvroUnion(Seq(AvroInt(), AvroString(), AvroArray(AvroString()))), """{"array":["one","two","three"]}""", """
+input: [int, string, {type: array, items: string}]
+output: [int, string, {type: array, items: string}]
+action: input
+""")
+  }
+
+  "PFA data" must "translate to Scala" taggedAs(JVMCompilation) in {
+    val pfaInt = PFAEngine.fromYaml("""
+input: "null"
+output: int
+action: 3
+""").head.action(null)
+    pfaInt.isInstanceOf[java.lang.Integer] should be (true)
+    val translateInt = new ScalaDataTranslator[Int](AvroInt(), getClass.getClassLoader)
+    translateInt.toScala(pfaInt).isInstanceOf[Int] should be (true)
+
+    val pfaString = PFAEngine.fromYaml("""
+input: "null"
+output: string
+action: {string: "hello"}
+""").head.action(null)
+    pfaString.isInstanceOf[String] should be (true)
+    val translateString = new ScalaDataTranslator[String](AvroString(), getClass.getClassLoader)
+    translateString.toScala(pfaString).isInstanceOf[String] should be (true)
+
+    val pfaArrayString = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: string}
+action:
+  type: {type: array, items: string}
+  value: ["one", "two", "three"]
+""").head.action(null)
+    pfaArrayString.isInstanceOf[PFAArray[_]] should be (true)
+    val translateArrayString = new ScalaDataTranslator[Seq[String]](AvroArray(AvroString()), getClass.getClassLoader)
+    translateArrayString.toScala(pfaArrayString).isInstanceOf[Seq[_]] should be (true)
+    translateArrayString.toScala(pfaArrayString) map {_.isInstanceOf[String] should be (true)}
+
+    val pfaArrayInt = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: int}
+action:
+  type: {type: array, items: int}
+  value: [1, 2, 3]
+""").head.action(null)
+    pfaArrayInt.isInstanceOf[PFAArray[_]] should be (true)
+    val translateArrayInt = new ScalaDataTranslator[Seq[Int]](AvroArray(AvroInt()), getClass.getClassLoader)
+    translateArrayInt.toScala(pfaArrayInt).isInstanceOf[Seq[_]] should be (true)
+    translateArrayInt.toScala(pfaArrayInt) map {_.isInstanceOf[Int] should be (true)}
+
+    val pfaMapString = PFAEngine.fromYaml("""
+input: "null"
+output: {type: map, values: string}
+action:
+  type: {type: map, values: string}
+  value: {one: "ONE", two: "TWO", three: "THREE"}
+""").head.action(null)
+    pfaMapString.isInstanceOf[PFAMap[_]] should be (true)
+    val translateMapString = new ScalaDataTranslator[Map[String, String]](AvroMap(AvroString()), getClass.getClassLoader)
+    translateMapString.toScala(pfaMapString).isInstanceOf[Map[_, _]] should be (true)
+    translateMapString.toScala(pfaMapString) map {case (k, v) => v.isInstanceOf[String] should be (true)}
+
+    val pfaMapInt = PFAEngine.fromYaml("""
+input: "null"
+output: {type: map, values: int}
+action:
+  type: {type: map, values: int}
+  value: {one: 1, two: 2, three: 3}
+""").head.action(null)
+    pfaMapInt.isInstanceOf[PFAMap[_]] should be (true)
+    val translateMapInt = new ScalaDataTranslator[Map[String, Int]](AvroMap(AvroInt()), getClass.getClassLoader)
+    translateMapInt.toScala(pfaMapInt).isInstanceOf[Map[_, _]] should be (true)
+    translateMapInt.toScala(pfaMapInt) map {case (k, v) => v.isInstanceOf[Int] should be (true)}
+
+    val pfaRecord = PFAEngine.fromYaml("""
+input: "null"
+output:
+  type: record
+  name: MyRecord
+  fields:
+    - {name: one, type: int}
+    - {name: two, type: double}
+    - {name: three, type: string}
+action:
+  type: MyRecord
+  value: {one: 1, two: 2.2, three: "THREE"}
+""").head.action(null)
+    pfaRecord.isInstanceOf[PFARecord] should be (true)
+    val translateRecord = new ScalaDataTranslator[MyTestRecord](AvroRecord(List(AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())), "MyTestRecord", Some("test.scala.jvmcompiler")), getClass.getClassLoader)
+    translateRecord.toScala(pfaRecord).isInstanceOf[MyTestRecord] should be (true)
+    translateRecord.toScala(pfaRecord).one.isInstanceOf[Int] should be (true)
+    translateRecord.toScala(pfaRecord).two.isInstanceOf[Double] should be (true)
+    translateRecord.toScala(pfaRecord).three.isInstanceOf[String] should be (true)
+
+    val pfaArrayRecord = PFAEngine.fromYaml("""
+input: "null"
+output:
+  type: array
+  items:
+    type: record
+    name: MyRecord
+    fields:
+      - {name: one, type: int}
+      - {name: two, type: double}
+      - {name: three, type: string}
+action:
+  type: {type: array, items: MyRecord}
+  value: [{one: 1, two: 1.1, three: "UNO"}, {one: 2, two: 2.2, three: "DOS"}, {one: 3, two: 3.3, three: "TRES"}]
+""").head.action(null)
+    pfaArrayRecord.isInstanceOf[PFAArray[_]] should be (true)
+    val translateArrayRecord = new ScalaDataTranslator[Seq[MyTestRecord]](AvroArray(AvroRecord(List(AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())), "MyTestRecord", Some("test.scala.jvmcompiler"))), getClass.getClassLoader)
+    translateArrayRecord.toScala(pfaArrayRecord).isInstanceOf[Seq[_]] should be (true)
+    translateArrayRecord.toScala(pfaArrayRecord).head.isInstanceOf[MyTestRecord] should be (true)
+    translateArrayRecord.toScala(pfaArrayRecord).head.one.isInstanceOf[Int] should be (true)
+    translateArrayRecord.toScala(pfaArrayRecord).head.two.isInstanceOf[Double] should be (true)
+    translateArrayRecord.toScala(pfaArrayRecord).head.three.isInstanceOf[String] should be (true)
+
+    val pfaRecord2 = PFAEngine.fromYaml("""
+input: "null"
+output:
+  type: record
+  name: MyRecord
+  fields:
+    - {name: one, type: {type: array, items: int}}
+    - {name: two, type: {type: map, values: double}}
+action:
+  type: MyRecord
+  value: {one: [1, 2, 3], two: {"uno": 1.1, "dos": 2.2, "tres": 3.3}}
+""").head.action(null)
+    pfaRecord2.isInstanceOf[PFARecord] should be (true)
+    val translateRecord2 = new ScalaDataTranslator[MyTestRecord2](AvroRecord(List(AvroField("one", AvroArray(AvroInt())), AvroField("two", AvroMap(AvroDouble()))), "MyTestRecord2", Some("test.scala.jvmcompiler")), getClass.getClassLoader)
+    translateRecord2.toScala(pfaRecord2).isInstanceOf[MyTestRecord2] should be (true)
+    translateRecord2.toScala(pfaRecord2).one.isInstanceOf[Seq[_]] should be (true)
+    translateRecord2.toScala(pfaRecord2).one map {_.isInstanceOf[Int] should be (true)}
+    translateRecord2.toScala(pfaRecord2).two.isInstanceOf[Map[_, _]] should be (true)
+    translateRecord2.toScala(pfaRecord2).two map {case (k, v) => v.isInstanceOf[Double] should be (true)}
+
+    val pfaRecord3 = PFAEngine.fromYaml("""
+input: "null"
+output:
+  type: record
+  name: Outer
+  fields:
+    - name: first
+      type:
+        type: record
+        name: MyRecord
+        fields:
+          - {name: one, type: int}
+          - {name: two, type: double}
+          - {name: three, type: string}
+    - name: second
+      type:
+        type: record
+        name: MyRecord2
+        fields:
+          - {name: one, type: {type: array, items: int}}
+          - {name: two, type: {type: map, values: double}}
+action:
+  type: Outer
+  value:
+    first: {one: 1, two: 1.1, three: "UNO"}
+    second: {one: [1, 2, 3], two: {"uno": 1.1, "dos": 2.2, "tres": 3.3}}
+""").head.action(null)
+    pfaRecord3.isInstanceOf[PFARecord] should be (true)
+    val translateRecord3 = new ScalaDataTranslator[MyTestRecord3](AvroRecord(List(AvroField("first", AvroRecord(List(AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())), "MyTestRecord", Some("test.scala.jvmcompiler"))), AvroField("second", AvroRecord(List(AvroField("one", AvroArray(AvroInt())), AvroField("two", AvroMap(AvroDouble()))), "MyTestRecord2", Some("test.scala.jvmcompiler")))), "MyTestRecord3", Some("test.scala.jvmcompiler")), getClass.getClassLoader)
+    translateRecord3.toScala(pfaRecord3).isInstanceOf[MyTestRecord3] should be (true)
+    translateRecord3.toScala(pfaRecord3).first.isInstanceOf[MyTestRecord] should be (true)
+    translateRecord3.toScala(pfaRecord3).first.one.isInstanceOf[Int] should be (true)
+    translateRecord3.toScala(pfaRecord3).first.two.isInstanceOf[Double] should be (true)
+    translateRecord3.toScala(pfaRecord3).first.three.isInstanceOf[String] should be (true)
+    translateRecord3.toScala(pfaRecord3).second.isInstanceOf[MyTestRecord2] should be (true)
+    translateRecord3.toScala(pfaRecord3).second.one.isInstanceOf[Seq[_]] should be (true)
+    translateRecord3.toScala(pfaRecord3).second.one map {_.isInstanceOf[Int] should be (true)}
+    translateRecord3.toScala(pfaRecord3).second.two.isInstanceOf[Map[_, _]] should be (true)
+    translateRecord3.toScala(pfaRecord3).second.two map {case (k, v) => v.isInstanceOf[Double] should be (true)}
+
+    // NOTE: haven't tested fixed, enum, or union
+  }
+
+  it must "translate from Scala" taggedAs(JVMCompilation) in {
+    val scalaInt = 3
+    val pfaInt = new ScalaDataTranslator[Int](AvroInt(), getClass.getClassLoader).fromScala(scalaInt)
+    val engineInt = PFAEngine.fromYaml("""
+input: int
+output: int
+action: input
+""").head
+    engineInt.action(engineInt.fromPFAData(pfaInt)).isInstanceOf[java.lang.Integer] should be (true)
+
+    val scalaString = "THREE"
+    val pfaString = new ScalaDataTranslator[String](AvroString(), getClass.getClassLoader).fromScala(scalaString)
+    val engineString = PFAEngine.fromYaml("""
+input: string
+output: string
+action: input
+""").head
+    engineString.action(engineString.fromPFAData(pfaString)).isInstanceOf[String] should be (true)
+
+    val scalaArrayString = Seq("one", "two", "three")
+    val pfaArrayString = new ScalaDataTranslator[Seq[String]](AvroArray(AvroString()), getClass.getClassLoader).fromScala(scalaArrayString)
+    val engineArrayString = PFAEngine.fromYaml("""
+input: {type: array, items: string}
+output: {type: array, items: string}
+action: input
+""").head
+    engineArrayString.action(engineArrayString.fromPFAData(pfaArrayString)).isInstanceOf[PFAArray[_]] should be (true)
+    engineArrayString.action(engineArrayString.fromPFAData(pfaArrayString)).asInstanceOf[PFAArray[String]].toVector map {_.isInstanceOf[String] should be (true)}
+
+    val scalaArrayInt = Seq(1, 2, 3)
+    val pfaArrayInt = new ScalaDataTranslator[Seq[Int]](AvroArray(AvroInt()), getClass.getClassLoader).fromScala(scalaArrayInt)
+    val engineArrayInt = PFAEngine.fromYaml("""
+input: {type: array, items: int}
+output: {type: array, items: int}
+action: input
+""").head
+    engineArrayInt.action(engineArrayInt.fromPFAData(pfaArrayInt)).isInstanceOf[PFAArray[_]] should be (true)
+    engineArrayInt.action(engineArrayInt.fromPFAData(pfaArrayInt)).asInstanceOf[PFAArray[Int]].toVector map {_.isInstanceOf[Int] should be (true)}
+
+    val scalaMapString = Map("one" -> "ONE", "two" -> "TWO", "three" -> "THREE")
+    val pfaMapString = new ScalaDataTranslator[Map[String, String]](AvroMap(AvroString()), getClass.getClassLoader).fromScala(scalaMapString)
+    val engineMapString = PFAEngine.fromYaml("""
+input: {type: map, values: string}
+output: {type: map, values: string}
+action: input
+""").head
+    engineMapString.action(engineMapString.fromPFAData(pfaMapString)).isInstanceOf[PFAMap[_]] should be (true)
+    engineMapString.action(engineMapString.fromPFAData(pfaMapString)).asInstanceOf[PFAMap[String]].toMap map {case (k, v) => v.isInstanceOf[String] should be (true)}
+
+    val scalaMapInt = Map("one" -> 1, "two" -> 2, "three" -> 3)
+    val pfaMapInt = new ScalaDataTranslator[Map[String, Int]](AvroMap(AvroInt()), getClass.getClassLoader).fromScala(scalaMapInt)
+    val engineMapInt = PFAEngine.fromYaml("""
+input: {type: map, values: int}
+output: {type: map, values: int}
+action: input
+""").head
+    engineMapInt.action(engineMapInt.fromPFAData(pfaMapInt)).isInstanceOf[PFAMap[_]] should be (true)
+    engineMapInt.action(engineMapInt.fromPFAData(pfaMapInt)).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => v.isInstanceOf[java.lang.Integer] should be (true)}
+
+    val scalaRecord = MyTestRecord(1, 2.2, "THREE")
+    val pfaRecord = new ScalaDataTranslator[MyTestRecord](AvroRecord(List(AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())), "MyTestRecord", Some("test.scala.jvmcompiler")), getClass.getClassLoader).fromScala(scalaRecord)
+    val engineRecord = PFAEngine.fromYaml("""
+input:
+  type: record
+  name: MyRecord
+  fields:
+    - {name: one, type: int}
+    - {name: two, type: double}
+    - {name: three, type: string}
+output: MyRecord
+action: input
+""").head
+    engineRecord.action(engineRecord.fromPFAData(pfaRecord)).isInstanceOf[PFARecord] should be (true)
+    engineRecord.action(engineRecord.fromPFAData(pfaRecord)).asInstanceOf[PFARecord].get("one").isInstanceOf[java.lang.Integer] should be (true)
+    engineRecord.action(engineRecord.fromPFAData(pfaRecord)).asInstanceOf[PFARecord].get("two").isInstanceOf[java.lang.Double] should be (true)
+    engineRecord.action(engineRecord.fromPFAData(pfaRecord)).asInstanceOf[PFARecord].get("three").isInstanceOf[String] should be (true)
+
+    val scalaArrayRecord = Seq(MyTestRecord(1, 1.1, "UNO"), MyTestRecord(2, 2.2, "DOS"), MyTestRecord(3, 3.3, "TRES"))
+    val pfaArrayRecord = new ScalaDataTranslator[Seq[MyTestRecord]](AvroArray(AvroRecord(List(AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())), "MyTestRecord", Some("test.scala.jvmcompiler"))), getClass.getClassLoader).fromScala(scalaArrayRecord)
+    val engineArrayRecord = PFAEngine.fromYaml("""
+input:
+  type: array
+  items:
+    type: record
+    name: MyRecord
+    fields:
+      - {name: one, type: int}
+      - {name: two, type: double}
+      - {name: three, type: string}
+output: {type: array, items: MyRecord}
+action: input
+""").head
+    engineArrayRecord.action(engineArrayRecord.fromPFAData(pfaArrayRecord)).isInstanceOf[PFAArray[_]] should be (true)
+    engineArrayRecord.action(engineArrayRecord.fromPFAData(pfaArrayRecord)).asInstanceOf[PFAArray[_]].toVector.head.isInstanceOf[PFARecord] should be (true)
+    engineArrayRecord.action(engineArrayRecord.fromPFAData(pfaArrayRecord)).asInstanceOf[PFAArray[_]].toVector.head.asInstanceOf[PFARecord].get("one").isInstanceOf[java.lang.Integer] should be (true)
+    engineArrayRecord.action(engineArrayRecord.fromPFAData(pfaArrayRecord)).asInstanceOf[PFAArray[_]].toVector.head.asInstanceOf[PFARecord].get("two").isInstanceOf[java.lang.Double] should be (true)
+    engineArrayRecord.action(engineArrayRecord.fromPFAData(pfaArrayRecord)).asInstanceOf[PFAArray[_]].toVector.head.asInstanceOf[PFARecord].get("three").isInstanceOf[String] should be (true)
+
+    val scalaRecord2 = MyTestRecord2(Seq(1, 2, 3), Map("uno" -> 1.1, "dos" -> 2.2, "tres" -> 3.3))
+    val pfaRecord2 = new ScalaDataTranslator[MyTestRecord2](AvroRecord(List(AvroField("one", AvroArray(AvroInt())), AvroField("two", AvroMap(AvroDouble()))), "MyTestRecord2", Some("test.scala.jvmcompiler")), getClass.getClassLoader).fromScala(scalaRecord2)
+    val engineRecord2 = PFAEngine.fromYaml("""
+input:
+  type: record
+  name: MyRecord
+  fields:
+    - {name: one, type: {type: array, items: int}}
+    - {name: two, type: {type: map, values: double}}
+output: MyRecord
+action: input
+""").head
+    engineRecord2.action(engineRecord2.fromPFAData(pfaRecord2)).isInstanceOf[PFARecord] should be (true)
+    engineRecord2.action(engineRecord2.fromPFAData(pfaRecord2)).asInstanceOf[PFARecord].get("one").isInstanceOf[PFAArray[_]] should be (true)
+    engineRecord2.action(engineRecord2.fromPFAData(pfaRecord2)).asInstanceOf[PFARecord].get("one").asInstanceOf[PFAArray[_]].toVector map {_.isInstanceOf[Int] should be (true)}
+    engineRecord2.action(engineRecord2.fromPFAData(pfaRecord2)).asInstanceOf[PFARecord].get("two").isInstanceOf[PFAMap[_]] should be (true)
+    engineRecord2.action(engineRecord2.fromPFAData(pfaRecord2)).asInstanceOf[PFARecord].get("two").asInstanceOf[PFAMap[_]].toMap map {case (k, v) => v.isInstanceOf[java.lang.Double] should be (true)}
+
+    val scalaRecord3 = MyTestRecord3(MyTestRecord(1, 2.2, "UNO"), MyTestRecord2(Seq(1, 2, 3), Map("uno" -> 1.1, "dos" -> 2.2, "tres" -> 3.3)))
+    val pfaRecord3 = new ScalaDataTranslator[MyTestRecord3](AvroRecord(List(AvroField("first", AvroRecord(List(AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())), "MyTestRecord", Some("test.scala.jvmcompiler"))), AvroField("second", AvroRecord(List(AvroField("one", AvroArray(AvroInt())), AvroField("two", AvroMap(AvroDouble()))), "MyTestRecord2", Some("test.scala.jvmcompiler")))), "MyTestRecord3", Some("test.scala.jvmcompiler")), getClass.getClassLoader).fromScala(scalaRecord3)
+    val engineRecord3 = PFAEngine.fromYaml("""
+input:
+  type: record
+  name: Outer
+  fields:
+    - name: first
+      type:
+        type: record
+        name: MyRecord
+        fields:
+          - {name: one, type: int}
+          - {name: two, type: double}
+          - {name: three, type: string}
+    - name: second
+      type:
+        type: record
+        name: MyRecord2
+        fields:
+          - {name: one, type: {type: array, items: int}}
+          - {name: two, type: {type: map, values: double}}
+output: Outer
+action: input
+""").head
+    engineRecord3.action(engineRecord3.fromPFAData(pfaRecord3)).isInstanceOf[PFARecord] should be (true)
+    engineRecord3.action(engineRecord3.fromPFAData(pfaRecord3)).asInstanceOf[PFARecord].get("first").isInstanceOf[PFARecord] should be (true)
+    engineRecord3.action(engineRecord3.fromPFAData(pfaRecord3)).asInstanceOf[PFARecord].get("first").asInstanceOf[PFARecord].get("one").isInstanceOf[java.lang.Integer] should be (true)
+    engineRecord3.action(engineRecord3.fromPFAData(pfaRecord3)).asInstanceOf[PFARecord].get("first").asInstanceOf[PFARecord].get("two").isInstanceOf[java.lang.Double] should be (true)
+    engineRecord3.action(engineRecord3.fromPFAData(pfaRecord3)).asInstanceOf[PFARecord].get("first").asInstanceOf[PFARecord].get("three").isInstanceOf[String] should be (true)
+    engineRecord3.action(engineRecord3.fromPFAData(pfaRecord3)).asInstanceOf[PFARecord].get("second").isInstanceOf[PFARecord] should be (true)
+    engineRecord3.action(engineRecord3.fromPFAData(pfaRecord3)).asInstanceOf[PFARecord].get("second").asInstanceOf[PFARecord].get("one").isInstanceOf[PFAArray[_]] should be (true)
+    engineRecord3.action(engineRecord3.fromPFAData(pfaRecord3)).asInstanceOf[PFARecord].get("second").asInstanceOf[PFARecord].get("one").asInstanceOf[PFAArray[_]].toVector map {_.isInstanceOf[java.lang.Integer] should be (true)}
+    engineRecord3.action(engineRecord3.fromPFAData(pfaRecord3)).asInstanceOf[PFARecord].get("second").asInstanceOf[PFARecord].get("two").isInstanceOf[PFAMap[_]] should be (true)
+    engineRecord3.action(engineRecord3.fromPFAData(pfaRecord3)).asInstanceOf[PFARecord].get("second").asInstanceOf[PFARecord].get("two").asInstanceOf[PFAMap[_]].toMap map {case (k, v) => v.isInstanceOf[java.lang.Double] should be (true)}
+
+    // NOTE: haven't tested fixed, enum, or union
+  }
 }

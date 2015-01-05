@@ -214,6 +214,7 @@ package reader {
         var _end: Seq[Expression] = Nil
         var _fcns = Map[String, FcnDef]()
         var _zero: Option[String] = None
+        var _merge: Option[Seq[Expression]] = None
         var _cells = Map[String, Cell]()
         var _pools = Map[String, Pool]()
         var _randseed: Option[Long] = None
@@ -253,6 +254,10 @@ package reader {
               }
               case "fcns" =>      _fcns = readFcnDefMap(parser, parser.nextToken(), key, _at, avroTypeBuilder)
               case "zero" =>      _zero = Some(readJsonToString(parser, parser.nextToken(), key, _at))
+              case "merge" => parser.nextToken() match {
+                case x @ JsonToken.START_ARRAY => _merge = Some(readExpressionArray(parser, x, key, _at, avroTypeBuilder))
+                case x => _merge = Some(List(readExpression(parser, x, key, _at, avroTypeBuilder)))
+              }
               case "cells" =>     _cells = readCells(parser, parser.nextToken(), key, _at, avroTypeBuilder)
               case "pools" =>     _pools = readPools(parser, parser.nextToken(), key, _at, avroTypeBuilder)
               case "randseed" =>  _randseed = Some(readLong(parser, parser.nextToken(), key, _at))
@@ -269,14 +274,11 @@ package reader {
         if (_name == null)
           _name = uniqueEngineName()
 
-        if (_method == Method.FOLD  &&  !keys.contains("zero"))
-          throw new PFASyntaxException("folding engines must include a \"zero\" to begin the calculation", Some(pos("", _at)))
-
         val required = Set("action", "input", "output")
         if ((keys intersect required) != required)
           throw new PFASyntaxException("missing top-level fields: %s".format((required diff keys).mkString(", ")), Some(pos("", _at)))
         else
-          EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _cells, _pools, _randseed, _doc, _version, _metadata, _options, Some(pos("", _at)))
+          EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _merge, _cells, _pools, _randseed, _doc, _version, _metadata, _options, Some(pos("", _at)))
       }
       case x => throw new PFASyntaxException("PFA engine must be a JSON object, not %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos("", jsonAt(parser))))
     }

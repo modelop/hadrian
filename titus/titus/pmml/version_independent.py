@@ -134,6 +134,7 @@ class PMML(PmmlBinding):
             end=[],
             fcns=fcns,
             zero=None,
+            merge=None,
             cells=context.cells,
             pools=context.pools,
             randseed=options.get("engine.randseed", None),
