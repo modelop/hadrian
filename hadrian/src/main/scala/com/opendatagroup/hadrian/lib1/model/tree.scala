@@ -23,8 +23,6 @@ import scala.collection.immutable.ListMap
 import scala.collection.JavaConversions._
 
 import org.apache.avro.AvroRuntimeException
-import org.apache.avro.SchemaCompatibility.checkReaderWriterCompatibility
-import org.apache.avro.SchemaCompatibility.SchemaCompatibilityType
 import org.apache.avro.Schema
 
 import com.opendatagroup.hadrian.ast.LibFcn
@@ -49,6 +47,7 @@ import com.opendatagroup.hadrian.signature.Sig
 import com.opendatagroup.hadrian.signature.Signature
 import com.opendatagroup.hadrian.signature.Sigs
 
+import com.opendatagroup.hadrian.datatype.AvroConversions.schemaToAvroType
 import com.opendatagroup.hadrian.datatype.Type
 import com.opendatagroup.hadrian.datatype.FcnType
 import com.opendatagroup.hadrian.datatype.AvroType
@@ -79,6 +78,9 @@ package object tree {
   //////////////////////////////////////////////////////////////////// 
 
   object SimpleComparison {
+    def isCompatibleArray(valueSchema: Schema, fieldSchema: Schema): Boolean =
+      valueSchema.getType == Schema.Type.ARRAY  &&  schemaToAvroType(valueSchema.getElementType).accepts(schemaToAvroType(fieldSchema))
+
     def apply(datum: PFARecord, field: PFAEnumSymbol, operator: String, value: Any, fieldSchema: Schema, valueSchema: Schema, missingOperators: Boolean): Boolean = {
       if (operator == "alwaysTrue")
         true
@@ -89,11 +91,20 @@ package object tree {
       else if (missingOperators  &&  operator == "notMissing")
         datum.get(field.value) != null
       else if (operator == "in"  ||  operator == "notIn") {
-        if (valueSchema.getType != Schema.Type.ARRAY  ||  checkReaderWriterCompatibility(valueSchema.getElementType, fieldSchema).getType != SchemaCompatibilityType.COMPATIBLE)
-          throw new PFARuntimeException("bad value type")
+        val itemType =
+          if (isCompatibleArray(valueSchema, fieldSchema))
+            valueSchema.getElementType
+          else if (valueSchema.getType == Schema.Type.UNION)
+            valueSchema.getTypes.find(isCompatibleArray(_, fieldSchema)) match {
+              case Some(x) => x.getElementType
+              case None => throw new PFARuntimeException("bad value type")
+            }
+          else
+            throw new PFARuntimeException("bad value type")
+
         val vector = value.asInstanceOf[PFAArray[Any]].toVector
 
-        val fieldValue = (datum.get(field.value), valueSchema.getElementType.getType) match {
+        val fieldValue = (datum.get(field.value), itemType.getType) match {
           case (x: java.lang.Number, Schema.Type.INT) => x.intValue
           case (x: java.lang.Number, Schema.Type.LONG) => x.longValue
           case (x: java.lang.Number, Schema.Type.FLOAT) => x.floatValue
@@ -154,7 +165,7 @@ package object tree {
           }
 
           case _ => {
-            if (checkReaderWriterCompatibility(valueSchema, fieldSchema).getType != SchemaCompatibilityType.COMPATIBLE)
+            if (!schemaToAvroType(valueSchema).accepts(schemaToAvroType(fieldSchema)))
               throw new PFARuntimeException("bad value type")
 
             val fieldObject = (datum.get(field.value), valueSchema.getType) match {

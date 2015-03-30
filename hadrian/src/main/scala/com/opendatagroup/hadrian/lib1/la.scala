@@ -94,14 +94,20 @@ package object la {
     }
 
     def toDenseVector(x: PFAArray[Double]): SimpleMatrix =
-      new SimpleMatrix(x.toVector map {Array(_)} toArray)
+      toDenseVector(x.toVector)
+
+    def toDenseVector(x: Vector[Double]): SimpleMatrix =
+      new SimpleMatrix(x map {Array(_)} toArray)
 
     def toDense(x: PFAArray[PFAArray[Double]]): SimpleMatrix =
       new SimpleMatrix(x.toVector map {_.toVector.toArray} toArray)
 
     def toDenseVector(x: PFAMap[java.lang.Double], rows: Seq[String]): SimpleMatrix =
+      toDenseVector(x.toMap, rows)
+
+    def toDenseVector(x: Map[String, java.lang.Double], rows: Seq[String]): SimpleMatrix =
       new SimpleMatrix(
-        (for (r <- rows) yield x.toMap.get(r) match {
+        (for (r <- rows) yield x.get(r) match {
           case None => Array(0.0)
           case Some(xx) => Array(xx.doubleValue)
         }).toArray)
@@ -176,6 +182,40 @@ package object la {
   }
   provide(MapApply)
 
+  ////   scale (Scale) could be seen as a special case of map (MapApply), but it's too common to not have an implementation
+  object Scale extends LibFcn {
+    val name = prefix + "scale"
+    val sig = Sigs(List(Sig(List("x" -> P.Array(P.Double), "alpha" -> P.Double), P.Array(P.Double)),
+                        Sig(List("x" -> P.Array(P.Array(P.Double)), "alpha" -> P.Double), P.Array(P.Array(P.Double))),
+                        Sig(List("x" -> P.Map(P.Double), "alpha" -> P.Double), P.Map(P.Double)),
+                        Sig(List("x" -> P.Map(P.Map(P.Double)), "alpha" -> P.Double), P.Map(P.Map(P.Double)))))
+    val doc =
+      <doc>
+        <desc>Scale vector or matrix <p>x</p> by factor <p>alpha</p>.</desc>
+        <detail>The order in which elements are computed is not specified, and may be in parallel.</detail>
+    </doc>
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+      if (retType.accepts(AvroArray(AvroDouble()))  ||  retType.accepts(AvroMap(AvroDouble())))
+        JavaCode("%s.MODULE$.applyVec(%s, %s)",
+          this.getClass.getName,
+          wrapArg(0, args, paramTypes, true),
+          wrapArg(1, args, paramTypes, true))
+      else
+        JavaCode("%s.MODULE$.applyMat(%s, %s)",
+          this.getClass.getName,
+          wrapArg(0, args, paramTypes, true),
+          wrapArg(1, args, paramTypes, true))
+    def applyVec(x: PFAArray[Double], alpha: Double): PFAArray[Double] =
+      PFAArray.fromVector(x.toVector.map(_ * alpha))
+    def applyMat(x: PFAArray[PFAArray[Double]], alpha: Double): PFAArray[PFAArray[Double]] =
+      PFAArray.fromVector(x.toVector.map(y => PFAArray.fromVector(y.toVector.map(_ * alpha))))
+    def applyVec(x: PFAMap[java.lang.Double], alpha: Double): PFAMap[java.lang.Double] =
+      PFAMap.fromMap(x.toMap map {case (k, v) => (k, java.lang.Double.valueOf(v.doubleValue * alpha))})
+    def applyMat(x: PFAMap[PFAMap[java.lang.Double]], alpha: Double): PFAMap[PFAMap[java.lang.Double]] =
+      PFAMap.fromMap(x.toMap map {case (k1, v1) => (k1, PFAMap.fromMap(v1.toMap map {case (k2, v2) => (k2, java.lang.Double.valueOf(v2.doubleValue * alpha))}))})
+  }
+  provide(Scale)
+
   ////   zipmap (ZipMap)
   object ZipMap extends LibFcn with EJMLInterface {
     val name = prefix + "zipmap"
@@ -233,6 +273,194 @@ package object la {
     }
   }
   provide(ZipMap)
+
+  ////   add (Add) could be seen as a special case of zipmap (ZipMap), but it's too common to not have an implementation
+  object Add extends LibFcn with EJMLInterface {
+    val name = prefix + "add"
+    val sig = Sigs(List(Sig(List("x" -> P.Array(P.Double), "y" -> P.Array(P.Double)), P.Array(P.Double)),
+                        Sig(List("x" -> P.Array(P.Array(P.Double)), "y" -> P.Array(P.Array(P.Double))), P.Array(P.Array(P.Double))),
+                        Sig(List("x" -> P.Map(P.Double), "y" -> P.Map(P.Double)), P.Map(P.Double)),
+                        Sig(List("x" -> P.Map(P.Map(P.Double)), "y" -> P.Map(P.Map(P.Double))), P.Map(P.Map(P.Double)))))
+    val doc =
+      <doc>
+        <desc>Add two vectors or matrices <p>x</p> and <p>y</p>.</desc>
+        <detail>The order in which elements are computed is not specified, and may be in parallel.</detail>
+        <error>In the array signature, if any element in <p>x</p> does not have a corresponding element in <p>y</p> (or vice-versa), this function raises a "misaligned matrices" error.</error>
+    </doc>
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+      if (retType.accepts(AvroArray(AvroDouble()))  ||  retType.accepts(AvroMap(AvroDouble())))
+        JavaCode("%s.MODULE$.applyVec(%s, %s)",
+          this.getClass.getName,
+          wrapArg(0, args, paramTypes, true),
+          wrapArg(1, args, paramTypes, true))
+      else
+        JavaCode("%s.MODULE$.applyMat(%s, %s)",
+          this.getClass.getName,
+          wrapArg(0, args, paramTypes, true),
+          wrapArg(1, args, paramTypes, true))
+
+    def applyVec(x: PFAArray[Double], y: PFAArray[Double]): PFAArray[Double] = {
+      val xv = x.toVector
+      val yv = y.toVector
+      if (xv.size != yv.size)
+        throw new PFARuntimeException("misaligned matrices")
+      PFAArray.fromVector((xv zip yv) map {case (xi, yi) => xi + yi})
+    }
+
+    def applyMat(x: PFAArray[PFAArray[Double]], y: PFAArray[PFAArray[Double]]): PFAArray[PFAArray[Double]] = {
+      val xv = x.toVector map {_.toVector}
+      val yv = y.toVector map {_.toVector}
+
+      val sizes = xv map {_.size}
+      if (sizes != (yv map {_.size}))
+        throw new PFARuntimeException("misaligned matrices")
+
+      PFAArray.fromVector(
+        for ((size, i) <- sizes.zipWithIndex) yield
+          PFAArray.fromVector(
+            (for (j <- 0 until size) yield
+              xv(i)(j) + yv(i)(j)).toVector))
+    }
+
+    def applyVec(x: PFAMap[java.lang.Double], y: PFAMap[java.lang.Double]): PFAMap[java.lang.Double] = {
+      val xv = x.toMap
+      val yv = y.toMap
+      val rows = xv.keySet union yv.keySet
+
+      PFAMap.fromMap((for (row <- rows) yield
+        (row, java.lang.Double.valueOf((xv.get(row) match {
+          case None => 0.0
+          case Some(xx) => xx.doubleValue
+        }) + (yv.get(row) match {
+          case None => 0.0
+          case Some(xx) => xx.doubleValue
+        })))).toMap)
+    }
+
+    def applyMat(x: PFAMap[PFAMap[java.lang.Double]], y: PFAMap[PFAMap[java.lang.Double]]): PFAMap[PFAMap[java.lang.Double]] = {
+      val xv = x.toMap map {case (k, v) => (k, v.toMap)}
+      val yv = y.toMap map {case (k, v) => (k, v.toMap)}
+
+      val rows = rowKeys(x) union rowKeys(y)
+      val cols = colKeys(x) union colKeys(y)
+
+      PFAMap.fromMap(
+        (for (r <- rows) yield
+          (r, PFAMap.fromMap(
+            (for (c <- cols) yield {
+              val xi = x.toMap.get(r) match {
+                case None => 0.0
+                case Some(xx) => xx.toMap.get(c) match {
+                  case None => 0.0
+                  case Some(xxx) => xxx.doubleValue
+                }
+              }
+              val yi = y.toMap.get(r) match {
+                case None => 0.0
+                case Some(yy) => yy.toMap.get(c) match {
+                  case None => 0.0
+                  case Some(yyy) => yyy.doubleValue
+                }
+              }
+              (c, java.lang.Double.valueOf(xi + yi))
+            }).toMap))).toMap)
+    }
+  }
+  provide(Add)
+
+  ////   sub (Sub) could be seen as a special case of zipmap (ZipMap), but it's too common to not have an implementation
+  object Sub extends LibFcn with EJMLInterface {
+    val name = prefix + "sub"
+    val sig = Sigs(List(Sig(List("x" -> P.Array(P.Double), "y" -> P.Array(P.Double)), P.Array(P.Double)),
+                        Sig(List("x" -> P.Array(P.Array(P.Double)), "y" -> P.Array(P.Array(P.Double))), P.Array(P.Array(P.Double))),
+                        Sig(List("x" -> P.Map(P.Double), "y" -> P.Map(P.Double)), P.Map(P.Double)),
+                        Sig(List("x" -> P.Map(P.Map(P.Double)), "y" -> P.Map(P.Map(P.Double))), P.Map(P.Map(P.Double)))))
+    val doc =
+      <doc>
+        <desc>Subtract vector or matrix <p>y</p> from <p>x</p> (returns <m>x - y</m>).</desc>
+        <detail>The order in which elements are computed is not specified, and may be in parallel.</detail>
+        <error>In the array signature, if any element in <p>x</p> does not have a corresponding element in <p>y</p> (or vice-versa), this function raises a "misaligned matrices" error.</error>
+    </doc>
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+      if (retType.accepts(AvroArray(AvroDouble()))  ||  retType.accepts(AvroMap(AvroDouble())))
+        JavaCode("%s.MODULE$.applyVec(%s, %s)",
+          this.getClass.getName,
+          wrapArg(0, args, paramTypes, true),
+          wrapArg(1, args, paramTypes, true))
+      else
+        JavaCode("%s.MODULE$.applyMat(%s, %s)",
+          this.getClass.getName,
+          wrapArg(0, args, paramTypes, true),
+          wrapArg(1, args, paramTypes, true))
+
+    def applyVec(x: PFAArray[Double], y: PFAArray[Double]): PFAArray[Double] = {
+      val xv = x.toVector
+      val yv = y.toVector
+      if (xv.size != yv.size)
+        throw new PFARuntimeException("misaligned matrices")
+      PFAArray.fromVector((xv zip yv) map {case (xi, yi) => xi - yi})
+    }
+
+    def applyMat(x: PFAArray[PFAArray[Double]], y: PFAArray[PFAArray[Double]]): PFAArray[PFAArray[Double]] = {
+      val xv = x.toVector map {_.toVector}
+      val yv = y.toVector map {_.toVector}
+
+      val sizes = xv map {_.size}
+      if (sizes != (yv map {_.size}))
+        throw new PFARuntimeException("misaligned matrices")
+
+      PFAArray.fromVector(
+        for ((size, i) <- sizes.zipWithIndex) yield
+          PFAArray.fromVector(
+            (for (j <- 0 until size) yield
+              xv(i)(j) - yv(i)(j)).toVector))
+    }
+
+    def applyVec(x: PFAMap[java.lang.Double], y: PFAMap[java.lang.Double]): PFAMap[java.lang.Double] = {
+      val xv = x.toMap
+      val yv = y.toMap
+      val rows = xv.keySet union yv.keySet
+
+      PFAMap.fromMap((for (row <- rows) yield
+        (row, java.lang.Double.valueOf((xv.get(row) match {
+          case None => 0.0
+          case Some(xx) => xx.doubleValue
+        }) - (yv.get(row) match {
+          case None => 0.0
+          case Some(xx) => xx.doubleValue
+        })))).toMap)
+    }
+
+    def applyMat(x: PFAMap[PFAMap[java.lang.Double]], y: PFAMap[PFAMap[java.lang.Double]]): PFAMap[PFAMap[java.lang.Double]] = {
+      val xv = x.toMap map {case (k, v) => (k, v.toMap)}
+      val yv = y.toMap map {case (k, v) => (k, v.toMap)}
+
+      val rows = rowKeys(x) union rowKeys(y)
+      val cols = colKeys(x) union colKeys(y)
+
+      PFAMap.fromMap(
+        (for (r <- rows) yield
+          (r, PFAMap.fromMap(
+            (for (c <- cols) yield {
+              val xi = x.toMap.get(r) match {
+                case None => 0.0
+                case Some(xx) => xx.toMap.get(c) match {
+                  case None => 0.0
+                  case Some(xxx) => xxx.doubleValue
+                }
+              }
+              val yi = y.toMap.get(r) match {
+                case None => 0.0
+                case Some(yy) => yy.toMap.get(c) match {
+                  case None => 0.0
+                  case Some(yyy) => yyy.doubleValue
+                }
+              }
+              (c, java.lang.Double.valueOf(xi - yi))
+            }).toMap))).toMap)
+    }
+  }
+  provide(Sub)
 
   ////   dot (Dot)
   object Dot extends LibFcn with EJMLInterface {

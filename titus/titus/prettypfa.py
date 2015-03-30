@@ -24,6 +24,7 @@ import json as jsonlib
 import re
 from collections import OrderedDict
 
+from titus.pfaast import Subs
 from titus.pfaast import validSymbolName
 from titus.pfaast import validFunctionName
 from titus.pfaast import Ast
@@ -86,6 +87,8 @@ from titus.errors import PrettyPfaException
 from titus.genpy import PFAEngine
 import titus.pfaast
 import titus.util
+from titus.util import avscToPretty
+from titus.reader import jsonToAst
 
 class Token(object):
     def __init__(self, t, v, lineno):
@@ -93,11 +96,12 @@ class Token(object):
         self.v = v
         self.lineno = lineno
     def __repr__(self):
-        return "{}({})".format(self.t, self.v)
+        return "{0}({1})".format(self.t, self.v)
 
 class InterpretationState(object):
     def __init__(self):
         self.avroTypeBuilder = AvroTypeBuilder()
+        self.avroTypeMemo = {}
         self.avroTypeAlias = {}
         self.functionNames = set(titus.pfaast.FunctionTable.blank().functions)
         self.cellNames = set()
@@ -161,16 +165,16 @@ class Section(object):
         elif name == "options":
             pass
         else:
-            raise PrettyPfaException("Unrecognized section heading \"{}\" at {}".format(name, lineno))
+            raise PrettyPfaException("Unrecognized section heading \"{0}\" at {1}".format(name, lineno))
 
     def __repr__(self):
-        return "Section({}, {} at {})".format(self.name, self.content, self.pos)
+        return "Section({0}, {1} at {2})".format(self.name, self.content, self.pos)
 
     def input(self, state):
-        return state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.content.asType(state)))
+        return state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.content.asType(state)), state.avroTypeMemo)
 
     def output(self, state):
-        return state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.content.asType(state)))
+        return state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.content.asType(state)), state.avroTypeMemo)
 
     def cells(self, state):
         return dict(x.asCell(state) for x in self.content)
@@ -184,7 +188,7 @@ class Section(object):
         elif isinstance(self.content, MiniDotName):
             out = self.content.name
         else:
-            raise PrettyPfaException("method must be a string at PrettyPFA line {}".format(self.lineno))
+            raise PrettyPfaException("method must be a string at PrettyPFA line {0}".format(self.lineno))
         if out == "map":
             return Method.MAP
         elif out == "emit":
@@ -192,7 +196,7 @@ class Section(object):
         elif out == "fold":
             return Method.FOLD
         else:
-            raise PrettyPfaException("method must be \"map\", \"emit\", or \"fold\" at PrettyPFA line {}".format(self.lineno))
+            raise PrettyPfaException("method must be \"map\", \"emit\", or \"fold\" at PrettyPFA line {0}".format(self.lineno))
 
     def types(self, state):
         for x in self.content:
@@ -218,7 +222,7 @@ class Section(object):
 
     def randseed(self):
         if not isinstance(self.content, MiniNumber) or not isinstance(self.content.value, (int, long)):
-            raise PrettyPfaException("randseed must be an integer at PrettyPFA line {}".format(self.lineno))
+            raise PrettyPfaException("randseed must be an integer at PrettyPFA line {0}".format(self.lineno))
         return self.content.value
 
     def doc(self):
@@ -227,12 +231,12 @@ class Section(object):
         elif isinstance(self.content, MiniDotName):
             out = self.content.name
         else:
-            raise PrettyPfaException("doc must be a string at PrettyPFA line {}".format(self.lineno))
+            raise PrettyPfaException("doc must be a string at PrettyPFA line {0}".format(self.lineno))
         return out
 
     def version(self):
         if not isinstance(self.content, MiniNumber) or not isinstance(self.content.value, (int, long)):
-            raise PrettyPfaException("version must be an integer at PrettyPFA line {}".format(self.lineno))
+            raise PrettyPfaException("version must be an integer at PrettyPFA line {0}".format(self.lineno))
         return self.content.value
 
     def metadata(self):
@@ -247,23 +251,44 @@ class MiniAst(object):
     @property
     def pos(self):
         if self.low == self.high:
-            return "PrettyPFA line {}".format(self.low)
+            return "PrettyPFA line {0}".format(self.low)
         else:
-            return "PrettyPFA lines {}-{}".format(self.low, self.high)
+            return "PrettyPFA lines {0}-{1}".format(self.low, self.high)
     def asExpr(self, state):
-        raise PrettyPfaException("{} ({}) is not an expression at {}".format(self, type(self), self.pos))
+        raise PrettyPfaException("{0} ({1}) is not an expression at {2}".format(self, type(self), self.pos))
     def asType(self, state):
-        raise PrettyPfaException("{} ({}) is not a type specification at {}".format(self, type(self), self.pos))
+        raise PrettyPfaException("{0} ({1}) is not a type specification at {2}".format(self, type(self), self.pos))
     def asJson(self):
-        raise PrettyPfaException("{} ({}) is not JSON at {}".format(self, type(self), self.pos))
+        raise PrettyPfaException("{0} ({1}) is not JSON at {2}".format(self, type(self), self.pos))
     def asFcn(self):
-        raise PrettyPfaException("{} ({}) is not a function definition at {}".format(self, type(self), self.pos))
+        raise PrettyPfaException("{0} ({1}) is not a function definition at {2}".format(self, type(self), self.pos))
     def asCell(self, state):
-        raise PrettyPfaException("{} ({}) is not a cell definition at {}".format(self, type(self), self.pos))
+        raise PrettyPfaException("{0} ({1}) is not a cell definition at {2}".format(self, type(self), self.pos))
     def asPool(self, state):
-        raise PrettyPfaException("{} ({}) is not a cell definition at {}".format(self, type(self), self.pos))
+        raise PrettyPfaException("{0} ({1}) is not a cell definition at {2}".format(self, type(self), self.pos))
     def defType(self, state):
-        raise PrettyPfaException("{} ({}) is not a type definition at {}".format(self, type(self), self.pos))
+        raise PrettyPfaException("{0} ({1}) is not a type definition at {2}".format(self, type(self), self.pos))
+
+class ResolvedSubs(Token, MiniAst):
+    def __init__(self, name, value, lineno):
+        self.name = name
+        self.value = value
+        self.lineno = lineno
+        self.low = lineno
+        self.high = lineno
+    def __repr__(self):
+        return "<<{0} = {1}>>".format(self.name, self.value)
+    def asExpr(self, state):
+        if isinstance(self.value, Ast):
+            return self.value
+        elif isinstance(self.value, basestring):
+            return ppfa(self.value)
+        else:
+            return pfa(self.value)
+    def asType(self, state):
+        return self.value
+    def asJson(self):
+        return self.value
 
 class MiniGenGet(MiniAst):
     def __init__(self, expr, args, low, high):
@@ -271,7 +296,7 @@ class MiniGenGet(MiniAst):
         self.args = args
         super(MiniGenGet, self).__init__(low, high)
     def __repr__(self):
-        return "MiniGenGet({}, {})".format(self.expr, self.args)
+        return "MiniGenGet({0}, {1})".format(self.expr, self.args)
     def asExpr(self, state):
         return AttrGet(self.expr.asExpr(state), [x.asExpr(state) for x in self.args], self.pos)
 
@@ -281,7 +306,7 @@ class MiniGet(MiniAst):
         self.args = args
         super(MiniGet, self).__init__(low, high)
     def __repr__(self):
-        return "MiniGet({}, {})".format(self.name, self.args)
+        return "MiniGet({0}, {1})".format(self.name, self.args)
     def asExpr(self, state):
         if "." in self.name:
             pieces = self.name.split(".")
@@ -306,7 +331,7 @@ class MiniTo(MiniAst):
         self.init = init
         super(MiniTo, self).__init__(low, high)
     def __repr__(self):
-        return "MiniTo({}, {}, {}, {}, {})".format(self.name, self.args, self.direct, self.to, self.init)
+        return "MiniTo({0}, {1}, {2}, {3}, {4})".format(self.name, self.args, self.direct, self.to, self.init)
     def asExpr(self, state):
         if "." in self.name:
             pieces = self.name.split(".")
@@ -319,19 +344,19 @@ class MiniTo(MiniAst):
         to = self.to.asExpr(state)
         if self.direct:
             if isinstance(to, FcnRef):
-                raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {} at {}".format(to.name, to.pos))
+                raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {0} at {1}".format(to.name, to.pos))
             elif isinstance(to, (FcnDef, FcnRefFill)):
-                raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {} at {}".format(to, to.pos))
+                raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {0} at {1}".format(to, to.pos))
         else:
             if not isinstance(to, (FcnRef, FcnDef, FcnRefFill)):
-                raise PrettyPfaException("indirect assignments (with a \"to\" keyword) must refer to functions, not {} at {}".format(to, to.pos))
+                raise PrettyPfaException("indirect assignments (with a \"to\" keyword) must refer to functions, not {0} at {1}".format(to, to.pos))
             if base in state.poolNames:
                 if self.init is None:
-                    raise PrettyPfaException("indirect pool assignments (with a \"to\" keyword) must also have an \"init\" at {}".format(self.pos))
+                    raise PrettyPfaException("indirect pool assignments (with a \"to\" keyword) must also have an \"init\" at {0}".format(self.pos))
 
         if base not in state.poolNames:
             if self.init is not None:
-                raise PrettyPfaException("non-pool assignments must not have an \"init\" at {}".format(self.pos))
+                raise PrettyPfaException("non-pool assignments must not have an \"init\" at {0}".format(self.pos))
 
         if base in state.cellNames:
             return CellTo(base, path, to, self.pos)
@@ -350,9 +375,9 @@ class MiniEnumSymbol(MiniAst):
         self.enumValue = enumValue
         super(MiniEnumSymbol, self).__init__(low, high)
     def __repr__(self):
-        return "MiniEnumSymbols({}, {})".format(self.enumType, self.enumValue)
+        return "MiniEnumSymbols({0}, {1})".format(self.enumType, self.enumValue)
     def asExpr(self, state):
-        return Literal(state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.enumType)), jsonlib.dumps(self.enumValue), self.pos)
+        return Literal(state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.enumType), state.avroTypeMemo), jsonlib.dumps(self.enumValue), self.pos)
 
 class MiniDotName(MiniAst):
     def __init__(self, name, lineno):
@@ -361,7 +386,7 @@ class MiniDotName(MiniAst):
     def __eq__(self, other):
         return isinstance(other, MiniDotName) and self.name == other.name
     def __repr__(self):
-        return "MiniDotName({})".format(self.name)
+        return "MiniDotName({0})".format(self.name)
     def asExpr(self, state):
         if self.name == "null":
             return LiteralNull()
@@ -395,14 +420,21 @@ class MiniDotName(MiniAst):
         else:
             return self.name
     def asJson(self):
-        return self.name
+        if self.name == "null":
+            return None
+        elif self.name == "true":
+            return True
+        elif self.name == "false":
+            return False
+        else:
+            return self.name
 
 class MiniNumber(MiniAst):
     def __init__(self, value, lineno):
         self.value = value
         super(MiniNumber, self).__init__(lineno, lineno)
     def __repr__(self):
-        return "MiniNumber({})".format(repr(self.value))
+        return "MiniNumber({0})".format(repr(self.value))
     def asExpr(self, state):
         if isinstance(self.value, (int, long)):
             return LiteralInt(self.value, self.pos)
@@ -416,7 +448,7 @@ class MiniString(MiniAst):
         self.value = value
         super(MiniString, self).__init__(lineno, lineno)
     def __repr__(self):
-        return "MiniString({})".format(repr(self.value))
+        return "MiniString({0})".format(repr(self.value))
     def asExpr(self, state):
         return LiteralString(self.value, self.pos)
     def asJson(self):
@@ -437,12 +469,12 @@ class MiniCall(MiniAst):
             low, high = low0, high0
         super(MiniCall, self).__init__(low, high)
     def __repr__(self):
-        return "MiniCall({}, [{}])".format(self.name, ", ".join(map(repr, self.args)))
+        return "MiniCall({0}, [{1}])".format(self.name, ", ".join(map(repr, self.args)))
 
     def asExpr(self, state):
         if self.name == "json":
             if len(self.args) != 2:
-                raise PrettyPfaException("json function must have 2 arguments, not {}, at {}".format(len(self.args), self.pos))
+                raise PrettyPfaException("json function must have 2 arguments, not {0}, at {1}".format(len(self.args), self.pos))
             td = self.args[0].asType(state)
             v = self.args[1].asJson()
             if td == "null":
@@ -460,36 +492,36 @@ class MiniCall(MiniAst):
             elif td == "bytes":
                 return LiteralBase64(base64.b64decode(v), self.pos)
             else:
-                return Literal(state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(td)), jsonlib.dumps(v), self.pos)
+                return Literal(state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(td), state.avroTypeMemo), jsonlib.dumps(v), self.pos)
 
         elif self.name == "int":
             if len(self.args) != 1:
-                raise PrettyPfaException("int function must have 1 argument, not {}, at {}".format(len(self.args), self.pos))
-            return LiteralInt(self.args[0].asJson(), self.pos)
+                raise PrettyPfaException("int function must have 1 argument, not {0}, at {1}".format(len(self.args), self.pos))
+            return LiteralInt(int(self.args[0].asJson()), self.pos)
 
         elif self.name == "long":
             if len(self.args) != 1:
-                raise PrettyPfaException("long function must have 1 argument, not {}, at {}".format(len(self.args), self.pos))
-            return LiteralLong(self.args[0].asJson(), self.pos)
+                raise PrettyPfaException("long function must have 1 argument, not {0}, at {1}".format(len(self.args), self.pos))
+            return LiteralLong(int(self.args[0].asJson()), self.pos)
 
         elif self.name == "float":
             if len(self.args) != 1:
-                raise PrettyPfaException("float function must have 1 argument, not {}, at {}".format(len(self.args), self.pos))
-            return LiteralFloat(self.args[0].asJson(), self.pos)
+                raise PrettyPfaException("float function must have 1 argument, not {0}, at {1}".format(len(self.args), self.pos))
+            return LiteralFloat(float(self.args[0].asJson()), self.pos)
 
         elif self.name == "double":
             if len(self.args) != 1:
-                raise PrettyPfaException("double function must have 1 argument, not {}, at {}".format(len(self.args), self.pos))
-            return LiteralDouble(self.args[0].asJson(), self.pos)
+                raise PrettyPfaException("double function must have 1 argument, not {0}, at {1}".format(len(self.args), self.pos))
+            return LiteralDouble(float(self.args[0].asJson()), self.pos)
 
         elif self.name == "string":
             if len(self.args) != 1:
-                raise PrettyPfaException("string function must have 1 argument, not {}, at {}".format(len(self.args), self.pos))
+                raise PrettyPfaException("string function must have 1 argument, not {0}, at {1}".format(len(self.args), self.pos))
             return LiteralString(self.args[0].asJson(), self.pos)
 
         elif self.name == "bytes":
             if len(self.args) != 1:
-                raise PrettyPfaException("bytes function must have 1 argument, not {}, at {}".format(len(self.args), self.pos))
+                raise PrettyPfaException("bytes function must have 1 argument, not {0}, at {1}".format(len(self.args), self.pos))
             return LiteralBase64(base64.b64decode(self.args[0].asJson()), self.pos)
 
         elif self.name == "do":
@@ -497,42 +529,42 @@ class MiniCall(MiniAst):
 
         elif self.name == "apply":
             if len(self.args) < 1:
-                raise PrettyPfaException("apply function must have at least 1 argument, not {}, at {}".format(len(self.args), self.pos))
+                raise PrettyPfaException("apply function must have at least 1 argument, not {0}, at {1}".format(len(self.args), self.pos))
             return CallUserFcn(self.args[0].asExpr(state), [x.asExpr(state) for x in self.args[1:]], self.pos)
 
         elif self.name == "update":
             if len(self.args) != 2:
-                raise PrettyPfaException("update function must have exactly 2 arguments, not {}, at {}".format(len(self.args), self.pos))
+                raise PrettyPfaException("update function must have exactly 2 arguments, not {0}, at {1}".format(len(self.args), self.pos))
             rec = self.args[0].asExpr(state)
             if not isinstance(self.args[1], MiniParam):
-                raise PrettyPfaException("update function second argument must be a key-value pair, not a plain expression, at {}".format(self.pos))
+                raise PrettyPfaException("update function second argument must be a key-value pair, not a plain expression, at {0}".format(self.pos))
             return AttrTo(rec, [LiteralString(self.args[1].name, self.pos)], self.args[1].typeExpr.asExpr(state), self.pos)
 
         elif self.name == "new":
             if len(self.args) < 2:
-                raise PrettyPfaException("new function must have at least 2 arguments, not {}, at {}".format(len(self.args), self.pos))
+                raise PrettyPfaException("new function must have at least 2 arguments, not {0}, at {1}".format(len(self.args), self.pos))
             td = self.args[0].asType(state)
             if isinstance(td, dict) and td.get("type") == "array":
                 if any(isinstance(x, MiniParam) for x in self.args[1:]):
-                    raise PrettyPfaException("new array must only consist of plain expressions, not key-value pairs, at {}".format(self.pos))
-                return NewArray([x.asExpr(state) for x in self.args[1:]], state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(td)), state.avroTypeBuilder, self.pos)
+                    raise PrettyPfaException("new array must only consist of plain expressions, not key-value pairs, at {0}".format(self.pos))
+                return NewArray([x.asExpr(state) for x in self.args[1:]], state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(td), state.avroTypeMemo), state.avroTypeBuilder, self.pos)
             else:
                 if not all(isinstance(x, MiniParam) for x in self.args[1:]):
-                    raise PrettyPfaException("new map/record must only consist of key-value pairs, not plain expressions, at {}".format(self.pos))
-                return NewObject(dict((x.name, x.typeExpr.asExpr(state)) for x in self.args[1:]), state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(td)), state.avroTypeBuilder, self.pos)
+                    raise PrettyPfaException("new map/record must only consist of key-value pairs, not plain expressions, at {0}".format(self.pos))
+                return NewObject(dict((x.name, x.typeExpr.asExpr(state)) for x in self.args[1:]), state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(td), state.avroTypeMemo), state.avroTypeBuilder, self.pos)
 
         elif self.name == "upcast":
             if len(self.args) != 2:
-                raise PrettyPfaException("upcast function requires exactly 2 arguments, not {}, at {}".format(len(self.args), self.pos))
-            t = state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.args[0].asType(state)))
+                raise PrettyPfaException("upcast function requires exactly 2 arguments, not {0}, at {1}".format(len(self.args), self.pos))
+            t = state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.args[0].asType(state)), state.avroTypeMemo)
             v = self.args[1].asExpr(state)
             return Upcast(v, t, self.pos)
 
         elif self.name == "doc":
             if len(self.args) != 1:
-                raise PrettyPfaException("doc function has only 1 argument, not {}, at {}".format(len(self.args), self.pos))
+                raise PrettyPfaException("doc function has only 1 argument, not {0}, at {1}".format(len(self.args), self.pos))
             if not isinstance(self.args[0], MiniString):
-                raise PrettyPfaException("doc function argument must be a string, not {}, at {}".format(self.args[0], self.pos))
+                raise PrettyPfaException("doc function argument must be a string, not {0}, at {1}".format(self.args[0], self.pos))
             return Doc(self.args[0].value)
 
         elif self.name == "error":
@@ -541,18 +573,18 @@ class MiniCall(MiniAst):
                 code = None
             elif len(params) == 1:
                 if params[0].name != "code":
-                    raise PrettyPfaException("error function has only 1 optional parameter, \"code\", not {}, at {}".format(params[0].name, self.pos))
+                    raise PrettyPfaException("error function has only 1 optional parameter, \"code\", not {0}, at {1}".format(params[0].name, self.pos))
                 if not isinstance(params[0].typeExpr, MiniNumber) and not isinstance(params[0].typeExpr.value, (int, long)):
-                    raise PrettyPfaException("error function has optional parameter \"code\" must be an integer, not {}, at {}".format(params[0].typeExpr, self.pos))
+                    raise PrettyPfaException("error function has optional parameter \"code\" must be an integer, not {0}, at {1}".format(params[0].typeExpr, self.pos))
                 code = params[0].typeExpr.value
             else:
-                raise PrettyPfaException("error function has only 1 optional parameter, not {}, at {}".format(len(params), self.pos))
+                raise PrettyPfaException("error function has only 1 optional parameter, not {0}, at {1}".format(len(params), self.pos))
 
             others = [x for x in self.args if not isinstance(x, MiniParam)]
             if len(others) != 1:
-                raise PrettyPfaException("error function requires exactly 1 argument, not {}, at {}".format(len(others), self.pos))
+                raise PrettyPfaException("error function requires exactly 1 argument, not {0}, at {1}".format(len(others), self.pos))
             if not isinstance(others[0], (MiniDotName, MiniString)):
-                raise PrettyPfaException("error function argument must be a string, not {}, at {}".format(others[0], self.pos))
+                raise PrettyPfaException("error function argument must be a string, not {0}, at {1}".format(others[0], self.pos))
             if isinstance(others[0], MiniDotName):
                 message = others[0].name
             else:
@@ -565,15 +597,15 @@ class MiniCall(MiniAst):
                 namespace = None
             elif len(params) == 1:
                 if params[0].name != "namespace":
-                    raise PrettyPfaException("log function has only 1 optional parameter, \"namespace\", not {}, at {}".format(params[0].name, self.pos))
+                    raise PrettyPfaException("log function has only 1 optional parameter, \"namespace\", not {0}, at {1}".format(params[0].name, self.pos))
                 if not isinstance(params[0].typeExpr, (MiniDotName, MiniString)):
-                    raise PrettyPfaException("log function has optional parameter \"namespace\" must be a string, not {}, at {}".format(params[0].typeExpr, self.pos))
+                    raise PrettyPfaException("log function has optional parameter \"namespace\" must be a string, not {0}, at {1}".format(params[0].typeExpr, self.pos))
                 if isinstance(params[0].typeExpr, MiniDotName):
                     namespace = params[0].typeExpr.name
                 else:
                     namespace = params[0].typeExpr.value
             else:
-                raise PrettyPfaException("log function has only 1 optional parameter, not {}, at {}".format(len(params), self.pos))
+                raise PrettyPfaException("log function has only 1 optional parameter, not {0}, at {1}".format(len(params), self.pos))
             return Log([x.asExpr(state) for x in self.args if not isinstance(x, MiniParam)], namespace, self.pos)
 
         elif any(isinstance(x, MiniParam) for x in self.args):
@@ -593,31 +625,34 @@ class MiniCall(MiniAst):
 
         if self.name == "array":
             if len(self.args) != 1:
-                raise PrettyPfaException("array type should have 1 argument, not {}, at {}".format(len(self.args), self.pos))
+                raise PrettyPfaException("array type should have 1 argument, not {0}, at {1}".format(len(self.args), self.pos))
             return {"type": "array", "items": self.args[0].asType(state)}
 
         elif self.name == "map":
             if len(self.args) != 1:
-                raise PrettyPfaException("map type should have 1 argument, not {}, at {}".format(len(self.args), self.pos))
+                raise PrettyPfaException("map type should have 1 argument, not {0}, at {1}".format(len(self.args), self.pos))
             return {"type": "map", "values": self.args[0].asType(state)}
 
         elif self.name == "union":
             if len(self.args) < 2:
-                raise PrettyPfaException("union type should have at least 2 arguments, not {}, at {}".format(len(self.args), self.pos))
+                raise PrettyPfaException("union type should have at least 2 arguments, not {0}, at {1}".format(len(self.args), self.pos))
             return [x.asType(state) for x in self.args]
 
         elif self.name == "fixed":
             if len(self.args) < 1 or len(self.args) > 2:
-                raise PrettyPfaException("fixed type should have 1 or 2 arguments, not {}, at {}".format(len(self.args), self.pos))
+                raise PrettyPfaException("fixed type should have 1 or 2 arguments, not {0}, at {1}".format(len(self.args), self.pos))
 
             if not isinstance(self.args[0], MiniNumber) or not isinstance(self.args[0].value, (int, long)) or self.args[0].value <= 0:
-                raise PrettyPfaException("fixed type first argument should be a positive integer, not {}, at {}".format(self.args[0], self.pos))
+                raise PrettyPfaException("fixed type first argument should be a positive integer, not {0}, at {1}".format(self.args[0], self.pos))
             size = self.args[0].value
 
             if len(self.args) == 2:
-                if not isinstance(self.args[1], MiniDotName):
-                    raise PrettyPfaException("fixed type second argument should be an identifier, not \"{}\", at {}".format(type(self.args[1]), self.pos))
-                namespace, name = split(self.args[1].name)
+                if isinstance(self.args[1], MiniDotName):
+                    namespace, name = split(self.args[1].name)
+                elif isinstance(self.args[1], MiniDotName):
+                    namespace, name = split(self.args[1].value)
+                else:
+                    raise PrettyPfaException("fixed type second argument should be an identifier, not \"{0}\", at {1}".format(type(self.args[1]), self.pos))
             else:
                 namespace, name = None, titus.util.uniqueFixedName()
 
@@ -628,18 +663,23 @@ class MiniCall(MiniAst):
 
         elif self.name == "enum":
             if len(self.args) < 1 or len(self.args) > 2:
-                raise PrettyPfaException("enum type should have 1 or 2 arguments, not {} at {}".format(len(self.args), self.pos))
+                raise PrettyPfaException("enum type should have 1 or 2 arguments, not {0} at {1}".format(len(self.args), self.pos))
 
-            if not isinstance(self.args[0], MiniBracketedArgs) or any(not isinstance(x, MiniDotName) for x in self.args[0].args):
-                raise PrettyPfaException("enum type first argument should be a bracketed list of symbols, not \"{}\", at {}".format(type(self.args[0]), self.pos))
+            if not isinstance(self.args[0], MiniBracketedArgs):
+                raise PrettyPfaException("enum type first argument should be a bracketed list of valid enum symbols, not \"{0}\", at {1}".format(type(self.args[0]), self.pos))
+            if not all(isinstance(x, MiniDotName) for x in self.args[0].args):
+                raise PrettyPfaException("enum type symbols must all be valid dot names, not \"{0}\", at {1}".format(self.args[0].args, self.pos))
             symbols = [x.name for x in self.args[0].args]
 
             if len(self.args) == 2:
-                if not isinstance(self.args[1], MiniDotName):
-                    raise PrettyPfaException("fixed type second argument should be an identifier, not \"{}\", at {}".format(type(self.args[1]), self.pos))
-                namespace, name = split(self.args[1].name)
+                if isinstance(self.args[1], MiniDotName):
+                    namespace, name = split(self.args[1].name)
+                elif isinstance(self.args[1], ResolvedSubs):
+                    namespace, name = split(self.args[1].value)
+                else:
+                    raise PrettyPfaException("fixed type second argument should be an identifier, not \"{0}\", at {1}".format(type(self.args[1]), self.pos))
             else:
-                namespace, name = None, titus.util.uniqueFixedName()
+                namespace, name = None, titus.util.uniqueEnumName()
 
             out = {"type": "enum", "symbols": symbols, "name": name}
             if namespace is not None:
@@ -658,9 +698,12 @@ class MiniCall(MiniAst):
             if len(others) == 0:
                 namespace, name = None, titus.util.uniqueRecordName()
             elif len(others) == 1:
-                namespace, name = split(others[0].name)
+                if isinstance(others[0], ResolvedSubs):
+                    namespace, name = split(others[0].value)
+                else:
+                    namespace, name = split(others[0].name)
             else:
-                raise PrettyPfaException("apart from the field specifiers (which have colons), record type takes 0 or 1 argument, not {} at {}".format(len(others), self.pos))
+                raise PrettyPfaException("apart from the field specifiers (which have colons), record type takes 0 or 1 argument, not {0} at {1}".format(len(others), self.pos))
 
             out = {"type": "record", "name": name, "fields": fields}
             if namespace is not None:
@@ -668,7 +711,7 @@ class MiniCall(MiniAst):
             return out
 
         else:
-            raise PrettyPfaException("unrecognized type function \"{}\" at {}".format(self.name, self.pos))
+            raise PrettyPfaException("unrecognized type function \"{0}\" at {1}".format(self.name, self.pos))
 
     def defType(self, state):
         if self.name in ("record", "enum", "fixed"):
@@ -677,7 +720,7 @@ class MiniCall(MiniAst):
             if "namespace" in jsonNode:
                 alias = jsonNode["namespace"] + "." + alias
             state.avroTypeAlias[alias] = jsonNode
-            state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(jsonNode))
+            state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(jsonNode), state.avroTypeMemo)
         else:
             super(MiniCall, self).defType(state)
 
@@ -686,12 +729,12 @@ class MiniBlock(MiniAst):
         self.exprs = exprs
         super(MiniBlock, self).__init__(low, high)
     def __repr__(self):
-        return "MiniBlock({})".format(", ".join(repr(x) for x in self.exprs))
+        return "MiniBlock({0})".format(", ".join(repr(x) for x in self.exprs))
     def asJson(self):
         out = {}
         for expr in self.exprs:
             if not isinstance(expr, MiniParam):
-                raise PrettyPfaException("JSON object must contain only key-value pairs at {}".format(self.pos))
+                raise PrettyPfaException("JSON object must contain only key-value pairs at {0}".format(self.pos))
             out[expr.name] = expr.typeExpr.asJson()
         return out
 
@@ -700,7 +743,7 @@ class MiniBracketedArgs(MiniAst):
         self.args = args
         super(MiniBracketedArgs, self).__init__(low, high)
     def __repr__(self):
-        return "MiniBracketedArgs({})".format(", ".join([repr(x) for x in self.args]))
+        return "MiniBracketedArgs({0})".format(", ".join([repr(x) for x in self.args]))
     def asJson(self):
         return [x.asJson() for x in self.args]
 
@@ -710,9 +753,9 @@ class MiniParam(MiniAst):
         self.typeExpr = typeExpr
         super(MiniParam, self).__init__(low, high)
     def __repr__(self):
-        return "MiniParam({}, {})".format(self.name, repr(self.typeExpr))
+        return "MiniParam({0}, {1})".format(self.name, repr(self.typeExpr))
     def asExpr(self, state):
-        return {self.name: state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.typeExpr.asType(state)))}
+        return {self.name: state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.typeExpr.asType(state)), state.avroTypeMemo)}
 
 class MiniFcnDef(MiniAst):
     def __init__(self, parameters, retType, definition, low, high):
@@ -721,10 +764,10 @@ class MiniFcnDef(MiniAst):
         self.definition = definition
         super(MiniFcnDef, self).__init__(low, high)
     def __repr__(self):
-        return "MiniFcnDef({}, {}, {})".format(", ".join(map(repr, self.parameters)), repr(self.retType), ", ".join(map(repr, self.definition)))
+        return "MiniFcnDef({0}, {1}, {2})".format(", ".join(map(repr, self.parameters)), repr(self.retType), ", ".join(map(repr, self.definition)))
     def asExpr(self, state):
         return FcnDef([x.asExpr(state) for x in self.parameters],
-                      state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.retType.asType(state))),
+                      state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.retType.asType(state)), state.avroTypeMemo),
                       [x.asExpr(state) for x in self.definition])
 
 class MiniNamedFcnDef(MiniAst):
@@ -735,10 +778,10 @@ class MiniNamedFcnDef(MiniAst):
         self.definition = definition
         super(MiniNamedFcnDef, self).__init__(low, high)
     def __repr__(self):
-        return "MiniNamedFcnDef({}, {}, {}, {})".format(self.name, ", ".join(map(repr, self.parameters)), repr(self.retType), ", ".join(map(repr, self.definition)))
+        return "MiniNamedFcnDef({0}, {1}, {2}, {3})".format(self.name, ", ".join(map(repr, self.parameters)), repr(self.retType), ", ".join(map(repr, self.definition)))
     def asFcn(self, state):
         return (self.name, FcnDef([x.asExpr(state) for x in self.parameters],
-                                  state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.retType.asType(state))),
+                                  state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.retType.asType(state)), state.avroTypeMemo),
                                   [x.asExpr(state) for x in self.definition]))
 
 class MiniCellPool(MiniAst):
@@ -750,9 +793,9 @@ class MiniCellPool(MiniAst):
         self.rollback = rollback
         super(MiniCellPool, self).__init__(low, high)
     def __repr__(self):
-        return "MiniCellPool({}, {}, {}, {}, {})".format(self.name, self.objType, self.init, self.shared, self.rollback)
+        return "MiniCellPool({0}, {1}, {2}, {3}, {4})".format(self.name, self.objType, self.init, self.shared, self.rollback)
     def asCell(self, state):
-        return (self.name, Cell(state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.objType.asType(state))),
+        return (self.name, Cell(state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.objType.asType(state)), state.avroTypeMemo),
                                 jsonlib.dumps(self.init.asJson()),
                                 self.shared,
                                 self.rollback,
@@ -760,8 +803,8 @@ class MiniCellPool(MiniAst):
     def asPool(self, state):
         init = self.init.asJson()
         if not isinstance(init, dict):
-            raise PrettyPfaException("pool's init must be a JSON object, not {}, at {}".format(init, self.pos))
-        return (self.name, Pool(state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.objType.asType(state))),
+            raise PrettyPfaException("pool's init must be a JSON object, not {0}, at {1}".format(init, self.pos))
+        return (self.name, Pool(state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.objType.asType(state)), state.avroTypeMemo),
                                 dict((k, jsonlib.dumps(v)) for k, v in init.items()),
                                 self.shared,
                                 self.rollback,
@@ -773,7 +816,7 @@ class MiniIf(MiniAst):
         self.elseClause = elseClause
         super(MiniIf, self).__init__(low, high)
     def __repr__(self):
-        return "MiniIf({}, {})".format(self.pairs, self.elseClause)
+        return "MiniIf({0}, {1})".format(self.pairs, self.elseClause)
     def asExpr(self, state):
         pairs = []
         for predicate, thenClause in self.pairs:
@@ -807,9 +850,9 @@ class MiniAsBlock(MiniAst):
         self.body = body
         super(MiniAsBlock, self).__init__(low, high)
     def __repr__(self):
-        return "MiniAsBlock({}, {}, {})".format(self.astype, self.named, self.body)
+        return "MiniAsBlock({0}, {1}, {2})".format(self.astype, self.named, self.body)
     def asExpr(self, state):
-        t = state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.astype.asType(state)))
+        t = state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.astype.asType(state)), state.avroTypeMemo)
         if isinstance(self.body, MiniCall) and self.body.name == "do":
             body = [x.asExpr(state) for x in self.body.args]
         elif isinstance(self.body, (list, tuple)):
@@ -825,7 +868,7 @@ class MiniCast(MiniAst):
         self.partial = partial
         super(MiniCast, self).__init__(low, high)
     def __repr__(self):
-        return "MiniCast({}, {}, {})".format(self.expression, self.asblocks, self.partial)
+        return "MiniCast({0}, {1}, {2})".format(self.expression, self.asblocks, self.partial)
     def asExpr(self, state):
         return CastBlock(self.expression.asExpr(state), [x.asExpr(state) for x in self.asblocks], self.partial, self.pos)
 
@@ -836,7 +879,7 @@ class MiniIfNotNull(MiniAst):
         self.elseClause = elseClause
         super(MiniIfNotNull, self).__init__(low, high)
     def __repr__(self):
-        return "MiniIfNotNull({}, {}, {})".format(self.params, self.thenClause, self.elseClause)
+        return "MiniIfNotNull({0}, {1}, {2})".format(self.params, self.thenClause, self.elseClause)
     def asExpr(self, state):
         params = dict((x.name, x.typeExpr.asExpr(state)) for x in self.params)
 
@@ -865,7 +908,7 @@ class MiniWhile(MiniAst):
         self.pretest = pretest
         super(MiniWhile, self).__init__(low, high)
     def __repr__(self):
-        return "MiniWhile({}, {}, {})".format(self.predicate, self.body, self.pretest)
+        return "MiniWhile({0}, {1}, {2})".format(self.predicate, self.body, self.pretest)
     def asExpr(self, state):
         if isinstance(self.body, MiniCall) and self.body.name == "do":
             body = [x.asExpr(state) for x in self.body.args]
@@ -886,7 +929,7 @@ class MiniFor(MiniAst):
         self.body = body
         super(MiniFor, self).__init__(low, high)
     def __repr__(self):
-        return "MiniFor({}, {}, {}, {})".format(self.init, self.predicate, self.step, self.body)
+        return "MiniFor({0}, {1}, {2}, {3})".format(self.init, self.predicate, self.step, self.body)
     def asExpr(self, state):
         if isinstance(self.body, MiniCall) and self.body.name == "do":
             body = [x.asExpr(state) for x in self.body.args]
@@ -908,7 +951,7 @@ class MiniForeach(MiniAst):
         self.seq = seq
         super(MiniForeach, self).__init__(low, high)
     def __repr__(self):
-        return "MiniForeach({}, {}, {})".format(self.name, self.array, self.body, self.seq)
+        return "MiniForeach({0}, {1}, {2})".format(self.name, self.array, self.body, self.seq)
     def asExpr(self, state):
         if isinstance(self.body, MiniCall) and self.body.name == "do":
             body = [x.asExpr(state) for x in self.body.args]
@@ -929,13 +972,13 @@ class MiniTry(MiniAst):
         self.filters = filters
         super(MiniTry, self).__init__(low, high)
     def __repr__(self):
-        return "MiniTry({}, {})".format(self.body, self.filters)
+        return "MiniTry({0}, {1})".format(self.body, self.filters)
     def asExpr(self, state):
         if self.filters is None:
             filters = None
         else:
             if any(not isinstance(x, (MiniDotName, MiniString)) for x in self.filters):
-                raise PrettyPfaException("try filters must all be strings, not {}, at {}".format(self.filters, self.pos))
+                raise PrettyPfaException("try filters must all be strings, not {0}, at {1}".format(self.filters, self.pos))
             filters = [x.name if isinstance(x, MiniDotName) else x.value for x in self.filters]
 
         if isinstance(self.body, MiniCall) and self.body.name == "do":
@@ -954,7 +997,7 @@ class MiniGenAssignment(MiniAst):
         self.rhs = rhs
         super(MiniGenAssignment, self).__init__(low, high)
     def __repr__(self):
-        return "MiniGenAssignment({}, {}, {})".format(self.expr, self.args, self.rhs)
+        return "MiniGenAssignment({0}, {1}, {2})".format(self.expr, self.args, self.rhs)
     def asExpr(self, state):
         return AttrTo(self.expr.asExpr(state), [x.asExpr(state) for x in self.args], self.rhs.asExpr(state), self.pos)
 
@@ -964,7 +1007,7 @@ class MiniAssignment(MiniAst):
         self.qualifier = qualifier
         super(MiniAssignment, self).__init__(low, high)
     def __repr__(self):
-        return "MiniAssignment({}, {})".format(self.pairs, self.qualifier)
+        return "MiniAssignment({0}, {1})".format(self.pairs, self.qualifier)
     def asExpr(self, state):
         if self.qualifier is None and len(self.pairs) == 1 and "." in self.pairs.keys()[0]:
             pieces = self.pairs.keys()[0].split(".")
@@ -973,9 +1016,9 @@ class MiniAssignment(MiniAst):
 
             to = self.pairs.values()[0].asExpr(state)
             if isinstance(to, FcnRef):
-                raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {} at {}".format(to.name, to.pos))
+                raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {0} at {1}".format(to.name, to.pos))
             elif isinstance(to, FcnDef):
-                raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {} at {}".format(to, to.pos))
+                raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {0} at {1}".format(to, to.pos))
 
             if base in state.cellNames:
                 return CellTo(base, path, to, self.pos)
@@ -989,9 +1032,9 @@ class MiniAssignment(MiniAst):
             
             to = to.asExpr(state)
             if isinstance(to, FcnRef):
-                raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {} at {}".format(to.name, to.pos))
+                raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {0} at {1}".format(to.name, to.pos))
             elif isinstance(to, FcnDef):
-                raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {} at {}".format(to, to.pos))
+                raise PrettyPfaException("direct assignments (with an = sign) cannot refer to functions, such as {0} at {1}".format(to, to.pos))
 
             if name in state.cellNames:
                 return CellTo(name, [], to, self.pos)
@@ -1001,7 +1044,7 @@ class MiniAssignment(MiniAst):
                 return SetVar({name: to}, self.pos)
             
         if any("." in x for x in self.pairs.keys()):
-            raise PrettyPfaException("cannot assign multiple deep objects (name contains dots) at the same time; separate with semicolons, rather than commas, at {}".format(self.pos))
+            raise PrettyPfaException("cannot assign multiple deep objects (name contains dots) at the same time; separate with semicolons, rather than commas, at {0}".format(self.pos))
 
         if self.qualifier == "var":
             return Let(dict((k, v.asExpr(state)) for k, v in self.pairs.items()), self.pos)
@@ -1013,20 +1056,24 @@ class MiniAssignment(MiniAst):
             (alias, typeExpr), = self.pairs.items()
             jsonNode = typeExpr.asType(state)
             state.avroTypeAlias[alias] = jsonNode
-            state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(jsonNode))
+            state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(jsonNode), state.avroTypeMemo)
         else:
             super(MiniAssignment, self).defType(state)
 
 class Parser(object):
-    def __init__(self):
+    def __init__(self, wholeDocument):
         self.initialized = False
+        self.wholeDocument = wholeDocument
 
     def initialize(self, lex, yacc):
-        tokens = ["SECTION_HEADER_START", "SECTION_HEADER",
-                  "NUMBER", "STRING", "RAWSTRING", "DOTNAME",
+        tokens = ["NUMBER", "STRING", "RAWSTRING", "REPLACEMENT", "DOTNAME",
                   "LPAREN", "RPAREN", "LBRACKET", "RBRACKET", "LCURLY", "RCURLY", "RARROW", 
                   "PLUS", "MINUS", "TIMES", "FDIV", "MOD", "REM", "POW", "EQ", "NE", "LT", "LE", "GT", "GE", "AND", "OR", "XOR", "NOT", "BITAND", "BITOR", "BITXOR", "BITNOT"]
 
+        if self.wholeDocument:
+            tokens.append("SECTION_HEADER_START")
+            tokens.append("SECTION_HEADER")
+                  
         reserved = {"idiv": "IDIV",
                     "fcn": "FCN",
                     "if": "IF",
@@ -1055,16 +1102,17 @@ class Parser(object):
             r"//.*"
             pass
 
-        def t_SECTION_HEADER_START(t):
-            r"^[a-z]+:"
-            t.value = Token("SECTION_HEADER_START", t.value[:-1], t.lexer.lineno)
-            return t
+        if self.wholeDocument:
+            def t_SECTION_HEADER_START(t):
+                r"^[a-z]+:"
+                t.value = Token("SECTION_HEADER_START", t.value[:-1], t.lexer.lineno)
+                return t
 
-        def t_SECTION_HEADER(t):
-            r"(\r\n?|\n)+[a-z]+:"
-            t.lexer.lineno += len(re.findall(r"(\r\n?|\n)", t.value))
-            t.value = Token("SECTION_HEADER", t.value.lstrip("\n")[:-1], t.lexer.lineno)
-            return t
+            def t_SECTION_HEADER(t):
+                r"(\r\n?|\n)+[a-z]+:"
+                t.lexer.lineno += len(re.findall(r"(\r\n?|\n)", t.value))
+                t.value = Token("SECTION_HEADER", t.value.lstrip("\n")[:-1], t.lexer.lineno)
+                return t
 
         def t_DOTNAME(t):
             r"[A-Za-z_][A-Za-z_0-9]*(\.[A-Za-z_][A-Za-z_0-9]*)*"
@@ -1091,6 +1139,15 @@ class Parser(object):
         def t_RAWSTRING(t):
             r"'[^']*'"
             t.value = Token("RAWSTRING", t.value[1:-1], t.lexer.lineno)
+            return t
+
+        def t_REPLACEMENT(t):
+            r"<<[A-Za-z_][A-Za-z_0-9]*>>"
+            name = t.value[2:-2]
+            if name in self.subs:
+                t.value = ResolvedSubs(name, self.subs[name], t.lexer.lineno)
+            else:
+                t.value = Subs(name, t.lexer.lineno)
             return t
 
         def t_RARROW(t):
@@ -1241,116 +1298,121 @@ class Parser(object):
 
         def t_error(t):
             lineno = t.lexer.lineno
-            offendingLine = "\n".join(insertArrow(self.text.split("\n")[(lineno - 1):(lineno + 2)], 1))
-            raise PrettyPfaException("Tokenizing syntax error: \"{}\" at PrettyPFA line {}:\n{}".format(t.value[0], lineno, offendingLine))
+            lines = self.text.split("\n")
+            if len(lines) < 2:
+                raise PrettyPfaException("Tokenizing syntax error: \"{0}\" at PrettyPFA line {1}: {2}".format(t.value[0], lineno, self.text))
+            else:
+                offendingLine = "\n".join(insertArrow(lines[(lineno - 1):(lineno + 2)], 1))
+                raise PrettyPfaException("Tokenizing syntax error: \"{0}\" at PrettyPFA line {1}:\n{2}".format(t.value[0], lineno, offendingLine))
 
         self.lexer = lex.lex()
 
-        def p_document(p):
-            r'''document : sections'''
+        if self.wholeDocument:
+            def p_document(p):
+                r'''document : sections'''
 
-            sectionDict = p[1]
-            keys = set(sectionDict.keys())
+                sectionDict = p[1]
+                keys = set(sectionDict.keys())
 
-            _name = None
-            _method = Method.MAP
-            _input = None
-            _output = None
-            _begin = []
-            _action = []
-            _end = []
-            _fcns = {}
-            _zero = None
-            _merge = None
-            _cells = {}
-            _pools = {}
-            _randseed = None
-            _doc = None
-            _version = None
-            _metadata = {}
-            _options = {}
+                _name = None
+                _method = Method.MAP
+                _input = None
+                _output = None
+                _begin = []
+                _action = []
+                _end = []
+                _fcns = {}
+                _zero = None
+                _merge = None
+                _cells = {}
+                _pools = {}
+                _randseed = None
+                _doc = None
+                _version = None
+                _metadata = {}
+                _options = {}
 
-            if "name" in keys:
-                _name = sectionDict["name"].content.name
-            else:
-                _name = titus.util.uniqueEngineName()
+                if "name" in keys:
+                    _name = sectionDict["name"].content.name
+                else:
+                    _name = titus.util.uniqueEngineName()
 
-            if "method" in keys:
-                _method = sectionDict["method"].method()
+                if "method" in keys:
+                    _method = sectionDict["method"].method()
 
-            state = InterpretationState()
+                state = InterpretationState()
 
-            if "types" in keys:
-                sectionDict["types"].types(state)
+                if "types" in keys:
+                    sectionDict["types"].types(state)
 
-            if "input" in keys:
-                _input = sectionDict["input"].input(state)
-            if "output" in keys:
-                _output = sectionDict["output"].output(state)
-            if "cells" in keys:
-                _cells = sectionDict["cells"].cells(state)
-            if "pools" in keys:
-                _pools = sectionDict["pools"].pools(state)
+                if "input" in keys:
+                    _input = sectionDict["input"].input(state)
+                if "output" in keys:
+                    _output = sectionDict["output"].output(state)
+                if "cells" in keys:
+                    _cells = sectionDict["cells"].cells(state)
+                if "pools" in keys:
+                    _pools = sectionDict["pools"].pools(state)
 
-            if "fcns" in keys:
-                for x in sectionDict["fcns"].content:
-                    if isinstance(x, MiniNamedFcnDef):
-                        state.functionNames.add("u." + x.name)
-            state.cellNames = set(_cells.keys())
-            state.poolNames = set(_pools.keys())
+                if "fcns" in keys:
+                    for x in sectionDict["fcns"].content:
+                        if isinstance(x, MiniNamedFcnDef):
+                            state.functionNames.add("u." + x.name)
+                state.cellNames = set(_cells.keys())
+                state.poolNames = set(_pools.keys())
 
-            if "begin" in keys:
-                _begin = sectionDict["begin"].begin(state)
-            if "action" in keys:
-                _action = sectionDict["action"].action(state)
-            if "end" in keys:
-                _end = sectionDict["end"].end(state)
-            if "fcns" in keys:
-                _fcns = sectionDict["fcns"].fcns(state)
+                if "begin" in keys:
+                    _begin = sectionDict["begin"].begin(state)
+                if "action" in keys:
+                    _action = sectionDict["action"].action(state)
+                if "end" in keys:
+                    _end = sectionDict["end"].end(state)
+                if "fcns" in keys:
+                    _fcns = sectionDict["fcns"].fcns(state)
 
-            if "zero" in keys:
-                _zero = sectionDict["zero"].zero()
-            if "merge" in keys:
-                _merge = sectionDict["merge"].merge(state)
-            if "randseed" in keys:
-                _randseed = sectionDict["randseed"].randseed()
-            if "doc" in keys:
-                _doc = sectionDict["doc"].doc()
-            if "version" in keys:
-                _version = sectionDict["version"].version()
-            if "metadata" in keys:
-                _metadata = sectionDict["metadata"].metadata()
-            if "options" in keys:
-                _options = sectionDict["options"].options()
+                if "zero" in keys:
+                    _zero = sectionDict["zero"].zero()
+                if "merge" in keys:
+                    _merge = sectionDict["merge"].merge(state)
+                if "randseed" in keys:
+                    _randseed = sectionDict["randseed"].randseed()
+                if "doc" in keys:
+                    _doc = sectionDict["doc"].doc()
+                if "version" in keys:
+                    _version = sectionDict["version"].version()
+                if "metadata" in keys:
+                    _metadata = sectionDict["metadata"].metadata()
+                if "options" in keys:
+                    _options = sectionDict["options"].options()
 
-            required = set(["action", "input", "output"])
-            if keys.intersection(required) != required:
-                raise PFASyntaxException("missing top-level fields: {}".format(", ".join(required.difference(keys))), "PrettyPFA document")
-            else:
-                p[0] = EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _merge, _cells, _pools, _randseed, _doc, _version, _metadata, _options, "PrettyPFA document")
-                state.avroTypeBuilder.resolveTypes()
+                required = set(["action", "input", "output"])
+                if keys.intersection(required) != required:
+                    raise PFASyntaxException("missing top-level fields: {0}".format(", ".join(required.difference(keys))), "PrettyPFA document")
+                else:
+                    p[0] = EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _merge, _cells, _pools, _randseed, _doc, _version, _metadata, _options, "PrettyPFA document")
+                    state.avroTypeBuilder.resolveTypes()
+                    
+            def p_section(p):
+                r'''section : SECTION_HEADER_START anything
+                            | SECTION_HEADER anything'''
+                p[0] = Section(p[1].v, p[2], p[1])
 
-        def p_section(p):
-            r'''section : SECTION_HEADER_START anything
-                        | SECTION_HEADER anything'''
-            p[0] = Section(p[1].v, p[2], p[1])
+            def p_sections(p):
+                r'''sections : section
+                             | sections section'''
+                if len(p) == 2:
+                    p[0] = {p[1].name: p[1]}
+                else:
+                    p[1].update({p[2].name: p[2]})
+                    p[0] = p[1]
 
-        def p_sections(p):
-            r'''sections : section
-                         | sections section'''
-            if len(p) == 2:
-                p[0] = {p[1].name: p[1]}
-            else:
-                p[1].update({p[2].name: p[2]})
+            def p_anything(p):
+                r'''anything : expression
+                             | expressions
+                             | bracketedargs
+                             | namedfcndefs
+                             | cellpools'''
                 p[0] = p[1]
-
-        def p_anything(p):
-            r'''anything : expression
-                         | expressions
-                         | bracketedargs
-                         | namedfcndefs
-                         | cellpools'''
-            p[0] = p[1]
 
         def p_expressions(p):
             r'''expressions : expression
@@ -1427,6 +1489,10 @@ class Parser(object):
                       ("left", "TIMES", "FDIV", "IDIV", "MOD", "REM"),
                       ("right", "UMINUS", "BITNOT"),
                       ("left", "POW")]
+
+        def p_expression_replacement(p):
+            r'''expression : REPLACEMENT'''
+            p[0] = p[1]
 
         def p_expression_call(p):
             r'''expression : DOTNAME LPAREN arguments RPAREN'''
@@ -1538,113 +1604,118 @@ class Parser(object):
                 high = p[6].high
             p[0] = MiniFcnDef(parameters, retType, definition, p[2].lineno, high)
 
-        def p_namedfcndef(p):
-            r'''namedfcndef : DOTNAME "=" FCN LPAREN parameters rettype RPAREN expression
-                            | DOTNAME "=" FCN LPAREN parameters rettype RPAREN block'''
-            parameters = p[5]
-            retType = p[6]
-            definition = p[8]
-            if isinstance(definition, MiniBlock):
-                definition = definition.exprs
-            else:
-                definition = [definition]
-            if isinstance(p[8], (list, tuple)):
-                if len(p[8]) == 0:
-                    high = p[7].lineno
+        if self.wholeDocument:
+            def p_namedfcndef(p):
+                r'''namedfcndef : DOTNAME "=" FCN LPAREN parameters rettype RPAREN expression
+                                | DOTNAME "=" FCN LPAREN parameters rettype RPAREN block'''
+                parameters = p[5]
+                retType = p[6]
+                definition = p[8]
+                if isinstance(definition, MiniBlock):
+                    definition = definition.exprs
                 else:
-                    high = max(x.high for x in p[8])
-            else:
-                high = p[8].high
-            p[0] = MiniNamedFcnDef(p[1].v, parameters, retType, definition, p[1].lineno, high)
-
-        def p_namedfcndefs(p):
-            r'''namedfcndefs : empty
-                             | namedfcndef
-                             | namedfcndefs ";" namedfcndef'''
-            if len(p) == 2:
-                if p[1] is None:
-                    p[0] = []
-                else:
-                    p[0] = [p[1]]
-            else:
-                p[1].append(p[3])
-                p[0] = p[1]
-
-        def p_namedfcndefs_extrasemi(p):
-            r'''namedfcndefs : namedfcndefs ";"'''
-            p[0] = p[1]
-
-        def p_cellpool(p):
-            r'''cellpool : DOTNAME LPAREN arguments RPAREN "=" block
-                         | DOTNAME LPAREN arguments RPAREN "=" bracketedargs
-                         | DOTNAME LPAREN arguments RPAREN "=" NUMBER
-                         | DOTNAME LPAREN arguments RPAREN "=" STRING
-                         | DOTNAME LPAREN arguments RPAREN "=" RAWSTRING
-                         | DOTNAME LPAREN arguments RPAREN "=" DOTNAME'''
-            name = p[1].v
-            token = p[6]
-            if isinstance(token, Token):
-                if token.t == "NUMBER":
-                    init = MiniNumber(token.v, token.lineno)
-                elif token.t == "STRING":
-                    init = MiniString(token.v, token.lineno)
-                elif token.t == "RAWSTRING":
-                    init = MiniString(token.v, token.lineno)
-                elif token.t == "DOTNAME":
-                    init = MiniDotName(token.v, token.lineno)
-                high = token.lineno
-            else:
-                init = token
-                high = token.high
-          
-            shared = False
-            rollback = False
-            objType = None
-            others = []
-            for param in p[3]:
-                if isinstance(param, MiniParam):
-                    if param.name == "shared":
-                        if param.typeExpr == MiniDotName("true", None):
-                            shared = True
-                        elif param.typeExpr == MiniDotName("false", None):
-                            shared = False
-                        else:
-                            raise PrettyPfaException("cell/pool parameter \"shared\" must be boolean, not {}, at {}".format(param.typeExpr, param.pos))
-                    elif param.name == "rollback":
-                        if param.typeExpr == MiniDotName("true", None):
-                            rollback = True
-                        elif param.typeExpr == MiniDotName("false", None):
-                            rollback = False
-                        else:
-                            raise PrettyPfaException("cell/pool parameter \"rollback\" must be true or false, not {}, at {}".format(param.typeExpr, param.pos))
-                    elif param.name == "type":
-                        objType = param.typeExpr
+                    definition = [definition]
+                if isinstance(p[8], (list, tuple)):
+                    if len(p[8]) == 0:
+                        high = p[7].lineno
                     else:
-                        raise PrettyPfaException("only \"type\", \"shared\", and \"rollback\" are recognized as cell/pool parameters")
+                        high = max(x.high for x in p[8])
                 else:
-                    others.append(param)
+                    high = p[8].high
+                p[0] = MiniNamedFcnDef(p[1].v, parameters, retType, definition, p[1].lineno, high)
 
-            if objType is None and len(others) == 1:
-                objType = others[0]
-            elif objType is not None and len(others) == 0:
-                pass
-            else:
-                raise PrettyPfaException("only one unnamed parameter, the type, can be provided in a cell/pool declaration, and only if it is not also provided as a named parameter at PrettyPFA line {}".format(p[1].lineno))
+            def p_namedfcndefs(p):
+                r'''namedfcndefs : empty
+                                 | namedfcndef
+                                 | namedfcndefs ";" namedfcndef'''
+                if len(p) == 2:
+                    if p[1] is None:
+                        p[0] = []
+                    else:
+                        p[0] = [p[1]]
+                else:
+                    p[1].append(p[3])
+                    p[0] = p[1]
 
-            p[0] = MiniCellPool(name, objType, init, shared, rollback, p[1].lineno, high)
-
-        def p_cellpools(p):
-            r'''cellpools : cellpool
-                          | cellpools ";" cellpool'''
-            if len(p) == 2:
-                p[0] = [p[1]]
-            else:
-                p[1].append(p[3])
+            def p_namedfcndefs_extrasemi(p):
+                r'''namedfcndefs : namedfcndefs ";"'''
                 p[0] = p[1]
 
-        def p_cellpools_extrasemi(p):
-            r'''cellpools : cellpools ";"'''
-            p[0] = p[1]
+            def p_cellpool(p):
+                r'''cellpool : DOTNAME LPAREN arguments RPAREN "=" block
+                             | DOTNAME LPAREN arguments RPAREN "=" bracketedargs
+                             | DOTNAME LPAREN arguments RPAREN "=" NUMBER
+                             | DOTNAME LPAREN arguments RPAREN "=" STRING
+                             | DOTNAME LPAREN arguments RPAREN "=" RAWSTRING
+                             | DOTNAME LPAREN arguments RPAREN "=" DOTNAME
+                             | DOTNAME LPAREN arguments RPAREN "=" REPLACEMENT'''
+                name = p[1].v
+                token = p[6]
+                if isinstance(token, (Subs, ResolvedSubs)):
+                    init = token
+                    high = token.lineno
+                elif isinstance(token, Token):
+                    if token.t == "NUMBER":
+                        init = MiniNumber(token.v, token.lineno)
+                    elif token.t == "STRING":
+                        init = MiniString(token.v, token.lineno)
+                    elif token.t == "RAWSTRING":
+                        init = MiniString(token.v, token.lineno)
+                    elif token.t == "DOTNAME":
+                        init = MiniDotName(token.v, token.lineno)
+                    high = token.lineno
+                else:
+                    init = token
+                    high = token.high
+
+                shared = False
+                rollback = False
+                objType = None
+                others = []
+                for param in p[3]:
+                    if isinstance(param, MiniParam):
+                        if param.name == "shared":
+                            if param.typeExpr == MiniDotName("true", None):
+                                shared = True
+                            elif param.typeExpr == MiniDotName("false", None):
+                                shared = False
+                            else:
+                                raise PrettyPfaException("cell/pool parameter \"shared\" must be boolean, not {0}, at {1}".format(param.typeExpr, param.pos))
+                        elif param.name == "rollback":
+                            if param.typeExpr == MiniDotName("true", None):
+                                rollback = True
+                            elif param.typeExpr == MiniDotName("false", None):
+                                rollback = False
+                            else:
+                                raise PrettyPfaException("cell/pool parameter \"rollback\" must be true or false, not {0}, at {1}".format(param.typeExpr, param.pos))
+                        elif param.name == "type":
+                            objType = param.typeExpr
+                        else:
+                            raise PrettyPfaException("only \"type\", \"shared\", and \"rollback\" are recognized as cell/pool parameters")
+                    else:
+                        others.append(param)
+
+                if objType is None and len(others) == 1:
+                    objType = others[0]
+                elif objType is not None and len(others) == 0:
+                    pass
+                else:
+                    raise PrettyPfaException("only one unnamed parameter, the type, can be provided in a cell/pool declaration, and only if it is not also provided as a named parameter at PrettyPFA line {0}".format(p[1].lineno))
+
+                p[0] = MiniCellPool(name, objType, init, shared, rollback, p[1].lineno, high)
+
+            def p_cellpools(p):
+                r'''cellpools : cellpool
+                              | cellpools ";" cellpool'''
+                if len(p) == 2:
+                    p[0] = [p[1]]
+                else:
+                    p[1].append(p[3])
+                    p[0] = p[1]
+
+            def p_cellpools_extrasemi(p):
+                r'''cellpools : cellpools ";"'''
+                p[0] = p[1]
 
         def p_ifthen(p):
             r'''expression : IF LPAREN expression RPAREN expression
@@ -1686,13 +1757,13 @@ class Parser(object):
             array = p[3].typeExpr
             if len(p) > 6:
                 if p[5].name != "seq":
-                    raise PrettyPfaException("optional second parameter in foreach must be \"seq\", not {}, at {}".format(p[5].name, p[5].pos))
+                    raise PrettyPfaException("optional second parameter in foreach must be \"seq\", not {0}, at {1}".format(p[5].name, p[5].pos))
                 if p[5].typeExpr == MiniDotName("true", None):
                     seq = True
                 elif p[5].typeExpr == MiniDotName("false", None):
                     seq = False
                 else:
-                    raise PrettyPfaException("optional second parameter in foreach must be boolean, not {}, at {}".format(p[5].typeExpr, p[5].pos))
+                    raise PrettyPfaException("optional second parameter in foreach must be boolean, not {0}, at {1}".format(p[5].typeExpr, p[5].pos))
                 body = p[7]
             else:
                 body = p[5]
@@ -1728,13 +1799,13 @@ class Parser(object):
             expression = p[3]
             if len(p) > 8:
                 if p[5].name != "partial":
-                    raise PrettyPfaException("optional second parameter in cast must be \"partial\", not {}, at {}".format(p[5].name, p[5].pos))
+                    raise PrettyPfaException("optional second parameter in cast must be \"partial\", not {0}, at {1}".format(p[5].name, p[5].pos))
                 if p[5].typeExpr == MiniDotName("true", None):
                     partial = True
                 elif p[5].typeExpr == MiniDotName("false", None):
                     partial = False
                 else:
-                    raise PrettyPfaException("optional second parameter in cast must be boolean, not {}, at {}".format(p[5].typeExpr, p[5].pos))
+                    raise PrettyPfaException("optional second parameter in cast must be boolean, not {0}, at {1}".format(p[5].typeExpr, p[5].pos))
                 asblocks = p[8]
             else:
                 asblocks = p[6]
@@ -1756,9 +1827,13 @@ class Parser(object):
 
         def p_try(p):
             r'''expression : TRY expression
+                           | TRY LPAREN expression RPAREN expression
                            | TRY LPAREN arguments RPAREN expression'''
             if len(p) > 3:
-                filters = p[3]
+                if not isinstance(p[3], list):
+                    filters = [p[3]]
+                else:
+                    filters = p[3]
                 body = p[5]
             else:
                 filters = None
@@ -1856,20 +1931,49 @@ class Parser(object):
                 raise PrettyPfaException("Parsing syntax error")
             else:
                 lineno = p.lineno
-                offendingLine = "\n".join(insertArrow(self.text.split("\n")[(lineno - 1):(lineno + 2)], 1))
-                raise PrettyPfaException("Parsing syntax error on line {}:\n{}".format(p.lineno, offendingLine))
+                lines = self.text.split("\n")
+                if len(lines) < 2:
+                    raise PrettyPfaException("Parsing syntax error on line {0}: {1}".format(p.lineno, self.text))
+                else:
+                    offendingLine = "\n".join(insertArrow(lines[(lineno - 1):(lineno + 2)], 1))
+                    raise PrettyPfaException("Parsing syntax error on line {0}:\n{1}".format(p.lineno, offendingLine))
 
         self.yacc = yacc.yacc(debug=False, write_tables=False)
         self.initialized = True
 
-    def parse(self, text):
+    def parse(self, text, subs):
         self.lexer.lineno = 1
         self.text = text
-        return self.yacc.parse(text)
+        self.subs = subs
+        out = self.yacc.parse(text, lexer=self.lexer)
+        if self.wholeDocument:
+            return out
+        else:
+            if isinstance(out, (list, tuple)):
+                state = InterpretationState()
+                return [x.asExpr(state) for x in out]
+            else:
+                return out.asExpr(InterpretationState())
 
-parser = Parser()
+###
 
-def ast(text, check=True):
+parser = Parser(True)
+
+def subs(originalAst, **subs2):
+    def pf(node):
+        out = subs2[node.name]
+        if node.context == "expr":
+            if isinstance(out, basestring):
+                out = ppfa(out)
+            elif not isinstance(out, Ast):
+                out = pfa(out)
+        return out
+    pf.isDefinedAt = lambda node: isinstance(node, Subs) and node.name in subs2
+    return originalAst.replace(pf)
+
+def ast(text, check=True, subs={}, **subs2):
+    subs2.update(subs)
+
     if not parser.initialized:
         try:
             import ply.lex as lex
@@ -1879,58 +1983,54 @@ def ast(text, check=True):
         else:
             parser.initialize(lex, yacc)
 
-    out = parser.parse(text)
-    if check:
+    out = parser.parse(text, subs2)
+
+    anysubs = lambda x: x
+    anysubs.isDefinedAt = lambda x: isinstance(x, Subs)
+
+    if check and len(out.collect(anysubs)) == 0:
         titus.pfaast.check(out)
     return out
 
-def jsonNode(text, lineNumbers=True, check=True):
-    return ast(text, check).jsonNode(lineNumbers, set())
+def jsonNode(text, lineNumbers=True, check=True, subs={}, **subs2):
+    return ast(text, check, subs, **subs2).jsonNode(lineNumbers, set())
 
-def json(text, lineNumbers=True, check=True):
-    return ast(text, check).toJson(lineNumbers)
+def json(text, lineNumbers=True, check=True, subs={}, **subs2):
+    return ast(text, check, subs, **subs2).toJson(lineNumbers)
 
-def engine(text, options=None, sharedState=None, multiplicity=1, style="pure", debug=False):
-    return PFAEngine.fromAst(ast(text), options, sharedState, multiplicity, style, debug)
+def engine(text, options=None, sharedState=None, multiplicity=1, style="pure", debug=False, subs={}, **subs2):
+    return PFAEngine.fromAst(ast(text, subs, **subs2), options, sharedState, multiplicity, style, debug)
 
-def avscToPretty(avsc, indent=0):
-    if isinstance(avsc, basestring):
-        return " " * indent + avsc
-    elif isinstance(avsc, dict) and "type" in avsc:
-        tpe = avsc["type"]
+###
 
-        if tpe in ("null", "boolean", "int", "long", "float", "double", "bytes", "string"):
-            return " " * indent + tpe
+exprParser = Parser(False)
 
-        elif tpe == "array":
-            return " " * indent + "array(" + avscToPretty(avsc["items"], indent + 6).lstrip() + ")"
+def ppfas(text, subs={}, **subs2):
+    subs2.update(subs)
 
-        elif tpe == "map":
-            return " " * indent + "map(" + avscToPretty(avsc["values"], indent + 4).lstrip() + ")"
+    if not exprParser.initialized:
+        try:
+            import ply.lex as lex
+            import ply.yacc as yacc
+        except ImportError:
+            raise ImportError("ply (used to parse the PrettyPFA) is not available on your system")
+        else:
+            exprParser.initialize(lex, yacc)
 
-        elif tpe == "record":
-            name = avsc["name"]
-            if "namespace" in avsc and len(avsc["namespace"]) > 0:
-                name = avsc["namespace"] + "." + name
-            fields = []
-            for f in avsc["fields"]:
-                fields.append(" " * (indent + 7) + f["name"] + ": " + avscToPretty(f["type"], indent + 7 + len(f["name"]) + 2).lstrip())
-            return " " * indent + "record(" + name + ",\n" + ",\n".join(fields) + ")"
+    return exprParser.parse(text, subs2)
 
-        elif tpe == "fixed":
-            name = avsc["name"]
-            if "namespace" in avsc and len(avsc["namespace"]) > 0:
-                name = avsc["namespace"] + "." + name
-            return " " * indent + "fixed(" + name + ", size: " + str(avsc["size"]) + ")"
+def ppfa(text, subs={}, **subs2):
+    out = ppfas(text, subs, **subs2)
+    if len(out) != 1:
+        raise ValueError("use ppfa for single expressions, ppfas for multiple expressions")
+    else:
+        return out[0]
 
-        elif tpe == "enum":
-            name = avsc["name"]
-            if "namespace" in avsc and len(avsc["namespace"]) > 0:
-                name = avsc["namespace"] + "." + name
-            return " " * indent + "enum(" + name + ", symbols: [" + ", ".join(x for x in avsc["symbols"]) + "])"
+def pfas(x):
+    return jsonToAst.exprs(x)
 
-    elif isinstance(avsc, (list, tuple)):
-        variants = []
-        for x in avsc:
-            variants.append(avscToPretty(x, indent + 6))
-        return " " * indent + "union(" + ",\n".join(variants).lstrip() + ")"
+def pfa(x):
+    return jsonToAst.expr(x)
+
+def expr(prettyPfa, subs={}, **subs2):
+    ppfa(prettyPfa, subs, **subs2).jsonNode(False, set())

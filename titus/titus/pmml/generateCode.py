@@ -42,7 +42,7 @@ def convert(xsdFileName):
 
     pyFileName = xsdFileName.replace("schemae/", "").replace("pmml-", "version_").replace("-", "_").replace(".xsd", ".py")
     if os.path.exists(pyFileName):
-        if raw_input("overwrite {} (y/N)? ".format(pyFileName)).lower() != "y":
+        if raw_input("overwrite {0} (y/N)? ".format(pyFileName)).lower() != "y":
             sys.exit(0)
     output = open(pyFileName, "w")
     output.write("""#!/usr/bin/env python
@@ -67,7 +67,7 @@ def convert(xsdFileName):
 
 import version_independent as ind    
 
-namespace = "{}"
+namespace = "{0}"
 
 """.format(pmmlXsd.getroot().attrib["targetNamespace"]))
 
@@ -101,7 +101,7 @@ namespace = "{}"
 
             overlap = set(attributes).intersection(set(children))
             if len(overlap) > 0:
-                raise Exception("overlap of subelements and attributes in {}: {}".format(element.attrib["name"], overlap))
+                raise Exception("overlap of subelements and attributes in {0}: {1}".format(element.attrib["name"], overlap))
 
             output.write("""class {cls}(ind.{cls}):
     def __init__(self, attribs):
@@ -110,13 +110,13 @@ namespace = "{}"
             setattr(self, key, value)
 {children}        
 """.format(cls=fixName(element.attrib["name"]),
-           attributes="".join("        self.{} = None\n".format(fixName(x)) for x in attributes),
-           children="".join("        self.{} = []\n".format(fixName(x)) for x in children)))
+           attributes="".join("        self.{0} = None\n".format(fixName(x)) for x in attributes),
+           children="".join("        self.{0} = []\n".format(fixName(x)) for x in children)))
 
             if element.attrib["name"] != fixName(element.attrib["name"]):
                 output.write("""    @property
     def tag(self):
-        return "{}"
+        return "{0}"
 
 """.format(element.attrib["name"]))
 
@@ -125,7 +125,7 @@ namespace = "{}"
 
     output.write("tagToClass = {\n")
     for tag, cls in tagToClass:
-        output.write("    \"{}\": {},\n".format(tag, cls))
+        output.write("    \"{0}\": {1},\n".format(tag, cls))
     output.write("    }\n")
 
     output.close()
@@ -138,7 +138,7 @@ if __name__ == "__main__":
 
     pyFileName = "version_independent.py"
     if os.path.exists(pyFileName):
-        if raw_input("overwrite {} (y/N)? ".format(pyFileName)).lower() != "y":
+        if raw_input("overwrite {0} (y/N)? ".format(pyFileName)).lower() != "y":
             sys.exit(0)
     output = open(pyFileName, "w")
     output.write("""#!/usr/bin/env python

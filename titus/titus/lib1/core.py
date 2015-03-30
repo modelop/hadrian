@@ -44,12 +44,12 @@ DOUBLE_MIN_VALUE = 4.9e-324
 DOUBLE_MAX_VALUE = 1.7976931348623157e308
 
 def checkForOverflow(paramTypes, out):
-    if paramTypes == ["int", "int"] or paramTypes == ["int"]:
+    if paramTypes[0] == "int":
         if out < INT_MIN_VALUE or out > INT_MAX_VALUE:
             raise PFARuntimeException("int overflow")
         else:
             return out
-    elif paramTypes == ["long", "long"] or paramTypes == ["long"]:
+    elif paramTypes[0] == "long":
         if out < LONG_MIN_VALUE or out > LONG_MAX_VALUE:
             raise PFARuntimeException("long overflow")
         else:
@@ -94,7 +94,7 @@ class FloorDivide(LibFcn):
     name = "//"
     sig = Sig([{"x": P.Wildcard("A", set([AvroInt(), AvroLong()]))}, {"y": P.Wildcard("A")}], P.Wildcard("A"))
     def genpy(self, paramTypes, args):
-        return "({} // {})".format(*args)
+        return "({0} // {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x // y
 provide(FloorDivide())
@@ -110,7 +110,7 @@ class Modulo(LibFcn):
     name = "%"
     sig = Sig([{"k": P.Wildcard("A", anyNumber)}, {"n": P.Wildcard("A")}], P.Wildcard("A"))
     def genpy(self, paramTypes, args):
-        return "({} % {})".format(*args)
+        return "({0} % {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x % y
 provide(Modulo())
@@ -136,7 +136,7 @@ class Comparison(LibFcn):
     name = "cmp"
     sig = Sig([{"x": P.Wildcard("A")}, {"y": P.Wildcard("A")}], P.Int())
     def genpy(self, paramTypes, args):
-        return "cmp({}, {})".format(*args)
+        return "cmp({0}, {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return cmp(x, y)
 provide(Comparison())
@@ -145,7 +145,7 @@ class Equal(LibFcn):
     name = "=="
     sig = Sig([{"x": P.Wildcard("A")}, {"y": P.Wildcard("A")}], P.Boolean())
     def genpy(self, paramTypes, args):
-        return "({} == {})".format(*args)
+        return "({0} == {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x == y
 provide(Equal())
@@ -154,7 +154,7 @@ class GreaterOrEqual(LibFcn):
     name = ">="
     sig = Sig([{"x": P.Wildcard("A")}, {"y": P.Wildcard("A")}], P.Boolean())
     def genpy(self, paramTypes, args):
-        return "({} >= {})".format(*args)
+        return "({0} >= {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x >= y
 provide(GreaterOrEqual())
@@ -163,7 +163,7 @@ class GreaterThan(LibFcn):
     name = ">"
     sig = Sig([{"x": P.Wildcard("A")}, {"y": P.Wildcard("A")}], P.Boolean())
     def genpy(self, paramTypes, args):
-        return "({} > {})".format(*args)
+        return "({0} > {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x > y
 provide(GreaterThan())
@@ -172,7 +172,7 @@ class NotEqual(LibFcn):
     name = "!="
     sig = Sig([{"x": P.Wildcard("A")}, {"y": P.Wildcard("A")}], P.Boolean())
     def genpy(self, paramTypes, args):
-        return "({} != {})".format(*args)
+        return "({0} != {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x != y
 provide(NotEqual())
@@ -181,7 +181,7 @@ class LessThan(LibFcn):
     name = "<"
     sig = Sig([{"x": P.Wildcard("A")}, {"y": P.Wildcard("A")}], P.Boolean())
     def genpy(self, paramTypes, args):
-        return "({} < {})".format(*args)
+        return "({0} < {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x < y
 provide(LessThan())
@@ -190,7 +190,7 @@ class LessOrEqual(LibFcn):
     name = "<="
     sig = Sig([{"x": P.Wildcard("A")}, {"y": P.Wildcard("A")}], P.Boolean())
     def genpy(self, paramTypes, args):
-        return "({} <= {})".format(*args)
+        return "({0} <= {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x <= y
 provide(LessOrEqual())
@@ -201,7 +201,7 @@ class Max(LibFcn):
     name = "max"
     sig = Sig([{"x": P.Wildcard("A")}, {"y": P.Wildcard("A")}], P.Wildcard("A"))
     def genpy(self, paramTypes, args):
-        return "max({}, {})".format(*args)
+        return "max({0}, {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return max(x, y)
 provide(Max())
@@ -210,7 +210,7 @@ class Min(LibFcn):
     name = "min"
     sig = Sig([{"x": P.Wildcard("A")}, {"y": P.Wildcard("A")}], P.Wildcard("A"))
     def genpy(self, paramTypes, args):
-        return "min({}, {})".format(*args)
+        return "min({0}, {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return min(x, y)
 provide(Min())
@@ -221,7 +221,7 @@ class LogicalAnd(LibFcn):
     name = "&&"
     sig = Sig([{"x": P.Boolean()}, {"y": P.Boolean()}], P.Boolean())
     def genpy(self, paramTypes, args):
-        return "({} and {})".format(*args)
+        return "({0} and {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x and y
 provide(LogicalAnd())
@@ -230,7 +230,7 @@ class LogicalOr(LibFcn):
     name = "||"
     sig = Sig([{"x": P.Boolean()}, {"y": P.Boolean()}], P.Boolean())
     def genpy(self, paramTypes, args):
-        return "({} or {})".format(*args)
+        return "({0} or {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x or y
 provide(LogicalOr())
@@ -246,7 +246,7 @@ class LogicalNot(LibFcn):
     name = "!"
     sig = Sig([{"x": P.Boolean()}], P.Boolean())
     def genpy(self, paramTypes, args):
-        return "(not {})".format(*args)
+        return "(not {0})".format(*args)
     def __call__(self, state, scope, paramTypes, x):
         return not x
 provide(LogicalNot())
@@ -258,7 +258,7 @@ class BitwiseAnd(LibFcn):
     sig = Sigs([Sig([{"x": P.Int()}, {"y": P.Int()}], P.Int()),
                 Sig([{"x": P.Long()}, {"y": P.Long()}], P.Long())])
     def genpy(self, paramTypes, args):
-        return "({} & {})".format(*args)
+        return "({0} & {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x & y
 provide(BitwiseAnd())
@@ -269,7 +269,7 @@ class BitwiseOr(LibFcn):
                 Sig([{"x": P.Long()}, {"y": P.Long()}], P.Long())])
 
     def genpy(self, paramTypes, args):
-        return "({} | {})".format(*args)
+        return "({0} | {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x | y
 provide(BitwiseOr())
@@ -279,7 +279,7 @@ class BitwiseXOr(LibFcn):
     sig = Sigs([Sig([{"x": P.Int()}, {"y": P.Int()}], P.Int()),
                 Sig([{"x": P.Long()}, {"y": P.Long()}], P.Long())])
     def genpy(self, paramTypes, args):
-        return "({} ^ {})".format(*args)
+        return "({0} ^ {1})".format(*args)
     def __call__(self, state, scope, paramTypes, x, y):
         return x ^ y
 provide(BitwiseXOr())
@@ -289,7 +289,7 @@ class BitwiseNot(LibFcn):
     sig = Sigs([Sig([{"x": P.Int()}], P.Int()),
                 Sig([{"x": P.Long()}], P.Long())])
     def genpy(self, paramTypes, args):
-        return "(~{})".format(*args)
+        return "(~{0})".format(*args)
     def __call__(self, state, scope, paramTypes, x):
         return ~x
 provide(BitwiseNot())

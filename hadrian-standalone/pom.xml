@@ -2,13 +2,21 @@
   <modelVersion>4.0.0</modelVersion>
 
   <name>hadrian-standalone</name>
-  <description>Hadrian Standalone</description>
+  <description>PFA container that runs on a UNIX-like command-line</description>
   <inceptionYear>2014</inceptionYear>
 
-  <groupId>com.opendatagroup.hadrian</groupId>
+  <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian-standalone</artifactId>
-  <version>0.5.9</version>
+  <version>0.6.2</version>
   <packaging>jar</packaging>
+
+  <licenses>
+    <license>
+      <name>Hadrian Personal Use and Evaluation License (PUEL)</name>
+      <url>http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
   <properties>
     <maven.compiler.source>1.7</maven.compiler.source>
@@ -23,7 +31,7 @@
     <dependency>
       <groupId>com.opendatagroup</groupId>
       <artifactId>hadrian</artifactId>
-      <version>0.5.9</version>
+      <version>0.6.2</version>
     </dependency>
 
     <dependency>
@@ -41,10 +49,20 @@
     <dependency>
         <groupId>com.github.scopt</groupId>
         <artifactId>scopt_2.10</artifactId>
-        <version>3.2.0</version>
+        <version>3.3.0</version>
     </dependency>
 
   </dependencies>
+
+
+  <repositories>
+
+    <repository>
+      <id>opendatagroup</id>
+      <url>http://repository.opendatagroup.com/maven</url>
+    </repository>
+
+  </repositories>
 
   <build>
     <plugins>

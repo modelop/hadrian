@@ -545,6 +545,66 @@ package object core {
   }
   provide(LogicalNot)
 
+  //////////////////////////////////////////////////////////////////// Kleene (three-state) logical operators
+
+  // ////   &&& (KleeneAnd)
+  // object KleeneAnd extends LibFcn {
+  //   val name = "&&&"
+  //   val sig = Sig(List("x" -> P.Union(List(P.Boolean, P.Null)), "y" -> P.Union(List(P.Boolean, P.Null))), P.Union(List(P.Boolean, P.Null)))
+  //   val doc =
+  //     <doc>
+  //       <desc>Return <c>true</c> if <p>x</p> and <p>y</p> are both <c>true</c>, <c>null</c> if either <p>x</p> or <p>y</p> is <c>null</c>, or <c>false</c> otherwise.</desc>
+  //       <detail>This corresponds to Kleene's three-state logic, in which <c>null</c> represents a boolean quantity whose value is unknown.</detail>
+  //       <detail>Both arguments will be evaluated, regardless of the value of <p>x</p>.  (Only relevant for arguments with side effects.)</detail>
+  //     </doc>
+  //   def apply(x: => java.lang.Boolean, y: => java.lang.Boolean): java.lang.Boolean =
+  //     if (x == null  ||  y == null)
+  //       null
+  //     else
+  //       java.lang.Boolean.valueOf(x.getBoolean  &&  y.getBoolean)
+  // }
+  // provide(KleeneAnd)
+
+  // ////   ||| (KleeneOr)
+  // object KleeneOr extends LibFcn {
+  //   val name = "|||"
+  //   val sig = Sig(List("x" -> P.Union(List(P.Boolean, P.Null)), "y" -> P.Union(List(P.Boolean, P.Null))), P.Union(List(P.Boolean, P.Null)))
+  //   val doc =
+  //     <doc>
+  //       <desc>Return <c>true</c> if <p>x</p> or <p>y</p> is <c>true</c>, <c>false</c> if either <p>x</p> or <p>y</p> is <c>false</c>, or <c>null</c> otherwise.</desc>
+  //       <detail>This corresponds to Kleene's three-state logic, in which <c>null</c> represents a boolean quantity whose value is unknown.</detail>
+  //       <detail>Both arguments will be evaluated, regardless of the value of <p>x</p>.  (Only relevant for arguments with side effects.)</detail>
+  //     </doc>
+  //   def apply(x: => java.lang.Boolean, y: => java.lang.Boolean): java.lang.Boolean =
+  //     if (x == java.lang.Boolean.TRUE  ||  y == java.lang.Boolean.TRUE)
+  //       java.lang.Boolean.TRUE
+  //     else if (x == null  ||  y == null)
+  //       null
+  //     else
+  //       java.lang.Boolean.FALSE
+  // }
+  // provide(KleeneOr)
+
+  // ////   !!! (KleeneNot)
+  // object KleeneNot extends LibFcn {
+  //   val name = "!!!"
+  //   val sig = Sig(List("x" -> P.Union(List(P.Boolean, P.Null))), P.Union(List(P.Boolean, P.Null)))
+  //   val doc =
+  //     <doc>
+  //       <desc>Return <c>true</c> if <p>x</p> is <c>false</c>, <c>false</c> if <p>x</p> is <c>true</c>, or <c>null</c> if <p>x</p> is <c>null</c>.</desc>
+  //       <detail>This corresponds to Kleene's three-state logic, in which <c>null</c> represents a boolean quantity whose value is unknown.</detail>
+  //       <detail>Both arguments will be evaluated, regardless of the value of <p>x</p>.  (Only relevant for arguments with side effects.)</detail>
+  //     </doc>
+  //   def apply(x: java.lang.Boolean): java.lang.Boolean =
+  //     if (x == null)
+  //       x
+  //     else if (x == java.lang.Boolean.TRUE)
+  //       java.lang.Boolean.FALSE
+  //     else
+  //       java.lang.Boolean.TRUE
+  // }
+  // provide(KleeneNot)
+
   //////////////////////////////////////////////////////////////////// bitwise arithmetic
 
   ////   & (BitwiseAnd)

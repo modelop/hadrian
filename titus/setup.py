@@ -41,11 +41,13 @@ setup(name="titus",
                 "titus.lib1.model",
                 "titus.lib1.prob",
                 "titus.lib1.stat",
-                "titus.pmml"],
+                "titus.pmml",
+                "titus.inspector"],
+      scripts = ["scripts/inspector"],
       description="Python implementation of Portable Format for Analytics (PFA): producer, converter, and consumer.",
       test_suite="test",
-      install_requires=["python >= 2.7", "python < 3.0", "avro >= 1.7.6"],
-      tests_require=["python >= 2.7", "python < 3.0", "avro >= 1.7.6", "PyYAML >= 3.11", "numpy >= 1.6.2", "ply >= 3.4"],
+      install_requires=["python >= 2.6.6", "python < 3.0", "avro >= 1.7.6"],
+      tests_require=["python >= 2.6.6", "python < 3.0", "avro >= 1.7.6", "PyYAML >= 3.10", "numpy >= 1.6.1", "ply >= 3.4"],
       )
 
 ### details of dependencies:

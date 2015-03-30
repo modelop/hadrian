@@ -40,7 +40,7 @@ class Len(LibFcn):
     name = prefix + "len"
     sig = Sig([{"s": P.String()}], P.Int())
     def genpy(self, paramTypes, args):
-        return "len({})".format(*args)
+        return "len({0})".format(*args)
     def __call__(self, state, scope, paramTypes, s):
         return len(s)
 provide(Len())
@@ -137,20 +137,20 @@ class Number(LibFcn):
     def __call__(self, state, scope, paramTypes, *args):
         if len(args) == 1 and isinstance(args[0], (int, long)):
             x, = args
-            return "{:d}".format(x)
+            return "{0:d}".format(x)
 
         elif len(args) == 3 and isinstance(args[0], (int, long)):
             x, width, zeroPad = args
             if not zeroPad:
                 if width < 0:
-                    formatStr = "{:<" + str(-width) + "d}"
+                    formatStr = "{0:<" + str(-width) + "d}"
                 else:
-                    formatStr = "{:" + str(width) + "d}"
+                    formatStr = "{0:" + str(width) + "d}"
             else:
                 if width < 0:
                     raise PFARuntimeException("negative width cannot be used with zero-padding")
                 else:
-                    formatStr = "{:0" + str(width) + "d}"
+                    formatStr = "{0:0" + str(width) + "d}"
             return formatStr.format(x)
 
         else:
@@ -182,7 +182,7 @@ class Number(LibFcn):
             else:
                 conv = "e"
 
-            formatStr = "{:" + widthStr + precisionStr + conv + "}"
+            formatStr = "{0:" + widthStr + precisionStr + conv + "}"
             result = formatStr.format(x)
 
             if precision is None:

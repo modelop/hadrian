@@ -41,7 +41,7 @@ class Context(object):
         elif name in self.dataDictionary:
             return ast.AttrGet(ast.Ref("input"), [ast.LiteralString(name)])
         else:
-            raise NameError("unknown field \"{}\"".format(name))
+            raise NameError("unknown field \"{0}\"".format(name))
 
     def symbolTable(self):
         out = {"input": self.inputType}
@@ -561,7 +561,7 @@ class DefineFunction(PmmlBinding):
         params = []
         for parameterField in self.ParameterField:
             if parameterField.dataType is None:
-                raise TypeError("parameter field dataType needed for field \"{}\" of function \"{}\"".format(parameterField.name, self.name))
+                raise TypeError("parameter field dataType needed for field \"{0}\" of function \"{1}\"".format(parameterField.name, self.name))
             params.append(parameterField.toPFA(options, context))
 
         symbolTable = {}
@@ -578,7 +578,7 @@ class DefineFunction(PmmlBinding):
             declared = context.avroTypeBuilder.resolveOneType(json.dumps(self.pmmlTypeToAvro()))
 
             if not declared.accepts(inferred):
-                raise TypeError("DefineFunction {} has inferred type {} and declared type {}".format(self.name, repr(inferred), repr(declared)))
+                raise TypeError("DefineFunction {0} has inferred type {1} and declared type {2}".format(self.name, repr(inferred), repr(declared)))
 
             ret = declared
 
@@ -604,7 +604,7 @@ class DerivedField(PmmlBinding, HasDataType):
                 if self.dataType is not None:
                     declared = context.avroTypeBuilder.resolveOneType(json.dumps(self.pmmlTypeToAvro()))
                     if not declared.accepts(inferred):
-                        raise TypeError("DerivedField {} has inferred type {} and declared type {}".format(self.name, repr(inferred), repr(declared)))
+                        raise TypeError("DerivedField {0} has inferred type {1} and declared type {2}".format(self.name, repr(inferred), repr(declared)))
 
                     context.scope[self.name] = declared
 

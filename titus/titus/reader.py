@@ -128,7 +128,7 @@ def yamlToAst(yamlInput):
                         if isinstance(item, yaml.SequenceEndEvent):
                             return out
                         elif isinstance(item, yaml.events.Event):
-                            raise PFASyntaxException("malformed YAML", "line {}".format(event.end_mark.line))
+                            raise PFASyntaxException("malformed YAML", "line {0}".format(event.end_mark.line))
                         else:
                             out.append(item)
 
@@ -140,20 +140,20 @@ def yamlToAst(yamlInput):
                         if isinstance(key, yaml.MappingEndEvent):
                             endLine = key.end_mark.line
                             if startLine == endLine:
-                                out["@"] = "YAML line {}".format(startLine)
+                                out["@"] = "YAML line {0}".format(startLine)
                             else:
-                                out["@"] = "YAML lines {}-{}".format(startLine, endLine)
+                                out["@"] = "YAML lines {0}-{1}".format(startLine, endLine)
 
                             return out
 
                         elif isinstance(key, yaml.events.Event):
-                            raise PFASyntaxException("malformed YAML", "line {}".format(event.end_mark.line))
+                            raise PFASyntaxException("malformed YAML", "line {0}".format(event.end_mark.line))
                         elif not isinstance(key, basestring):
-                            raise PFASyntaxException("YAML keys must be strings, not {}".format(key), "line {}".format(event.end_mark.line))
+                            raise PFASyntaxException("YAML keys must be strings, not {0}".format(key), "line {0}".format(event.end_mark.line))
 
                         value = read(parser)
                         if isinstance(value, yaml.events.Event):
-                            raise PFASyntaxException("malformed YAML", "line {}".format(event.end_mark.line))
+                            raise PFASyntaxException("malformed YAML", "line {0}".format(event.end_mark.line))
                         
                         out[key] = value
 
@@ -169,7 +169,7 @@ def yamlToAst(yamlInput):
 
     return jsonToAst(obj)
 
-def jsonToExpressionAst(jsonInput):
+def jsonToExpressionAst(jsonInput, where=""):
     if isinstance(jsonInput, file):
         jsonInput = jsonInput.read()
     if isinstance(jsonInput, basestring):
@@ -177,13 +177,13 @@ def jsonToExpressionAst(jsonInput):
 
     avroTypeBuilder = AvroTypeBuilder()
 
-    result = _readExpression(jsonInput, "", avroTypeBuilder)
+    result = _readExpression(jsonInput, where, avroTypeBuilder)
     avroTypeBuilder.resolveTypes()
     return result
 
 jsonToAst.expr = jsonToExpressionAst
 
-def jsonToExpressionsAst(jsonInput):
+def jsonToExpressionsAst(jsonInput, where=""):
     if isinstance(jsonInput, file):
         jsonInput = jsonInput.read()
     if isinstance(jsonInput, basestring):
@@ -191,13 +191,13 @@ def jsonToExpressionsAst(jsonInput):
 
     avroTypeBuilder = AvroTypeBuilder()
 
-    result = _readExpressionArray(jsonInput, "", avroTypeBuilder)
+    result = _readExpressionArray(jsonInput, where, avroTypeBuilder)
     avroTypeBuilder.resolveTypes()
     return result
 
 jsonToAst.exprs = jsonToExpressionsAst
 
-def jsonToFcnDef(jsonInput):
+def jsonToFcnDef(jsonInput, where=""):
     if isinstance(jsonInput, file):
         jsonInput = jsonInput.read()
     if isinstance(jsonInput, basestring):
@@ -205,13 +205,13 @@ def jsonToFcnDef(jsonInput):
 
     avroTypeBuilder = AvroTypeBuilder()
     
-    result = _readFcnDef(jsonInput, "", avroTypeBuilder)
+    result = _readFcnDef(jsonInput, where, avroTypeBuilder)
     avroTypeBuilder.resolveTypes()
     return result
 
 jsonToAst.fcn = jsonToFcnDef
 
-def jsonToFcnDefs(jsonInput):
+def jsonToFcnDefs(jsonInput, where=""):
     if isinstance(jsonInput, file):
         jsonInput = jsonInput.read()
     if isinstance(jsonInput, basestring):
@@ -219,7 +219,7 @@ def jsonToFcnDefs(jsonInput):
 
     avroTypeBuilder = AvroTypeBuilder()
     
-    result = _readFcnDefMap(jsonInput, "", avroTypeBuilder)
+    result = _readFcnDefMap(jsonInput, where, avroTypeBuilder)
     avroTypeBuilder.resolveTypes()
     return result
 
@@ -272,7 +272,7 @@ def _readEngineConfig(data, avroTypeBuilder):
             elif x == "fold":
                 _method = Method.FOLD
             else:
-                raise PFASyntaxException("expected one of \"map\", \"emit\", \"fold\", not \"{}\"".format(x), at)
+                raise PFASyntaxException("expected one of \"map\", \"emit\", \"fold\", not \"{0}\"".format(x), at)
         elif key == "input": _input = _readAvroPlaceholder(data[key], key, avroTypeBuilder)
         elif key == "output": _output = _readAvroPlaceholder(data[key], key, avroTypeBuilder)
         elif key == "begin":
@@ -305,14 +305,14 @@ def _readEngineConfig(data, avroTypeBuilder):
         elif key == "metadata": _metadata = _readStringMap(data[key], key)
         elif key == "options": _options = _readJsonNodeMap(data[key], key)
         else:
-            raise PFASyntaxException("unexpected top-level field: {}".format(key), at)
+            raise PFASyntaxException("unexpected top-level field: {0}".format(key), at)
 
     if "name" not in keys:
         _name = titus.util.uniqueEngineName()
 
     required = set(["action", "input", "output"])
     if keys.intersection(required) != required:
-        raise PFASyntaxException("missing top-level fields: {}".format(", ".join(required.difference(keys))), at)
+        raise PFASyntaxException("missing top-level fields: {0}".format(", ".join(required.difference(keys))), at)
     else:
         return EngineConfig(_name, _method, _input, _output, _begin, _action, _end, _fcns, _zero, _merge, _cells, _pools, _randseed, _doc, _version, _metadata, _options, at)
 
@@ -349,7 +349,7 @@ def _readInt(data, dot):
         if -2147483648 <= data <= 2147483647:
             return data
         else:
-            raise PFASyntaxException("int out of range: {}".format(data), dot)
+            raise PFASyntaxException("int out of range: {0}".format(data), dot)
     else:
         raise PFASyntaxException("expected int, not " + _trunc(repr(data)), dot)
 
@@ -358,7 +358,7 @@ def _readLong(data, dot):
         if -9223372036854775808 <= data <= 9223372036854775807:
             return data
         else:
-            raise PFASyntaxException("long out of range: {}".format(data), dot)
+            raise PFASyntaxException("long out of range: {0}".format(data), dot)
     else:
         raise PFASyntaxException("expected long, not " + _trunc(repr(data)), dot)
 
@@ -432,14 +432,14 @@ def _readCastCase(data, dot, avroTypeBuilder):
                 else:
                     _body = [_readExpression(data[key], dot + "." + key, avroTypeBuilder)]
             else:
-                raise PFASyntaxException("unexpected field in cast-case: {}".format(key), pos(dot, at))
+                raise PFASyntaxException("unexpected field in cast-case: {0}".format(key), pos(dot, at))
 
     if "named" in keys and not validSymbolName(_named):
-        raise PFASyntaxException("\"{}\" is not a valid symbol name".format(_named), pos(dot, at))
+        raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(_named), pos(dot, at))
 
     required = set(["as", "named", "do"])
     if (keys != required):
-        raise PFASyntaxException("wrong set of fields for a cast-case: \"{}\"".format(", ".join(keys)), pos(dot, at))
+        raise PFASyntaxException("wrong set of fields for a cast-case: \"{0}\"".format(", ".join(keys)), pos(dot, at))
     else:
         return CastCase(_as, _named, _body)
 
@@ -483,7 +483,7 @@ def _readArgument(data, dot, avroTypeBuilder):
             ref = words[0]
             rest = words[1:]
             if not validSymbolName(ref):
-                raise PFASyntaxException("\"{}\" is not a valid symbol name".format(ref), dot)
+                raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(ref), dot)
             for i in xrange(len(rest)):
                 try:
                     asint = int(rest[i])
@@ -495,7 +495,7 @@ def _readArgument(data, dot, avroTypeBuilder):
         elif validSymbolName(data):
             return Ref(data, dot)
         else:
-            raise PFASyntaxException("\"{}\" is not a valid symbol name".format(data), dot)
+            raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(data), dot)
 
     elif isinstance(data, (list, tuple)):
         if len(data) == 1 and isinstance(data[0], basestring):
@@ -620,13 +620,13 @@ def _readArgument(data, dot, avroTypeBuilder):
                     _callArgs = [_readArgument(data[key], dot + "." + key, avroTypeBuilder)]
 
         if "foreach" in keys and not validSymbolName(_foreach):
-            raise PFASyntaxException("\"{}\" is not a valid symbol name".format(data[keys]), pos(dot, at))
+            raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(data[keys]), pos(dot, at))
         if "forkey" in keys and not validSymbolName(_forkey):
-            raise PFASyntaxException("\"{}\" is not a valid symbol name".format(data[keys]), pos(dot, at))
+            raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(data[keys]), pos(dot, at))
         if "forval" in keys and not validSymbolName(_forval):
-            raise PFASyntaxException("\"{}\" is not a valid symbol name".format(data[keys]), pos(dot, at))
+            raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(data[keys]), pos(dot, at))
         if "fcn" in keys and not validFunctionName(_fcnref):
-            raise PFASyntaxException("\"{}\" is not a valid function name".format(data[keys]), pos(dot, at))
+            raise PFASyntaxException("\"{0}\" is not a valid function name".format(data[keys]), pos(dot, at))
 
         if keys == set(["int"]):                             return LiteralInt(_int, pos(dot, at))
         elif keys == set(["long"]):                          return LiteralLong(_long, pos(dot, at))
@@ -695,17 +695,17 @@ def _readArgument(data, dot, avroTypeBuilder):
                   "set", "step", "string", "then", "to", "try", "type", "until", "upcast", "value", "while"]):
                                                              return Call(_callName, _callArgs, pos(dot, at))
 
-        else: raise PFASyntaxException("unrecognized special form: {} (not enough arguments? too many?)".format(", ".join(keys)), pos(dot, at))
+        else: raise PFASyntaxException("unrecognized special form: {0} (not enough arguments? too many?)".format(", ".join(keys)), pos(dot, at))
 
     else:
-        raise PFASyntaxException("expected expression, not " + _trunc(repr(data)), pos(dot, at))
+        raise PFASyntaxException("expected expression, not " + _trunc(repr(data)), dot)
 
 def _readFcnDefMap(data, dot, avroTypeBuilder):
     if isinstance(data, dict):
         at = data.get("@")
         for k in data.keys():
             if k != "@" and not validFunctionName(k):
-                raise PFASyntaxException("\"{}\" is not a valid function name".format(k), pos(dot, at))
+                raise PFASyntaxException("\"{0}\" is not a valid function name".format(k), pos(dot, at))
         return dict((k, _readFcnDef(v, dot + "." + k, avroTypeBuilder)) for k, v in data.items() if k != "@")
     else:
         raise PFASyntaxException("expected map of function definitions, not " + _trunc(repr(data)), pos(dot, at))
@@ -748,7 +748,7 @@ def _readParam(data, dot, avroTypeBuilder):
             raise PFASyntaxException("function parameter name-type map should have only one pair", pos(dot, at))
         n = list(keys)[0]
         if not validSymbolName(n):
-            raise PFASyntaxException("\"{}\" is not a valid symbol name".format(n))
+            raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(n))
 
         t = _readAvroPlaceholder(data[n], dot + "." + n, avroTypeBuilder)
         return {n: t}
@@ -760,7 +760,7 @@ def _readCells(data, dot, avroTypeBuilder):
         at = data.get("@")
         for k in data.keys():
             if k != "@" and not validSymbolName(k):
-                raise PFASyntaxException("\"{}\" is not a valid symbol name".format(k), pos(dot, at))
+                raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(k), pos(dot, at))
         return dict((k, _readCell(data[k], dot, avroTypeBuilder)) for k, v in data.items() if k != "@")
     else:
         raise PFASyntaxException("expected map of cells, not " + _trunc(repr(data)), pos(dot, at))
@@ -777,7 +777,7 @@ def _readCell(data, dot, avroTypeBuilder):
             elif key == "shared": _shared = _readBoolean(data[key], dot + "." + key)
             elif key == "rollback": _rollback = _readBoolean(data[key], dot + "." + key)
             else:
-                raise PFASyntaxException("unexpected cell property: \"{}\"".format(key), pos(dot, at))
+                raise PFASyntaxException("unexpected cell property: \"{0}\"".format(key), pos(dot, at))
 
         if ("type" not in keys) or ("init" not in keys) or (not keys.issubset(set(["type", "init", "shared", "rollback"]))):
             raise PFASyntaxException("wrong set of fields for a cell: " + ", ".join(keys), pos(dot, at))
@@ -791,7 +791,7 @@ def _readPools(data, dot, avroTypeBuilder):
         at = data.get("@")
         for k in data.keys():
             if k != "@" and not validSymbolName(k):
-                raise PFASyntaxException("\"{}\" is not a valid symbol name".format(k), pos(dot, at))
+                raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(k), pos(dot, at))
         return dict((k, _readPool(data[k], dot, avroTypeBuilder)) for k, v in data.items() if k != "@")
     else:
         raise PFASyntaxException("expected map of pools, not " + _trunc(repr(data)), None)

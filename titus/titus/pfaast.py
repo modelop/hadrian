@@ -36,11 +36,17 @@ import titus.lib1.metric
 import titus.lib1.pfamath
 import titus.lib1.parse
 import titus.lib1.pfastring
+import titus.lib1.pfatime
 import titus.lib1.prob.dist
+import titus.lib1.regex
+import titus.lib1.rand
+import titus.lib1.spec
 import titus.lib1.stat.change
 import titus.lib1.stat.sample
 import titus.lib1.model.cluster
+import titus.lib1.model.neighbor
 import titus.lib1.model.tree
+import titus.lib1.model.reg
 
 import titus.P as P
 import titus.util
@@ -52,6 +58,19 @@ from titus.signature import LabelData
 from titus.signature import Sig
 from titus.datatype import *
 import titus.options
+from titus.util import avscToPretty
+
+############################################################ utils
+
+TYPE_ERRORS_IN_PRETTYPFA = True
+def ts(avroType):
+    if TYPE_ERRORS_IN_PRETTYPFA:
+        pretty = avscToPretty(avroType.jsonNode(set()))
+        if pretty.count("\n") > 0:
+            pretty = "\n    " + pretty.replace("\n", "\n    ") + "\n"
+        return pretty
+    else:
+        return repr(avroType)
 
 def inferType(expr, symbols=None, cells=None, pools=None, fcns=None):
     if symbols is None:
@@ -106,7 +125,7 @@ class SymbolTable(object):
     def __call__(self, name):
         out = self.get(name)
         if out is None:
-            raise KeyError("no symbol named \"{}\"".format(name))
+            raise KeyError("no symbol named \"{0}\"".format(name))
         else:
             return out
 
@@ -121,7 +140,7 @@ class SymbolTable(object):
                     return False
                 else:
                     if self.parent is None:
-                        raise ValueError("no symbol named \"{}\"".format(name))
+                        raise ValueError("no symbol named \"{0}\"".format(name))
                     else:
                         return self.parent.writable(name)
 
@@ -211,10 +230,16 @@ class FunctionTable(object):
         functions.update(titus.lib1.parse.provides)
         functions.update(titus.lib1.prob.dist.provides)
         functions.update(titus.lib1.pfastring.provides)
+        functions.update(titus.lib1.rand.provides)
+        functions.update(titus.lib1.regex.provides)
+        functions.update(titus.lib1.spec.provides)
         functions.update(titus.lib1.stat.change.provides)
         functions.update(titus.lib1.stat.sample.provides)
+        functions.update(titus.lib1.pfatime.provides)
         functions.update(titus.lib1.model.tree.provides)
         functions.update(titus.lib1.model.cluster.provides)
+        functions.update(titus.lib1.model.neighbor.provides)
+        functions.update(titus.lib1.model.reg.provides)
 
         # TODO: functions.update(titus.lib1.other.provides)...
 
@@ -266,6 +291,12 @@ class Ast(object):
         else:
             return []
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return self
+
     def walk(self, task, symbolTable=None, functionTable=None, engineOptions=None):
         if symbolTable is None and functionTable is None and engineOptions is None:
             self.walk(task, SymbolTable.blank(), FunctionTable.blank(), titus.options.EngineOptions(None, None))
@@ -283,6 +314,35 @@ class Ast(object):
             return OrderedDict({"@": self.pos})
         else:
             return OrderedDict()
+
+class Subs(Ast):
+    def __init__(self, name, lineno=None):
+        self.name = name
+        self.pos = "Substitution at line " + str(lineno)
+        self.lineno = lineno
+        self.low = lineno
+        self.high = lineno
+        self.context = None
+
+    def asExpr(self, state):
+        self.context = "expr"
+        return self
+
+    def asType(self, state):
+        self.context = "type"
+        return self
+
+    def walk(self, task, symbolTable=None, functionTable=None, engineOptions=None):
+        raise PFASyntaxException("Unresolved substitution \"{0}\"".format(self.name), self.pos)
+
+    def toJson(self, lineNumbers=True):
+        raise PFASyntaxException("Unresolved substitution \"{0}\"".format(self.name), self.pos)
+
+    def jsonNode(self, lineNumbers, memo):
+        return self
+
+    def __repr__(self):
+        return "<<" + self.name + ">>"
         
 class Method(object):
     MAP = "map"
@@ -375,6 +435,29 @@ class EngineConfig(Ast):
                titus.util.flatten(x.collect(pf) for x in self.cells.values()) + \
                titus.util.flatten(x.collect(pf) for x in self.pools.values())
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return EngineConfig(self.name,
+                                self.method,
+                                self.inputPlaceholder,
+                                self.outputPlaceholder,
+                                [x.replace(pf) for x in self.begin],
+                                [x.replace(pf) for x in self.action],
+                                [x.replace(pf) for x in self.end],
+                                dict((k, v.replace(pf)) for k, v in self.fcns.items()),
+                                self.zero,
+                                self.merge,
+                                dict((k, v.replace(pf)) for k, v in self.cells.items()),
+                                dict((k, v.replace(pf)) for k, v in self.pools.items()),
+                                self.randseed,
+                                self.doc,
+                                self.version,
+                                self.metadata,
+                                self.options,
+                                self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         topWrapper = SymbolTable(symbolTable, {}, self.cells, self.pools, True, False)
 
@@ -382,7 +465,7 @@ class EngineConfig(Ast):
         for fname, fcnDef in self.fcns.items():
             ufname = "u." + fname
             if not validFunctionName(ufname):
-                raise PFASemanticException("\"{}\" is not a valid function name".format(fname), self.pos)
+                raise PFASemanticException("\"{0}\" is not a valid function name".format(fname), self.pos)
             userFunctions[ufname] = UserFcn.fromFcnDef(ufname, fcnDef)
 
         if self.method == Method.EMIT:
@@ -426,7 +509,7 @@ class EngineConfig(Ast):
             mergeCalls = set(titus.util.flatten([x[0].calls for x in mergeContextResults]))
 
             if not self.output.accepts(mergeContextResults[-1][0].retType):
-                raise PFASemanticException("merge's inferred output type is {} but the declared output type is {}".format(mergeContextResults[-1][0].retType, self.output), self.pos)
+                raise PFASemanticException("merge's inferred output type is {0} but the declared output type is {1}".format(ts(mergeContextResults[-1][0].retType), ts(self.output)), self.pos)
 
             mergeOption = ([x[1] for x in mergeContextResults],
                            dict(list(mergeScopeWrapper.inThisScope.items()) + list(mergeScope.inThisScope.items())),
@@ -468,7 +551,7 @@ class EngineConfig(Ast):
 
         if self.method == Method.MAP or self.method == Method.FOLD:
             if not self.output.accepts(actionContextResults[-1][0].retType):
-                raise PFASemanticException("action's inferred output type is {} but the declared output type is {}".format(actionContextResults[-1][0].retType, self.output), self.pos)
+                raise PFASemanticException("action's inferred output type is {0} but the declared output type is {1}".format(ts(actionContextResults[-1][0].retType), ts(self.output)), self.pos)
 
         context = self.Context(
             self.name,
@@ -669,14 +752,14 @@ class HasPath(object):
                     walkingType = walkingType.items
                     pathIndexes.append(ArrayIndex(exprResult, walkingType))
                 else:
-                    raise PFASemanticException("path index for an array must resolve to a long or int; item {} is a {}".format(indexIndex, repr(exprContext.retType)), self.pos)
+                    raise PFASemanticException("path index for an array must resolve to a long or int; item {0} is a {1}".format(indexIndex, ts(exprContext.retType)), self.pos)
 
             elif isinstance(walkingType, AvroMap):
                 if isinstance(exprContext.retType, AvroString):
                     walkingType = walkingType.values
                     pathIndexes.append(MapIndex(exprResult, walkingType))
                 else:
-                    raise PFASemanticException("path index for a map must resolve to a string; item {} is a {}".format(indexIndex, repr(exprContext.retType)), self.pos)
+                    raise PFASemanticException("path index for a map must resolve to a string; item {0} is a {1}".format(indexIndex, ts(exprContext.retType)), self.pos)
 
             elif isinstance(walkingType, AvroRecord):
                 if isinstance(exprContext.retType, AvroString):
@@ -685,19 +768,19 @@ class HasPath(object):
                     elif isinstance(exprContext, Literal.Context) and isinstance(exprContext.retType, AvroString):
                         name = json.loads(exprContext.value)
                     else:
-                        raise PFASemanticException("path index for record {} must be a literal string; item {} is an object of type {}".format(repr(walkingType), indexIndex, repr(exprContext.retType)), self.pos)
+                        raise PFASemanticException("path index for record {0} must be a literal string; item {1} is an object of type {2}".format(ts(walkingType), indexIndex, ts(exprContext.retType)), self.pos)
 
                     if name in walkingType.fieldsDict.keys():
                         walkingType = walkingType.field(name).avroType
                         pathIndexes.append(RecordIndex(name, walkingType))
                     else:
-                        raise PFASemanticException("record {} has no field named \"{}\" (path index {})".format(repr(walkingType), name, indexIndex), self.pos)
+                        raise PFASemanticException("record {0} has no field named \"{1}\" (path index {2})".format(ts(walkingType), name, indexIndex), self.pos)
 
                 else:
-                    raise PFASemanticException("path index for a record must be a string; item {} is a {}".format(indexIndex, repr(exprContext.retType)), self.pos)
+                    raise PFASemanticException("path index for a record must be a string; item {0} is a {1}".format(indexIndex, ts(exprContext.retType)), self.pos)
 
             else:
-                raise PFASemanticException("path item {} is a {}, which cannot be indexed".format(indexIndex, repr(walkingType)), self.pos)
+                raise PFASemanticException("path item {0} is a {1}, which cannot be indexed".format(indexIndex, ts(walkingType)), self.pos)
 
         return walkingType, calls, pathIndexes
 
@@ -723,6 +806,15 @@ class FcnDef(Argument):
         return super(FcnDef, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return FcnDef(self.paramsPlaceholder,
+                          self.retPlaceholder,
+                          [x.replace(pf) for x in self.body],
+                          self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         if len(self.paramsPlaceholder) > 22:
             raise PFASemanticException("function can have at most 22 parameters", self.pos)
@@ -730,14 +822,14 @@ class FcnDef(Argument):
         scope = symbolTable.newScope(True, False)
         for name, avroType in self.params.items():
             if not validSymbolName(name):
-                raise PFASemanticException("\"{}\" is not a valid parameter name".format(name), self.pos)
+                raise PFASemanticException("\"{0}\" is not a valid parameter name".format(name), self.pos)
             scope.put(name, avroType)
 
         results = [x.walk(task, scope, functionTable, engineOptions) for x in self.body]
 
         inferredRetType = results[-1][0].retType
         if not isinstance(inferredRetType, ExceptionType) and not self.ret.accepts(inferredRetType):
-            raise PFASemanticException("function's inferred return type is {} but its declared return type is {}".format(results[-1][0].retType, self.ret), self.pos)
+            raise PFASemanticException("function's inferred return type is {0} but its declared return type is {1}".format(ts(results[-1][0].retType), ts(self.ret)), self.pos)
 
         context = self.Context(FcnType([self.params[k] for k in self.paramNames], self.ret), set(titus.util.flatten([x[0].calls for x in results])), self.paramNames, self.params, self.ret, scope.inThisScope, [x[1] for x in results])
         return context, task(context, engineOptions)
@@ -760,7 +852,7 @@ class FcnRef(Argument):
     def walk(self, task, symbolTable, functionTable, engineOptions):
         fcn = functionTable.functions.get(self.name, None)
         if fcn is None:
-            raise PFASemanticException("unknown function \"{}\" (be sure to include \"u.\" to reference user functions)".format(self.name), self.pos)
+            raise PFASemanticException("unknown function \"{0}\" (be sure to include \"u.\" to reference user functions)".format(self.name), self.pos)
 
         try:
             if isinstance(fcn.sig, Sig):
@@ -769,7 +861,7 @@ class FcnRef(Argument):
             else:
                 raise IncompatibleTypes()
         except IncompatibleTypes:
-            raise PFASemanticException("only one-signature functions without constraints can be referenced (wrap \"{}\" in a function definition with the desired signature)".format(self.name), self.pos)
+            raise PFASemanticException("only one-signature functions without constraints can be referenced (wrap \"{0}\" in a function definition with the desired signature)".format(self.name), self.pos)
 
         context = FcnRef.Context(fcnType, set([self.name]), fcn)
         return context, task(context, engineOptions)
@@ -793,12 +885,20 @@ class FcnRefFill(Argument):
         return super(FcnRefFill, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.fill.values())
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return FcnRefFill(self.name,
+                              dict((k, v.replace(pf)) for k, v in self.fill.items()),
+                              self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set([self.name])
 
         fcn = functionTable.functions.get(self.name, None)
         if fcn is None:
-            raise PFASemanticException("unknown function \"{}\" (be sure to include \"u.\" to reference user functions)".format(self.name), self.pos)
+            raise PFASemanticException("unknown function \"{0}\" (be sure to include \"u.\" to reference user functions)".format(self.name), self.pos)
 
         fillScope = symbolTable.newScope(True, True)
         argTypeResult = {}
@@ -822,13 +922,13 @@ class FcnRefFill(Argument):
                 fillNames = set(argTypeResult.keys())
 
                 if not fillNames.issubset(set(originalParamNames)):
-                    raise PFASemanticException("fill argument names (\"{}\") are not a subset of function \"{}\" parameter names (\"{}\")".format("\", \"".join(sorted(fillNames)), self.name, "\", \"".join(originalParamNames)), self.pos)
+                    raise PFASemanticException("fill argument names (\"{0}\") are not a subset of function \"{1}\" parameter names (\"{2}\")".format("\", \"".join(sorted(fillNames)), self.name, "\", \"".join(originalParamNames)), self.pos)
 
                 fcnType = FcnType([P.mustBeAvro(P.toType(p.values()[0])) for p in params if p.keys()[0] not in fillNames], P.mustBeAvro(P.toType(ret)))
             else:
                 raise IncompatibleTypes()
         except IncompatibleTypes:
-            raise PFASemanticException("only one-signature functions without constraints can be referenced (wrap \"{}\" in a function definition with the desired signature)".format(self.name), self.pos)
+            raise PFASemanticException("only one-signature functions without constraints can be referenced (wrap \"{0}\" in a function definition with the desired signature)".format(self.name), self.pos)
 
         context = self.Context(fcnType, calls, fcn, originalParamNames, argTypeResult)
         return context, task(context, engineOptions)
@@ -852,13 +952,21 @@ class CallUserFcn(Expression):
                self.name.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.args)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return CallUserFcn(self.name,
+                               [x.replace(pf) for x in self.args],
+                               self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         nameScope = symbolTable.newScope(True, True)
         nameContext, nameResult = self.name.walk(task, nameScope, functionTable, engineOptions)
         if isinstance(nameContext.retType, AvroEnum):
             fcnNames = nameContext.retType.symbols
         else:
-            raise PFASemanticException("\"call\" name should be an enum, but is " + str(nameContext.retType), self.pos)
+            raise PFASemanticException("\"call\" name should be an enum, but is " + ts(nameContext.retType), self.pos)
         nameToNum = dict((x, i) for i, x in enumerate(fcnNames))
 
         scope = symbolTable.newScope(True, True)
@@ -880,9 +988,9 @@ class CallUserFcn(Expression):
         for n in fcnNames:
             fcn = functionTable.functions.get("u." + n, None)
             if fcn is None:
-                raise PFASemanticException("unknown function \"{}\" in enumeration type (be sure to include \"u.\" to reference user functions)".format(n), self.pos)
+                raise PFASemanticException("unknown function \"{0}\" in enumeration type".format(n), self.pos)
             if not isinstance(fcn, UserFcn):
-                raise PFASemanticException("function \"{}\" is not a user function".format(n), self.pos)
+                raise PFASemanticException("function \"{0}\" is not a user function".format(n), self.pos)
             sigres = fcn.sig.accepts(argTypes)
             if sigres is not None:
                 paramTypes, retType = sigres
@@ -891,7 +999,7 @@ class CallUserFcn(Expression):
                 nameToRetTypes[n] = retType
                 retTypes.append(retType)
             else:
-                raise PFASemanticException("parameters of function \"{}\" (in enumeration type) do not accept [{}]".format(self.name, ",".join(map(repr, argTypes))), self.pos)
+                raise PFASemanticException("parameters of function \"{0}\" (in enumeration type) do not accept [{1}]".format(self.name, ",".join(map(ts, argTypes))), self.pos)
 
         try:
             retType = LabelData.broadestType(retTypes)
@@ -919,10 +1027,18 @@ class Call(Expression):
         return super(Call, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.args)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return Call(self.name,
+                        [x.replace(pf) for x in self.args],
+                        self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         fcn = functionTable.functions.get(self.name, None)
         if fcn is None:
-            raise PFASemanticException("unknown function \"{}\" (be sure to include \"u.\" to reference user functions)".format(self.name), self.pos)
+            raise PFASemanticException("unknown function \"{0}\" (be sure to include \"u.\" to reference user functions)".format(self.name), self.pos)
 
         scope = symbolTable.newScope(True, True)
         argResults = [x.walk(task, scope, functionTable, engineOptions) for x in self.args]
@@ -958,7 +1074,7 @@ class Call(Expression):
             context = self.Context(retType, calls, fcn, argTaskResults, argContexts, paramTypes)
 
         else:
-            raise PFASemanticException("parameters of function \"{}\" do not accept [{}]".format(self.name, ",".join(map(repr, argTypes))), self.pos)
+            raise PFASemanticException("parameters of function \"{0}\" do not accept [{1}]".format(self.name, ",".join(map(ts, argTypes))), self.pos)
 
         return context, task(context, engineOptions)
 
@@ -977,7 +1093,7 @@ class Ref(Expression):
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         if symbolTable.get(self.name) is None:
-            raise PFASemanticException("unknown symbol \"{}\"".format(self.name), self.pos)
+            raise PFASemanticException("unknown symbol \"{0}\"".format(self.name), self.pos)
         context = self.Context(symbolTable(self.name), set(), self.name)
         return context, task(context, engineOptions)
 
@@ -1186,6 +1302,15 @@ class NewObject(Expression):
         return super(NewObject, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.fields.values())
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return NewObject(dict((k, v.replace(pf)) for k, v in self.fields.items()),
+                             self.avroPlaceholder,
+                             self.avroTypeBuilder,
+                             self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
@@ -1201,19 +1326,19 @@ class NewObject(Expression):
             for n, t, xr in fieldNameTypeExpr:
                 fieldType = fldsMap.get(n)
                 if fieldType is None:
-                    raise PFASemanticException("record constructed with \"new\" has unexpected field named \"{}\"".format(n), self.pos)
+                    raise PFASemanticException("record constructed with \"new\" has unexpected field named \"{0}\"".format(n), self.pos)
                 if not fieldType.accepts(t):
-                    raise PFASemanticException("record constructed with \"new\" is has wrong field type for \"{}\": {} rather than {}".format(n, t, fieldType), self.pos)
+                    raise PFASemanticException("record constructed with \"new\" is has wrong field type for \"{0}\": {1} rather than {2}".format(n, ts(t), ts(fieldType)), self.pos)
             if set(fldsMap.keys()) != set(n for n, t, xr in fieldNameTypeExpr):
-                raise PFASemanticException("record constructed with \"new\" is missing fields: {} rather than {}".format(sorted(n for n, t, xr in fieldNameTypeExpr), sorted(fldsMap.keys())), self.pos)
+                raise PFASemanticException("record constructed with \"new\" is missing fields: {0} rather than {1}".format(sorted(n for n, t, xr in fieldNameTypeExpr), sorted(fldsMap.keys())), self.pos)
 
         elif isinstance(self.avroType, AvroMap):
             for n, t, xr in fieldNameTypeExpr:
                 if not self.avroType.values.accepts(t):
-                    raise PFASemanticException("map constructed with \"new\" has wrong type for value associated with key \"{}\": {} rather than {}".format(n, t, self.avroType.values), self.pos)
+                    raise PFASemanticException("map constructed with \"new\" has wrong type for value associated with key \"{0}\": {1} rather than {2}".format(n, ts(t), ts(self.avroType.values)), self.pos)
 
         else:
-            raise PFASemanticException("object constructed with \"new\" must have record or map type, not {}".format(self.avroType), self.pos)
+            raise PFASemanticException("object constructed with \"new\" must have record or map type, not {0}".format(ts(self.avroType)), self.pos)
 
         context = self.Context(self.avroType, calls.union(set([self.desc])), dict((x[0], x[2]) for x in fieldNameTypeExpr))
         return context, task(context, engineOptions)
@@ -1251,6 +1376,15 @@ class NewArray(Expression):
         return super(NewArray, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.items)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return NewArray([x.replace(pf) for x in self.items],
+                            self.avroPlaceholder,
+                            self.avroTypeBuilder,
+                            self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
@@ -1264,10 +1398,10 @@ class NewArray(Expression):
         if isinstance(self.avroType, AvroArray):
             for i, (t, xr) in enumerate(itemTypeExpr):
                 if not self.avroType.items.accepts(t):
-                    raise PFASemanticException("array constructed with \"new\" has wrong type for item {}: {} rather than {}".format(i, t, self.avroType.items), self.pos)
+                    raise PFASemanticException("array constructed with \"new\" has wrong type for item {0}: {1} rather than {2}".format(i, ts(t), ts(self.avroType.items)), self.pos)
 
         else:
-            raise PFASemanticException("array constructed with \"new\" must have array type, not {}".format(self.avroType), self.pos)
+            raise PFASemanticException("array constructed with \"new\" must have array type, not {0}".format(ts(self.avroType)), self.pos)
 
         context = self.Context(self.avroType, calls.union(set([self.desc])), [x[1] for x in itemTypeExpr])
         return context, task(context, engineOptions)
@@ -1293,6 +1427,13 @@ class Do(Expression):
     def collect(self, pf):
         return super(Do, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
+
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return Do([x.replace(pf) for x in self.body],
+                      self.pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         scope = symbolTable.newScope(False, False)
@@ -1326,6 +1467,13 @@ class Let(Expression):
         return super(Let, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.values.values())
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return Let(dict((k, v.replace(pf)) for k, v in self.values.items()),
+                       self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         if symbolTable.sealedWithin:
             raise PFASemanticException("new variable bindings are forbidden in this scope, but you can wrap your expression with \"do\" to make temporary variables", self.pos)
@@ -1337,10 +1485,10 @@ class Let(Expression):
         nameTypeExpr = []
         for name, expr in self.values.items():
             if symbolTable.get(name) is not None:
-                raise PFASemanticException("symbol \"{}\" may not be redeclared or shadowed".format(name), self.pos)
+                raise PFASemanticException("symbol \"{0}\" may not be redeclared or shadowed".format(name), self.pos)
 
             if not validSymbolName(name):
-                raise PFASemanticException("\"{}\" is not a valid symbol name".format(name), self.pos)
+                raise PFASemanticException("\"{0}\" is not a valid symbol name".format(name), self.pos)
 
             scope = symbolTable.newScope(True, True)
             exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions)
@@ -1380,22 +1528,29 @@ class SetVar(Expression):
         return super(SetVar, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.values.values())
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return SetVar(dict((k, v.replace(pf)) for k, v in self.values.items()),
+                          self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
         nameTypeExpr = []
         for name, expr in self.values.items():
             if symbolTable.get(name) is None:
-                raise PFASemanticException("unknown symbol \"{}\" cannot be assigned with \"set\" (use \"let\" to declare a new symbol)".format(name), self.pos)
+                raise PFASemanticException("unknown symbol \"{0}\" cannot be assigned with \"set\" (use \"let\" to declare a new symbol)".format(name), self.pos)
             elif not symbolTable.writable(name):
-                raise PFASemanticException("symbol \"{}\" belongs to a sealed enclosing scope; it cannot be modified within this block)".format(name), self.pos)
+                raise PFASemanticException("symbol \"{0}\" belongs to a sealed enclosing scope; it cannot be modified within this block)".format(name), self.pos)
 
             scope = symbolTable.newScope(True, True)
             exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions)
             calls = calls.union(exprContext.calls)
 
             if not symbolTable(name).accepts(exprContext.retType):
-                raise PFASemanticException("symbol \"{}\" was declared as {}; it cannot be re-assigned as {}".format(name, symbolTable(name), exprContext.retType), self.pos)
+                raise PFASemanticException("symbol \"{0}\" was declared as {1}; it cannot be re-assigned as {2}".format(name, ts(symbolTable(name)), ts(exprContext.retType)), self.pos)
 
             nameTypeExpr.append((name, symbolTable(name), exprResult))
 
@@ -1423,6 +1578,14 @@ class AttrGet(Expression, HasPath):
         return super(AttrGet, self).collect(pf) + \
                self.expr.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path)
+
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return AttrGet(self.expr.replace(pf),
+                           [x.replace(pf) for x in self.path],
+                           self.pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         exprScope = symbolTable.newScope(True, True)
@@ -1459,6 +1622,15 @@ class AttrTo(Expression, HasPath):
                titus.util.flatten(x.collect(pf) for x in self.path) + \
                self.to.collect(pf)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return AttrTo(self.expr.replace(pf),
+                          [x.replace(pf) for x in self.path],
+                          self.to.replace(pf),
+                          self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         exprScope = symbolTable.newScope(True, True)
         exprContext, exprResult = self.expr.walk(task, exprScope, functionTable, engineOptions)
@@ -1472,22 +1644,22 @@ class AttrTo(Expression, HasPath):
 
         if isinstance(toContext, ExpressionContext):
             if not setType.accepts(toContext.retType):
-                raise PFASemanticException("attr-and-path has type {} but attempting to assign with type {}".format(repr(setType), repr(toContext.retType)), self.pos)
+                raise PFASemanticException("attr-and-path has type {0} but attempting to assign with type {1}".format(ts(setType), ts(toContext.retType)), self.pos)
             context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, toResult, toContext.retType)
 
         elif isinstance(toContext, FcnDef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
-                raise PFASemanticException("attr-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
+                raise PFASemanticException("attr-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
             context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, toResult, toContext.fcnType)
 
         elif isinstance(toContext, FcnRef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
-                raise PFASemanticException("attr-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
+                raise PFASemanticException("attr-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
             context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType)   # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
         elif isinstance(toContext, FcnRefFill.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
-                raise PFASemanticException("attr-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
+                raise PFASemanticException("attr-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
             context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType)   # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
         return context, task(context, engineOptions)
@@ -1513,10 +1685,18 @@ class CellGet(Expression, HasPath):
         return super(CellGet, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return CellGet(self.cell,
+                           [x.replace(pf) for x in self.path],
+                           self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         c = symbolTable.cell(self.cell)
         if c is None:
-            raise PFASemanticException("no cell named \"{}\"".format(self.cell), self.pos)
+            raise PFASemanticException("no cell named \"{0}\"".format(self.cell), self.pos)
         cellType, shared = c.avroType, c.shared
 
         retType, calls, pathResult = self.walkPath(cellType, task, symbolTable, functionTable, engineOptions)
@@ -1545,10 +1725,19 @@ class CellTo(Expression, HasPath):
                titus.util.flatten(x.collect(pf) for x in self.path) + \
                self.to.collect(pf)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return CellTo(self.cell,
+                          [x.replace(pf) for x in self.path],
+                          self.to.replace(pf),
+                          self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         c = symbolTable.cell(self.cell)
         if c is None:
-            raise PFASemanticException("no cell named \"{}\"".format(self.cell), self.pos)
+            raise PFASemanticException("no cell named \"{0}\"".format(self.cell), self.pos)
         cellType, shared = c.avroType, c.shared
 
         setType, calls, pathResult = self.walkPath(cellType, task, symbolTable, functionTable, engineOptions)
@@ -1557,22 +1746,22 @@ class CellTo(Expression, HasPath):
 
         if isinstance(toContext, ExpressionContext):
             if not setType.accepts(toContext.retType):
-                raise PFASemanticException("cell-and-path has type {} but attempting to assign with type {}".format(repr(setType), repr(toContext.retType)), self.pos)
+                raise PFASemanticException("cell-and-path has type {0} but attempting to assign with type {1}".format(ts(setType), ts(toContext.retType)), self.pos)
             context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, toResult, toContext.retType, shared)
 
         elif isinstance(toContext, FcnDef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
-                raise PFASemanticException("cell-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
+                raise PFASemanticException("cell-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
             context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, toResult, toContext.fcnType, shared)
 
         elif isinstance(toContext, FcnRef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
-                raise PFASemanticException("cell-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
+                raise PFASemanticException("cell-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
             context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, shared)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
         elif isinstance(toContext, FcnRefFill.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
-                raise PFASemanticException("cell-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
+                raise PFASemanticException("cell-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
             context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, shared)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
         return context, task(context, engineOptions)
@@ -1601,10 +1790,18 @@ class PoolGet(Expression, HasPath):
         return super(PoolGet, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return PoolGet(self.pool,
+                           [x.replace(pf) for x in self.path],
+                           self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         p = symbolTable.pool(self.pool)
         if p is None:
-            raise PFASemanticException("no pool named \"{}\"".format(self.pool), self.pos)
+            raise PFASemanticException("no pool named \"{0}\"".format(self.pool), self.pos)
         poolType, shared = p.avroType, p.shared
 
         retType, calls, pathResult = self.walkPath(AvroMap(poolType), task, symbolTable, functionTable, engineOptions)
@@ -1635,10 +1832,20 @@ class PoolTo(Expression, HasPath):
                self.to.collect(pf) + \
                self.init.collect(pf)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return PoolTo(self.pool,
+                          [x.replace(pf) for x in self.path],
+                          self.to.replace(pf),
+                          self.init.replace(pf),
+                          self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         p = symbolTable.pool(self.pool)
         if p is None:
-            raise PFASemanticException("no pool named \"{}\"".format(self.pool), self.pos)
+            raise PFASemanticException("no pool named \"{0}\"".format(self.pool), self.pos)
         poolType, shared = p.avroType, p.shared
 
         setType, calls, pathResult = self.walkPath(AvroMap(poolType), task, symbolTable, functionTable, engineOptions)
@@ -1648,26 +1855,26 @@ class PoolTo(Expression, HasPath):
         initContext, initResult = self.init.walk(task, symbolTable, functionTable, engineOptions)
 
         if not poolType.accepts(initContext.retType):
-            raise PFASemanticException("pool has type {} but attempting to init with type {}".format(repr(poolType), repr(initContext.retType)), self.pos)
+            raise PFASemanticException("pool has type {0} but attempting to init with type {1}".format(ts(poolType), ts(initContext.retType)), self.pos)
 
         if isinstance(toContext, ExpressionContext):
             if not setType.accepts(toContext.retType):
-                raise PFASemanticException("pool-and-path has type {} but attempting to assign with type {}".format(repr(setType), repr(toContext.retType)), self.pos)
+                raise PFASemanticException("pool-and-path has type {0} but attempting to assign with type {1}".format(ts(setType), ts(toContext.retType)), self.pos)
             context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, toResult, toContext.retType, initResult, shared)
 
         elif isinstance(toContext, FcnDef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
-                raise PFASemanticException("pool-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
+                raise PFASemanticException("pool-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
             context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, toResult, toContext.fcnType, initResult, shared)
 
         elif isinstance(toContext, FcnRef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
-                raise PFASemanticException("pool-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
+                raise PFASemanticException("pool-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
             context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, initResult, shared)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
         elif isinstance(toContext, FcnRefFill.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
-                raise PFASemanticException("pool-and-path has type {} but attempting to assign with a function of type {}".format(repr(setType), repr(toContext.fcnType)), self.pos)
+                raise PFASemanticException("pool-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
             context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, initResult, shared)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
         return context, task(context, engineOptions)
@@ -1702,13 +1909,22 @@ class If(Expression):
                titus.util.flatten(x.collect(pf) for x in self.thenClause) + \
                (titus.util.flatten(x.collect(pf) for x in self.elseClause) if self.elseClause is not None else [])
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return If(self.predicate.replace(pf),
+                      [x.replace(pf) for x in self.thenClause],
+                      [x.replace(pf) for x in self.elseClause] if self.elseClause is not None else None,
+                      self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
         predScope = symbolTable.newScope(True, True)
         predContext, predResult = self.predicate.walk(task, predScope, functionTable, engineOptions)
         if not AvroBoolean().accepts(predContext.retType):
-            raise PFASemanticException("\"if\" predicate should be boolean, but is " + repr(predContext.retType), self.pos)
+            raise PFASemanticException("\"if\" predicate should be boolean, but is " + ts(predContext.retType), self.pos)
         calls = calls.union(predContext.calls)
 
         thenScope = symbolTable.newScope(False, False)
@@ -1772,6 +1988,14 @@ class Cond(Expression):
                titus.util.flatten(x.collect(pf) for x in self.ifthens) + \
                (titus.util.flatten(x.collect(pf) for x in self.elseClause) if self.elseClause is not None else [])
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return Cond([x.replace(pf) for x in self.ifthens],
+                        [x.replace(pf) for x in self.elseClause] if self.elseClause is not None else None,
+                        self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
@@ -1784,7 +2008,7 @@ class Cond(Expression):
             predScope = symbolTable.newScope(True, True)
             predContext, predResult = predicate.walk(task, predScope, functionTable, engineOptions)
             if not AvroBoolean().accepts(predContext.retType):
-                raise PFASemanticException("\"if\" predicate should be boolean, but is " + predContext.retType, ifpos)
+                raise PFASemanticException("\"if\" predicate should be boolean, but is " + ts(predContext.retType), ifpos)
             calls = calls.union(predContext.calls)
 
             thenScope = symbolTable.newScope(False, False)
@@ -1844,6 +2068,14 @@ class While(Expression):
                self.predicate.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return While(self.predicate.replace(pf),
+                         [x.replace(pf) for x in self.body],
+                         self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
         loopScope = symbolTable.newScope(False, False)
@@ -1851,7 +2083,7 @@ class While(Expression):
 
         predContext, predResult = self.predicate.walk(task, predScope, functionTable, engineOptions)
         if not AvroBoolean().accepts(predContext.retType):
-            raise PFASemanticException("\"while\" predicate should be boolean, but is " + repr(predContext.retType), self.pos)
+            raise PFASemanticException("\"while\" predicate should be boolean, but is " + ts(predContext.retType), self.pos)
         calls = calls.union(predContext.calls)
 
         loopResults = [x.walk(task, loopScope, functionTable, engineOptions) for x in self.body]
@@ -1882,6 +2114,14 @@ class DoUntil(Expression):
                titus.util.flatten(x.collect(pf) for x in self.body) + \
                self.predicate.collect(pf)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return DoUntil([x.replace(pf) for x in self.body],
+                           self.predicate.replace(pf),
+                           self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
         loopScope = symbolTable.newScope(False, False)
@@ -1893,7 +2133,7 @@ class DoUntil(Expression):
 
         predContext, predResult = self.predicate.walk(task, predScope, functionTable, engineOptions)
         if not AvroBoolean().accepts(predContext.retType):
-            raise PFASemanticException("\"until\" predicate should be boolean, but is " + repr(predContext.retType), self.pos)
+            raise PFASemanticException("\"until\" predicate should be boolean, but is " + ts(predContext.retType), self.pos)
         calls = calls.union(predContext.calls)
 
         context = self.Context(AvroNull(), calls.union(set([self.desc])), loopScope.inThisScope, [x[1] for x in loopResults], predResult)
@@ -1930,6 +2170,16 @@ class For(Expression):
                titus.util.flatten(x.collect(pf) for x in self.step.values()) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return For(dict((k, v.replace(pf)) for k, v in self.init.items()),
+                       self.predicate.replace(pf),
+                       dict((k, v.replace(pf)) for k, v in self.step.items()),
+                       [x.replace(pf) for x in self.body],
+                       self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
         loopScope = symbolTable.newScope(False, False)
@@ -1939,10 +2189,10 @@ class For(Expression):
         initNameTypeExpr = []
         for name, expr in self.init.items():
             if loopScope.get(name) is not None:
-                raise PFASemanticException("symbol \"{}\" may not be redeclared or shadowed".format(name), self.pos)
+                raise PFASemanticException("symbol \"{0}\" may not be redeclared or shadowed".format(name), self.pos)
 
             if not validSymbolName(name):
-                raise PFASemanticException("\"{}\" is not a valid symbol name".format(name), self.pos)
+                raise PFASemanticException("\"{0}\" is not a valid symbol name".format(name), self.pos)
 
             initScope = loopScope.newScope(True, True)
             exprContext, exprResult = expr.walk(task, initScope, functionTable, engineOptions)
@@ -1958,22 +2208,22 @@ class For(Expression):
         predicateScope = loopScope.newScope(True, True)
         predicateContext, predicateResult = self.predicate.walk(task, predicateScope, functionTable, engineOptions)
         if not AvroBoolean().accepts(predicateContext.retType):
-            raise PFASemanticException("predicate should be boolean, but is " + repr(predicateContext.retType), self.pos)
+            raise PFASemanticException("predicate should be boolean, but is " + ts(predicateContext.retType), self.pos)
         calls = calls.union(predicateContext.calls)
 
         stepNameTypeExpr = []
         for name, expr in self.step.items():
             if loopScope.get(name) is None:
-                raise PFASemanticException("unknown symbol \"{}\" cannot be assigned with \"step\"".format(name), self.pos)
+                raise PFASemanticException("unknown symbol \"{0}\" cannot be assigned with \"step\"".format(name), self.pos)
             elif not loopScope.writable(name):
-                raise PFASemanticException("symbol \"{}\" belongs to a sealed enclosing scope; it cannot be modified within this block".format(name), self.pos)
+                raise PFASemanticException("symbol \"{0}\" belongs to a sealed enclosing scope; it cannot be modified within this block".format(name), self.pos)
 
             stepScope = loopScope.newScope(True, True)
             exprContext, exprResult = expr.walk(task, stepScope, functionTable, engineOptions)
             calls = calls.union(exprContext.calls)
 
             if not loopScope(name).accepts(exprContext.retType):
-                raise PFASemanticException("symbol \"{}\" was declared as {}; it cannot be re-assigned as {}".format(name, loopScope(name), exprContext.retType), self.pos)
+                raise PFASemanticException("symbol \"{0}\" was declared as {1}; it cannot be re-assigned as {2}".format(name, ts(loopScope(name)), ts(exprContext.retType)), self.pos)
 
             stepNameTypeExpr.append((name, loopScope(name), exprResult))
 
@@ -2010,22 +2260,32 @@ class Foreach(Expression):
                self.array.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return Foreach(self.name,
+                           self.array.replace(pf),
+                           [x.replace(pf) for x in self.body],
+                           self.seq,
+                           self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
         loopScope = symbolTable.newScope(not self.seq, False)
 
         if symbolTable.get(self.name) is not None:
-            raise PFASemanticException("symbol \"{}\" may not be redeclared or shadowed".format(self.name), self.pos)
+            raise PFASemanticException("symbol \"{0}\" may not be redeclared or shadowed".format(self.name), self.pos)
 
         if not validSymbolName(self.name):
-            raise PFASemanticException("\"{}\" is not a valid symbol name".format(self.name), self.pos)
+            raise PFASemanticException("\"{0}\" is not a valid symbol name".format(self.name), self.pos)
 
         objScope = loopScope.newScope(True, True)
         objContext, objResult = self.array.walk(task, objScope, functionTable, engineOptions)
         calls = calls.union(objContext.calls)
 
         if not isinstance(objContext.retType, AvroArray):
-            raise PFASemanticException("expression referred to by \"in\" should be an array, but is " + repr(objContext.retType), self.pos)
+            raise PFASemanticException("expression referred to by \"in\" should be an array, but is " + ts(objContext.retType), self.pos)
         elementType = objContext.retType.items
 
         loopScope.put(self.name, elementType)
@@ -2063,26 +2323,36 @@ class Forkeyval(Expression):
                self.map.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return Forkeyval(self.forkey,
+                             self.forval,
+                             self.map.replace(pf),
+                             [x.replace(pf) for x in self.body],
+                             self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
         loopScope = symbolTable.newScope(False, False)
 
         if symbolTable.get(self.forkey) is not None:
-            raise PFASemanticException("symbol \"{}\" may not be redeclared or shadowed".format(self.forkey), self.pos)
+            raise PFASemanticException("symbol \"{0}\" may not be redeclared or shadowed".format(self.forkey), self.pos)
         if symbolTable.get(self.forval) is not None:
-            raise PFASemanticException("symbol \"{}\" may not be redeclared or shadowed".format(self.forval), self.pos)
+            raise PFASemanticException("symbol \"{0}\" may not be redeclared or shadowed".format(self.forval), self.pos)
 
         if not validSymbolName(self.forkey):
-            raise PFASemanticException("\"{}\" is not a valid symbol name".format(self.forkey), self.pos)
+            raise PFASemanticException("\"{0}\" is not a valid symbol name".format(self.forkey), self.pos)
         if not validSymbolName(self.forval):
-            raise PFASemanticException("\"{}\" is not a valid symbol name".format(self.forval), self.pos)
+            raise PFASemanticException("\"{0}\" is not a valid symbol name".format(self.forval), self.pos)
 
         objScope = loopScope.newScope(True, True)
         objContext, objResult = self.map.walk(task, objScope, functionTable, engineOptions)
         calls = calls.union(objContext.calls)
 
         if not isinstance(objContext.retType, AvroMap):
-            raise PFASemanticException("expression referred to by \"in\" should be a map, but is " + repr(objContext.retType), self.pos)
+            raise PFASemanticException("expression referred to by \"in\" should be a map, but is " + ts(objContext.retType), self.pos)
         elementType = objContext.retType.values
 
         loopScope.put(self.forkey, AvroString())
@@ -2117,7 +2387,7 @@ class CastCase(Ast):
             raise PFASyntaxException("\"do\" must contain at least one statement", self.pos)
 
         if not validSymbolName(self.named):
-            raise PFASyntaxException("\"{}\" is not a valid symbol name".format(self.named), self.pos)
+            raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(self.named), self.pos)
 
     @property
     def avroType(self):
@@ -2126,6 +2396,15 @@ class CastCase(Ast):
     def collect(self, pf):
         return super(CastCase, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
+
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return CastCase(self.avroPlaceholder,
+                            self.named,
+                            [x.replace(pf) for x in self.body],
+                            self.pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         scope = symbolTable.newScope(False, False)
@@ -2155,6 +2434,15 @@ class CastBlock(Expression):
                self.expr.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.castCases)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return CastBlock(self.expr.replace(pf),
+                             [x.replace(pf) for x in self.castCases],
+                             self.partial,
+                             self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
@@ -2168,7 +2456,7 @@ class CastBlock(Expression):
         # did you have anything extraneous?
         for t in types:
             if not exprType.accepts(t):
-                raise PFASemanticException("\"cast\" of expression with type {} can never satisfy case {}".format(exprType, t), self.pos)
+                raise PFASemanticException("\"cast\" of expression with type {0} can never satisfy case {1}".format(ts(exprType), ts(t)), self.pos)
 
         cases = [x.walk(task, symbolTable, functionTable, engineOptions) for x in self.castCases]
         for castCtx, castRes in cases:
@@ -2185,7 +2473,7 @@ class CastBlock(Expression):
 
             for mustFind in mustFindThese:
                 if not any(t.accepts(mustFind) and mustFind.accepts(t) for t in types):
-                    raise PFASemanticException("\"cast\" of expression with type {} does not contain a case for {}".format(exprType, mustFind), self.pos)
+                    raise PFASemanticException("\"cast\" of expression with type {0} does not contain a case for {1}".format(ts(exprType), ts(mustFind)), self.pos)
 
             try:
                 retType = LabelData.broadestType([x[0].retType for x in cases])
@@ -2220,12 +2508,20 @@ class Upcast(Expression):
         return super(Upcast, self).collect(pf) + \
                self.expr.collect(pf)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return Upcast(self.expr.replace(pf),
+                          self.avroPlaceholder,
+                          self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         scope = symbolTable.newScope(True, True)
         exprContext, exprResult = self.expr.walk(task, scope, functionTable, engineOptions)
 
         if not self.avroType.accepts(exprContext.retType):
-            raise PFASemanticException("expression results in {}; cannot expand (\"upcast\") to {}".format(exprContext.retType, self.avroType), self.pos)
+            raise PFASemanticException("expression results in {0}; cannot expand (\"upcast\") to {1}".format(ts(exprContext.retType), ts(self.avroType)), self.pos)
 
         context = self.Context(self.avroType, exprContext.calls.union(set([self.desc])), exprResult)
         return context, task(context, engineOptions)
@@ -2260,6 +2556,15 @@ class IfNotNull(Expression):
                titus.util.flatten(x.collect(pf) for x in self.thenClause) + \
                (titus.util.flatten(x.collect(pf) for x in self.elseClause) if self.elseClause is not None else [])
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return IfNotNull(dict((k, v.replace(pf)) for k, v in self.exprs.items()),
+                             [x.replace(pf) for x in self.thenClause],
+                             [x.replace(pf) for x in self.elseClause] if self.elseClause is not None else None,
+                             self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         calls = set()
 
@@ -2269,7 +2574,7 @@ class IfNotNull(Expression):
         symbolTypeResult = []
         for name, expr in self.exprs.items():
             if not validSymbolName(name):
-                raise PFASemanticException("\"{}\" is not a valid symbol name".format(name), self.pos)
+                raise PFASemanticException("\"{0}\" is not a valid symbol name".format(name), self.pos)
 
             exprCtx, exprRes = expr.walk(task, exprArgsScope, functionTable, engineOptions)
 
@@ -2281,7 +2586,7 @@ class IfNotNull(Expression):
                     avroType = [x for x in exprCtx.retType.types if not isinstance(x, AvroNull)][0]
 
             if avroType is None:
-                raise PFASemanticException("\"ifnotnull\" expressions must all be unions of something and null; case \"{}\" has type {}".format(name, exprCtx.retType), self.pos)
+                raise PFASemanticException("\"ifnotnull\" expressions must all be unions of something and null; case \"{0}\" has type {1}".format(name, ts(exprCtx.retType)), self.pos)
 
             assignmentScope.put(name, avroType)
 
@@ -2380,6 +2685,14 @@ class Try(Expression):
         return super(Try, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.exprs)
 
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return Try([x.replace(pf) for x in self.exprs],
+                       self.filter,
+                       self.pos)
+
     def walk(self, task, symbolTable, functionTable, engineOptions):
         scope = symbolTable.newScope(True, True)
         results = [x.walk(task, scope, functionTable, engineOptions) for x in self.exprs]
@@ -2419,6 +2732,14 @@ class Log(Expression):
     def collect(self, pf):
         return super(Log, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.exprs)
+
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return Log([x.replace(pf) for x in self.exprs],
+                       self.namespace,
+                       self.pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         scope = symbolTable.newScope(True, True)

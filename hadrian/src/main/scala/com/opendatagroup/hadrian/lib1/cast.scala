@@ -18,6 +18,8 @@
 
 package com.opendatagroup.hadrian.lib1
 
+import scala.language.postfixOps
+
 import com.opendatagroup.hadrian.ast.LibFcn
 import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.jvmcompiler.JavaCode
@@ -52,6 +54,9 @@ import com.opendatagroup.hadrian.datatype.AvroRecord
 import com.opendatagroup.hadrian.datatype.AvroField
 import com.opendatagroup.hadrian.datatype.AvroUnion
 
+import com.opendatagroup.hadrian.data.PFAArray
+import com.opendatagroup.hadrian.data.PFAEnumSymbol
+
 package object cast {
   private var fcns = Map[String, LibFcn]()
   def provides = fcns
@@ -60,7 +65,7 @@ package object cast {
 
   val prefix = "cast."
 
-  ////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////// number precisions
 
   ////   int (ToInt)
   object ToInt extends LibFcn {
@@ -155,5 +160,164 @@ package object cast {
     def apply(x: Double): Double = x
   }
   provide(ToDouble)
+
+  //////////////////////////////////////////////////////////////////// fanouts
+
+  object Fanouts {
+    def fromEnum[X](x: PFAEnumSymbol, zero: X, one: X): PFAArray[X] =
+      PFAArray.fromVector((0 until x.numSymbols) map {i => if (i == x.value) one else zero} toVector)
+
+    def fromString[X](x: String, dictionary: PFAArray[String], outOfRange: Boolean, zero: X, one: X): PFAArray[X] =
+      PFAArray.fromVector(dictionary.toVector.indexOf(x) match {
+        case -1 =>
+          val out = Vector.fill(dictionary.size)(zero)
+          if (outOfRange)
+            out :+ one
+          else
+            out
+        case i =>
+          val out = Vector.fill(dictionary.size)(zero).updated(i, one)
+          if (outOfRange)
+            out :+ zero
+          else
+            out
+      })
+
+    def fromInt[X](x: Int, minimum: Int, maximum: Int, outOfRange: Boolean, zero: X, one: X): PFAArray[X] =
+      PFAArray.fromVector(x - minimum match {
+        case i if (i < 0  ||  i > maximum - minimum) =>
+          val out = Vector.fill(maximum - minimum)(zero)
+          if (outOfRange)
+            out :+ one
+          else
+            out
+        case i =>
+          val out = Vector.fill(maximum - minimum)(zero).updated(i, one)
+          if (outOfRange)
+            out :+ zero
+          else
+            out
+      })
+  }
+
+  ////   fanoutBoolean (FanoutBoolean)
+  object FanoutBoolean extends LibFcn {
+    val name = prefix + "fanoutBoolean"
+    val sig = Sigs(List(Sig(List("x" -> P.WildEnum("A")), P.Array(P.Boolean)),
+                        Sig(List("x" -> P.String, "dictionary" -> P.Array(P.String), "outOfRange" -> P.Boolean), P.Array(P.Boolean)),
+                        Sig(List("x" -> P.Int, "minimum" -> P.Int, "maximum" -> P.Int, "outOfRange" -> P.Boolean), P.Array(P.Boolean))))
+    val doc =
+      <doc>
+        <desc>Fanout <p>x</p> to an array of booleans, all <c>false</c> except the matching value.</desc>
+        <param name="x">Categorical datum</param>
+        <param name="dictionary">Possible values of <p>x</p>, which is needed if <p>x</p> is an arbitrary string.</param>
+        <param name="minimum">Inclusive minimum value of <p>x</p>.</param>
+        <param name="maximum">Excluded maximum value of <p>x</p>.</param>
+        <param name="outOfRange">If <c>true</c>, include an extra item in the output to represent values of <p>x</p> that are outside of the specified range.</param>
+      </doc>
+    def apply(x: PFAEnumSymbol) =
+      Fanouts.fromEnum(x, false, true)
+    def apply(x: String, dictionary: PFAArray[String], outOfRange: Boolean) =
+      Fanouts.fromString(x, dictionary, outOfRange, false, true)
+    def apply(x: Int, minimum: Int, maximum: Int, outOfRange: Boolean) =
+      Fanouts.fromInt(x, minimum, maximum, outOfRange, false, true)
+  }
+  provide(FanoutBoolean)
+
+  ////   fanoutInt (FanoutInt)
+  object FanoutInt extends LibFcn {
+    val name = prefix + "fanoutInt"
+    val sig = Sigs(List(Sig(List("x" -> P.WildEnum("A")), P.Array(P.Int)),
+                        Sig(List("x" -> P.String, "dictionary" -> P.Array(P.String), "outOfRange" -> P.Boolean), P.Array(P.Int)),
+                        Sig(List("x" -> P.Int, "minimum" -> P.Int, "maximum" -> P.Int, "outOfRange" -> P.Boolean), P.Array(P.Int))))
+    val doc =
+      <doc>
+        <desc>Fanout <p>x</p> to an array of booleans, all <c>false</c> except the matching value.</desc>
+        <param name="x">Categorical datum</param>
+        <param name="dictionary">Possible values of <p>x</p>, which is needed if <p>x</p> is an arbitrary string.</param>
+        <param name="minimum">Inclusive minimum value of <p>x</p>.</param>
+        <param name="maximum">Excluded maximum value of <p>x</p>.</param>
+        <param name="outOfRange">If <c>true</c>, include an extra item in the output to represent values of <p>x</p> that are outside of the specified range.</param>
+      </doc>
+    def apply(x: PFAEnumSymbol) =
+      Fanouts.fromEnum(x, 0, 1)
+    def apply(x: String, dictionary: PFAArray[String], outOfRange: Boolean) =
+      Fanouts.fromString(x, dictionary, outOfRange, 0, 1)
+    def apply(x: Int, minimum: Int, maximum: Int, outOfRange: Boolean) =
+      Fanouts.fromInt(x, minimum, maximum, outOfRange, 0, 1)
+  }
+  provide(FanoutInt)
+
+  ////   fanoutLong (FanoutLong)
+  object FanoutLong extends LibFcn {
+    val name = prefix + "fanoutLong"
+    val sig = Sigs(List(Sig(List("x" -> P.WildEnum("A")), P.Array(P.Long)),
+                        Sig(List("x" -> P.String, "dictionary" -> P.Array(P.String), "outOfRange" -> P.Boolean), P.Array(P.Long)),
+                        Sig(List("x" -> P.Int, "minimum" -> P.Int, "maximum" -> P.Int, "outOfRange" -> P.Boolean), P.Array(P.Long))))
+    val doc =
+      <doc>
+        <desc>Fanout <p>x</p> to an array of booleans, all <c>false</c> except the matching value.</desc>
+        <param name="x">Categorical datum</param>
+        <param name="dictionary">Possible values of <p>x</p>, which is needed if <p>x</p> is an arbitrary string.</param>
+        <param name="minimum">Inclusive minimum value of <p>x</p>.</param>
+        <param name="maximum">Excluded maximum value of <p>x</p>.</param>
+        <param name="outOfRange">If <c>true</c>, include an extra item in the output to represent values of <p>x</p> that are outside of the specified range.</param>
+      </doc>
+    def apply(x: PFAEnumSymbol) =
+      Fanouts.fromEnum(x, 0, 1)
+    def apply(x: String, dictionary: PFAArray[String], outOfRange: Boolean) =
+      Fanouts.fromString(x, dictionary, outOfRange, 0, 1)
+    def apply(x: Int, minimum: Int, maximum: Int, outOfRange: Boolean) =
+      Fanouts.fromInt(x, minimum, maximum, outOfRange, 0, 1)
+  }
+  provide(FanoutLong)
+
+  ////   fanoutFloat (FanoutFloat)
+  object FanoutFloat extends LibFcn {
+    val name = prefix + "fanoutFloat"
+    val sig = Sigs(List(Sig(List("x" -> P.WildEnum("A")), P.Array(P.Float)),
+                        Sig(List("x" -> P.String, "dictionary" -> P.Array(P.String), "outOfRange" -> P.Boolean), P.Array(P.Float)),
+                        Sig(List("x" -> P.Int, "minimum" -> P.Int, "maximum" -> P.Int, "outOfRange" -> P.Boolean), P.Array(P.Float))))
+    val doc =
+      <doc>
+        <desc>Fanout <p>x</p> to an array of booleans, all <c>false</c> except the matching value.</desc>
+        <param name="x">Categorical datum</param>
+        <param name="dictionary">Possible values of <p>x</p>, which is needed if <p>x</p> is an arbitrary string.</param>
+        <param name="minimum">Inclusive minimum value of <p>x</p>.</param>
+        <param name="maximum">Excluded maximum value of <p>x</p>.</param>
+        <param name="outOfRange">If <c>true</c>, include an extra item in the output to represent values of <p>x</p> that are outside of the specified range.</param>
+      </doc>
+    def apply(x: PFAEnumSymbol) =
+      Fanouts.fromEnum(x, 0, 1)
+    def apply(x: String, dictionary: PFAArray[String], outOfRange: Boolean) =
+      Fanouts.fromString(x, dictionary, outOfRange, 0, 1)
+    def apply(x: Int, minimum: Int, maximum: Int, outOfRange: Boolean) =
+      Fanouts.fromInt(x, minimum, maximum, outOfRange, 0, 1)
+  }
+  provide(FanoutFloat)
+
+  ////   fanoutDouble (FanoutDouble)
+  object FanoutDouble extends LibFcn {
+    val name = prefix + "fanoutDouble"
+    val sig = Sigs(List(Sig(List("x" -> P.WildEnum("A")), P.Array(P.Double)),
+                        Sig(List("x" -> P.String, "dictionary" -> P.Array(P.String), "outOfRange" -> P.Boolean), P.Array(P.Double)),
+                        Sig(List("x" -> P.Int, "minimum" -> P.Int, "maximum" -> P.Int, "outOfRange" -> P.Boolean), P.Array(P.Double))))
+    val doc =
+      <doc>
+        <desc>Fanout <p>x</p> to an array of booleans, all <c>false</c> except the matching value.</desc>
+        <param name="x">Categorical datum</param>
+        <param name="dictionary">Possible values of <p>x</p>, which is needed if <p>x</p> is an arbitrary string.</param>
+        <param name="minimum">Inclusive minimum value of <p>x</p>.</param>
+        <param name="maximum">Excluded maximum value of <p>x</p>.</param>
+        <param name="outOfRange">If <c>true</c>, include an extra item in the output to represent values of <p>x</p> that are outside of the specified range.</param>
+      </doc>
+    def apply(x: PFAEnumSymbol) =
+      Fanouts.fromEnum(x, 0, 1)
+    def apply(x: String, dictionary: PFAArray[String], outOfRange: Boolean) =
+      Fanouts.fromString(x, dictionary, outOfRange, 0, 1)
+    def apply(x: Int, minimum: Int, maximum: Int, outOfRange: Boolean) =
+      Fanouts.fromInt(x, minimum, maximum, outOfRange, 0, 1)
+  }
+  provide(FanoutDouble)
 
 }

@@ -42,7 +42,7 @@ def provide(fcn):
 
 prefix = "cast."
 
-#################################################################### functions
+#################################################################### number precisionsA
 
 class ToInt(LibFcn):
     name = prefix + "int"
@@ -51,7 +51,7 @@ class ToInt(LibFcn):
                 Sig([{"x": P.Float()}], P.Int()),
                 Sig([{"x": P.Double()}], P.Int())])
     def genpy(self, paramTypes, args):
-        return "int({})".format(*args)
+        return "int({0})".format(*args)
     def __call__(self, state, scope, paramTypes, x):
         return int(x)
 provide(ToInt())
@@ -63,7 +63,7 @@ class ToLong(LibFcn):
                 Sig([{"x": P.Float()}], P.Long()),
                 Sig([{"x": P.Double()}], P.Long())])
     def genpy(self, paramTypes, args):
-        return "int({})".format(*args)
+        return "int({0})".format(*args)
     def __call__(self, state, scope, paramTypes, x):
         return int(x)
 provide(ToLong())
@@ -75,7 +75,7 @@ class ToFloat(LibFcn):
                 Sig([{"x": P.Float()}], P.Float()),
                 Sig([{"x": P.Double()}], P.Float())])
     def genpy(self, paramTypes, args):
-        return "float({})".format(*args)
+        return "float({0})".format(*args)
     def __call__(self, state, scope, paramTypes, x):
         return float(x)
 provide(ToFloat())
@@ -87,8 +87,96 @@ class ToDouble(LibFcn):
                 Sig([{"x": P.Float()}], P.Double()),
                 Sig([{"x": P.Double()}], P.Double())])
     def genpy(self, paramTypes, args):
-        return "float({})".format(*args)
+        return "float({0})".format(*args)
     def __call__(self, state, scope, paramTypes, x):
         return float(x)
 provide(ToDouble())
 
+#################################################################### fanouts
+
+def fanoutEnum(x, symbols):
+    return [x == s for s in symbols]
+
+def fanoutString(x, dictionary, outOfRange):
+    out = [x == s for s in dictionary]
+    if outOfRange:
+        return out + [x not in dictionary]
+    else:
+        return out
+
+def fanoutInt(x, minimum, maximum, outOfRange):
+    out = [x == i for i in xrange(minimum, maximum)]
+    if outOfRange:
+        return out + [x < minimum or x >= maximum]
+    else:
+        return out
+
+class FanoutBoolean(LibFcn):
+    name = prefix + "fanoutBoolean"
+    sig = Sigs([Sig([{"x": P.WildEnum("A")}], P.Array(P.Boolean())),
+                Sig([{"x": P.String()}, {"dictionary": P.Array(P.String())}, {"outOfRange": P.Boolean()}], P.Array(P.Boolean())),
+                Sig([{"x": P.Int()}, {"minimum": P.Int()}, {"maximum": P.Int()}, {"outOfRange": P.Boolean()}], P.Array(P.Boolean()))])
+    def __call__(self, state, scope, paramTypes, x, *args):
+        if len(args) == 0:
+            return fanoutEnum(x, paramTypes[0]["symbols"])
+        elif len(args) == 2:
+            return fanoutString(x, args[0], args[1])
+        elif len(args) == 3:
+            return fanoutInt(x, args[0], args[1], args[2])
+provide(FanoutBoolean())
+
+class FanoutInt(LibFcn):
+    name = prefix + "fanoutInt"
+    sig = Sigs([Sig([{"x": P.WildEnum("A")}], P.Array(P.Int())),
+                Sig([{"x": P.String()}, {"dictionary": P.Array(P.String())}, {"outOfRange": P.Boolean()}], P.Array(P.Int())),
+                Sig([{"x": P.Int()}, {"minimum": P.Int()}, {"maximum": P.Int()}, {"outOfRange": P.Boolean()}], P.Array(P.Int()))])
+    def __call__(self, state, scope, paramTypes, x, *args):
+        if len(args) == 0:
+            return [1 if y else 0 for y in fanoutEnum(x, paramTypes[0]["symbols"])]
+        elif len(args) == 2:
+            return [1 if y else 0 for y in fanoutString(x, args[0], args[1])]
+        elif len(args) == 3:
+            return [1 if y else 0 for y in fanoutInt(x, args[0], args[1], args[2])]
+provide(FanoutInt())
+
+class FanoutLong(LibFcn):
+    name = prefix + "fanoutLong"
+    sig = Sigs([Sig([{"x": P.WildEnum("A")}], P.Array(P.Long())),
+                Sig([{"x": P.String()}, {"dictionary": P.Array(P.String())}, {"outOfRange": P.Boolean()}], P.Array(P.Long())),
+                Sig([{"x": P.Int()}, {"minimum": P.Int()}, {"maximum": P.Int()}, {"outOfRange": P.Boolean()}], P.Array(P.Long()))])
+    def __call__(self, state, scope, paramTypes, x, *args):
+        if len(args) == 0:
+            return [1 if y else 0 for y in fanoutEnum(x, paramTypes[0]["symbols"])]
+        elif len(args) == 2:
+            return [1 if y else 0 for y in fanoutString(x, args[0], args[1])]
+        elif len(args) == 3:
+            return [1 if y else 0 for y in fanoutInt(x, args[0], args[1], args[2])]
+provide(FanoutLong())
+
+class FanoutFloat(LibFcn):
+    name = prefix + "fanoutFloat"
+    sig = Sigs([Sig([{"x": P.WildEnum("A")}], P.Array(P.Float())),
+                Sig([{"x": P.String()}, {"dictionary": P.Array(P.String())}, {"outOfRange": P.Boolean()}], P.Array(P.Float())),
+                Sig([{"x": P.Int()}, {"minimum": P.Int()}, {"maximum": P.Int()}, {"outOfRange": P.Boolean()}], P.Array(P.Float()))])
+    def __call__(self, state, scope, paramTypes, x, *args):
+        if len(args) == 0:
+            return [1.0 if y else 0.0 for y in fanoutEnum(x, paramTypes[0]["symbols"])]
+        elif len(args) == 2:
+            return [1.0 if y else 0.0 for y in fanoutString(x, args[0], args[1])]
+        elif len(args) == 3:
+            return [1.0 if y else 0.0 for y in fanoutInt(x, args[0], args[1], args[2])]
+provide(FanoutFloat())
+
+class FanoutDouble(LibFcn):
+    name = prefix + "fanoutDouble"
+    sig = Sigs([Sig([{"x": P.WildEnum("A")}], P.Array(P.Double())),
+                Sig([{"x": P.String()}, {"dictionary": P.Array(P.String())}, {"outOfRange": P.Boolean()}], P.Array(P.Double())),
+                Sig([{"x": P.Int()}, {"minimum": P.Int()}, {"maximum": P.Int()}, {"outOfRange": P.Boolean()}], P.Array(P.Double()))])
+    def __call__(self, state, scope, paramTypes, x, *args):
+        if len(args) == 0:
+            return [1.0 if y else 0.0 for y in fanoutEnum(x, paramTypes[0]["symbols"])]
+        elif len(args) == 2:
+            return [1.0 if y else 0.0 for y in fanoutString(x, args[0], args[1])]
+        elif len(args) == 3:
+            return [1.0 if y else 0.0 for y in fanoutInt(x, args[0], args[1], args[2])]
+provide(FanoutDouble())

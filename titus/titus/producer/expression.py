@@ -65,7 +65,7 @@ def fcn(params, ret, expr, subs=None, cells=None, pools=None, options=None, **kw
 
 def _form(state, lineno, others):
     if state["options"]["lineNumbers"] and lineno is not None:
-        return OrderedDict([("@", "Python line {}".format(lineno))] + others.items())
+        return OrderedDict([("@", "Python line {0}".format(lineno))] + others.items())
     else:
         return others
 
@@ -108,7 +108,7 @@ def _statement(stmt, state):
             elif lets == 0 and sets > 0:
                 letset = "set"
             else:
-                raise PythonToPfaException("cannot declare {} symbols and reassign {} in the same statement (line {})".format(lets, sets, stmt.lineno))
+                raise PythonToPfaException("cannot declare {0} symbols and reassign {1} in the same statement (source line {2})".format(lets, sets, stmt.lineno))
             return _form(state, stmt.lineno, {letset: out})
 
     elif isinstance(stmt, ast.Print):
@@ -156,7 +156,7 @@ def _statement(stmt, state):
     elif isinstance(stmt, ast.Pass):
         return _form(state, stmt.lineno, {"doc": ""})
 
-    raise PythonToPfaException("Python AST node {} (source line {}) does not have a PFA equivalent".format(ast.dump(stmt), stmt.lineno))
+    raise PythonToPfaException("Python AST node {0} (source line {1}) does not have a PFA equivalent".format(ast.dump(stmt), stmt.lineno))
 
 def _ifchain(state, stmt, chain):
     test = _expression(stmt.test, _newscope(state))
@@ -202,9 +202,9 @@ def _expression(expr, state):
         elif isinstance(expr.op, ast.Pow):
             op = "**"
         elif isinstance(expr.op, ast.LShift):
-            raise PythonToPfaException("Python AST node {} (source line {}) does not have a PFA equivalent".format(ast.dump(expr), expr.lineno))
+            raise PythonToPfaException("Python AST node {0} (source line {1}) does not have a PFA equivalent".format(ast.dump(expr), expr.lineno))
         elif isinstance(expr.op, ast.RShift):
-            raise PythonToPfaException("Python AST node {} (source line {}) does not have a PFA equivalent".format(ast.dump(expr), expr.lineno))
+            raise PythonToPfaException("Python AST node {0} (source line {1}) does not have a PFA equivalent".format(ast.dump(expr), expr.lineno))
         elif isinstance(expr.op, ast.BitOr):
             op = "|"
         elif isinstance(expr.op, ast.BitXor):
@@ -221,7 +221,7 @@ def _expression(expr, state):
         elif isinstance(expr.op, ast.Not):
             op = "!"
         elif isinstance(expr.op, ast.UAdd):
-            raise PythonToPfaException("Python AST node {} (source line {}) does not have a PFA equivalent".format(ast.dump(expr), expr.lineno))
+            raise PythonToPfaException("Python AST node {0} (source line {1}) does not have a PFA equivalent".format(ast.dump(expr), expr.lineno))
         elif isinstance(expr.op, ast.USub):
             op = "u-"
         return _form(state, expr.lineno, {op: _expression(expr.operand, _newscope(state))})
@@ -244,7 +244,7 @@ def _expression(expr, state):
             elif isinstance(x, ast.Gt): return ">"
             elif isinstance(x, ast.GtE): return ">="
             else:
-                raise PythonToPfaException("Python AST node {} (source line {}) does not have a PFA equivalent".format(ast.dump(x), x.lineno))
+                raise PythonToPfaException("Python AST node {0} (source line {1}) does not have a PFA equivalent".format(ast.dump(x), x.lineno))
 
         ops = list(reversed(expr.ops))
         cmps = list(reversed(expr.comparators))
@@ -266,7 +266,7 @@ def _expression(expr, state):
             elif isinstance(x, ast.Attribute):
                 return unfold(x.value) + "." + x.attr
             else:
-                raise PythonToPfaException("Python AST node {} (source line {}) does not have a PFA equivalent".format(ast.dump(x), x.lineno))
+                raise PythonToPfaException("Python AST node {0} (source line {1}) does not have a PFA equivalent".format(ast.dump(x), x.lineno))
 
         specialForms = ["Int", "Long", "Float", "Double", "String", "Base64", "Type", "Value", "New", "Do", "Let", "Set", "Attr", "Path", "To", "Cell", "Pool", "Init", "If", "Then", "Else", "Cond", "While", "Until", "For", "Step", "Foreach", "In", "Forkey", "Forval", "Cast", "Cases", "Partial", "Upcast", "As", "Ifnotnull", "Doc", "Error", "Log", "Namespace", "Params", "Ret", "Fcn"]
         coreLibrary = {"Plus": "+", "Minus": "-", "Times": "*", "Divide": "/", "FloorDivide": "//", "Negative": "U-", "Modulo": "%", "Remainder": "%%", "Pow": "**", "Comparison": "cmp", "Equal": "==", "GreaterOrEqual": ">=", "GreaterThan": ">", "NotEqual": "!=", "LessThan": "<", "LessOrEqual": "<=", "Max": "max", "Min": "min", "And": "&&", "Or": "||", "XOr": "^^", "Not": "!", "BitwiseAnd": "&", "BitwiseOr": "|", "BitwiseXOr": "^", "BitwiseNot": "~"}
@@ -323,7 +323,7 @@ def _expression(expr, state):
     elif isinstance(expr, ast.Tuple):
         return [_expression(x, state) for x in expr.elts]
 
-    raise PythonToPfaException("Python AST node {} (source line {}) does not have a PFA equivalent".format(ast.dump(expr), expr.lineno))
+    raise PythonToPfaException("Python AST node {0} (source line {1}) does not have a PFA equivalent".format(ast.dump(expr), expr.lineno))
 
 def _unfold(x, path, state):
     if isinstance(x, ast.Attribute):
@@ -351,7 +351,7 @@ def _literal(expr, state):
                 vvalue = _literal(value, state)
                 out[kkey] = vvalue
             else:
-                raise PythonToPfaException("literal JSON keys must be strings or subs identifiers".format(ast.dump(expr), expr.lineno))
+                raise PythonToPfaException("literal JSON keys must be strings or subs identifiers, not {0} (source line {1})".format(ast.dump(expr), expr.lineno))
         return out
 
     elif isinstance(expr, ast.Num):
@@ -370,7 +370,7 @@ def _literal(expr, state):
         elif expr.id == "False":
             return False
         else:
-            raise PythonToPfaException("identifiers are not allowed in a literal expression, unless they are subs identifiers".format(ast.dump(expr), expr.lineno))
+            raise PythonToPfaException("identifiers ({0}) are not allowed in a literal expression, unless they are subs identifiers (source line {1})".format(ast.dump(expr), expr.lineno))
 
     elif isinstance(expr, ast.List):
         out = []
@@ -378,4 +378,4 @@ def _literal(expr, state):
             out.append(_literal(value, state))
         return out
 
-    raise PythonToPfaException("Python AST node {} (source line {}) is not literal JSON".format(ast.dump(expr), expr.lineno))
+    raise PythonToPfaException("Python AST node {0} (source line {1}) is not literal JSON".format(ast.dump(expr), expr.lineno))

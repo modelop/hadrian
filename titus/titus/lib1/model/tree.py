@@ -46,8 +46,14 @@ def simpleComparison(paramTypes, datum, comparison, missingOperators, parser):
 
     if operator == "in" or operator == "notIn":
         valueAvroType = parser.getAvroType(valueType)
-        if not isinstance(valueAvroType, AvroArray) or not valueAvroType.items.accepts(parser.getAvroType(fieldValueType)):
+
+        if isinstance(valueAvroType, AvroArray) and valueAvroType.items.accepts(parser.getAvroType(fieldValueType)):
+            pass
+        elif isinstance(valueAvroType, AvroUnion) and any(isinstance(x, AvroArray) and x.items.accepts(parser.getAvroType(fieldValueType)) for x in valueAvroType.types):
+            value = value["array"]
+        else:
             raise PFARuntimeException("bad value type")
+            
         containedInList = (fieldValue in value)
         if operator == "in":
             return containedInList

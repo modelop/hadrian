@@ -54,7 +54,7 @@ class PFAUserException(PFAException):
     def __init__(self, message, code):
         self.message = message
         self.code = code
-        super(PFAUserException, self).__init__("PFA user-defined error: " + message + ("" if code is None else "(code {})".format(code)))
+        super(PFAUserException, self).__init__("PFA user-defined error: " + message + ("" if code is None else "(code {0})".format(code)))
 
 class PFATimeoutException(PFAException):
     def __init__(self, message):

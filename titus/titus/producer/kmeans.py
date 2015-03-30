@@ -24,6 +24,9 @@ from collections import OrderedDict
 
 import numpy
 
+from titus.producer.transformation import Transformation
+import titus.prettypfa
+
 ### metrics are nested objects like Euclidean(AbsDiff()), and they may
 ### be user-defined.  They mirror the metrics and similarity functions
 ### available in PFA.
@@ -47,7 +50,7 @@ class Metric(object):
 
 class AbsDiff(Similarity):
     def __init__(self):
-        self.calculate = lambda dataset, cluster: dataset - cluster
+        self.calculate = lambda dataset, cluster: numpy.absolute(dataset - cluster)
     def pfa(self):
         return {"fcn": "metric.absDiff"}
 
@@ -117,14 +120,39 @@ class Minkowski(Metric):
 # print iteration data, stop when at least half change by less than
 # 0.001, and keep going if one jumped
 
-def printChange(format):
+def printValue(format="g"):
     state = {"ready": False}
-    def out(iterationNumber, corrections, datasetSize):
+    def out(iterationNumber, corrections, values, datasetSize):
+        if not state["ready"]:
+            state["j"] = "{:5s} (jump)"
+            for v in values:
+                if v is not None:
+                    state["n"] = "{0:5s}" + "".join((" {%d:%s}" % (i + 1, format)) for i in xrange(len(v)))
+                    break
+            if "n" in state:
+                state["ready"] = True
+            print "iter  values"
+            print "----------------------------------"
+        for index, v in enumerate(values):
+            if index == 0:
+                it = repr(iterationNumber)
+            else:
+                it = ""
+            if v is None:
+                print state["j"].format(it)
+            else:
+                print state["n"].format(it, *v)
+        return True
+    return out
+
+def printChange(format="g"):
+    state = {"ready": False}
+    def out(iterationNumber, corrections, values, datasetSize):
         if not state["ready"]:
             state["j"] = "{:5s} (jump)"
             for corr in corrections:
                 if corr is not None:
-                    state["n"] = "{:5s}" + ((" {:%s}" % format) * len(corr))
+                    state["n"] = "{0:5s}" + "".join((" {%d:%s}" % (i + 1, format)) for i in xrange(len(corr)))
                     break
             if "n" in state:
                 state["ready"] = True
@@ -143,16 +171,16 @@ def printChange(format):
     return out
 
 def clusterJumped():
-    return lambda iterationNumber, corrections, datasetSize: all(x is not None for x in corrections)
+    return lambda iterationNumber, corrections, values, datasetSize: all(x is not None for x in corrections)
 
 def maxIterations(number):
-    return lambda iterationNumber, corrections, datasetSize: iterationNumber < number
+    return lambda iterationNumber, corrections, values, datasetSize: iterationNumber < number
 
 def allChange(threshold):
-    return lambda iterationNumber, corrections, datasetSize: not all((numpy.absolute(x) < threshold).all() for x in corrections if x is not None)
+    return lambda iterationNumber, corrections, values, datasetSize: not all((numpy.absolute(x) < threshold).all() for x in corrections if x is not None)
 
 def halfChange(threshold):
-    return lambda iterationNumber, corrections, datasetSize: numpy.sum([(numpy.absolute(x) < threshold).all() for x in corrections if x is not None], dtype=numpy.dtype(float)) / numpy.sum([x is not None for x in corrections], dtype=numpy.dtype(float)) < 0.5
+    return lambda iterationNumber, corrections, values, datasetSize: numpy.sum([(numpy.absolute(x) < threshold).all() for x in corrections if x is not None], dtype=numpy.dtype(float)) / numpy.sum([x is not None for x in corrections], dtype=numpy.dtype(float)) < 0.5
 
 def whileall(*conditions):
     return lambda *args: all(x(*args) for x in conditions)
@@ -200,23 +228,22 @@ class KMeans(object):
         if len(dataset.shape) != 2:
             raise TypeError("dataset must be two-dimensional: dataset.shape[0] is the number of records (rows), dataset.shape[1] is the number of dimensions (columns)")
 
-        try:
-            flattenedView = numpy.ascontiguousarray(dataset).view(numpy.dtype((numpy.void, dataset.dtype.itemsize * dataset.shape[1])))
-            _, indexes = numpy.unique(flattenedView, return_index=True)
-            self.uniques = dataset[indexes]
-        except TypeError:
-            self.uniques = dataset
-
-        if self.uniques.shape[0] <= numberOfClusters:
-            raise TypeError("the number of unique records in the dataset ({} in this case) must be strictly greater than numberOfClusters ({})".format(self.uniques.shape[0], numberOfClusters))
-
+        self.dataset = dataset
         if weights is not None and weights.shape != (dataset.shape[0],):
             raise TypeError("weights must have as many records as the dataset and must be one dimensional")
-
-        self.numberOfClusters = numberOfClusters
-        self.dataset = dataset
         self.weights = weights
         self.metric = metric
+
+        try:
+            flattenedView = numpy.ascontiguousarray(self.dataset).view(numpy.dtype((numpy.void, self.dataset.dtype.itemsize * self.dataset.shape[1])))
+            _, indexes = numpy.unique(flattenedView, return_index=True)
+            self.uniques = self.dataset[indexes]
+        except TypeError:
+            self.uniques = self.dataset
+
+        if self.uniques.shape[0] <= numberOfClusters:
+            raise TypeError("the number of unique records in the dataset ({0} in this case) must be strictly greater than numberOfClusters ({1})".format(self.uniques.shape[0], numberOfClusters))
+        self.numberOfClusters = numberOfClusters
 
         self.clusters = []
         for index in xrange(numberOfClusters):
@@ -227,12 +254,11 @@ class KMeans(object):
 
     def randomPoint(self):
         """Pick a random point from the dataset."""
-
-        return self.uniques[random.randint(0, self.uniques.shape[0] - 1),:]
+        # make sure to copy it, so there are no hidden connections between dataset and clusters
+        return self.uniques[random.randint(0, self.uniques.shape[0] - 1),:].copy()
 
     def newCluster(self):
         """Pick a random point from the dataset and ensure that it is different from all other cluster centers."""
-
         newCluster = self.randomPoint()
         while any(numpy.array_equal(x, newCluster) for x in self.clusters):
             newCluster = self.randomPoint()
@@ -254,12 +280,17 @@ class KMeans(object):
 
         return dataset, weights
 
-    def closestCluster(self, dataset, weights):
+    def closestCluster(self, dataset=None, weights=None):
         """Identify the closest cluster to each element in the
         dataset.
 
         Return value is an array of integers corresponding to the
         indexes of the closest cluster for each datum."""
+
+        if dataset is None:
+            dataset = self.dataset
+        if weights is None:
+            weights = self.weights
 
         # distanceToCenter is the result of applying the metric to each point in the dataset, for each cluster
         # distanceToCenter.shape[0] is the number of records, distanceToCenter.shape[1] is the number of clusters
@@ -279,10 +310,11 @@ class KMeans(object):
         with subsets.
 
         The return value is the result of condition(iterationNumber,
-        corrections, dataset.shape[0])."""
+        corrections, values, dataset.shape[0])."""
 
         indexOfClosestCluster = self.closestCluster(dataset, weights)
 
+        values = []
         corrections = []
         for clusterIndex, cluster in enumerate(self.clusters):
             # select by cluster classification
@@ -293,9 +325,10 @@ class KMeans(object):
             if weights is not None:
                 residuals *= weights[selection]
 
-            if self.minPointsInCluster is not None and numpy.add(selection) < self.minPointsInCluster:
+            if self.minPointsInCluster is not None and numpy.sum(selection) < self.minPointsInCluster:
                 # too few points in this cluster; jump to a new random point
                 self.clusters[clusterIndex] = self.newCluster()
+                values.append(None)
                 corrections.append(None)
 
             else:
@@ -307,13 +340,15 @@ class KMeans(object):
                 if not numpy.isfinite(cluster).all():
                     # mean of a component is NaN or Inf, possibly because of zero points in the cluster
                     self.clusters[clusterIndex] = self.newCluster()
+                    values.append(None)
                     corrections.append(None)
                 else:
                     # good step: correction is not None
+                    values.append(cluster)
                     corrections.append(correction)
 
         # call user-supplied test for continuation
-        return condition(iterationNumber, corrections, dataset.shape[0])
+        return condition(iterationNumber, corrections, values, dataset.shape[0])
 
     def stepup(self, condition, base=2):
         """Optimize the cluster set in successively larger subsets of
@@ -368,15 +403,12 @@ class KMeans(object):
         while self.iterate(dataset, weights, iterationNumber, condition):
             iterationNumber += 1
 
-    def centers(self, untransform=None):
-        """Get the cluster centers as a sorted Python list (canonical form).
-
-        If an untransform function is provided, apply it to each
-        component to prepare data for its use in a model."""
-
-        centers = sorted(map(list, self.clusters))
-        if untransform is not None:
-            centers = map(untransform, centers)
+    def centers(self, sort=True):
+        """Get the cluster centers as a sorted Python list (canonical form)."""
+        if sort:
+            centers = sorted(map(list, self.clusters))
+        else:
+            centers = map(list, self.clusters)
         return centers
 
     def pfaType(self, clusterTypeName, idType="string", centerComponentType="double"):
@@ -388,32 +420,48 @@ class KMeans(object):
                           "fields": [{"name": "center", "type": {"type": "array", "items": centerComponentType}},
                                      {"name": "id", "type": idType}]}}
             
-    def pfaValue(self, ids, untransform=None, populations=False):
+    def pfaValue(self, ids, populations=False, sort=True):
         """Create a PFA data structure representing this cluster set."""
 
         if len(ids) != self.numberOfClusters:
             raise TypeError("ids should be a list with length equal to the number of clusters")
 
+        out = [{"center": x} for x in self.centers(sort=False)]
+
         if populations:
-            pops = []
             indexOfClosestCluster = self.closestCluster(self.dataset, self.weights)
             for clusterIndex in xrange(len(self.clusters)):
-                pops.append(numpy.count_nonzero(indexOfClosestCluster == clusterIndex))
-            return [{"id": i, "center": x, "population": y} for i, x, y in zip(ids, self.centers(untransform), pops)]
+                out[clusterIndex]["population"] = int(numpy.sum(indexOfClosestCluster == clusterIndex))
 
-        else:
-            return [{"id": i, "center": x} for i, x in zip(ids, self.centers(untransform))]
+        if sort:
+            indexes = [i for i, x in sorted(list(enumerate(self.clusters)), lambda a, b: cmp(list(a[1]), list(b[1])))]
+            out = list(numpy.array(out, dtype=object)[indexes])
 
-    def pfaDocument(self, clusterTypeName, ids, untransform=None, idType="string", dataComponentType="double", centerComponentType="double"):
+        for idi, cluster in zip(ids, out):
+            cluster["id"] = idi
+
+        return out
+
+    def pfaDocument(self, clusterTypeName, ids, populations=False, sort=True, preprocess=None, idType="string", dataComponentType="double", centerComponentType="double"):
         """Create a PFA document to score with this cluster set."""
 
-        return OrderedDict([("input", {"type": "array", "items": dataComponentType}),
-                            ("output", idType),
-                            ("cells", {"clusters": OrderedDict([("type", self.pfaType(clusterTypeName, idType, centerComponentType)), ("init", self.pfaValue(ids, untransform))])}),
-                            ("action", {"attr": {"model.cluster.closest": [
-            "input",
-            {"cell": "clusters"},
-            OrderedDict([("params", [{"datum": {"type": "array", "items": dataComponentType}}, {"clusterCenter": {"type": "array", "items": centerComponentType}}]),
-                         ("ret", "double"),
-                         ("do", self.metric.pfa("datum", "clusterCenter"))])
-            ]}, "path": [{"string": "id"}]})])
+        clusters = self.pfaValue(ids, populations, sort)
+        metric = self.metric.pfa("datum", "clusterCenter")
+        if preprocess is None:
+            preprocess = "input"
+
+        return titus.prettypfa.jsonNode('''
+types:
+  ClusterType = record(<<clusterTypeName>>,
+    id: <<idType>>,
+    center: array(<<centerComponentType>>))
+input: array(<<dataComponentType>>)
+output: <<idType>>
+cells:
+  clusters(array(ClusterType)) = <<clusters>>
+action:
+  model.cluster.closest(<<preprocess>>, clusters,
+    fcn(datum: array(<<dataComponentType>>),
+        clusterCenter: array(<<centerComponentType>>) -> double)
+      <<metric>>)["id"]
+''', **vars())

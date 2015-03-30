@@ -25,6 +25,6 @@ class Fcn(object):
 class LibFcn(Fcn):
     name = None
     def genpy(self, paramTypes, args):
-        return "self.f[{}]({})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args))
+        return "self.f[{0}]({1})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args))
     def __call__(self, *args):
         raise NotImplementedError

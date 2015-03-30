@@ -38,20 +38,34 @@ prefix = "model.cluster."
 
 class Closest(LibFcn):
     name = prefix + "closest"
-    sig = Sig([{"datum": P.Array(P.Wildcard("A"))}, {"clusters": P.Array(P.WildRecord("C", {"center": P.Array(P.Wildcard("B"))}))}, {"metric": P.Fcn([P.Array(P.Wildcard("A")), P.Array(P.Wildcard("B"))], P.Double())}], P.Wildcard("C"))
-    def __call__(self, state, scope, paramTypes, datum, clusters, metric):
+    sig = Sigs([
+        Sig([{"datum": P.Array(P.Wildcard("A"))}, {"clusters": P.Array(P.WildRecord("C", {"center": P.Array(P.Wildcard("B"))}))}, {"metric": P.Fcn([P.Array(P.Wildcard("A")), P.Array(P.Wildcard("B"))], P.Double())}], P.Wildcard("C")),
+        Sig([{"datum": P.Array(P.Double())}, {"clusters": P.Array(P.WildRecord("C", {"center": P.Array(P.Double())}))}], P.Wildcard("C"))])
+    def __call__(self, state, scope, paramTypes, datum, clusters, *args):
         if len(clusters) == 0:
             raise PFARuntimeException("no clusters")
-        distances = [callfcn(state, scope, metric, [datum, x["center"]]) for x in clusters]
+        if len(args) == 1:
+            metric, = args
+            distances = [callfcn(state, scope, metric, [datum, x["center"]]) for x in clusters]
+        else:
+            distances = [sum((di - xi)**2 for di, xi in zip(datum, x["center"])) for x in clusters]
         index, = argLowestN(distances, 1, lambda a, b: a < b)
         return clusters[index]
 provide(Closest())
 
 class ClosestN(LibFcn):
     name = prefix + "closestN"
-    sig = Sig([{"datum": P.Array(P.Wildcard("A"))}, {"clusters": P.Array(P.WildRecord("C", {"center": P.Array(P.Wildcard("B"))}))}, {"metric": P.Fcn([P.Array(P.Wildcard("A")), P.Array(P.Wildcard("B"))], P.Double())}, {"n": P.Int()}], P.Array(P.Wildcard("C")))
-    def __call__(self, state, scope, paramTypes, datum, clusters, metric, n):
-        distances = [callfcn(state, scope, metric, [datum, x["center"]]) for x in clusters]
+    sig = Sigs([
+        Sig([{"n": P.Int()}, {"datum": P.Array(P.Wildcard("A"))}, {"clusters": P.Array(P.WildRecord("C", {"center": P.Array(P.Wildcard("B"))}))}, {"metric": P.Fcn([P.Array(P.Wildcard("A")), P.Array(P.Wildcard("B"))], P.Double())}], P.Array(P.Wildcard("C"))),
+        Sig([{"n": P.Int()}, {"datum": P.Array(P.Double())}, {"clusters": P.Array(P.WildRecord("C", {"center": P.Array(P.Double())}))}], P.Array(P.Wildcard("C")))])
+    def __call__(self, state, scope, paramTypes, n, datum, clusters, *args):
+        if n < 0:
+            raise PFARuntimeException("n must be nonnegative")
+        if len(args) == 1:
+            metric, = args
+            distances = [callfcn(state, scope, metric, [datum, x["center"]]) for x in clusters]
+        else:
+            distances = [sum((di - xi)**2 for di, xi in zip(datum, x["center"])) for x in clusters]
         indexes = argLowestN(distances, n, lambda a, b: a < b)
         return [clusters[i] for i in indexes]
 provide(ClosestN())

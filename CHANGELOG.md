@@ -144,7 +144,114 @@
 
   * Added a wrapper around fastavro to correct its behavior regarding Unicode strings (Titus).
 
-**Future:**
+**After tag v0.5.9:**
 
-  * Added model.reg.* regression module (_____, _____, and  _____).    NOT STARTED!
+  * Added new implementation, hadrian-akka.
 
+**After tag v0.5.10:**
+
+  * Improved logging in hadrian-akka.
+
+**After tag v0.5.11:**
+
+  * Fixed bug in hadrian-akka: too many requests for work sent.
+
+**After tag v0.5.12:**
+
+  * Backported Titus to work in Python 2.6.
+
+**After tag v0.5.13:**
+
+  * Added additional debugging output to KMeans producer (Titus).
+
+  * Fixed subtle bug in KMeans that only affected Numpy 1.6.2 (Titus).
+
+  * Fixed sort order bug in KMeans that mislabels clusters with other clusters' populations (Titus).
+
+  * Unified AVRO and JSON output, added option of going to an OutputStream rather than a file, and added option of writing schema as first line of JSON (Hadrian).
+
+  * Simplified Hadrian-standalone to be a standard input to standard output UNIX tool.
+
+  * Added ability for Hadrian-Akka to read schema types from files.
+
+  * Added access to PFAEngine's inputClass and outputClass for reflection (Hadrian).
+
+  * Fixed bug in implementation of PrettyPFA "types" section: type references must be expanded exactly once (Titus).
+
+  * Fixed bug in implementation of try-catch (Hadrian).
+
+  * Added utility functions for extracting and swapping PFA fragments (Titus).
+
+  * Fixed a bug in Titus KMeans producer: AbsDiff was not taking the absolute value (never noticed until now because we always combined it with Euclidean).
+
+  * Added preprocess option to KMeans producer (Titus).
+
+  * Performance-tuned Hadrian-Akka and removed the Akka dependence, making it now Hadrian-Actors.
+
+**After tag v0.5.14:**
+
+  * Added literals lookup table to speed up common models by a factor of five (Hadrian).
+
+  * Added thread to watch memory use in Hadrian-Actors and spill data from pipes if it gets too high.
+
+**After tag v0.5.15:**
+
+  * Added better logging of PFA-log messages and exceptions with stack traces in Hadrian-Actors.
+
+  * Fixed a bug where both generic and engine-bound avroInputIterator would ignore mismatches between expected schema and file schema (Hadrian).
+
+**After tag v0.5.16:**
+
+  * Added many functions in prob.dist library, added regex.* and spec.* libraries (Hadrian, Titus, and PFA).
+
+  * Added cast.fanout* functions to turn categorical variables into a suite of zeros and ones (Hadrian, Titus, and PFA).
+
+  * Added model.reg.* module for regression (Hadrian, Titus, and PFA).
+
+  * Added support for (non-standard) "NaN" when deserializing PFA from JSON; agrees with what Python outputs by default (Hadrian).
+
+  * Fixed a bug in which the "in" operator was incorrectly scored when model.tree.simpleTest encountered a union of values that include both arrays and primitive types (Hadtrian and Titus).
+
+  * Replaced hard-to-read type error strings with type comparisons rendered in indented PrettyPFA (Titus).
+
+  * Added rand.* module for random value generation, including type-4 UUIDs (Hadrian, Titus, and PFA).
+
+  * Added PFA-Inspector to scan PFA documents and get basic information about them.  Can be extended with gadgets.
+
+  * Added Java-centric interface to build engines from JSON/YAML/etc. (Hadrian).
+
+  * Added AvroRecord.fieldNames method (Hadrian).
+
+**After tag v0.6.0:**
+
+  * Added general Transformation class to titus.producer.expression, removed preprocess from KMeans (Titus).
+
+  * Added ability to load input from files in Hadrian-Standalone.
+
+  * Fixed large PFA file-reading bug in Hadrian-Actors.
+
+  * Added replace(partialFunction) method to all Ast classes (Hadrian and Titus).
+
+  * Added replacement string syntax and deep replacement methods to PrettyPFA (Titus).
+
+  * Fixed Numpy-vs-Python output bug in model.reg.linear (Titus).
+
+  * Added ability to revert() a PFAEngine to its initial state (Hadrian).
+
+  * Added ability to load PFA models from the inspector commandline (Titus).
+
+**After tag v0.6.1:**
+
+  * Added optional check of datatype on entry to engine.action (Titus).
+
+  * Added la.scale, la.add, and la.sub for common vector/matrix operations (Hadrian, Titus, and PFA).
+
+  * Added simplified signature for model.cluster.closest and model.cluster.closestN (Hadrian, Titus, and PFA).
+
+  * Added model.neighbor.nearestK, model.neighbor.ballR, and model.neighbor.mean (Hadrian, Titus, and PFA).
+
+  * Added lib.time.* for date/time tests and queries (Hadrian, Titus, PFA).
+
+  * Fixed bug in PrettyPFA in which JSON null, true, and false were converted into strings (Titus).
+
+  * Fixed bug in type patterns in Titus: empty namespaces can sometimes be "" rather than None (Titus).

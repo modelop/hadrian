@@ -49,10 +49,16 @@ class MakeDocsSuite extends FlatSpec with Matchers {
     lib1.metric.provides ++
     lib1.parse.provides ++
     lib1.prob.dist.provides ++
+    lib1.rand.provides ++
+    lib1.regex.provides ++
+    lib1.spec.provides ++
     lib1.string.provides ++
     lib1.stat.change.provides ++
     lib1.stat.sample.provides ++
+    lib1.time.provides ++ 
     lib1.model.cluster.provides ++
+    lib1.model.neighbor.provides ++
+    lib1.model.reg.provides ++
     lib1.model.tree.provides
 
   def xmlToLaTeX(node: scala.xml.Node): String = node.child.map(x => x.label match {

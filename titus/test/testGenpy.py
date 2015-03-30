@@ -462,7 +462,7 @@ output: int
 action: 12
 ''')
         self.assertEqual(engine.action(None), 12)
-        self.assertIsInstance(engine.action(None), int)
+        self.assertTrue(isinstance(engine.action(None), int))
 
     def testLiteralLong(self):
         engine, = PFAEngine.fromYaml('''
@@ -471,7 +471,7 @@ output: long
 action: {long: 12}
 ''')
         self.assertEqual(engine.action(None), 12)
-        self.assertIsInstance(engine.action(None), int)
+        self.assertTrue(isinstance(engine.action(None), int))
 
     def testLiteralFloat(self):
         engine, = PFAEngine.fromYaml('''
@@ -480,7 +480,7 @@ output: float
 action: {float: 12}
 ''')
         self.assertEqual(engine.action(None), 12.0)
-        self.assertIsInstance(engine.action(None), float)
+        self.assertTrue(isinstance(engine.action(None), float))
 
     def testLiteralDouble(self):
         engine, = PFAEngine.fromYaml('''
@@ -489,7 +489,7 @@ output: double
 action: 12.4
 ''')
         self.assertEqual(engine.action(None), 12.4)
-        self.assertIsInstance(engine.action(None), float)
+        self.assertTrue(isinstance(engine.action(None), float))
 
     def testLiteralString(self):
         engine, = PFAEngine.fromYaml('''
@@ -498,7 +498,7 @@ output: string
 action: [["hello world"]]
 ''')
         self.assertEqual(engine.action(None), "hello world")
-        self.assertIsInstance(engine.action(None), basestring)
+        self.assertTrue(isinstance(engine.action(None), basestring))
 
         engine, = PFAEngine.fromYaml('''
 input: "null"
@@ -506,7 +506,7 @@ output: string
 action: {string: "hello world"}
 ''')
         self.assertEqual(engine.action(None), "hello world")
-        self.assertIsInstance(engine.action(None), basestring)
+        self.assertTrue(isinstance(engine.action(None), basestring))
 
     def testLiteralBase64(self):
         engine, = PFAEngine.fromYaml('''
@@ -515,7 +515,7 @@ output: bytes
 action: {base64: "aGVsbG8="}
 ''')
         self.assertEqual(engine.action(None), "hello")
-        self.assertIsInstance(engine.action(None), basestring)
+        self.assertTrue(isinstance(engine.action(None), basestring))
 
     def testComplexLiterals(self):
         engine, = PFAEngine.fromYaml('''
@@ -1949,8 +1949,8 @@ action:
     then: x
     else: [[whatever]]
 ''')
-        self.assertEqual(engine.action(5.0), 5.0)
-        self.assertEqual(engine.action("hello"), "hello")
+        self.assertEqual(engine.action(5.0), {"double": 5.0})
+        self.assertEqual(engine.action("hello"), {"string": "hello"})
         self.assertEqual(engine.action(None), "whatever")
 
     def testDoc(self):

@@ -33,8 +33,6 @@ import org.apache.avro.io.DecoderFactory
 import org.apache.avro.io.EncoderFactory
 import org.apache.avro.io.JsonEncoder
 import org.apache.avro.Schema
-import org.apache.avro.SchemaCompatibility.checkReaderWriterCompatibility
-import org.apache.avro.SchemaCompatibility.SchemaCompatibilityType
 
 import com.opendatagroup.hadrian.jvmcompiler._
 import com.opendatagroup.hadrian.datatype._

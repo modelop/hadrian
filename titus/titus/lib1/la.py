@@ -89,6 +89,24 @@ class MapApply(LibFcn):
 
 provide(MapApply())
 
+class Scale(LibFcn):
+    name = prefix + "scale"
+    sig = Sigs([Sig([{"x": P.Array(P.Double())}, {"alpha": P.Double()}], P.Array(P.Double())),
+                Sig([{"x": P.Array(P.Array(P.Double()))}, {"alpha": P.Double()}], P.Array(P.Array(P.Double()))),
+                Sig([{"x": P.Map(P.Double())}, {"alpha": P.Double()}], P.Map(P.Double())),
+                Sig([{"x": P.Map(P.Map(P.Double()))}, {"alpha": P.Double()}], P.Map(P.Map(P.Double())))])
+    def __call__(self, state, scope, paramTypes, x, alpha):
+        if isinstance(x, (list, tuple)) and all(isinstance(xi, (list, tuple)) for xi in x):
+            return [[xj * alpha for xj in xi] for xi in x]
+        elif isinstance(x, (list, tuple)):
+            return [xi * alpha for xi in x]
+        elif isinstance(x, dict) and all(isinstance(x[i], dict) for i in x):
+            return dict((i, dict((j, xj * alpha) for j, xj in xi.items())) for i, xi in x.items())
+        else:
+            return dict((i, xi * alpha) for i, xi in x.items())
+
+provide(Scale())
+
 class ZipMap(LibFcn):
     name = prefix + "zipmap"
     sig = Sigs([Sig([{"x": P.Array(P.Array(P.Double()))}, {"y": P.Array(P.Array(P.Double()))}, {"fcn": P.Fcn([P.Double(), P.Double()], P.Double())}], P.Array(P.Array(P.Double()))),
@@ -107,6 +125,66 @@ class ZipMap(LibFcn):
             return dict((i, dict((j, callfcn(state, scope, fcn, [x.get(i, {}).get(j, 0.0), y.get(i, {}).get(j, 0.0)])) for j in cols)) for i in rows)
 
 provide(ZipMap())
+
+class Add(LibFcn):
+    name = prefix + "add"
+    sig = Sigs([Sig([{"x": P.Array(P.Double())}, {"y": P.Array(P.Double())}], P.Array(P.Double())),
+                Sig([{"x": P.Array(P.Array(P.Double()))}, {"y": P.Array(P.Array(P.Double()))}], P.Array(P.Array(P.Double()))),
+                Sig([{"x": P.Map(P.Double())}, {"y": P.Map(P.Double())}], P.Map(P.Double())),
+                Sig([{"x": P.Map(P.Map(P.Double()))}, {"y": P.Map(P.Map(P.Double()))}], P.Map(P.Map(P.Double())))])
+    def __call__(self, state, scope, paramTypes, x, y):
+        if isinstance(x, (list, tuple)) and all(isinstance(xi, (list, tuple)) for xi in x) and \
+           isinstance(y, (list, tuple)) and all(isinstance(yi, (list, tuple)) for yi in y):
+            if len(x) != len(y) or any(len(xi) != len(yi) for xi, yi in zip(x, y)):
+                raise PFARuntimeException("misaligned matrices")
+            return [[xj + yj for xj, yj in zip(xi, yi)] for xi, yi in zip(x, y)]
+
+        elif isinstance(x, (list, tuple)) and isinstance(y, (list, tuple)):
+            if len(x) != len(y):
+                raise PFARuntimeException("misaligned matrices")
+            return [xi + yi for xi, yi in zip(x, y)]
+
+        elif isinstance(x, dict) and all(isinstance(x[i], dict) for i in x.keys()) and \
+             isinstance(y, dict) and all(isinstance(y[i], dict) for i in y.keys()):
+            rows = rowKeys(x).union(rowKeys(y))
+            cols = colKeys(x).union(colKeys(y))
+            return dict((i, dict((j, x.get(i, {}).get(j, 0.0) + y.get(i, {}).get(j, 0.0)) for j in cols)) for i in rows)
+
+        else:
+            rows = rowKeys(x).union(rowKeys(y))
+            return dict((i, x.get(i, 0.0) + y.get(i, 0.0)) for i in rows)
+
+provide(Add())
+
+class Sub(LibFcn):
+    name = prefix + "sub"
+    sig = Sigs([Sig([{"x": P.Array(P.Double())}, {"y": P.Array(P.Double())}], P.Array(P.Double())),
+                Sig([{"x": P.Array(P.Array(P.Double()))}, {"y": P.Array(P.Array(P.Double()))}], P.Array(P.Array(P.Double()))),
+                Sig([{"x": P.Map(P.Double())}, {"y": P.Map(P.Double())}], P.Map(P.Double())),
+                Sig([{"x": P.Map(P.Map(P.Double()))}, {"y": P.Map(P.Map(P.Double()))}], P.Map(P.Map(P.Double())))])
+    def __call__(self, state, scope, paramTypes, x, y):
+        if isinstance(x, (list, tuple)) and all(isinstance(xi, (list, tuple)) for xi in x) and \
+           isinstance(y, (list, tuple)) and all(isinstance(yi, (list, tuple)) for yi in y):
+            if len(x) != len(y) or any(len(xi) != len(yi) for xi, yi in zip(x, y)):
+                raise PFARuntimeException("misaligned matrices")
+            return [[xj - yj for xj, yj in zip(xi, yi)] for xi, yi in zip(x, y)]
+
+        elif isinstance(x, (list, tuple)) and isinstance(y, (list, tuple)):
+            if len(x) != len(y):
+                raise PFARuntimeException("misaligned matrices")
+            return [xi - yi for xi, yi in zip(x, y)]
+
+        elif isinstance(x, dict) and all(isinstance(x[i], dict) for i in x.keys()) and \
+             isinstance(y, dict) and all(isinstance(y[i], dict) for i in y.keys()):
+            rows = rowKeys(x).union(rowKeys(y))
+            cols = colKeys(x).union(colKeys(y))
+            return dict((i, dict((j, x.get(i, {}).get(j, 0.0) - y.get(i, {}).get(j, 0.0)) for j in cols)) for i in rows)
+
+        else:
+            rows = rowKeys(x).union(rowKeys(y))
+            return dict((i, x.get(i, 0.0) - y.get(i, 0.0)) for i in rows)
+
+provide(Sub())
 
 class Dot(LibFcn):
     name = prefix + "dot"

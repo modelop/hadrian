@@ -262,7 +262,7 @@ action:
         new: {field: {type: Fields, value: two}, operator: input, value: 2.0}
   - model.tree.missingTest: [datum, tree]
 ''')
-        self.assertIsNone(engine.action("<="))
+        self.assertEqual(engine.action("<="), None)
 
     def testNotWorkForSimpleTest(self):
         engine, = PFAEngine.fromYaml('''

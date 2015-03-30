@@ -29,11 +29,18 @@ import org.codehaus.jackson.node.JsonNodeFactory
 import org.codehaus.jackson.node.TextNode
 
 import org.apache.avro.Schema
-import org.apache.avro.SchemaCompatibility.checkReaderWriterCompatibility
-import org.apache.avro.SchemaCompatibility.SchemaCompatibilityType
 import org.apache.avro.SchemaParseException
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.map.ObjectMapper
+
+// import org.apache.avro.SchemaCompatibility.checkReaderWriterCompatibility
+// import org.apache.avro.SchemaCompatibility.SchemaCompatibilityType
+// def accepts(that: Type): Boolean = that match {
+//   case exceptionThat: ExceptionType => false
+//   case avroThat: AvroType =>
+//     checkReaderWriterCompatibility(this.schema, avroThat.schema).getType == SchemaCompatibilityType.COMPATIBLE
+//   case _ => false
+// }
 
 import com.opendatagroup.hadrian.util.convertToJson
 import com.opendatagroup.hadrian.util.escapeJson
@@ -100,10 +107,73 @@ package datatype {
 
     // this == "reader" (the anticipated signature, pattern to be matched),
     // that == "writer" (the given fact, argument to be accepted or rejected)
-    def accepts(that: Type): Boolean = that match {
-      case exceptionThat: ExceptionType => false
-      case avroThat: AvroType =>
-        checkReaderWriterCompatibility(this.schema, avroThat.schema).getType == SchemaCompatibilityType.COMPATIBLE
+    def accepts(that: Type): Boolean = accepts(that, mutable.Set(), true)
+
+    private[datatype] def _recordFieldsOkay(thisRecord: AvroRecord, thatRecord: AvroRecord, memo: mutable.Set[String], checkRecord: Boolean): Boolean = {
+      for (xf <- thisRecord.fields)
+        if (xf.default == None) {
+          if (!thatRecord.fields.exists(yf => xf.name == yf.name  &&  xf.avroType.accepts(yf.avroType, memo, checkRecord)))
+            return false
+        }
+        else {
+          // not having a matching name in y is fine: x has a default
+          // but having a matching name with a mismatched type is bad
+          // (spec isn't clear, but org.apache.avro.SchemaCompatibility works that way)
+          for (yf <- thatRecord.fields if (xf.name == yf.name))
+            if (!xf.avroType.accepts(yf.avroType, memo, checkRecord))
+              return false
+        }
+      true
+    }
+
+    def accepts(that: Type, memo: mutable.Set[String], checkRecord: Boolean): Boolean = (this, that) match {
+      case (_, exceptionThat: ExceptionType) => false
+
+      case (AvroNull(), AvroNull()) => true
+      case (AvroBoolean(), AvroBoolean()) => true
+      case (AvroBytes(), AvroBytes()) => true
+      case (AvroString(), AvroString()) => true
+
+      case (AvroInt(), AvroInt()) => true
+      case (AvroLong(), AvroInt() | AvroLong()) => true
+      case (AvroFloat(), AvroInt() | AvroLong() | AvroFloat()) => true
+      case (AvroDouble(), AvroInt() | AvroLong() | AvroFloat() | AvroDouble()) => true
+
+      case (AvroArray(x), AvroArray(y)) => x.accepts(y, memo, checkRecord)
+      case (AvroMap(x), AvroMap(y)) => x.accepts(y, memo, checkRecord)
+
+      case (AvroFixed(thisSize, thisName, thisNamespace, _, _), AvroFixed(thatSize, thatName, thatNamespace, _, _)) =>
+        thisSize == thatSize  &&  thisName == thatName  &&  thisNamespace == thatNamespace
+
+      case (AvroEnum(thisSymbols, thisName, thisNamespace, _, _), AvroEnum(thatSymbols, thatName, thatNamespace, _, _)) =>
+        (thatSymbols.toSet subsetOf thisSymbols.toSet)  &&  thisName == thatName  &&  thisNamespace == thatNamespace
+
+      case (thisRecord @ AvroRecord(thisFields, _, _, _, _), thatRecord @ AvroRecord(thatFields, _, _, _, _)) =>
+        if (thisRecord.fullName != thatRecord.fullName)
+          false
+        else if (checkRecord  &&  !memo.contains(thatRecord.fullName)) {
+          if (!_recordFieldsOkay(thisRecord, thatRecord, memo, checkRecord = false))
+            return false
+          memo.add(thisRecord.fullName)
+          if (!_recordFieldsOkay(thisRecord, thatRecord, memo, checkRecord))
+            return false
+          true
+        }
+        else
+          true
+
+      case (AvroUnion(thisTypes), AvroUnion(thatTypes)) =>
+        for (yt <- thatTypes)
+          if (!thisTypes.exists(xt => xt.accepts(yt, memo, checkRecord)))
+            return false
+        true
+
+      case (AvroUnion(thisTypes), _) =>
+        thisTypes.exists(xt => xt.accepts(that, memo, checkRecord))
+
+      case (_, AvroUnion(thatTypes)) =>
+        thatTypes.forall(yt => this.accepts(yt, memo, checkRecord))
+
       case _ => false
     }
 
@@ -268,6 +338,7 @@ package datatype {
   }
 
   class AvroRecord(val schema: Schema) extends AvroType with AvroContainer with AvroMapping with AvroCompiled {
+    def fieldNames: Seq[String] = schema.getFields map { x => x.name }
     def fields: Seq[AvroField] = schema.getFields map { x => new AvroField(x) }
     def fieldOption(name: String): Option[AvroField] = schema.getFields find { _.name == name } map { new AvroField(_) }
     def field(name: String): AvroField = fieldOption(name).get

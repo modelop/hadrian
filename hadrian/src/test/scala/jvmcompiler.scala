@@ -27,6 +27,8 @@ import org.scalatest.FlatSpec
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.Matchers
 
+import org.codehaus.jackson.map.ObjectMapper
+
 import com.opendatagroup.hadrian.ast._
 import com.opendatagroup.hadrian.data._
 import com.opendatagroup.hadrian.datatype._
@@ -4245,21 +4247,23 @@ action:
   }
 
   def testGenericLoadAndConvert(avroType: AvroType, jsonData: String, yamlEngine: String, debug: Boolean = false): Unit = {
+    val objectMapper = new ObjectMapper
+
     val datum = fromJson(jsonData, avroType)
     if (debug)
       println(toJson(datum, avroType))
-    toJson(datum, avroType) should be (jsonData)
+    objectMapper.readTree(toJson(datum, avroType)) should be (objectMapper.readTree(jsonData))
 
     val engine = PFAEngine.fromYaml(yamlEngine).head
     val translated = engine.fromPFAData(datum)
     if (debug)
       println(toJson(translated, avroType))
-    toJson(translated, avroType) should be (jsonData)
+    objectMapper.readTree(toJson(translated, avroType)) should be (objectMapper.readTree(jsonData))
 
     val result = engine.action(translated)
     if (debug)
       println(toJson(result, avroType))
-    toJson(result, avroType) should be (jsonData)
+    objectMapper.readTree(toJson(result, avroType)) should be (objectMapper.readTree(jsonData))
   }
 
   "generic data" must "load correctly" taggedAs(JVMCompilation) in {

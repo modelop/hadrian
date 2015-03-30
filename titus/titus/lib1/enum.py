@@ -23,6 +23,7 @@ from titus.fcn import LibFcn
 from titus.signature import Sig
 from titus.signature import Sigs
 from titus.datatype import *
+from titus.errors import AvroException
 import titus.P as P
 
 provides = {}
@@ -38,7 +39,7 @@ class ToString(LibFcn):
         if x in paramTypes[0]["symbols"]:
             return x
         else:
-            raise AvroException("\"{}\" is not in enum {} ({})".format(x, paramTypes[0]["name"], paramTypes[0]["symbols"]))
+            raise AvroException("\"{0}\" is not in enum {1} ({2})".format(x, paramTypes[0]["name"], paramTypes[0]["symbols"]))
 provide(ToString())
 
 class ToInt(LibFcn):
@@ -48,7 +49,7 @@ class ToInt(LibFcn):
         try:
             return paramTypes[0]["symbols"].index(x)
         except ValueError:
-            raise AvroException("\"{}\" is not in enum {} ({})".format(x, paramTypes[0]["name"], paramTypes[0]["symbols"]))
+            raise AvroException("\"{0}\" is not in enum {1} ({2})".format(x, paramTypes[0]["name"], paramTypes[0]["symbols"]))
 provide(ToInt())
 
 class NumSymbols(LibFcn):

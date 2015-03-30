@@ -104,6 +104,7 @@ import com.opendatagroup.hadrian.ast.Error
 import com.opendatagroup.hadrian.ast.Try
 import com.opendatagroup.hadrian.ast.Log
 
+import com.opendatagroup.hadrian.datatype.AvroConversions
 import com.opendatagroup.hadrian.datatype.Type
 import com.opendatagroup.hadrian.datatype.FcnType
 import com.opendatagroup.hadrian.datatype.ExceptionType
@@ -131,9 +132,10 @@ import com.opendatagroup.hadrian.datatype.AvroField
 import com.opendatagroup.hadrian.datatype.AvroUnion
 import com.opendatagroup.hadrian.datatype.ForwardDeclarationParser
 
-import com.opendatagroup.hadrian.data.AvroOutputDataFileWriter
-import com.opendatagroup.hadrian.data.JsonOutputDataFileWriter
-import com.opendatagroup.hadrian.data.OutputDataFileWriter
+import com.opendatagroup.hadrian.data.AvroOutputDataStream
+import com.opendatagroup.hadrian.data.JsonOutputDataStream
+import com.opendatagroup.hadrian.data.OutputDataStream
+import com.opendatagroup.hadrian.data.AvroDataTranslator
 import com.opendatagroup.hadrian.data.PFADataTranslator
 import com.opendatagroup.hadrian.data.PFADatumReader
 import com.opendatagroup.hadrian.data.PFADatumWriter
@@ -429,7 +431,7 @@ package jvmcompiler {
   }
 
   abstract class PFAEngineBase {
-    private val specificData = new PFASpecificData(getClass.getClassLoader)
+    val specificData = new PFASpecificData(getClass.getClassLoader)
 
     def checkClock(): Unit
 
@@ -511,9 +513,68 @@ package jvmcompiler {
     private val privatePools = mutable.Map[String, java.util.HashMap[String, AnyRef]]()
     private val publicPools = mutable.Map[String, SharedMap]()
 
+    private var _thisClass: java.lang.Class[_] = null
+    private var _context: EngineConfig.Context = null
+
+    def revert(): Unit = revert(None)
+    def revert(sharedState: Option[SharedState]): Unit = {
+      // get arguments for call to initialize
+      val config = _config
+      val options = _options
+      val thisClass = _thisClass
+      val context = _context
+      val index = _instance
+
+      // reset (almost) all fields and reinitialize
+
+      // skip specificData; it doesn't have a mutable state
+      // skip log; the user sets this one
+
+      _config = null
+      _options = null
+      _callGraph = null
+      _typeParser = null
+
+      _instance = -1
+      _metadata = null
+      _actionsStarted = 0L   // not set by initialize, but 0L is the starting value
+      _actionsFinished = 0L
+
+      _namedTypes = null
+      _inputType = null
+      _outputType = null
+
+      _randomGenerator = null
+
+      cellsToRollback.clear()
+      poolsToRollback.clear()
+      savedCells.clear()     // not set by initialize, and in fact rollbackSave() clears it so this is redundant
+      savedPools.clear()
+      privateCells.clear()
+      publicCells = null
+      privatePools.clear()
+      publicPools.clear()
+
+      _thisClass = null
+      _context = null
+
+      // not these; the Java-side constructor fills these in
+      // _inputClass = null
+      // _outputClass = null
+
+      // skip classLoader; although it's declared as a val, it is implemented as a function on the Java side
+      pfaInputTranslator = null
+      avroInputTranslator = null
+
+      initialize(config, options, sharedState, thisClass, context, index)
+    }
+
     def initialize(config: EngineConfig, options: EngineOptions, sharedState: Option[SharedState], thisClass: java.lang.Class[_], context: EngineConfig.Context, index: Int): Unit = {
       _config = config
       _options = options
+      _thisClass = thisClass
+      _context = context
+      _instance = index
 
       val mergeCalls = context.merge match {
         case Some((_, _, x)) => Map("(merge)" -> x)
@@ -528,7 +589,6 @@ package jvmcompiler {
 
       _typeParser = context.parser
 
-      _instance = index
       _metadata = PFAMap.fromMap(config.metadata)
 
       // make sure that functions used in CellTo and PoolTo do not themselves call CellTo or PoolTo (which could lead to deadlock)
@@ -643,7 +703,8 @@ package jvmcompiler {
       _outputType = context.output
       _namedTypes = context.compiledTypes map {x => (x.fullName, x)} toMap
 
-      inputTranslator = new PFADataTranslator(inputType, classLoader)
+      pfaInputTranslator = new PFADataTranslator(inputType, classLoader)
+      avroInputTranslator = new AvroDataTranslator(inputType, classLoader)
 
       // ...
 
@@ -802,7 +863,12 @@ package jvmcompiler {
     def avroInputIterator[X](inputStream: InputStream): DataFileStream[X] = {    // DataFileStream is a java.util.Iterator
       val reader = new PFADatumReader[X](specificData)
       reader.setSchema(inputType.schema)
-      new DataFileStream[X](inputStream, reader)
+      val out = new DataFileStream[X](inputStream, reader)
+      
+      val fileSchema = AvroConversions.schemaToAvroType(out.getSchema)
+      if (!inputType.accepts(fileSchema))
+        throw new PFAInitializationException("InputStream has schema %s\nbut expecting schema %s".format(fileSchema, inputType))
+      out
     }
 
     def jsonInputIterator[X](inputStream: InputStream): java.util.Iterator[X] = {
@@ -850,25 +916,59 @@ package jvmcompiler {
       }
     }
 
-    def avroOutputDataFileWriter(fileName: String): AvroOutputDataFileWriter = {
+    def avroOutputDataStream(outputStream: java.io.OutputStream): AvroOutputDataStream = {
       val writer = new PFADatumWriter[AnyRef](outputType.schema, specificData)
-      val out = new AvroOutputDataFileWriter(writer)
-      out.create(outputType.schema, new java.io.File(fileName))
+      val out = new AvroOutputDataStream(writer)
+      out.create(outputType.schema, outputStream)
       out
     }
 
-    def jsonOutputDataFileWriter(fileName: String): JsonOutputDataFileWriter = {
-      val outputStream = new java.io.FileOutputStream(fileName)
+    def avroOutputDataStream(file: java.io.File): AvroOutputDataStream = {
+      val writer = new PFADatumWriter[AnyRef](outputType.schema, specificData)
+      val out = new AvroOutputDataStream(writer)
+      out.create(outputType.schema, file)
+      out
+    }
+
+    def avroOutputDataStream(fileName: String): AvroOutputDataStream = avroOutputDataStream(new java.io.File(fileName))
+
+    def jsonOutputDataStream(outputStream: java.io.OutputStream, writeSchema: Boolean): JsonOutputDataStream = {
       val encoder = EncoderFactory.get.jsonEncoder(outputType.schema, outputStream)
       val writer = new PFADatumWriter[AnyRef](outputType.schema, specificData)
-      new JsonOutputDataFileWriter(writer, encoder, outputStream)
+      val out = new JsonOutputDataStream(writer, encoder, outputStream)
+      if (writeSchema) {
+        outputStream.write(outputType.toJson.getBytes("utf-8"))
+        outputStream.write("\n".getBytes("utf-8"))
+      }
+      out
     }
+
+    def jsonOutputDataStream(file: java.io.File, writeSchema: Boolean): JsonOutputDataStream = {
+      val outputStream = new java.io.FileOutputStream(file)
+      val encoder = EncoderFactory.get.jsonEncoder(outputType.schema, outputStream)
+      val writer = new PFADatumWriter[AnyRef](outputType.schema, specificData)
+      val out = new JsonOutputDataStream(writer, encoder, outputStream)
+      if (writeSchema) {
+        outputStream.write(outputType.toJson.getBytes("utf-8"))
+        outputStream.write("\n".getBytes("utf-8"))
+      }
+      out
+    }
+
+    def jsonOutputDataStream(fileName: String, writeSchema: Boolean): JsonOutputDataStream = jsonOutputDataStream(new java.io.File(fileName), writeSchema)
 
     def jsonOutput(obj: AnyRef): String = toJson(obj, outputType.schema)
 
+    var _inputClass: java.lang.Class[AnyRef] = null
+    var _outputClass: java.lang.Class[AnyRef] = null
+    def inputClass = _inputClass
+    def outputClass = _outputClass
+
     val classLoader: java.lang.ClassLoader
-    private var inputTranslator: PFADataTranslator = null
-    def fromPFAData(datum: AnyRef): AnyRef = inputTranslator.translate(datum)
+    private var pfaInputTranslator: PFADataTranslator = null
+    private var avroInputTranslator: AvroDataTranslator = null
+    def fromPFAData(datum: AnyRef): AnyRef = pfaInputTranslator.translate(datum)
+    def fromGenericAvroData(datum: AnyRef): AnyRef = avroInputTranslator.translate(datum)
   }
 
   trait PFAEngine[INPUT <: AnyRef, OUTPUT <: AnyRef] {
@@ -886,6 +986,9 @@ package jvmcompiler {
 
     def instance: Int
 
+    def specificData: PFASpecificData
+    val inputClass: java.lang.Class[AnyRef]
+    val outputClass: java.lang.Class[AnyRef]
     val classLoader: java.lang.ClassLoader
     def begin(): Unit
     def action(input: INPUT): OUTPUT
@@ -905,13 +1008,20 @@ package jvmcompiler {
     def jsonInputIterator[X](inputStream: InputStream): java.util.Iterator[X]
     def jsonInputIterator[X](inputIterator: java.util.Iterator[String]): java.util.Iterator[X]
     def jsonInputIterator[X](inputIterator: scala.collection.Iterator[String]): scala.collection.Iterator[X]
-    def avroOutputDataFileWriter(fileName: String): AvroOutputDataFileWriter
-    def jsonOutputDataFileWriter(fileName: String): JsonOutputDataFileWriter
+    def avroOutputDataStream(outputStream: java.io.OutputStream): AvroOutputDataStream
+    def avroOutputDataStream(file: java.io.File): AvroOutputDataStream
+    def jsonOutputDataStream(outputStream: java.io.OutputStream, writeSchema: Boolean): JsonOutputDataStream
+    def jsonOutputDataStream(file: java.io.File, writeSchema: Boolean): JsonOutputDataStream
+    def jsonOutputDataStream(fileName: String, writeSchema: Boolean): JsonOutputDataStream
     def jsonOutput(obj: AnyRef): String
 
     def fromPFAData(datum: AnyRef): AnyRef
+    def fromGenericAvroData(datum: AnyRef): AnyRef
 
     def randomGenerator: Random
+
+    def revert(): Unit
+    def revert(sharedState: Option[SharedState]): Unit
 
     def fcn0(name: String): Function0[AnyRef]
     def fcn1(name: String): Function1[AnyRef, AnyRef]
@@ -938,6 +1048,9 @@ package jvmcompiler {
     def fcn22(name: String): Function22[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
   }
   object PFAEngine {
+    def factoryFromAst(engineConfig: EngineConfig, options: java.util.Map[String, JsonNode], sharedState: SharedState, parentClassLoader: ClassLoader, debug: Boolean): (() => PFAEngine[AnyRef, AnyRef]) =
+      factoryFromAst(engineConfig, mapAsScalaMap(options).toMap, if (sharedState == null) None else Some(sharedState), if (parentClassLoader == null) None else Some(parentClassLoader), debug)
+
     def factoryFromAst(engineConfig: EngineConfig, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): (() => PFAEngine[AnyRef, AnyRef]) = {
       val engineOptions = new EngineOptions(engineConfig.options, options)
 
@@ -997,6 +1110,9 @@ package jvmcompiler {
       }
     }
 
+    def factoryFromJson(src: AnyRef, options: java.util.Map[String, JsonNode], sharedState: SharedState, parentClassLoader: ClassLoader, debug: Boolean): (() => PFAEngine[AnyRef, AnyRef]) =
+      factoryFromJson(src, mapAsScalaMap(options).toMap, if (sharedState == null) None else Some(sharedState), if (parentClassLoader == null) None else Some(parentClassLoader), debug)
+
     def factoryFromJson(src: AnyRef, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): (() => PFAEngine[AnyRef, AnyRef]) = src match {
       case x: String => factoryFromAst(jsonToAst(x), options, sharedState, parentClassLoader, debug)
       case x: java.io.File => factoryFromAst(jsonToAst(x), options, sharedState, parentClassLoader, debug)
@@ -1004,13 +1120,22 @@ package jvmcompiler {
       case x => throw new IllegalArgumentException("cannot read model from objects of type " + src.getClass.getName)
     }
 
+    def factoryFromYaml(src: String, options: java.util.Map[String, JsonNode], sharedState: SharedState, parentClassLoader: ClassLoader, debug: Boolean): (() => PFAEngine[AnyRef, AnyRef]) =
+      factoryFromYaml(src, mapAsScalaMap(options).toMap, if (sharedState == null) None else Some(sharedState), if (parentClassLoader == null) None else Some(parentClassLoader), debug)
+
     def factoryFromYaml(src: String, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): (() => PFAEngine[AnyRef, AnyRef]) =
       factoryFromJson(yamlToJson(src), options, sharedState, parentClassLoader, debug)
+
+    def fromAst(engineConfig: EngineConfig, options: java.util.Map[String, JsonNode], sharedState: SharedState, multiplicity: Int, parentClassLoader: ClassLoader, debug: Boolean): java.util.List[PFAEngine[AnyRef, AnyRef]] =
+      seqAsJavaList(fromAst(engineConfig, mapAsScalaMap(options).toMap, if (sharedState == null) None else Some(sharedState), multiplicity, if (parentClassLoader == null) None else Some(parentClassLoader), debug))
 
     def fromAst(engineConfig: EngineConfig, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, multiplicity: Int = 1, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): Seq[PFAEngine[AnyRef, AnyRef]] = {
       val factory = factoryFromAst(engineConfig, options, sharedState, parentClassLoader, debug)
       0 until multiplicity map {x => factory()}
     }
+
+    def fromJson(src: AnyRef, options: java.util.Map[String, JsonNode], sharedState: SharedState, multiplicity: Int, parentClassLoader: ClassLoader, debug: Boolean): java.util.List[PFAEngine[AnyRef, AnyRef]] =
+      seqAsJavaList(fromJson(src, mapAsScalaMap(options).toMap, if (sharedState == null) None else Some(sharedState), multiplicity, if (parentClassLoader == null) None else Some(parentClassLoader), debug))
 
     def fromJson(src: AnyRef, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, multiplicity: Int = 1, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): Seq[PFAEngine[AnyRef, AnyRef]] = src match {
       case x: String => fromAst(jsonToAst(x), options, sharedState, multiplicity, parentClassLoader, debug)
@@ -1018,6 +1143,9 @@ package jvmcompiler {
       case x: java.io.InputStream => fromAst(jsonToAst(x), options, sharedState, multiplicity, parentClassLoader, debug)
       case x => throw new IllegalArgumentException("cannot read model from objects of type " + src.getClass.getName)
     }
+
+    def fromYaml(src: String, options: java.util.Map[String, JsonNode], sharedState: SharedState, multiplicity: Int, parentClassLoader: ClassLoader, debug: Boolean): java.util.List[PFAEngine[AnyRef, AnyRef]] =
+      seqAsJavaList(fromYaml(src, mapAsScalaMap(options).toMap, if (sharedState == null) None else Some(sharedState), multiplicity, if (parentClassLoader == null) None else Some(parentClassLoader), debug))
 
     def fromYaml(src: String, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, multiplicity: Int = 1, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): Seq[PFAEngine[AnyRef, AnyRef]] =
       fromJson(yamlToJson(src), options, sharedState, multiplicity, parentClassLoader, debug)
@@ -1064,6 +1192,7 @@ package jvmcompiler {
         (exprs map {"com.opendatagroup.hadrian.jvmcompiler.W.s(" + _.toString + ");"}).mkString("\n")
       case ReturnMethod.RETURN =>
         ((exprs.init map {"com.opendatagroup.hadrian.jvmcompiler.W.s(" + _.toString + ");"}) ++ List("return %s;".format(retType match {
+          case null => exprs.last.toString
           case _: AvroBoolean | _: AvroInt | _: AvroLong | _: AvroFloat | _: AvroDouble =>
             W.wrapExpr(exprs.last.toString, retType, true)
           case _ =>
@@ -1079,6 +1208,8 @@ package jvmcompiler {
       case MapIndex(expr, t) => """new com.opendatagroup.hadrian.shared.M(%s)""".format(expr.toString)
       case RecordIndex(name, t) => """new com.opendatagroup.hadrian.shared.R("%s")""".format(StringEscapeUtils.escapeJava(name))
     }).mkString(", ")
+
+    val literals = mutable.Map[String, JavaCode]()
 
     def apply(astContext: AstContext, engineOptions: EngineOptions, resolvedType: Option[Type] = None): TaskResult = astContext match {
       case EngineConfig.Context(
@@ -1201,7 +1332,7 @@ return out;
               t(namespace, name, false),
               interfaces,
               javaSchema(avroCompiled, true),
-              fields map {"\"" + _.name + "\""} mkString(", "),
+              fields map {x => "\"" + StringEscapeUtils.escapeJava(x.name) + "\""} mkString(", "),
               fields map {x: AvroField => javaSchema(x.avroType, true)} mkString(", "),
               t(namespace, name, false),
               t(namespace, name, false),
@@ -1676,7 +1807,13 @@ public com.opendatagroup.hadrian.shared.SharedMap sharedCells;
 %s
 %s
 %s
-public %s(com.opendatagroup.hadrian.ast.EngineConfig config, com.opendatagroup.hadrian.options.EngineOptions options, scala.Option<com.opendatagroup.hadrian.shared.SharedState> state, com.opendatagroup.hadrian.ast.EngineConfig.Context context, Integer index) { initialize(config, options, state, %s.class, context, index.intValue()); }
+java.util.HashMap<String, Object> literals = new java.util.HashMap<String, Object>();
+public %s(com.opendatagroup.hadrian.ast.EngineConfig config, com.opendatagroup.hadrian.options.EngineOptions options, scala.Option<com.opendatagroup.hadrian.shared.SharedState> state, com.opendatagroup.hadrian.ast.EngineConfig.Context context, Integer index) {
+    _inputClass_$eq(%s);
+    _outputClass_$eq(%s);
+%s
+    initialize(config, options, state, %s.class, context, index.intValue());
+}
 public ClassLoader classLoader() { return getClass().getClassLoader(); }
 private long timeout;
 private long startTime;
@@ -1697,6 +1834,9 @@ public void checkClock() {
           sharedPools.mkString("\n"),
           functions.mkString("\n"),
           thisClassName,
+          javaType(input, true, true, false).replaceAll("<.*>", "") + ".class",
+          javaType(output, true, true, false).replaceAll("<.*>", "") + ".class",
+          literals.values.mkString("\n"),
           thisClassName,
           fcnMethods.mkString("\n"),
           beginMethod,
@@ -1807,7 +1947,10 @@ public %s apply() {
       case LiteralDouble.Context(_, _, value) => JavaCode(value.toString)
       case LiteralString.Context(_, _, value) => JavaCode("\"" + StringEscapeUtils.escapeJava(value) + "\"")
       case LiteralBase64.Context(_, _, value) => JavaCode("new byte[]{" + value.mkString(",") + "}")
-      case Literal.Context(retType, _, value) => JavaCode("""((%s)fromJson("%s", %s))""", javaType(retType, true, true, true), StringEscapeUtils.escapeJava(value), javaSchema(retType, false))
+      case Literal.Context(retType, _, value) =>
+        val escaped = StringEscapeUtils.escapeJava(value)
+        literals(escaped) = JavaCode("""    literals.put("%s", fromJson("%s", %s));""", escaped, escaped, javaSchema(retType, false))
+        JavaCode("""((%s)literals.get("%s"))""", javaType(retType, true, true, true), escaped)
 
       case NewObject.Context(retType, _, fields) =>
         retType match {
@@ -2373,7 +2516,7 @@ public %s apply() {
           javaType(exprType, true, true, false),
           symbolFields(symbols),
           javaType(exprType, true, true, false),
-          block(exprs, ReturnMethod.RETURN, exprType),
+          block(exprs, ReturnMethod.RETURN, null),
           if (filter == None) "false" else "true",
           filter match {
             case Some(x) => x map {y => "\"" + StringEscapeUtils.escapeJava(y) + "\""} mkString(", ")

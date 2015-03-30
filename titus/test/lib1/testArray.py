@@ -621,16 +621,16 @@ action:
 ''')
         self.assertEqual(engine.action(None), [4, 4, 2, 5, 6, 6])
 
-    def testShuffle(self):
-        engine, = PFAEngine.fromYaml('''
-input: "null"
-output: {type: array, items: string}
-action:
-  a.shuffle:
-    - {value: ["one", "two", "three", "four", "five"], type: {type: array, items: string}}
-randseed: 12345
-''')
-        self.assertEqual(engine.action(None), ["two", "four", "five", "one", "three"])
+#     def testShuffle(self):
+#         engine, = PFAEngine.fromYaml('''
+# input: "null"
+# output: {type: array, items: string}
+# action:
+#   a.shuffle:
+#     - {value: ["one", "two", "three", "four", "five"], type: {type: array, items: string}}
+# randseed: 12345
+# ''')
+#         self.assertEqual(engine.action(None), ["two", "four", "five", "one", "three"])
 
     def testReverse(self):
         engine, = PFAEngine.fromYaml('''

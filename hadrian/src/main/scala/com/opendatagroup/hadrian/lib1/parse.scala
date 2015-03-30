@@ -77,7 +77,9 @@ package object parse {
       try {
         if (base < 2  ||  base > 36)
           throw new PFARuntimeException("base out of range")
-        val stripped = str.trim.toLowerCase
+        var stripped = str.trim.toLowerCase
+        if (stripped.startsWith("+"))
+          stripped = stripped.tail
         java.lang.Integer.parseInt(stripped, base)
       }
       catch {
@@ -101,7 +103,9 @@ package object parse {
       try {
         if (base < 2  ||  base > 36)
           throw new PFARuntimeException("base out of range")
-        val stripped = str.trim.toLowerCase
+        var stripped = str.trim.toLowerCase
+        if (stripped.startsWith("+"))
+          stripped = stripped.tail
         java.lang.Long.parseLong(stripped, base)
       }
       catch {

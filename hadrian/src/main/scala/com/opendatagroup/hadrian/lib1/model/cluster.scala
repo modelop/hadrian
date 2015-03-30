@@ -23,8 +23,6 @@ import scala.collection.immutable.ListMap
 import scala.util.Random
 
 import org.apache.avro.AvroRuntimeException
-import org.apache.avro.SchemaCompatibility.checkReaderWriterCompatibility
-import org.apache.avro.SchemaCompatibility.SchemaCompatibilityType
 
 import com.opendatagroup.hadrian.ast.LibFcn
 import com.opendatagroup.hadrian.errors.PFARuntimeException
@@ -79,11 +77,16 @@ package object cluster {
   ////   closest (Closest)
   object Closest extends LibFcn {
     val name = prefix + "closest"
-    val sig = Sig(List(
-      "datum" -> P.Array(P.Wildcard("A")),
-      "clusters" -> P.Array(P.WildRecord("C", ListMap("center" -> P.Array(P.Wildcard("B"))))),
-      "metric" -> P.Fcn(List(P.Array(P.Wildcard("A")), P.Array(P.Wildcard("B"))), P.Double)
-    ), P.Wildcard("C"))
+    val sig = Sigs(List(
+      Sig(List(
+        "datum" -> P.Array(P.Wildcard("A")),
+        "clusters" -> P.Array(P.WildRecord("C", ListMap("center" -> P.Array(P.Wildcard("B"))))),
+        "metric" -> P.Fcn(List(P.Array(P.Wildcard("A")), P.Array(P.Wildcard("B"))), P.Double)
+      ), P.Wildcard("C")),
+      Sig(List(
+        "datum" -> P.Array(P.Double),
+        "clusters" -> P.Array(P.WildRecord("C", ListMap("center" -> P.Array(P.Double))))
+      ), P.Wildcard("C"))))
     val doc =
       <doc>
         <desc>Find the cluster <tp>C</tp> whose <pf>center</pf> is closest to the <p>datum</p>, according to the <p>metric</p>.</desc>
@@ -92,6 +95,7 @@ package object cluster {
         <param name="metric">Function used to compare each <p>datum</p> with the <pf>center</pf> of the <p>clusters</p>.  (See, for example, <f>metric.euclidean</f>.)</param>
         <ret>Returns the closest cluster record.</ret>
         <error>Raises a "no clusters" error if <p>clusters</p> is empty.</error>
+        <detail>If <p>metric</p> is not provided, a Euclidean metric over floating point numbers is assumed.</detail>
       </doc>
     def apply[A, B](datum: PFAArray[A], clusters: PFAArray[PFARecord], metric: (PFAArray[A], PFAArray[B]) => Double): PFARecord = {
       val vector = clusters.toVector
@@ -112,36 +116,47 @@ package object cluster {
       }
       bestRecord
     }
+    def apply(datum: PFAArray[Double], clusters: PFAArray[PFARecord]): PFARecord =
+      apply(datum, clusters, {(x: PFAArray[Double], y: PFAArray[Double]) => (x.toVector zip y.toVector) map {case (x, y) => (x - y)*(x - y)} sum})
   }
   provide(Closest)
 
   ////   closestN (ClosestN)
   object ClosestN extends LibFcn {
     val name = prefix + "closestN"
-    val sig = Sig(List(
-      "datum" -> P.Array(P.Wildcard("A")),
-      "clusters" -> P.Array(P.WildRecord("C", ListMap("center" -> P.Array(P.Wildcard("B"))))),
-      "metric" -> P.Fcn(List(P.Array(P.Wildcard("A")), P.Array(P.Wildcard("B"))), P.Double),
-      "n" -> P.Int
-    ), P.Array(P.Wildcard("C")))
+    val sig = Sigs(List(
+      Sig(List(
+        "n" -> P.Int,
+        "datum" -> P.Array(P.Wildcard("A")),
+        "clusters" -> P.Array(P.WildRecord("C", ListMap("center" -> P.Array(P.Wildcard("B"))))),
+        "metric" -> P.Fcn(List(P.Array(P.Wildcard("A")), P.Array(P.Wildcard("B"))), P.Double)
+      ), P.Array(P.Wildcard("C"))),
+      Sig(List(
+        "n" -> P.Int,
+        "datum" -> P.Array(P.Double),
+        "clusters" -> P.Array(P.WildRecord("C", ListMap("center" -> P.Array(P.Double))))
+      ), P.Array(P.Wildcard("C")))))
     val doc =
       <doc>
         <desc>Find the <p>n</p> clusters <tp>C</tp> whose <pf>centers</pf> are closest to the <p>datum</p>, according to the <p>metric</p>.</desc>
+        <param name="n">Number of clusters to search for.</param>
         <param name="datum">Sample datum.</param>
         <param name="clusters">Set of clusters; the record type <tp>C</tp> may contain additional identifying information for post-processing.</param>
         <param name="metric">Function used to compare each <p>datum</p> with the <pf>center</pf> of the <p>clusters</p>.  (See, for example, <f>metric.euclidean</f>.)</param>
-        <param name="n">Number of clusters to search for.</param>
         <ret>An array of the closest cluster records in order from the closest to the farthest.  The length of the array is minimum of <p>n</p> and the length of <p>clusters</p>.</ret>
-        <detail>Note that this method can be used to implement k-nearest neighbors.</detail>
+        <detail>If <p>metric</p> is not provided, a Euclidean metric over floating point numbers is assumed.</detail>
+        <error>If <p>n</p> is negative, an "n must be nonnegative" error will be raised.</error>
       </doc>
-    def apply[A, B](datum: PFAArray[A], clusters: PFAArray[PFARecord], metric: (PFAArray[A], PFAArray[B]) => Double, n: Int): PFAArray[PFARecord] = {
+    def apply[A, B](n: Int, datum: PFAArray[A], clusters: PFAArray[PFARecord], metric: (PFAArray[A], PFAArray[B]) => Double): PFAArray[PFARecord] = {
+      if (n < 0)
+        throw new PFARuntimeException("n must be nonnegative")
       val vector = clusters.toVector
       val distances = vector map {record => record -> metric(datum, record.get("center").asInstanceOf[PFAArray[B]])} toMap
-
       val indexes = argLowestN(vector, n, (cluster1: PFARecord, cluster2: PFARecord) => distances(cluster1) < distances(cluster2))
-
       PFAArray.fromVector(indexes map {i => vector(i)})
     }
+    def apply(n: Int, datum: PFAArray[Double], clusters: PFAArray[PFARecord]): PFAArray[PFARecord] =
+      apply(n, datum, clusters, {(x: PFAArray[Double], y: PFAArray[Double]) => (x.toVector zip y.toVector) map {case (x, y) => (x - y)*(x - y)} sum})
   }
   provide(ClosestN)
 

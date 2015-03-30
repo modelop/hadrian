@@ -107,6 +107,62 @@ action:
              "tres" -> Map("seven" -> -7.0, "eight" -> -8.0, "nine" -> -9.0))) should be (0.00 +- 0.01)
   }
 
+  it must "scale arrays" taggedAs(Lib1, Lib1LA) in {
+    val engine1 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: double}
+action:
+  la.scale:
+    - type: {type: array, items: double}
+      value: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    - 10
+""").head
+    chi2Vector(engine1.action(null).asInstanceOf[PFAArray[Double]],
+         Vector(10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0)) should be (0.00 +- 0.01)
+
+    val engine2 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: {type: array, items: double}}
+action:
+  la.scale:
+    - type: {type: array, items: {type: array, items: double}}
+      value: [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    - 10
+""").head
+    chi2(engine2.action(null).asInstanceOf[PFAArray[PFAArray[Double]]],
+         Vector(Vector(10.0, 20.0, 30.0), Vector(40.0, 50.0, 60.0), Vector(70.0, 80.0, 90.0))) should be (0.00 +- 0.01)
+  }
+
+  it must "scale maps" taggedAs(Lib1, Lib1LA) in {
+    val engine1 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: map, values: double}
+action:
+  la.scale:
+    - type: {type: map, values: double}
+      value: {one: 1, two: 2, three: 3, four: 4, five: 5}
+    - 10
+""").head
+    chi2Vector(engine1.action(null).asInstanceOf[PFAMap[java.lang.Double]],
+         Map("one" -> 10.0, "two" -> 20.0, "three" -> 30.0, "four" -> 40.0, "five" -> 50.0)) should be (0.00 +- 0.01)
+
+    val engine2 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: map, values: {type: map, values: double}}
+action:
+  la.scale:
+    - type: {type: map, values: {type: map, values: double}}
+      value: {uno: {one: 1, two: 2, three: 3},
+              dos: {one: 4, two: 5, three: 6},
+              tres: {one: 7, two: 8, three: 9}}
+    - 10
+""").head
+    chi2(engine2.action(null).asInstanceOf[PFAMap[PFAMap[java.lang.Double]]],
+         Map("uno" -> Map("one" -> 10.0, "two" -> 20.0, "three" -> 30.0),
+             "dos" -> Map("one" -> 40.0, "two" -> 50.0, "three" -> 60.0),
+             "tres" -> Map("one" -> 70.0, "two" -> 80.0, "three" -> 90.0))) should be (0.00 +- 0.01)
+  }
+
   it must "zipmap arrays" taggedAs(Lib1, Lib1LA) in {
     val engine = PFAEngine.fromYaml("""
 input: "null"
@@ -147,6 +203,130 @@ action:
          Map("uno" -> Map("one" -> 102.0, "two" -> 104.0, "three" -> 106.0, "four" -> 0.0),
              "dos" -> Map("one" -> 108.0, "two" -> 110.0, "three" -> 112.0, "four" -> 0.0),
              "tres" -> Map("one" -> 114.0, "two" -> 116.0, "three" -> 118.0, "four" -> 999.0))) should be (0.00 +- 0.01)
+  }
+
+  it must "add arrays" taggedAs(Lib1, Lib1LA) in {
+    val engine1 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: double}
+action:
+  la.add:
+    - type: {type: array, items: double}
+      value: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    - type: {type: array, items: double}
+      value: [101, 102, 103, 104, 105, 106, 107, 108, 109]
+""").head
+    chi2Vector(engine1.action(null).asInstanceOf[PFAArray[Double]],
+         Vector(102.0, 104.0, 106.0, 108.0, 110.0, 112.0, 114.0, 116.0, 118.0)) should be (0.00 +- 0.01)
+
+    val engine2 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: {type: array, items: double}}
+action:
+  la.add:
+    - type: {type: array, items: {type: array, items: double}}
+      value: [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    - type: {type: array, items: {type: array, items: double}}
+      value: [[101, 102, 103], [104, 105, 106], [107, 108, 109]]
+""").head
+    chi2(engine2.action(null).asInstanceOf[PFAArray[PFAArray[Double]]],
+         Vector(Vector(102.0, 104.0, 106.0), Vector(108.0, 110.0, 112.0), Vector(114.0, 116.0, 118.0))) should be (0.00 +- 0.01)
+  }
+
+  it must "add maps" taggedAs(Lib1, Lib1LA) in {
+    val engine1 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: map, values: double}
+action:
+  la.add:
+    - type: {type: map, values: double}
+      value: {one: 1, two: 2, three: 3, four: 4, five: 5}
+    - type: {type: map, values: double}
+      value: {one: 101, two: 102, three: 103, four: 104, five: 105, six: 999}
+""").head
+    chi2Vector(engine1.action(null).asInstanceOf[PFAMap[java.lang.Double]],
+      Map("one" -> 102.0, "two" -> 104.0, "three" -> 106.0, "four" -> 108.0, "five" -> 110.0, "six" -> 999.0)) should be (0.00 +- 0.01)
+
+    val engine2 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: map, values: {type: map, values: double}}
+action:
+  la.add:
+    - type: {type: map, values: {type: map, values: double}}
+      value: {uno: {one: 1, two: 2, three: 3},
+              dos: {one: 4, two: 5, three: 6},
+              tres: {one: 7, two: 8, three: 9}}
+    - type: {type: map, values: {type: map, values: double}}
+      value: {uno: {one: 101, two: 102, three: 103},
+              dos: {one: 104, two: 105, three: 106},
+              tres: {one: 107, two: 108, three: 109, four: 999.0}}
+""").head
+    chi2(engine2.action(null).asInstanceOf[PFAMap[PFAMap[java.lang.Double]]],
+         Map("uno" -> Map("one" -> 102.0, "two" -> 104.0, "three" -> 106.0, "four" -> 0.0),
+             "dos" -> Map("one" -> 108.0, "two" -> 110.0, "three" -> 112.0, "four" -> 0.0),
+             "tres" -> Map("one" -> 114.0, "two" -> 116.0, "three" -> 118.0, "four" -> 999.0))) should be (0.00 +- 0.01)
+  }
+
+  it must "subtract arrays" taggedAs(Lib1, Lib1LA) in {
+    val engine1 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: double}
+action:
+  la.sub:
+    - type: {type: array, items: double}
+      value: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    - type: {type: array, items: double}
+      value: [101, 102, 103, 104, 105, 106, 107, 108, 109]
+""").head
+    chi2Vector(engine1.action(null).asInstanceOf[PFAArray[Double]],
+         Vector(-100.0, -100.0, -100.0, -100.0, -100.0, -100.0, -100.0, -100.0, -100.0)) should be (0.00 +- 0.01)
+
+    val engine2 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: array, items: {type: array, items: double}}
+action:
+  la.sub:
+    - type: {type: array, items: {type: array, items: double}}
+      value: [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+    - type: {type: array, items: {type: array, items: double}}
+      value: [[101, 102, 103], [104, 105, 106], [107, 108, 109]]
+""").head
+    chi2(engine2.action(null).asInstanceOf[PFAArray[PFAArray[Double]]],
+         Vector(Vector(-100.0, -100.0, -100.0), Vector(-100.0, -100.0, -100.0), Vector(-100.0, -100.0, -100.0))) should be (0.00 +- 0.01)
+  }
+
+  it must "subtract maps" taggedAs(Lib1, Lib1LA) in {
+    val engine1 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: map, values: double}
+action:
+  la.sub:
+    - type: {type: map, values: double}
+      value: {one: 1, two: 2, three: 3, four: 4, five: 5}
+    - type: {type: map, values: double}
+      value: {one: 101, two: 102, three: 103, four: 104, five: 105, six: 999}
+""").head
+    chi2Vector(engine1.action(null).asInstanceOf[PFAMap[java.lang.Double]],
+      Map("one" -> -100.0, "two" -> -100.0, "three" -> -100.0, "four" -> -100.0, "five" -> -100.0, "six" -> -999.0)) should be (0.00 +- 0.01)
+
+    val engine2 = PFAEngine.fromYaml("""
+input: "null"
+output: {type: map, values: {type: map, values: double}}
+action:
+  la.sub:
+    - type: {type: map, values: {type: map, values: double}}
+      value: {uno: {one: 1, two: 2, three: 3},
+              dos: {one: 4, two: 5, three: 6},
+              tres: {one: 7, two: 8, three: 9}}
+    - type: {type: map, values: {type: map, values: double}}
+      value: {uno: {one: 101, two: 102, three: 103},
+              dos: {one: 104, two: 105, three: 106},
+              tres: {one: 107, two: 108, three: 109, four: 999.0}}
+""").head
+    chi2(engine2.action(null).asInstanceOf[PFAMap[PFAMap[java.lang.Double]]],
+         Map("uno" -> Map("one" -> -100.0, "two" -> -100.0, "three" -> -100.0, "four" -> 0.0),
+             "dos" -> Map("one" -> -100.0, "two" -> -100.0, "three" -> -100.0, "four" -> 0.0),
+             "tres" -> Map("one" -> -100.0, "two" -> -100.0, "three" -> -100.0, "four" -> -999.0))) should be (0.00 +- 0.01)
   }
 
   it must "multiply a matrix and a vector as arrays" taggedAs(Lib1, Lib1LA) in {

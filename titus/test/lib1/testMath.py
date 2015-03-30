@@ -388,18 +388,18 @@ action:
         self.assertAlmostEqual(engine.action(0.5), 0.46, places=2)
         self.assertAlmostEqual(engine.action(22.5), 1.00, places=2)
 
-    def testErf(self):
-        engine, = PFAEngine.fromYaml('''
-input: double
-output: double
-action:
-  - {m.special.erf: input}
-''')
-        self.assertAlmostEqual(engine.action(-22.5), -1.00, places=2)
-        self.assertAlmostEqual(engine.action(-0.5), -0.52, places=2)
-        self.assertAlmostEqual(engine.action(0), 0.00, places=2)
-        self.assertAlmostEqual(engine.action(0.5), 0.52, places=2)
-        self.assertAlmostEqual(engine.action(22.5), 1.00, places=2)
+#     def testErf(self):
+#         engine, = PFAEngine.fromYaml('''
+# input: double
+# output: double
+# action:
+#   - {m.special.erf: input}
+# ''')
+#         self.assertAlmostEqual(engine.action(-22.5), -1.00, places=2)
+#         self.assertAlmostEqual(engine.action(-0.5), -0.52, places=2)
+#         self.assertAlmostEqual(engine.action(0), 0.00, places=2)
+#         self.assertAlmostEqual(engine.action(0.5), 0.52, places=2)
+#         self.assertAlmostEqual(engine.action(22.5), 1.00, places=2)
 
 if __name__ == "__main__":
     unittest.main()

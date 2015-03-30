@@ -24,25 +24,25 @@ import sys
 uniqueEngineNameCounter = 0
 def uniqueEngineName():
     sys.modules["titus.util"].uniqueEngineNameCounter += 1
-    return "Engine_{}".format(sys.modules["titus.util"].uniqueEngineNameCounter)
+    return "Engine_{0}".format(sys.modules["titus.util"].uniqueEngineNameCounter)
 
 uniqueRecordNameCounter = 0
 def uniqueRecordName():
     sys.modules["titus.util"].uniqueRecordNameCounter += 1
-    return "Record_{}".format(sys.modules["titus.util"].uniqueRecordNameCounter)
+    return "Record_{0}".format(sys.modules["titus.util"].uniqueRecordNameCounter)
 
 uniqueEnumNameCounter = 0
 def uniqueEnumName():
     sys.modules["titus.util"].uniqueEnumNameCounter += 1
-    return "Enum_{}".format(sys.modules["titus.util"].uniqueEnumNameCounter)
+    return "Enum_{0}".format(sys.modules["titus.util"].uniqueEnumNameCounter)
 
 uniqueFixedNameCounter = 0
 def uniqueFixedName():
     sys.modules["titus.util"].uniqueFixedNameCounter += 1
-    return "Fixed_{}".format(sys.modules["titus.util"].uniqueFixedNameCounter)
+    return "Fixed_{0}".format(sys.modules["titus.util"].uniqueFixedNameCounter)
 
 def pos(dot, at):
-    return "in{} object from {}".format("" if (dot == "") else " field " + dot + " of", at)
+    return "in{0} object from {1}".format("" if (dot == "") else " field " + dot + " of", at)
 
 def flatten(x):
     return [item for sublist in x for item in sublist]
@@ -159,26 +159,26 @@ def __init__(self, {args}):
     if len(fields) == 0:
         exec("""
 def __repr__(self):
-    return \"{}()\"
+    return \"{0}()\"
 """.format(clazz.__name__), context, newMethods)
 
         exec("""
 def __eq__(self, other):
-    return isinstance(other, {})
+    return isinstance(other, {0})
 """.format(clazz.__name__), context, newMethods)
 
     else:
         exec("""
 def __repr__(self):
-    return \"{}(\" + {} + \")\"
+    return \"{0}(\" + {1} + \")\"
 """.format(clazz.__name__, "+ \", \" + ".join(["repr(self." + x + ")" for x in fields])),
              context,
              newMethods)
 
         exec("""
 def __eq__(self, other):
-    if isinstance(other, {}):
-        return {}
+    if isinstance(other, {0}):
+        return {1}
     else:
         return False
 """.format(clazz.__name__, " and ".join(["self.{x} == other.{x}".format(x=x) for x in fields])),
@@ -200,3 +200,56 @@ def __eq__(self, other):
 
     return clazz
 
+def avscToPretty(avsc, indent=0):
+    if isinstance(avsc, basestring):
+        return " " * indent + avsc
+    elif isinstance(avsc, dict) and "type" in avsc:
+        tpe = avsc["type"]
+
+        if tpe == "function":
+            return " " * indent + "fcn(" + ", ".join("arg{}: {}".format(i + 1, avscToPretty(x)) for i, x in enumerate(avsc["params"])) + " -> " + avscToPretty(avsc["ret"]) + ")"
+
+        elif tpe == "exception":
+            return "exception"
+
+        elif tpe in ("null", "boolean", "int", "long", "float", "double", "bytes", "string"):
+            return " " * indent + tpe
+
+        elif tpe == "array":
+            return " " * indent + "array(" + avscToPretty(avsc["items"], indent + 6).lstrip() + ")"
+
+        elif tpe == "map":
+            return " " * indent + "map(" + avscToPretty(avsc["values"], indent + 4).lstrip() + ")"
+
+        elif tpe == "record":
+            name = avsc["name"]
+            if "namespace" in avsc and len(avsc["namespace"]) > 0:
+                name = avsc["namespace"] + "." + name
+            fields = []
+            for f in avsc["fields"]:
+                fields.append(" " * (indent + 7) + f["name"] + ": " + avscToPretty(f["type"], indent + 7 + len(f["name"]) + 2).lstrip())
+            return " " * indent + "record(" + name + ",\n" + ",\n".join(fields) + ")"
+
+        elif tpe == "fixed":
+            name = avsc["name"]
+            if "namespace" in avsc and len(avsc["namespace"]) > 0:
+                name = avsc["namespace"] + "." + name
+            return " " * indent + "fixed(" + name + ", size: " + str(avsc["size"]) + ")"
+
+        elif tpe == "enum":
+            name = avsc["name"]
+            if "namespace" in avsc and len(avsc["namespace"]) > 0:
+                name = avsc["namespace"] + "." + name
+            return " " * indent + "enum(" + name + ", symbols: [" + ", ".join(x for x in avsc["symbols"]) + "])"
+
+        else:
+            raise TypeError("malformed Avro schema")
+
+    elif isinstance(avsc, (list, tuple)):
+        variants = []
+        for x in avsc:
+            variants.append(avscToPretty(x, indent + 6))
+        return " " * indent + "union(" + ",\n".join(variants).lstrip() + ")"
+
+    else:
+        raise TypeError("malformed Avro schema")

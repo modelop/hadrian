@@ -134,7 +134,7 @@ class Encoder(LibFcn):
     def __call__(self, state, scope, paramTypes, x):
         try:
             return codecs.encode(x, self.codec, "strict")
-        except UnicodeDecodeError:
+        except UnicodeEncodeError:
             raise PFARuntimeException("invalid string")
 
 class EncodeAscii(Encoder):

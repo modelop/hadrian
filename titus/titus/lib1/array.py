@@ -50,7 +50,7 @@ class Len(LibFcn):
     name = prefix + "len"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}], P.Int())
     def genpy(self, paramTypes, args):
-        return "len({})".format(*args)
+        return "len({0})".format(*args)
     def __call__(self, state, scope, paramTypes, a):
         return len(a)
 provide(Len())
@@ -59,7 +59,7 @@ class Subseq(LibFcn):
     name = prefix + "subseq"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"start": P.Int()}, {"end": P.Int()}], P.Array(P.Wildcard("A")))
     def genpy(self, paramTypes, args):
-        return "{}[{}:{}]".format(*args)
+        return "{0}[{1}:{2}]".format(*args)
     def __call__(self, state, scope, paramTypes, a, start, end):
         return a[start:end]
 provide(Subseq())
@@ -243,7 +243,7 @@ class Concat(LibFcn):
     name = prefix + "concat"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"b": P.Array(P.Wildcard("A"))}], P.Array(P.Wildcard("A")))
     def genpy(self, paramTypes, args):
-        return "({} + {})".format(*args)
+        return "({0} + {1})".format(*args)
     def __call__(self, state, scope, paramTypes, a, b):
         return a + b
 provide(Concat())
@@ -252,7 +252,7 @@ class Append(LibFcn):
     name = prefix + "append"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"item": P.Wildcard("A")}], P.Array(P.Wildcard("A")))
     def genpy(self, paramTypes, args):
-        return "({} + [{}])".format(*args)
+        return "({0} + [{1}])".format(*args)
     def __call__(self, state, scope, paramTypes, a, item):
         return a + [item]
 provide(Append())
@@ -694,7 +694,7 @@ class Distinct(LibFcn):
     name = prefix + "distinct"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}], P.Array(P.Wildcard("A")))
     def genpy(self, paramTypes, args):
-        return "list(set({}))".format(*args)
+        return "list(set({0}))".format(*args)
     def __call__(self, state, scope, paramTypes, a):
         return list(set(a))
 provide(Distinct())
@@ -703,7 +703,7 @@ class SetEq(LibFcn):
     name = prefix + "seteq"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"b": P.Array(P.Wildcard("A"))}], P.Boolean())
     def genpy(self, paramTypes, args):
-        return "(set({}) == set({}))".format(*args)
+        return "(set({0}) == set({1}))".format(*args)
     def __call__(self, state, scope, paramTypes, a, b):
         return set(a) == set(b)
 provide(SetEq())
@@ -712,7 +712,7 @@ class Union(LibFcn):
     name = prefix + "union"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"b": P.Array(P.Wildcard("A"))}], P.Array(P.Wildcard("A")))
     def genpy(self, paramTypes, args):
-        return "list(set({}).union(set({})))".format(*args)
+        return "list(set({0}).union(set({1})))".format(*args)
     def __call__(self, state, scope, paramTypes, a, b):
         return list(set(a).union(set(b)))
 provide(Union())
@@ -721,7 +721,7 @@ class Intersection(LibFcn):
     name = prefix + "intersection"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"b": P.Array(P.Wildcard("A"))}], P.Array(P.Wildcard("A")))
     def genpy(self, paramTypes, args):
-        return "list(set({}).intersection(set({})))".format(*args)
+        return "list(set({0}).intersection(set({1})))".format(*args)
     def __call__(self, state, scope, paramTypes, a, b):
         return list(set(a).intersection(set(b)))
 provide(Intersection())
@@ -730,7 +730,7 @@ class Diff(LibFcn):
     name = prefix + "diff"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"b": P.Array(P.Wildcard("A"))}], P.Array(P.Wildcard("A")))
     def genpy(self, paramTypes, args):
-        return "list(set({}).difference(set({})))".format(*args)
+        return "list(set({0}).difference(set({1})))".format(*args)
     def __call__(self, state, scope, paramTypes, a, b):
         return list(set(a).difference(set(b)))
 provide(Diff())
@@ -739,7 +739,7 @@ class SymDiff(LibFcn):
     name = prefix + "symdiff"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"b": P.Array(P.Wildcard("A"))}], P.Array(P.Wildcard("A")))
     def genpy(self, paramTypes, args):
-        return "list(set({}).symmetric_difference(set({})))".format(*args)
+        return "list(set({0}).symmetric_difference(set({1})))".format(*args)
     def __call__(self, state, scope, paramTypes, a, b):
         return list(set(a).symmetric_difference(set(b)))
 provide(SymDiff())
@@ -748,7 +748,7 @@ class Subset(LibFcn):
     name = prefix + "subset"
     sig = Sig([{"little": P.Array(P.Wildcard("A"))}, {"big": P.Array(P.Wildcard("A"))}], P.Boolean())
     def genpy(self, paramTypes, args):
-        return "(set({}).issubset(set({})))".format(*args)
+        return "(set({0}).issubset(set({1})))".format(*args)
     def __call__(self, state, scope, paramTypes, a, b):
         return set(a).issubset(set(b))
 provide(Subset())
@@ -757,7 +757,7 @@ class Disjoint(LibFcn):
     name = prefix + "disjoint"
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"b": P.Array(P.Wildcard("A"))}], P.Boolean())
     def genpy(self, paramTypes, args):
-        return "(set({}).isdisjoint(set({})))".format(*args)
+        return "(set({0}).isdisjoint(set({1})))".format(*args)
     def __call__(self, state, scope, paramTypes, a, b):
         return set(a).isdisjoint(set(b))
 provide(Disjoint())

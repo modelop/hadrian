@@ -221,10 +221,16 @@ package ast {
       lib1.metric.provides ++
       lib1.parse.provides ++
       lib1.prob.dist.provides ++
+      lib1.rand.provides ++
+      lib1.regex.provides ++
+      lib1.spec.provides ++
       lib1.string.provides ++
       lib1.stat.change.provides ++
       lib1.stat.sample.provides ++
+      lib1.time.provides ++ 
       lib1.model.cluster.provides ++
+      lib1.model.neighbor.provides ++
+      lib1.model.reg.provides ++
       lib1.model.tree.provides
     )  // TODO: ++ lib1.other.provides ++ lib1.stillother.provides
   }
@@ -260,6 +266,8 @@ package ast {
     override def hashCode(): Int
     def collect[X](pf: PartialFunction[Ast, X]): Seq[X] =
       if (pf.isDefinedAt(this)) List(pf.apply(this)) else List[X]()
+    def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this)) pf.apply(this) else this
 
     def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult)
     def walk(task: Task): TaskResult = walk(task, SymbolTable.blank, FunctionTable.blank, new EngineOptions(Map[String, JsonNode](), Map[String, JsonNode]()))._2
@@ -319,6 +327,29 @@ package ast {
         fcns.values.flatMap(_.collect(pf)) ++
         cells.values.flatMap(_.collect(pf)) ++
         pools.values.flatMap(_.collect(pf))
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        EngineConfig(name,
+                     method,
+                     inputPlaceholder,
+                     outputPlaceholder,
+                     begin.map(_.replace(pf).asInstanceOf[Expression]),
+                     action.map(_.replace(pf).asInstanceOf[Expression]),
+                     end.map(_.replace(pf).asInstanceOf[Expression]),
+                     fcns map {case (k, v) => (k, v.replace(pf).asInstanceOf[FcnDef])},
+                     zero,
+                     merge,
+                     cells map {case (k, v) => (k, v.replace(pf).asInstanceOf[Cell])},
+                     pools map {case (k, v) => (k, v.replace(pf).asInstanceOf[Pool])},
+                     randseed,
+                     doc,
+                     version,
+                     metadata,
+                     options,
+                     pos)
 
     if (action.size < 1)
       throw new PFASyntaxException("\"action\" must contain least one expression", pos)
@@ -707,6 +738,15 @@ package ast {
       super.collect(pf) ++
         body.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        FcnDef(paramsPlaceholder,
+               retPlaceholder,
+               body.map(_.replace(pf).asInstanceOf[Expression]),
+               pos)
+
     if (body.size < 1)
       throw new PFASyntaxException("function's \"do\" list must contain least one expression", pos)
 
@@ -810,6 +850,14 @@ package ast {
       super.collect(pf) ++
         fill.values.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        FcnRefFill(name,
+                   fill map {case (k, v) => (k, v.replace(pf).asInstanceOf[Argument])},
+                   pos)
+
     if (fill.size < 1)
       throw new PFASyntaxException("\"fill\" must contain at least one parameter name-argument mapping", pos)
 
@@ -887,6 +935,14 @@ package ast {
         name.collect(pf) ++
         args.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        CallUserFcn(name,
+                    args.map(_.replace(pf).asInstanceOf[Expression]),
+                    pos)
+
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
       val nameScope = symbolTable.newScope(true, true)
       val (nameContext: ExpressionContext, nameResult) = name.walk(task, nameScope, functionTable, engineOptions)
@@ -914,7 +970,7 @@ package ast {
         val fcn = functionTable.functions.get("u." + n) match {
           case Some(x: UserFcn) => x
           case Some(x) => throw new PFASemanticException("function \"%s\" is not a user function".format(n), pos)
-          case None => throw new PFASemanticException("unknown function \"%s\" in enumeration type (be sure to include \"u.\" to reference user functions)".format(n), pos)
+          case None => throw new PFASemanticException("unknown function \"%s\" in enumeration type".format(n), pos)
         }
         fcn.sig.accepts(argTypes) match {
           case Some((paramTypes, retType)) => {
@@ -968,6 +1024,14 @@ package ast {
     override def collect[X](pf: PartialFunction[Ast, X]): Seq[X] =
       super.collect(pf) ++
         args.flatMap(_.collect(pf))
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        Call(name,
+             args.map(_.replace(pf).asInstanceOf[Argument]),
+             pos)
 
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
       val fcn = functionTable.functions.get(name) match {
@@ -1264,6 +1328,15 @@ package ast {
       super.collect(pf) ++
         fields.values.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        NewObject(fields map {case (k, v) => (k, v.replace(pf).asInstanceOf[Expression])},
+                  avroPlaceholder,
+                  avroTypeBuilder,
+                  pos)
+
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
 
@@ -1332,6 +1405,15 @@ package ast {
       super.collect(pf) ++
         items.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        NewArray(items.map(_.replace(pf).asInstanceOf[Expression]),
+                 avroPlaceholder,
+                 avroTypeBuilder,
+                 pos)
+
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
 
@@ -1385,6 +1467,13 @@ package ast {
       super.collect(pf) ++
         body.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        Do(body.map(_.replace(pf).asInstanceOf[Expression]),
+           pos)
+
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" block must contain at least one expression", pos)
 
@@ -1429,6 +1518,13 @@ package ast {
     override def collect[X](pf: PartialFunction[Ast, X]): Seq[X] =
       super.collect(pf) ++
         values.values.flatMap(_.collect(pf))
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        Let(values map {case (k, v) => (k, v.replace(pf).asInstanceOf[Expression])},
+            pos)
 
     if (values.size < 1)
       throw new PFASyntaxException("\"let\" must contain at least one declaration", pos)
@@ -1497,6 +1593,13 @@ package ast {
       super.collect(pf) ++
         values.values.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        SetVar(values map {case (k, v) => (k, v.replace(pf).asInstanceOf[Expression])},
+               pos)
+
     if (values.size < 1)
       throw new PFASyntaxException("\"set\" must contain at least one assignment", pos)
 
@@ -1554,6 +1657,14 @@ package ast {
         expr.collect(pf) ++
         path.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        AttrGet(expr.replace(pf).asInstanceOf[Expression],
+                path.map(_.replace(pf).asInstanceOf[Expression]),
+                pos)
+
     if (path.size < 1)
       throw new PFASyntaxException("attr path must have at least one key", pos)
 
@@ -1602,6 +1713,15 @@ package ast {
         expr.collect(pf) ++
         path.flatMap(_.collect(pf)) ++
         to.collect(pf)
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        AttrTo(expr.replace(pf).asInstanceOf[Expression],
+               path.map(_.replace(pf).asInstanceOf[Expression]),
+               to.replace(pf).asInstanceOf[Argument],
+               pos)
 
     if (path.size < 1)
       throw new PFASyntaxException("attr path must have at least one key", pos)
@@ -1679,6 +1799,14 @@ package ast {
       super.collect(pf) ++
         path.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        CellGet(cell,
+                path.map(_.replace(pf).asInstanceOf[Expression]),
+                pos)
+
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
       val (cellType, shared) = symbolTable.cell(cell) match {
         case Some(x) => (x.avroType, x.shared)
@@ -1721,6 +1849,15 @@ package ast {
       super.collect(pf) ++
         path.flatMap(_.collect(pf)) ++
         to.collect(pf)
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        CellTo(cell,
+               path.map(_.replace(pf).asInstanceOf[Expression]),
+               to.replace(pf).asInstanceOf[Argument],
+               pos)
 
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
       val (cellType, shared) = symbolTable.cell(cell) match {
@@ -1793,6 +1930,14 @@ package ast {
       super.collect(pf) ++
         path.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        PoolGet(pool,
+                path.map(_.replace(pf).asInstanceOf[Expression]),
+                pos)
+
     if (path.size < 1)
       throw new PFASyntaxException("pool path must have at least one key", pos)
 
@@ -1837,6 +1982,16 @@ package ast {
         path.flatMap(_.collect(pf)) ++
         to.collect(pf) ++
         init.collect(pf)
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        PoolTo(pool,
+               path.map(_.replace(pf).asInstanceOf[Expression]),
+               to.replace(pf).asInstanceOf[Argument],
+               init.replace(pf).asInstanceOf[Expression],
+               pos)
 
     if (path.size < 1)
       throw new PFASyntaxException("pool path must have at least one key", pos)
@@ -1917,6 +2072,15 @@ package ast {
         predicate.collect(pf) ++
         thenClause.flatMap(_.collect(pf)) ++
         (if (elseClause == None) List[X]() else elseClause.get.flatMap(_.collect(pf)))
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        If(predicate.replace(pf).asInstanceOf[Expression],
+           thenClause.map(_.replace(pf).asInstanceOf[Expression]),
+           elseClause.map(x => x.map(_.replace(pf).asInstanceOf[Expression])),
+           pos)
 
     if (thenClause.size < 1)
       throw new PFASyntaxException("\"then\" clause must contain at least one expression", pos)
@@ -2011,6 +2175,14 @@ package ast {
       super.collect(pf) ++
         ifthens.flatMap(_.collect(pf)) ++
         (if (elseClause == None) List[X]() else elseClause.get.flatMap(_.collect(pf)))
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        Cond(ifthens.map(_.replace(pf).asInstanceOf[If]),
+             elseClause.map(x => x.map(_.replace(pf).asInstanceOf[Expression])),
+             pos)
 
     if (ifthens.size < 1)
       throw new PFASyntaxException("\"cond\" must contain at least one predicate-block pair", pos)
@@ -2116,6 +2288,14 @@ package ast {
         predicate.collect(pf) ++
         body.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        While(predicate.replace(pf).asInstanceOf[Expression],
+              body.map(_.replace(pf).asInstanceOf[Expression]),
+              pos)
+
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" block must contain at least one expression", pos)
 
@@ -2168,6 +2348,14 @@ package ast {
       super.collect(pf) ++
         body.flatMap(_.collect(pf)) ++
         predicate.collect(pf)
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        DoUntil(body.map(_.replace(pf).asInstanceOf[Expression]),
+                predicate.replace(pf).asInstanceOf[Expression],
+                pos)
 
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" block must contain at least one expression", pos)
@@ -2223,6 +2411,16 @@ package ast {
         predicate.collect(pf) ++
         step.values.flatMap(_.collect(pf)) ++
         body.flatMap(_.collect(pf))
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        For(init map {case (k, v) => (k, v.replace(pf).asInstanceOf[Expression])},
+            predicate.replace(pf).asInstanceOf[Expression],
+            step map {case (k, v) => (k, v.replace(pf).asInstanceOf[Expression])},
+            body.map(_.replace(pf).asInstanceOf[Expression]),
+            pos)
 
     if (init.size < 1)
       throw new PFASyntaxException("\"for\" must contain at least one declaration", pos)
@@ -2334,6 +2532,16 @@ package ast {
         array.collect(pf) ++
         body.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        Foreach(name,
+                array.replace(pf).asInstanceOf[Expression],
+                body.map(_.replace(pf).asInstanceOf[Expression]),
+                seq,
+                pos)
+
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" must contain at least one statement", pos)
 
@@ -2401,6 +2609,16 @@ package ast {
       super.collect(pf) ++
         map.collect(pf) ++
         body.flatMap(_.collect(pf))
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        Forkeyval(forkey,
+                  forval,
+                  map.replace(pf).asInstanceOf[Expression],
+                  body.map(_.replace(pf).asInstanceOf[Expression]),
+                  pos)
 
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" must contain at least one statement", pos)
@@ -2475,6 +2693,15 @@ package ast {
       super.collect(pf) ++
         body.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        CastCase(avroPlaceholder,
+                 named,
+                 body.map(_.replace(pf).asInstanceOf[Expression]),
+                 pos)
+
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" block must contain at least one expression", pos)
 
@@ -2522,6 +2749,15 @@ package ast {
       super.collect(pf) ++
         expr.collect(pf) ++
         castCases.flatMap(_.collect(pf))
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        CastBlock(expr.replace(pf).asInstanceOf[Expression],
+                  castCases.map(_.replace(pf).asInstanceOf[CastCase]),
+                  partial,
+                  pos)
 
     if (partial) {
       if (castCases.size < 1)
@@ -2614,6 +2850,14 @@ package ast {
       super.collect(pf) ++
         expr.collect(pf)
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        Upcast(expr.replace(pf).asInstanceOf[Expression],
+               avroPlaceholder,
+               pos)
+
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
       val scope = symbolTable.newScope(true, true)
       val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions)
@@ -2652,6 +2896,15 @@ package ast {
         exprs.values.flatMap(_.collect(pf)) ++
         thenClause.flatMap(_.collect(pf)) ++
         (if (elseClause == None) List[X]() else elseClause.get.flatMap(_.collect(pf)))
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        IfNotNull(exprs map {case (k, v) => (k, v.replace(pf).asInstanceOf[Expression])},
+                  thenClause.map(_.replace(pf).asInstanceOf[Expression]),
+                  elseClause.map(x => x.map(_.replace(pf).asInstanceOf[Expression])),
+                  pos)
 
     if (exprs.size < 1)
       throw new PFASyntaxException("\"ifnotnull\" must contain at least one symbol-expression mapping", pos)
@@ -2824,6 +3077,14 @@ package ast {
       super.collect(pf) ++
         exprs.flatMap(_.collect(pf))
 
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        Try(exprs.map(_.replace(pf).asInstanceOf[Expression]),
+            filter,
+            pos)
+
     if (exprs.size < 1)
       throw new PFASyntaxException("\"try\" block must contain at least one expression", pos)
 
@@ -2882,6 +3143,14 @@ package ast {
     override def collect[X](pf: PartialFunction[Ast, X]): Seq[X] =
       super.collect(pf) ++
         exprs.flatMap(_.collect(pf))
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        Log(exprs.map(_.replace(pf).asInstanceOf[Expression]),
+            namespace,
+            pos)
 
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
       val scope = symbolTable.newScope(true, true)

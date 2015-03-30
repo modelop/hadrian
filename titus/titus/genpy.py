@@ -159,6 +159,8 @@ class GeneratePython(titus.pfaast.Task):
         self.cells = cells
         self.pools = pools
         self.config = config
+        self.inputType = config.input
+        self.outputType = config.output
         self.options = options
         self.log = log
         self.emit = emit
@@ -194,7 +196,9 @@ class GeneratePython(titus.pfaast.Task):
                 commands = self.commandsFold(action, "            ")
 
             out.append("""
-    def action(self, input):
+    def action(self, input, check=True):
+        if check:
+            input = checkData(input, self.inputType)
         state = ExecutionState(self.options, self.rand, 'action', self.parser)
         scope = DynamicScope(None)
         for cell in self.cells.values():
@@ -278,10 +282,10 @@ class GeneratePython(titus.pfaast.Task):
             return "call(state, DynamicScope(None), self.f['u.' + " + context.name + "], [" + ", ".join(context.args) + "])"
 
         elif isinstance(context, Call.Context):
-            return context.fcn.genpy(context.paramTypes, context.args)
+            return context.fcn.genpy(context.paramTypes + [context.retType], context.args)
 
         elif isinstance(context, Ref.Context):
-            return "scope.get({})".format(repr(context.name))
+            return "scope.get({0})".format(repr(context.name))
 
         elif isinstance(context, LiteralNull.Context):
             return "None"
@@ -329,46 +333,46 @@ class GeneratePython(titus.pfaast.Task):
             return "get(" + context.expr + ", [" + self.reprPath(context.path) + "])"
 
         elif isinstance(context, AttrTo.Context):
-            return "update(state, scope, {}, [{}], {})".format(context.expr, self.reprPath(context.path), context.to)
+            return "update(state, scope, {0}, [{1}], {2})".format(context.expr, self.reprPath(context.path), context.to)
 
         elif isinstance(context, CellGet.Context):
-            return "get(self.cells[{}].value, [{}])".format(repr(context.cell), self.reprPath(context.path))
+            return "get(self.cells[{0}].value, [{1}])".format(repr(context.cell), self.reprPath(context.path))
 
         elif isinstance(context, CellTo.Context):
-            return "self.cells[{}].update(state, scope, [{}], {})".format(repr(context.cell), self.reprPath(context.path), context.to)
+            return "self.cells[{0}].update(state, scope, [{1}], {2})".format(repr(context.cell), self.reprPath(context.path), context.to)
 
         elif isinstance(context, PoolGet.Context):
-            return "get(self.pools[{}].value, [{}])".format(repr(context.pool), self.reprPath(context.path))
+            return "get(self.pools[{0}].value, [{1}])".format(repr(context.pool), self.reprPath(context.path))
 
         elif isinstance(context, PoolTo.Context):
-            return "self.pools[{}].update(state, scope, [{}], {}, {})".format(repr(context.pool), self.reprPath(context.path), context.to, context.init)
+            return "self.pools[{0}].update(state, scope, [{1}], {2}, {3})".format(repr(context.pool), self.reprPath(context.path), context.to, context.init)
 
         elif isinstance(context, If.Context):
             if context.elseClause is None:
-                return "ifThen(state, scope, lambda state, scope: {}, lambda state, scope: do({}))".format(context.predicate, ", ".join(context.thenClause))
+                return "ifThen(state, scope, lambda state, scope: {0}, lambda state, scope: do({1}))".format(context.predicate, ", ".join(context.thenClause))
             else:
-                return "ifThenElse(state, scope, lambda state, scope: {}, lambda state, scope: do({}), lambda state, scope: do({}))".format(context.predicate, ", ".join(context.thenClause), ", ".join(context.elseClause))
+                return "ifThenElse(state, scope, lambda state, scope: {0}, lambda state, scope: do({1}), lambda state, scope: do({2}))".format(context.predicate, ", ".join(context.thenClause), ", ".join(context.elseClause))
 
         elif isinstance(context, Cond.Context):
             if not context.complete:
-                return "cond(state, scope, [{}])".format(", ".join("(lambda state, scope: {}, lambda state, scope: do({}))".format(walkBlock.pred, ", ".join(walkBlock.exprs)) for walkBlock in context.walkBlocks))
+                return "cond(state, scope, [{0}])".format(", ".join("(lambda state, scope: {0}, lambda state, scope: do({1}))".format(walkBlock.pred, ", ".join(walkBlock.exprs)) for walkBlock in context.walkBlocks))
             else:
-                return "condElse(state, scope, [{}], lambda state, scope: do({}))".format(", ".join("(lambda state, scope: {}, lambda state, scope: do({}))".format(walkBlock.pred, ", ".join(walkBlock.exprs)) for walkBlock in context.walkBlocks[:-1]), ", ".join(context.walkBlocks[-1].exprs))
+                return "condElse(state, scope, [{0}], lambda state, scope: do({1}))".format(", ".join("(lambda state, scope: {0}, lambda state, scope: do({1}))".format(walkBlock.pred, ", ".join(walkBlock.exprs)) for walkBlock in context.walkBlocks[:-1]), ", ".join(context.walkBlocks[-1].exprs))
 
         elif isinstance(context, While.Context):
-            return "doWhile(state, scope, lambda state, scope: {}, lambda state, scope: do({}))".format(context.predicate, ", ".join(context.loopBody))
+            return "doWhile(state, scope, lambda state, scope: {0}, lambda state, scope: do({1}))".format(context.predicate, ", ".join(context.loopBody))
 
         elif isinstance(context, DoUntil.Context):
-            return "doUntil(state, scope, lambda state, scope: {}, lambda state, scope: do({}))".format(context.predicate, ", ".join(context.loopBody))
+            return "doUntil(state, scope, lambda state, scope: {0}, lambda state, scope: do({1}))".format(context.predicate, ", ".join(context.loopBody))
 
         elif isinstance(context, For.Context):
             return "doFor(state, scope, lambda state, scope: scope.let({" + ", ".join(repr(n) + ": " + e for n, t, e in context.initNameTypeExpr) + "}), lambda state, scope: " + context.predicate + ", lambda state, scope: scope.set({" + ", ".join(repr(n) + ": " + e for n, t, e in context.stepNameTypeExpr) + "}), lambda state, scope: do(" + ", ".join(context.loopBody) + "))"
 
         elif isinstance(context, Foreach.Context):
-            return "doForeach(state, scope, {}, {}, lambda state, scope: do({}))".format(repr(context.name), context.objExpr, ", ".join(context.loopBody))
+            return "doForeach(state, scope, {0}, {1}, lambda state, scope: do({2}))".format(repr(context.name), context.objExpr, ", ".join(context.loopBody))
 
         elif isinstance(context, Forkeyval.Context):
-            return "doForkeyval(state, scope, {}, {}, {}, lambda state, scope: do({}))".format(repr(context.forkey), repr(context.forval), context.objExpr, ", ".join(context.loopBody))
+            return "doForkeyval(state, scope, {0}, {1}, {2}, lambda state, scope: do({3}))".format(repr(context.forkey), repr(context.forval), context.objExpr, ", ".join(context.loopBody))
 
         elif isinstance(context, CastCase.Context):
             return "(" + repr(context.name) + ", " + repr(context.toType) + ", lambda state, scope: do(" + ", ".join(context.clause) + "))"
@@ -395,7 +399,7 @@ class GeneratePython(titus.pfaast.Task):
             return "tryCatch(state, scope, lambda state, scope: do(" + ", ".join(context.exprs) + "), " + repr(context.filter) + ")"
 
         elif isinstance(context, Log.Context):
-            return "self.log([{}], {})".format(", ".join(x[1] for x in context.exprTypes), repr(context.namespace))
+            return "self.log([{0}], {1})".format(", ".join(x[1] for x in context.exprTypes), repr(context.namespace))
 
         else:
             raise PFASemanticException("unrecognized context class: " + str(type(context)), "")
@@ -421,7 +425,7 @@ class ExecutionState(object):
 
     def checkTime(self):
         if self.timeout > 0 and (time.time() - self.startTime) * 1000 > self.timeout:
-            raise PFATimeoutException("exceeded timeout of {} milliseconds".format(self.timeout))
+            raise PFATimeoutException("exceeded timeout of {0} milliseconds".format(self.timeout))
 
 class SharedState(object):
     def __init__(self):
@@ -429,7 +433,7 @@ class SharedState(object):
         self.pools = {}
 
     def __repr__(self):
-        return "SharedState({} cells, {} pools)".format(len(self.cells), len(self.pools))
+        return "SharedState({0} cells, {1} pools)".format(len(self.cells), len(self.pools))
 
 class PersistentStorageItem(object):
     def __init__(self, value, shared, rollback):
@@ -530,9 +534,9 @@ def get(obj, path):
             obj = obj[head]
         except (KeyError, IndexError):
             if isinstance(obj, (list, tuple)):
-                raise PFARuntimeException("index {} out of bounds for array of size {}".format(head, len(obj)))
+                raise PFARuntimeException("index {0} out of bounds for array of size {1}".format(head, len(obj)))
             else:
-                raise PFARuntimeException("key \"{}\" not found in map with size {}".format(head, len(obj)))
+                raise PFARuntimeException("key \"{0}\" not found in map with size {1}".format(head, len(obj)))
         path = tail
 
     return obj
@@ -753,7 +757,7 @@ def checkForDeadlock(engineConfig, engine):
             return isinstance(ast, (CellTo, PoolTo)) and isinstance(ast.to, (FcnRef, FcnRefFill))
         def __call__(self, slotTo):
             if engine.hasSideEffects(slotTo.to.name):
-                raise PFAInitializationException("{} references function \"{}\", which has side-effects".format(slotTo.desc, slotTo.to.name))
+                raise PFAInitializationException("{0} references function \"{1}\", which has side-effects".format(slotTo.desc, slotTo.to.name))
     engineConfig.collect(WithFcnRef())
 
     class CellToOrPoolTo(object):
@@ -766,7 +770,7 @@ def checkForDeadlock(engineConfig, engine):
         def isDefinedAt(self, ast):
             return isinstance(ast, Call) and engine.hasSideEffects(ast.name)
         def __call__(self, call):
-            raise PFAInitializationException("inline function in cell-to or pool-to invokes function \"{}\", which has side-effects".format(call.name))
+            raise PFAInitializationException("inline function in cell-to or pool-to invokes function \"{0}\", which has side-effects".format(call.name))
 
     class WithFcnDef(object):
         def isDefinedAt(self, ast):
@@ -812,6 +816,8 @@ class PFAEngine(object):
                    "ifNotNullElse": ifNotNullElse,
                    "error": error,
                    "tryCatch": tryCatch,
+                   # Titus dependencies
+                   "checkData": titus.datatype.checkData,
                    # Python libraries
                    "math": math,
                    }
@@ -1002,7 +1008,7 @@ class FastAvroCorrector(object):
         elif isinstance(avroType, titus.datatype.AvroRecord):
             fields = avroType.fieldsDict
             if fields.keys() != x.keys():
-                raise KeyError("datum {} does not match record schema\n{}".format(x, avroType))
+                raise KeyError("datum {0} does not match record schema\n{1}".format(x, avroType))
             for key in fields:
                 x[key] = self.correctFastAvro(x[key], fields[key].avroType)
             return x

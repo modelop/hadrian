@@ -29,6 +29,7 @@ import numpy
 from titus.signature import LabelData
 from titus.datatype import ForwardDeclarationParser
 from titus.datatype import AvroUnion
+import titus.prettypfa
 
 class Dataset(object):
     """Canonical format for providing a dataset to the tree-builder.
@@ -56,7 +57,7 @@ class Dataset(object):
             self.data = []
 
         def __repr__(self):
-            return "<Dataset.Field of type {} at 0x{:08x}>".format("float" if self.tpe == numbers.Real else "str", id(self))
+            return "<Dataset.Field of type {0} at 0x{:08x}>".format("float" if self.tpe == numbers.Real else "str", id(self))
 
         def add(self, v):
             self.data.append(v)
@@ -140,9 +141,9 @@ class Dataset(object):
                     elif isinstance(word, basestring):
                         fields.append(cls.Field(basestring))
                     else:
-                        raise ValueError("record type must be a real number or a string, not {}".format(type(word)))
+                        raise ValueError("record type must be a real number or a string, not {0}".format(type(word)))
                 if names is None:
-                    formatter = "var{:0%dd}" % len(str(len(line)))
+                    formatter = "var{0:0%dd}" % len(str(len(line)))
                     names = [formatter.format(i) for i in xrange(len(line))]
                 else:
                     if len(names) != len(fields):
@@ -152,18 +153,18 @@ class Dataset(object):
                 break
 
             if len(line) != len(fields):
-                raise ValueError("number of columns in dataset is not the same as the first: {} on line {}".format(len(line), lineNumber))
+                raise ValueError("number of columns in dataset is not the same as the first: {0} on line {1}".format(len(line), lineNumber))
 
             for columnNumber, (word, field) in enumerate(zip(line, fields)):
                 if isinstance(word, field.tpe):
                     field.add(word)
                 else:
-                    raise ValueError("type of column {} in dataset is not the same as the first: {} on line {}".format(columnNumber, type(word), lineNumber))
+                    raise ValueError("type of column {0} in dataset is not the same as the first: {1} on line {2}".format(columnNumber, type(word), lineNumber))
 
         return cls([x.toNumpy() for x in fields], names)
 
     def __repr__(self):
-        return "<Dataset with {} fields at 0x{:08x}>".format(len(self.fields), id(self))
+        return "<Dataset with {0} fields at 0x{:08x}>".format(len(self.fields), id(self))
 
 class TreeNode(object):
     """Represents a tree node and applies the CART algorithm to build
@@ -666,11 +667,11 @@ class TreeNode(object):
             else:
                 if self.dataset.fields[fieldIndex].tpe == numbers.Real:
                     if field["type"] not in ("int", "long", "float", "double"):
-                        raise TypeError("dataType field \"{}\" must be a numeric type, since this was a numeric type in the dataset training".format(field["name"]))
+                        raise TypeError("dataType field \"{0}\" must be a numeric type, since this was a numeric type in the dataset training".format(field["name"]))
                     dataFieldTypes.append(field["type"])
                 elif self.dataset.fields[fieldIndex].tpe == basestring:
                     if field["type"] != "string":
-                        raise TypeError("dataType field \"{}\" must be a string, since this was a string in the dataset training".format(field["name"]))
+                        raise TypeError("dataType field \"{0}\" must be a string, since this was a string in the dataset training".format(field["name"]))
                     if self.maxSubsetSize == 1:
                         dataFieldTypes.append(field["type"])
                     else:
@@ -813,17 +814,26 @@ class TreeNode(object):
 
             return out
 
-    def pfaDocument(self, dataType, treeTypeName, nodeScores=False, datasetSize=False, predictandDistribution=False, predictandUnique=False, entropy=False, nTimesVariance=False, gain=False):
+    def pfaDocument(self, inputType, treeTypeName, dataType=None, preprocess=None, nodeScores=False, datasetSize=False, predictandDistribution=False, predictandUnique=False, entropy=False, nTimesVariance=False, gain=False):
         """Create a PFA document to score with this tree."""
 
+        if dataType is None:
+            dataType = inputType
+        dataTypeName = dataType["name"]
+
+        scoreType = self.pfaScoreType()
         treeType = self.pfaType(dataType, treeTypeName, nodeScores, datasetSize, predictandDistribution, predictandUnique, entropy, nTimesVariance, gain)
         treeValue = self.pfaValue(dataType, treeTypeName, nodeScores, datasetSize, predictandDistribution, predictandUnique, entropy, nTimesVariance, gain)
+        if preprocess is None:
+            preprocess = "input"
 
-        return OrderedDict([("input", dataType),
-                            ("output", self.pfaScoreType()),
-                            ("cells", {"tree": OrderedDict([("type", treeType), ("init", treeValue)])}),
-                            ("action", [{"model.tree.simpleWalk": ["input",
-                                                      {"cell": "tree"},
-                                                      OrderedDict([("params", [{"datum": dataType["name"]}, {"tree": treeTypeName}]),
-                                                                   ("ret", "boolean"),
-                                                                   ("do", {"model.tree.simpleTest": ["datum", "tree"]})])]}])])
+        return titus.prettypfa.jsonNode('''
+input: <<inputType>>
+output: <<scoreType>>
+cells:
+  tree(<<treeType>>) = <<treeValue>>
+action:
+  model.tree.simpleWalk(<<preprocess>>, tree,
+    fcn(d: <<dataTypeName>>, t: <<treeTypeName>> -> boolean)
+      model.tree.simpleTest(d, t))
+''', **vars())

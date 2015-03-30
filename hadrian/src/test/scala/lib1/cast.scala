@@ -28,6 +28,7 @@ import org.scalatest.Matchers
 
 import com.opendatagroup.hadrian.jvmcompiler._
 import com.opendatagroup.hadrian.errors._
+import com.opendatagroup.hadrian.data._
 import test.scala._
 
 @RunWith(classOf[JUnitRunner])
@@ -135,4 +136,340 @@ output: double
 action: {cast.double: input}
 """).head.action(java.lang.Double.valueOf(5.0)).asInstanceOf[java.lang.Double] should be (5.0)
   }
+
+  "array fanouts" must "do fanoutBoolean" taggedAs(Lib1, Lib1Cast) in {
+    val engine1 = PFAEngine.fromYaml("""
+input:
+  type: enum
+  name: Something
+  symbols: [zero, one, two, three, four, five, six, seven, eight, nine]
+output:
+  type: array
+  items: boolean
+action:
+  cast.fanoutBoolean: input
+""").head
+    engine1.action(engine1.fromJson(""""three"""", engine1.inputType)).asInstanceOf[PFAArray[Boolean]].toVector should be (Vector(false, false, false, true, false, false, false, false, false, false))
+
+    val engine2 = PFAEngine.fromYaml("""
+input: string
+output:
+  type: array
+  items: boolean
+cells:
+  dictionary:
+    type: {type: array, items: string}
+    init: [zero, one, two, three, four, five, six, seven, eight, nine]
+action:
+  cast.fanoutBoolean: [input, {cell: dictionary}, false]
+""").head
+    engine2.action("three").asInstanceOf[PFAArray[Boolean]].toVector should be (Vector(false, false, false, true, false, false, false, false, false, false))
+    engine2.action("sdfasdf").asInstanceOf[PFAArray[Boolean]].toVector should be (Vector(false, false, false, false, false, false, false, false, false, false))
+
+    val engine3 = PFAEngine.fromYaml("""
+input: string
+output:
+  type: array
+  items: boolean
+cells:
+  dictionary:
+    type: {type: array, items: string}
+    init: [zero, one, two, three, four, five, six, seven, eight, nine]
+action:
+  cast.fanoutBoolean: [input, {cell: dictionary}, true]
+""").head
+    engine3.action("three").asInstanceOf[PFAArray[Boolean]].toVector should be (Vector(false, false, false, true, false, false, false, false, false, false, false))
+    engine3.action("adfadfadf").asInstanceOf[PFAArray[Boolean]].toVector should be (Vector(false, false, false, false, false, false, false, false, false, false, true))
+
+    val engine4 = PFAEngine.fromYaml("""
+input: int
+output:
+  type: array
+  items: boolean
+action:
+  cast.fanoutBoolean: [input, 10, 20, false]
+""").head
+    engine4.action(java.lang.Integer.valueOf(13)).asInstanceOf[PFAArray[Boolean]].toVector should be (Vector(false, false, false, true, false, false, false, false, false, false))
+    engine4.action(java.lang.Integer.valueOf(999)).asInstanceOf[PFAArray[Boolean]].toVector should be (Vector(false, false, false, false, false, false, false, false, false, false))
+ 
+    val engine5 = PFAEngine.fromYaml("""
+input: int
+output:
+  type: array
+  items: boolean
+action:
+  cast.fanoutBoolean: [input, 10, 20, true]
+""").head
+    engine5.action(java.lang.Integer.valueOf(13)).asInstanceOf[PFAArray[Boolean]].toVector should be (Vector(false, false, false, true, false, false, false, false, false, false, false))
+    engine5.action(java.lang.Integer.valueOf(999)).asInstanceOf[PFAArray[Boolean]].toVector should be (Vector(false, false, false, false, false, false, false, false, false, false, true))
+ }
+
+  it must "do fanoutInt" taggedAs(Lib1, Lib1Cast) in {
+    val engine1 = PFAEngine.fromYaml("""
+input:
+  type: enum
+  name: Something
+  symbols: [zero, one, two, three, four, five, six, seven, eight, nine]
+output:
+  type: array
+  items: int
+action:
+  cast.fanoutInt: input
+""").head
+    engine1.action(engine1.fromJson(""""three"""", engine1.inputType)).asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 0, 0, 1, 0, 0, 0, 0, 0, 0))
+
+    val engine2 = PFAEngine.fromYaml("""
+input: string
+output:
+  type: array
+  items: int
+cells:
+  dictionary:
+    type: {type: array, items: string}
+    init: [zero, one, two, three, four, five, six, seven, eight, nine]
+action:
+  cast.fanoutInt: [input, {cell: dictionary}, false]
+""").head
+    engine2.action("three").asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 0, 0, 1, 0, 0, 0, 0, 0, 0))
+    engine2.action("sdfasdf").asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+
+    val engine3 = PFAEngine.fromYaml("""
+input: string
+output:
+  type: array
+  items: int
+cells:
+  dictionary:
+    type: {type: array, items: string}
+    init: [zero, one, two, three, four, five, six, seven, eight, nine]
+action:
+  cast.fanoutInt: [input, {cell: dictionary}, true]
+""").head
+    engine3.action("three").asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0))
+    engine3.action("adfadfadf").asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1))
+
+    val engine4 = PFAEngine.fromYaml("""
+input: int
+output:
+  type: array
+  items: int
+action:
+  cast.fanoutInt: [input, 10, 20, false]
+""").head
+    engine4.action(java.lang.Integer.valueOf(13)).asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 0, 0, 1, 0, 0, 0, 0, 0, 0))
+    engine4.action(java.lang.Integer.valueOf(999)).asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 0, 0, 0, 0, 0, 0, 0, 0, 0))
+ 
+    val engine5 = PFAEngine.fromYaml("""
+input: int
+output:
+  type: array
+  items: int
+action:
+  cast.fanoutInt: [input, 10, 20, true]
+""").head
+    engine5.action(java.lang.Integer.valueOf(13)).asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0))
+    engine5.action(java.lang.Integer.valueOf(999)).asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1))
+ }
+
+  it must "do fanoutLong" taggedAs(Lib1, Lib1Cast) in {
+    val engine1 = PFAEngine.fromYaml("""
+input:
+  type: enum
+  name: Something
+  symbols: [zero, one, two, three, four, five, six, seven, eight, nine]
+output:
+  type: array
+  items: long
+action:
+  cast.fanoutLong: input
+""").head
+    engine1.action(engine1.fromJson(""""three"""", engine1.inputType)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(0L, 0L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 0L))
+
+    val engine2 = PFAEngine.fromYaml("""
+input: string
+output:
+  type: array
+  items: long
+cells:
+  dictionary:
+    type: {type: array, items: string}
+    init: [zero, one, two, three, four, five, six, seven, eight, nine]
+action:
+  cast.fanoutLong: [input, {cell: dictionary}, false]
+""").head
+    engine2.action("three").asInstanceOf[PFAArray[Long]].toVector should be (Vector(0L, 0L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 0L))
+    engine2.action("sdfasdf").asInstanceOf[PFAArray[Long]].toVector should be (Vector(0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L))
+
+    val engine3 = PFAEngine.fromYaml("""
+input: string
+output:
+  type: array
+  items: long
+cells:
+  dictionary:
+    type: {type: array, items: string}
+    init: [zero, one, two, three, four, five, six, seven, eight, nine]
+action:
+  cast.fanoutLong: [input, {cell: dictionary}, true]
+""").head
+    engine3.action("three").asInstanceOf[PFAArray[Long]].toVector should be (Vector(0L, 0L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 0L, 0L))
+    engine3.action("adfadfadf").asInstanceOf[PFAArray[Long]].toVector should be (Vector(0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 1L))
+
+    val engine4 = PFAEngine.fromYaml("""
+input: int
+output:
+  type: array
+  items: long
+action:
+  cast.fanoutLong: [input, 10, 20, false]
+""").head
+    engine4.action(java.lang.Integer.valueOf(13)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(0L, 0L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 0L))
+    engine4.action(java.lang.Integer.valueOf(999)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L))
+ 
+    val engine5 = PFAEngine.fromYaml("""
+input: int
+output:
+  type: array
+  items: long
+action:
+  cast.fanoutLong: [input, 10, 20, true]
+""").head
+    engine5.action(java.lang.Integer.valueOf(13)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(0L, 0L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 0L, 0L))
+    engine5.action(java.lang.Integer.valueOf(999)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 0L, 1L))
+ }
+
+  it must "do fanoutFloat" taggedAs(Lib1, Lib1Cast) in {
+    val engine1 = PFAEngine.fromYaml("""
+input:
+  type: enum
+  name: Something
+  symbols: [zero, one, two, three, four, five, six, seven, eight, nine]
+output:
+  type: array
+  items: float
+action:
+  cast.fanoutFloat: input
+""").head
+    engine1.action(engine1.fromJson(""""three"""", engine1.inputType)).asInstanceOf[PFAArray[Float]].toVector should be (Vector(0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F))
+
+    val engine2 = PFAEngine.fromYaml("""
+input: string
+output:
+  type: array
+  items: float
+cells:
+  dictionary:
+    type: {type: array, items: string}
+    init: [zero, one, two, three, four, five, six, seven, eight, nine]
+action:
+  cast.fanoutFloat: [input, {cell: dictionary}, false]
+""").head
+    engine2.action("three").asInstanceOf[PFAArray[Float]].toVector should be (Vector(0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F))
+    engine2.action("sdfasdf").asInstanceOf[PFAArray[Float]].toVector should be (Vector(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F))
+
+    val engine3 = PFAEngine.fromYaml("""
+input: string
+output:
+  type: array
+  items: float
+cells:
+  dictionary:
+    type: {type: array, items: string}
+    init: [zero, one, two, three, four, five, six, seven, eight, nine]
+action:
+  cast.fanoutFloat: [input, {cell: dictionary}, true]
+""").head
+    engine3.action("three").asInstanceOf[PFAArray[Float]].toVector should be (Vector(0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F))
+    engine3.action("adfadfadf").asInstanceOf[PFAArray[Float]].toVector should be (Vector(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F))
+
+    val engine4 = PFAEngine.fromYaml("""
+input: int
+output:
+  type: array
+  items: float
+action:
+  cast.fanoutFloat: [input, 10, 20, false]
+""").head
+    engine4.action(java.lang.Integer.valueOf(13)).asInstanceOf[PFAArray[Float]].toVector should be (Vector(0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F))
+    engine4.action(java.lang.Integer.valueOf(999)).asInstanceOf[PFAArray[Float]].toVector should be (Vector(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F))
+ 
+    val engine5 = PFAEngine.fromYaml("""
+input: int
+output:
+  type: array
+  items: float
+action:
+  cast.fanoutFloat: [input, 10, 20, true]
+""").head
+    engine5.action(java.lang.Integer.valueOf(13)).asInstanceOf[PFAArray[Float]].toVector should be (Vector(0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F))
+    engine5.action(java.lang.Integer.valueOf(999)).asInstanceOf[PFAArray[Float]].toVector should be (Vector(0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 1.0F))
+ }
+
+  it must "do fanoutDouble" taggedAs(Lib1, Lib1Cast) in {
+    val engine1 = PFAEngine.fromYaml("""
+input:
+  type: enum
+  name: Something
+  symbols: [zero, one, two, three, four, five, six, seven, eight, nine]
+output:
+  type: array
+  items: double
+action:
+  cast.fanoutDouble: input
+""").head
+    engine1.action(engine1.fromJson(""""three"""", engine1.inputType)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+
+    val engine2 = PFAEngine.fromYaml("""
+input: string
+output:
+  type: array
+  items: double
+cells:
+  dictionary:
+    type: {type: array, items: string}
+    init: [zero, one, two, three, four, five, six, seven, eight, nine]
+action:
+  cast.fanoutDouble: [input, {cell: dictionary}, false]
+""").head
+    engine2.action("three").asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    engine2.action("sdfasdf").asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+
+    val engine3 = PFAEngine.fromYaml("""
+input: string
+output:
+  type: array
+  items: double
+cells:
+  dictionary:
+    type: {type: array, items: string}
+    init: [zero, one, two, three, four, five, six, seven, eight, nine]
+action:
+  cast.fanoutDouble: [input, {cell: dictionary}, true]
+""").head
+    engine3.action("three").asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    engine3.action("adfadfadf").asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0))
+
+    val engine4 = PFAEngine.fromYaml("""
+input: int
+output:
+  type: array
+  items: double
+action:
+  cast.fanoutDouble: [input, 10, 20, false]
+""").head
+    engine4.action(java.lang.Integer.valueOf(13)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    engine4.action(java.lang.Integer.valueOf(999)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+ 
+    val engine5 = PFAEngine.fromYaml("""
+input: int
+output:
+  type: array
+  items: double
+action:
+  cast.fanoutDouble: [input, 10, 20, true]
+""").head
+    engine5.action(java.lang.Integer.valueOf(13)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    engine5.action(java.lang.Integer.valueOf(999)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0))
+ }
+  
 }

@@ -27,7 +27,7 @@ limitations under the License.
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian</artifactId>
-  <version>0.5.9</version>
+  <version>0.6.2</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -48,23 +48,6 @@ limitations under the License.
   </properties>
 
   <dependencies>
-    <!-- Real dependencies for the jar: 11 MB -->
-
-    <!-- avro-1.7.7.jar -->
-    <!-- commons-compiler-2.7.4.jar -->
-    <!-- commons-compress-1.4.1.jar -->
-    <!-- commons-lang3-3.2.1.jar -->
-    <!-- ejml-0.24.jar -->
-    <!-- jackson-core-asl-1.9.13.jar -->
-    <!-- jackson-mapper-asl-1.9.13.jar -->
-    <!-- janino-2.7.4.jar -->
-    <!-- paranamer-2.3.jar -->
-    <!-- scala-library-2.10.4.jar -->
-    <!-- slf4j-api-1.6.4.jar -->
-    <!-- snakeyaml-1.13.jar -->
-    <!-- snappy-java-1.0.5.jar -->
-    <!-- xz-1.0.jar -->
-
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
@@ -125,11 +108,23 @@ limitations under the License.
         <version>0.24</version>
     </dependency>
 
-    <!-- Dependencies for testing only: 7 MB -->
+    <dependency>
+        <groupId>org.jruby.joni</groupId>
+        <artifactId>joni</artifactId>
+        <version>2.1.4</version>
+    </dependency>
 
-    <!-- hamcrest-core-1.3.jar -->
-    <!-- junit-4.11.jar -->
-    <!-- scalatest_2.10-2.0.M6-SNAP36.jar -->
+    <dependency>
+        <groupId>joda-time</groupId>
+        <artifactId>joda-time</artifactId>
+        <version>2.7</version>
+    </dependency>
+
+    <dependency>
+        <groupId>org.joda</groupId>
+        <artifactId>joda-convert</artifactId>
+        <version>1.7</version>
+    </dependency>
 
     <dependency>
       <groupId>junit</groupId>
@@ -205,16 +200,23 @@ limitations under the License.
           <junitxml>.</junitxml>
 
 <tagsToInclude>
-    JVMCompilation
+    Lib1ModelNeighbor
 </tagsToInclude>
 
 <tagsToExclude>
     AstToJson
     Data
+    JsonToAst
+    JVMCompilation
+    RandomJson
+    Shared
+    SignatureMatch
     DataType
     DumpState
-    JsonToAst
-
+    TypeCheck
+    Yaml
+    MultiThreaded
+    MakeDocsLatex
     Lib1Array
     Lib1Bytes
     Lib1Cast
@@ -226,23 +228,22 @@ limitations under the License.
     Lib1Map
     Lib1Math
     Lib1Metric
-    Lib1ModelCluster
-    Lib1ModelTree
     Lib1Parse
+    Lib1Rand
+    Lib1Regex
+    Lib1Spec
+    Lib1String
+    Lib1Time
     Lib1ProbDist
-    Lib1Record
     Lib1StatChange
     Lib1StatSample
-    Lib1String
-    MakeDocsLatex
-    MultiThreaded
-    RandomJson
-    Shared
-    SignatureMatch
+    Lib1ModelCluster
+
+    Lib1ModelReg
+    Lib1ModelTree
+
     Speed
     ThreadSafety
-    TypeCheck
-    Yaml
 </tagsToExclude>
 
         </configuration>
@@ -273,6 +274,16 @@ limitations under the License.
           </execution>
         </executions>
       </plugin>
+
+
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+        <version>2.3.1</version>
+        <configuration>
+          <createChecksum>true</createChecksum>
+        </configuration>
+      </plugin>
+
 
     </plugins>
 

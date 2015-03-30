@@ -52,6 +52,7 @@ import org.apache.avro.specific.SpecificRecord
 import org.apache.avro.specific.SpecificRecordBase
 
 import com.opendatagroup.hadrian.errors.PFARuntimeException
+import com.opendatagroup.hadrian.errors.PFAInitializationException
 import com.opendatagroup.hadrian.jvmcompiler.JVMNameMangle
 import com.opendatagroup.hadrian.shared.PathIndex
 import com.opendatagroup.hadrian.shared.I
@@ -188,7 +189,7 @@ package data {
 
   /////////////////////////// replace Avro's in-memory data representation with our own classes
 
-  class PFAGenericData(classLoader: java.lang.ClassLoader) extends GenericData(classLoader) {
+  class PFAGenericData(classLoader: java.lang.ClassLoader) extends GenericData() {
     override def isBytes(datum: AnyRef): Boolean = datum.isInstanceOf[Array[Byte]]
 
     override def deepCopy[X](schema: Schema, value: X): X =
@@ -742,6 +743,143 @@ package data {
     def translate(datum: AnyRef): AnyRef = translator.translate(datum)
   }
 
+  object AvroDataTranslator {
+    // assumes input type is exactly the same: x.accepts(y) and y.accepts(x)
+    trait Translator {
+      def translate(datum: AnyRef): AnyRef
+    }
+
+    def unbox(value: AnyRef): Any = value match {
+      case x: java.lang.Boolean => x.booleanValue
+      case x: java.lang.Integer => x.intValue
+      case x: java.lang.Long => x.longValue
+      case x: java.lang.Float => x.floatValue
+      case x: java.lang.Double => x.doubleValue
+      case x => x
+    }
+
+    class PassThrough extends Translator {
+      def translate(datum: AnyRef): AnyRef = datum
+    }
+
+    class TranslateBytes extends Translator {
+      def translate(datum: AnyRef): AnyRef = {
+        val avroDatum = datum.asInstanceOf[java.nio.ByteBuffer]
+        avroDatum.array
+      }
+    }
+
+    class TranslateString extends Translator {
+      def translate(datum: AnyRef): AnyRef = datum match {
+        case x: String => x
+        case x: java.lang.CharSequence => x.toString
+      }
+    }
+
+    class TranslateFixed(avroFixed: AvroFixed, classLoader: java.lang.ClassLoader) extends Translator {
+      val constructor = classLoader.loadClass(avroFixed.fullName).getConstructor(classOf[Array[Byte]])
+      constructor.setAccessible(true)
+      def translate(datum: AnyRef): AnyRef = {
+        val avroDatum = datum.asInstanceOf[org.apache.avro.generic.GenericFixed]
+        constructor.newInstance(avroDatum.bytes).asInstanceOf[AnyRef]
+      }
+    }
+
+    class TranslateEnum(avroEnum: AvroEnum, classLoader: java.lang.ClassLoader) extends Translator {
+      val constructor = classLoader.loadClass(avroEnum.fullName).getConstructor(classOf[Schema], classOf[String])
+      constructor.setAccessible(true)
+      def translate(datum: AnyRef): AnyRef = {
+        val avroDatum = datum.asInstanceOf[org.apache.avro.generic.GenericEnumSymbol]
+        constructor.newInstance(avroEnum.schema, avroDatum.toString).asInstanceOf[AnyRef]
+      }
+    }
+
+    class TranslateArray(items: Translator) extends Translator {
+      def translate(datum: AnyRef): AnyRef = {
+        val avroDatum = datum.asInstanceOf[java.util.List[AnyRef]]
+        PFAArray.fromVector(avroDatum.toVector map {x => unbox(items.translate(x))})
+      }
+    }
+
+    class TranslateMap(values: Translator) extends Translator {
+      def translate(datum: AnyRef): AnyRef = {
+        val avroDatum = datum.asInstanceOf[java.util.Map[String, AnyRef]]
+        PFAMap.fromMap(avroDatum.toMap map {case (key, x) => (key, values.translate(x))})
+      }
+    }
+
+    class TranslateRecord(avroRecord: AvroRecord, classLoader: java.lang.ClassLoader) extends Translator {
+      val fieldNames = avroRecord.fields map {field => field.name} toArray
+      val fieldTranslators = avroRecord.fields map {field => getTranslator(field.avroType, classLoader)} toArray
+
+      val constructor = classLoader.loadClass(avroRecord.fullName).getConstructor(classOf[Array[AnyRef]])
+      constructor.setAccessible(true)
+
+      def translate(datum: AnyRef): AnyRef = {
+        val avroDatum = datum.asInstanceOf[org.apache.avro.generic.GenericRecord]
+        val convertedFields = Array.fill[AnyRef](fieldNames.size)(null)
+        var index = 0
+        while (index < fieldNames.size) {
+          val avroData = avroDatum.get(fieldNames(index))
+          val convertedData = fieldTranslators(index).translate(avroData)
+          convertedFields(index) = convertedData
+          index += 1
+        }
+        constructor.newInstance(convertedFields).asInstanceOf[AnyRef]
+      }
+    }
+
+    class TranslateUnion(translator: PartialFunction[AnyRef, AnyRef]) extends Translator {
+      def translate(datum: AnyRef): AnyRef = translator(datum)
+    }
+
+    def getTranslator(avroType: AvroType, classLoader: java.lang.ClassLoader): Translator = avroType match {
+      case _: AvroNull => new PassThrough
+      case _: AvroBoolean => new PassThrough
+      case _: AvroInt => new PassThrough
+      case _: AvroLong => new PassThrough
+      case _: AvroFloat => new PassThrough
+      case _: AvroDouble => new PassThrough
+
+      case _: AvroBytes => new TranslateBytes
+      case _: AvroString => new TranslateString
+
+      case x: AvroFixed => new TranslateFixed(x, classLoader)
+      case x: AvroEnum => new TranslateEnum(x, classLoader)
+
+      case x: AvroArray =>
+        val items = getTranslator(x.items, classLoader)
+        new TranslateArray(items)
+
+      case x: AvroMap =>
+        val values = getTranslator(x.values, classLoader)
+        new TranslateMap(values)
+
+      case x: AvroRecord => new TranslateRecord(x, classLoader)
+
+      case x: AvroUnion =>
+        val types = x.types map {y => getTranslator(y, classLoader)}
+        val translators =
+          types collect {
+            case y: TranslateBytes => PartialFunction[AnyRef, AnyRef]({case datum: java.nio.ByteBuffer => y.translate(datum)})
+            case y: TranslateString => PartialFunction[AnyRef, AnyRef]({case datum: java.lang.CharSequence => y.translate(datum)})
+            case y: TranslateFixed => PartialFunction[AnyRef, AnyRef]({case datum: org.apache.avro.generic.GenericFixed => y.translate(datum)})
+            case y: TranslateEnum => PartialFunction[AnyRef, AnyRef]({case datum: org.apache.avro.generic.GenericEnumSymbol => y.translate(datum)})
+            case y: TranslateArray => PartialFunction[AnyRef, AnyRef]({case datum: java.util.List[_] => y.translate(datum)})
+            case y: TranslateMap => PartialFunction[AnyRef, AnyRef]({case datum: java.util.Map[_, _] => y.translate(datum)})
+            case y: TranslateRecord => PartialFunction[AnyRef, AnyRef]({case datum: org.apache.avro.generic.GenericRecord => y.translate(datum)})
+          }
+        if (translators.isEmpty)
+          new PassThrough
+        else
+          new TranslateUnion(translators reduce {_ orElse _})
+    }
+  }
+  class AvroDataTranslator(avroType: AvroType, classLoader: java.lang.ClassLoader) {
+    val translator = AvroDataTranslator.getTranslator(avroType, classLoader)
+    def translate(datum: AnyRef): AnyRef = translator.translate(datum)
+  }
+
   object ScalaDataTranslator {
     // assumes input type is exactly the same: x.accepts(y) and y.accepts(x)
     trait Translator[X] {
@@ -977,7 +1115,12 @@ package object data {
   def avroInputIterator[X](inputStream: InputStream, inputType: AvroType): DataFileStream[X] = {    // DataFileStream is a java.util.Iterator
     val schema = inputType.schema
     val reader = new GenericPFADatumReader[X](schema, genericData)
-    new DataFileStream[X](inputStream, reader)
+    val out = new DataFileStream[X](inputStream, reader)
+    
+    val fileSchema = AvroConversions.schemaToAvroType(out.getSchema)
+    if (!inputType.accepts(fileSchema))
+      throw new PFAInitializationException("InputStream has schema %s\nbut expecting schema %s".format(fileSchema, inputType))
+    out
   }
 
   def jsonInputIterator[X](inputStream: InputStream, inputType: AvroType): java.util.Iterator[X] = {
@@ -1025,22 +1168,31 @@ package object data {
     }
   }
 
-  trait OutputDataFileWriter {
+  trait OutputDataStream {
     def append(datum: AnyRef): Unit
     def flush(): Unit
     def close(): Unit
   }
+  
+  class AvroOutputDataStream(writer: DatumWriter[AnyRef]) extends DataFileWriter[AnyRef](writer) with OutputDataStream
 
-  class AvroOutputDataFileWriter(writer: DatumWriter[AnyRef]) extends DataFileWriter[AnyRef](writer) with OutputDataFileWriter
-
-  def avroOutputDataFileWriter(fileName: String, outputType: AvroType): AvroOutputDataFileWriter = {
+  def avroOutputDataStream(outputStream: java.io.OutputStream, outputType: AvroType): AvroOutputDataStream = {
     val writer = new GenericPFADatumWriter[AnyRef](outputType.schema, genericData)
-    val out = new AvroOutputDataFileWriter(writer)
-    out.create(outputType.schema, new java.io.File(fileName))
+    val out = new AvroOutputDataStream(writer)
+    out.create(outputType.schema, outputStream)
     out
   }
 
-  class JsonOutputDataFileWriter(writer: DatumWriter[AnyRef], encoder: JsonEncoder, outputStream: java.io.OutputStream) extends OutputDataFileWriter {
+  def avroOutputDataStream(file: java.io.File, outputType: AvroType): AvroOutputDataStream = {
+    val writer = new GenericPFADatumWriter[AnyRef](outputType.schema, genericData)
+    val out = new AvroOutputDataStream(writer)
+    out.create(outputType.schema, file)
+    out
+  }
+
+  def avroOutputDataStream(fileName: String, outputType: AvroType): AvroOutputDataStream = avroOutputDataStream(new java.io.File(fileName), outputType)
+
+  class JsonOutputDataStream(writer: DatumWriter[AnyRef], encoder: JsonEncoder, outputStream: java.io.OutputStream) extends OutputDataStream {
     def append(obj: AnyRef): Unit = writer.write(obj, encoder)
     def flush(): Unit = encoder.flush()
     def close(): Unit = {
@@ -1049,10 +1201,28 @@ package object data {
     }
   }
 
-  def jsonOutputDataFileWriter(fileName: String, outputType: AvroType): JsonOutputDataFileWriter = {
-    val outputStream = new java.io.FileOutputStream(fileName)
+  def jsonOutputDataStream(outputStream: java.io.OutputStream, outputType: AvroType, writeSchema: Boolean): JsonOutputDataStream = {
     val encoder = EncoderFactory.get.jsonEncoder(outputType.schema, outputStream)
     val writer = new GenericPFADatumWriter[AnyRef](outputType.schema, genericData)
-    new JsonOutputDataFileWriter(writer, encoder, outputStream)
+    val out = new JsonOutputDataStream(writer, encoder, outputStream)
+    if (writeSchema) {
+      outputStream.write(outputType.toJson.getBytes("utf-8"))
+      outputStream.write("\n".getBytes("utf-8"))
+    }
+    out
   }
+
+  def jsonOutputDataStream(file: java.io.File, outputType: AvroType, writeSchema: Boolean): JsonOutputDataStream = {
+    val outputStream = new java.io.FileOutputStream(file)
+    val encoder = EncoderFactory.get.jsonEncoder(outputType.schema, outputStream)
+    val writer = new GenericPFADatumWriter[AnyRef](outputType.schema, genericData)
+    val out = new JsonOutputDataStream(writer, encoder, outputStream)
+    if (writeSchema) {
+      outputStream.write(outputType.toJson.getBytes("utf-8"))
+      outputStream.write("\n".getBytes("utf-8"))
+    }
+    out
+  }
+
+  def jsonOutputDataStream(fileName: String, outputType: AvroType, writeSchema: Boolean): JsonOutputDataStream = jsonOutputDataStream(new java.io.File(fileName), outputType, writeSchema)
 }

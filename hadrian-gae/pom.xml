@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <name>hadrian-gae</name>
-  <description>Google App Engine envelope for Hadrian</description>
+  <description>PFA container that runs in Google App Engine</description>
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian-gae</artifactId>

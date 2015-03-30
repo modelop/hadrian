@@ -169,7 +169,7 @@ class LabelData(object):
         return out
 
     def __repr__(self):
-        return "<titus.signature.LabelData {} at {}>".format(self.members, "0x%x" % id(self))
+        return "<titus.signature.LabelData {0} at {1}>".format(self.members, "0x%x" % id(self))
 
 class Signature(object):
     def accepts(self, args):

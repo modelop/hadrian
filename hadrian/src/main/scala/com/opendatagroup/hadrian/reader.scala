@@ -116,6 +116,8 @@ import com.opendatagroup.hadrian.yaml.yamlToJson
 package reader {
   object jsonToAst extends Function1[String, EngineConfig] {
     private val jsonFactory = new JsonFactory
+    jsonFactory.enable(JsonParser.Feature.ALLOW_NON_NUMERIC_NUMBERS)
+
     private val objectMapper = new ObjectMapper
     jsonFactory.setCodec(objectMapper)
 

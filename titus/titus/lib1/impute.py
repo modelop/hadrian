@@ -41,7 +41,10 @@ class ErrorOnNull(LibFcn):
         if x is None:
             raise PFARuntimeException("encountered null")
         else:
-            return x
+            if isinstance(paramTypes[-1], (list, tuple)):
+                return x
+            else:
+                return x.values()[0]
 provide(ErrorOnNull())
 
 class DefaultOnNull(LibFcn):
@@ -51,7 +54,10 @@ class DefaultOnNull(LibFcn):
         if x is None:
             return default
         else:
-            return x
+            if isinstance(paramTypes[-1], (list, tuple)):
+                return x
+            else:
+                return x.values()[0]
 provide(DefaultOnNull())
 
 class IsNan(LibFcn):

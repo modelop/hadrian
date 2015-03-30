@@ -271,11 +271,11 @@ def fromType(t, memo=None):
     elif isinstance(t, AvroMap): return Map(fromType(t.values, memo))
     elif isinstance(t, AvroUnion): return Union([fromType(x, memo) for x in t.types])
 
-    elif isinstance(t, AvroFixed) and t.namespace is not None: return Fixed(t.size, t.namespace + "." + t.name)
+    elif isinstance(t, AvroFixed) and t.namespace is not None and t.namespace != "": return Fixed(t.size, t.namespace + "." + t.name)
     elif isinstance(t, AvroFixed): return Fixed(t.size, t.name)
-    elif isinstance(t, AvroEnum) and t.namespace is not None: return Enum(t.symbols, t.namespace + "." + t.name)
+    elif isinstance(t, AvroEnum) and t.namespace is not None and t.namespace != "": return Enum(t.symbols, t.namespace + "." + t.name)
     elif isinstance(t, AvroEnum): return Enum(t.symbols, t.name)
-    elif isinstance(t, AvroRecord) and t.namespace is not None:
+    elif isinstance(t, AvroRecord) and t.namespace is not None and t.namespace != "":
         name = t.namespace + "." + t.name
         if name in memo:
             return Record({}, name)

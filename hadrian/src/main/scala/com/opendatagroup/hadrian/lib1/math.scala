@@ -18,8 +18,6 @@
 
 package com.opendatagroup.hadrian.lib1
 
-import org.apache.commons.math3.special
-
 import com.opendatagroup.hadrian.ast.LibFcn
 import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.jvmcompiler.JavaCode
@@ -495,16 +493,29 @@ package object math {
 
   //////////////////////////////////////////////////////////////////// special functions
 
-  ////   erf (Erf)
-  object SpecialErf extends LibFcn {
-    val name = prefix + "special.erf"
-    val sig = Sig(List("x" -> P.Double), P.Double)
-    val doc =
-      <doc>
-        <desc>Return the error function of <p>x</p>.</desc>{wholeLine()}
-      </doc>
-    def apply(x: Double): Double = special.Erf.erf(x)
-  }
-  provide(SpecialErf)
+  // ////   erf (Erf)
+  // object SpecialErf extends LibFcn {
+  //   val a1: Double =  0.254829592
+  //   val a2: Double = -0.284496736
+  //   val a3: Double =  1.421413741
+  //   val a4: Double = -1.453152027
+  //   val a5: Double =  1.061405429
+  //   val  p: Double =  0.3275911
 
+  //   val name = prefix + "special.erf"
+  //   val sig = Sig(List("x" -> P.Double), P.Double)
+  //   val doc =
+  //     <doc>
+  //       <desc>Return the error function of <p>x</p>.</desc>{wholeLine()}
+  //     </doc>
+  //   def apply(x: Double): Double = {
+  //     val sign = if (x < 0.0) -1.0 else 1.0
+  //     val absx =  Math.abs(x)
+
+  //     val t = 1.0/(1.0 + p*absx)
+  //     val y = 1.0 - (((((a5*t + a4)*t + a3)*t + a2)*t + a1)*t * Math.exp(-x*x))
+  //     sign*y
+  //   }
+  // }
+  // provide(SpecialErf)
 }

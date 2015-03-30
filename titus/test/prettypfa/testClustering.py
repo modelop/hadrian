@@ -32,7 +32,7 @@ from titus.producer.kmeans import *
 
 class TestClustering(unittest.TestCase):
     # most examples use the same clusters; only compute them the first time
-    clusterNames = ["cluster{:d}".format(x) for x in range(5)]
+    clusterNames = ["cluster{0:d}".format(x) for x in range(5)]
     kmeansResult = None
 
     def doKmeans(self):

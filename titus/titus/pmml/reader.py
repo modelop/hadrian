@@ -59,7 +59,7 @@ class PmmlContentHandler(xml.sax.handler.ContentHandler):
                 if where is not None:
                     where.append(newElement)
                 else:
-                    raise ValueError("cannot place {} under {} in PMML {}".format(name, self.stack[-1].tag, self.version))
+                    raise ValueError("cannot place {0} under {1} in PMML {2}".format(name, self.stack[-1].tag, self.version))
 
             self.stack.append(newElement)
 
@@ -88,7 +88,7 @@ class PmmlContentHandler(xml.sax.handler.ContentHandler):
             self.namespace = titus.pmml.version_4_2.namespace
             self.tagToClass = titus.pmml.version_4_2.tagToClass
         else:
-            raise NotImplementedError("PMML version {} is not supported (only 3.2, 4.0, 4.0.1, 4.1, and 4.2)".format(version))
+            raise NotImplementedError("PMML version {0} is not supported (only 3.2, 4.0, 4.0.1, 4.1, and 4.2)".format(version))
 
     def characters(self, text):
         if len(self.stack) > 0:

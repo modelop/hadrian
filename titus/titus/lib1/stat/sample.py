@@ -58,7 +58,7 @@ class UpdateMeanVariance(LibFcn):
             level = 2
         elif (hasMean, hasVariance) == (False, True):
             raise PFASemanticException(prefix + "update with \"variance\" must also have \"mean\" in the state record type", None)
-        return "self.f[{}]({}, {})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args), level)
+        return "self.f[{0}]({1}, {2})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args), level)
 
 class Update(UpdateMeanVariance):
     name = prefix + "update"
@@ -277,7 +277,7 @@ class UpdateEWMA(LibFcn):
                 if not x.avroType.accepts(AvroDouble()):
                     raise PFASemanticException(self.name + " is being given a state record type in which the \"variance\" field is not a double: " + str(x.avroType), None)
                 hasVariance = True
-        return "self.f[{}]({}, {})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args), hasVariance)
+        return "self.f[{0}]({1}, {2})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args), hasVariance)
 
     def __call__(self, state, scope, paramTypes, x, alpha, theState, hasVariance):
         if alpha < 0.0 or alpha > 1.0:
@@ -362,7 +362,7 @@ class Forecast1HoltWinters(LibFcn):
         if hasCycle ^ hasMultiplicative:
             raise PFASemanticException(self.name + " is being given a state record type with a \"cycle\" but no \"multiplicative\" or vice-versa", None)
 
-        return "self.f[{}]({}, {})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args), hasCycle)
+        return "self.f[{0}]({1}, {2})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args), hasCycle)
 
     def __call__(self, state, scope, paramTypes, theState, hasPeriodic):
         level = theState["level"]
@@ -401,7 +401,7 @@ class ForecastHoltWinters(LibFcn):
         if hasCycle ^ hasMultiplicative:
             raise PFASemanticException(self.name + " is being given a state record type with a \"cycle\" but no \"multiplicative\" or vice-versa", None)
 
-        return "self.f[{}]({}, {})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args), hasCycle)
+        return "self.f[{0}]({1}, {2})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args), hasCycle)
 
     def __call__(self, state, scope, paramTypes, n, theState, hasPeriodic):
         level = theState["level"]
@@ -431,7 +431,7 @@ class FillHistogram(LibFcn):
             for x in paramTypes[2].fields:
                 if x.name == name:
                     if not x.avroType.accepts(avroType):
-                        raise PFASemanticException("{} is being given a record type in which the \"{}\" field is not {}: {}".format(self.name, name, avroType, x.avroType), None)
+                        raise PFASemanticException("{0} is being given a record type in which the \"{1}\" field is not {2}: {3}".format(self.name, name, avroType, x.avroType), None)
                     return True
             return False
 
@@ -453,7 +453,7 @@ class FillHistogram(LibFcn):
         hasNanflow = has("nanflow", AvroDouble())
         hasInfflow = has("infflow", AvroDouble())
 
-        return "self.f[{}]({}, {}, {}, {}, {}, {})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args), method, hasUnderflow, hasOverflow, hasNanflow, hasInfflow)
+        return "self.f[{0}]({1}, {2}, {3}, {4}, {5}, {6})".format(repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args), method, hasUnderflow, hasOverflow, hasNanflow, hasInfflow)
 
     def updateHistogram(self, w, histogram, newValues, hasUnderflow, hasOverflow, hasNanflow, hasInfflow, underflow, overflow, nanflow, infflow):
         updator = {"values": newValues}
@@ -496,7 +496,7 @@ class FillHistogram(LibFcn):
                     index = int(math.floor((x - low) / (high - low) * numbins))
                 except ZeroDivisionError:
                     index = 0
-                newValues = values[:]
+                newValues = list(values)
                 newValues[index] = newValues[index] + w
             else:
                 newValues = values
@@ -527,7 +527,7 @@ class FillHistogram(LibFcn):
                 except ZeroDivisionError:
                     index = 0
                 if index < len(values):
-                    newValues = values[:]
+                    newValues = list(values)
                     newValues[index] = newValues[index] + w
                 else:
                     newValues = values + [0.0] * (index - len(values)) + [w]
@@ -549,7 +549,7 @@ class FillHistogram(LibFcn):
             isInfinite = math.isinf(x)
             isNan = math.isnan(x)
 
-            newValues = values[:]
+            newValues = list(values)
             hitOne = False
 
             if not isInfinite and not isNan:
@@ -587,11 +587,11 @@ class FillHistogram2d(LibFcn):
             for x in paramTypes[3].fields:
                 if x.name == name:
                     if not x.avroType.accepts(AvroDouble()):
-                        raise PFASemanticException("{} is being given a record type in which the \"{}\" field is not a double: {}".format(self.name, name, x.avroType), None)
+                        raise PFASemanticException("{0} is being given a record type in which the \"{1}\" field is not a double: {2}".format(self.name, name, x.avroType), None)
                     return True
             return False
 
-        return "self.f[{}]({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})".format(
+        return "self.f[{0}]({1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9}, {10}, {11})".format(
             repr(self.name), ", ".join(["state", "scope", repr(paramTypes)] + args),
             has("underunderflow"),
             has("undermidflow"),
@@ -655,7 +655,7 @@ class FillHistogram2d(LibFcn):
                 yindex = int(math.floor((y - ylow) / (yhigh - ylow) * ynumbins))
             except ZeroDivisionError:
                 yindex = 0
-            newValues = [x[:] for x in values]
+            newValues = [list(x) for x in values]
             newValues[xindex][yindex] = newValues[xindex][yindex] + w
         else:
             newValues = values

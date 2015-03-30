@@ -418,18 +418,18 @@ action:
     engine.action(java.lang.Double.valueOf(22.5)).asInstanceOf[Double] should be (1.00 +- 0.01)
   }
 
-  it must "do erf" taggedAs(Lib1, Lib1Math) in {
-    val engine = PFAEngine.fromYaml("""
-input: double
-output: double
-action:
-  - {m.special.erf: input}
-""").head
-    engine.action(java.lang.Double.valueOf(-22.5)).asInstanceOf[Double] should be (-1.00 +- 0.01)
-    engine.action(java.lang.Double.valueOf(-0.5)).asInstanceOf[Double] should be (-0.52 +- 0.01)
-    engine.action(java.lang.Double.valueOf(0)).asInstanceOf[Double] should be (0.00 +- 0.01)
-    engine.action(java.lang.Double.valueOf(0.5)).asInstanceOf[Double] should be (0.52 +- 0.01)
-    engine.action(java.lang.Double.valueOf(22.5)).asInstanceOf[Double] should be (1.00 +- 0.01)
-  }
+//   it must "do erf" taggedAs(Lib1, Lib1Math) in {
+//     val engine = PFAEngine.fromYaml("""
+// input: double
+// output: double
+// action:
+//   - {m.special.erf: input}
+// """).head
+//     engine.action(java.lang.Double.valueOf(-22.5)).asInstanceOf[Double] should be (-1.00 +- 0.01)
+//     engine.action(java.lang.Double.valueOf(-0.5)).asInstanceOf[Double] should be (-0.52 +- 0.01)
+//     engine.action(java.lang.Double.valueOf(0)).asInstanceOf[Double] should be (0.00 +- 0.01)
+//     engine.action(java.lang.Double.valueOf(0.5)).asInstanceOf[Double] should be (0.52 +- 0.01)
+//     engine.action(java.lang.Double.valueOf(22.5)).asInstanceOf[Double] should be (1.00 +- 0.01)
+//   }
 
 }

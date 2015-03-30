@@ -26,6 +26,7 @@ import scala.util.Random
 import com.opendatagroup.hadrian.ast.LibFcn
 import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.jvmcompiler.JavaCode
+import com.opendatagroup.hadrian.jvmcompiler.javaType
 import com.opendatagroup.hadrian.jvmcompiler.javaSchema
 import com.opendatagroup.hadrian.jvmcompiler.PFAEngineBase
 
@@ -1308,7 +1309,7 @@ package object array {
       case AvroArray(AvroDouble()) =>
         JavaCode("(new " + this.getClass.getName + "SorterDouble())")
       case AvroArray(x) =>
-        JavaCode("(new " + this.getClass.getName + "SorterOther(new com.opendatagroup.hadrian.data.ComparisonOperatorLT(%s)))", javaSchema(x, false))
+        JavaCode("(%s)(new %sSorterOther(new com.opendatagroup.hadrian.data.ComparisonOperatorLT(%s)))", javaType(fcnType.ret, false, true, false), this.getClass.getName, javaSchema(x, false))
       case _ =>
         throw new Exception  // should never be called
     }
