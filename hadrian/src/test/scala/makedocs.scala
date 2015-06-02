@@ -43,6 +43,7 @@ class MakeDocsSuite extends FlatSpec with Matchers {
     lib1.enum.provides ++
     lib1.fixed.provides ++
     lib1.impute.provides ++
+    lib1.interp.provides ++
     lib1.la.provides ++
     lib1.map.provides ++
     lib1.math.provides ++

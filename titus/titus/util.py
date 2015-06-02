@@ -21,6 +21,16 @@
 import inspect
 import sys
 
+TYPE_ERRORS_IN_PRETTYPFA = True
+def ts(avroType):
+    if TYPE_ERRORS_IN_PRETTYPFA:
+        pretty = avscToPretty(avroType.jsonNode(set()))
+        if pretty.count("\n") > 0:
+            pretty = "\n    " + pretty.replace("\n", "\n    ") + "\n"
+        return pretty
+    else:
+        return repr(avroType)
+
 uniqueEngineNameCounter = 0
 def uniqueEngineName():
     sys.modules["titus.util"].uniqueEngineNameCounter += 1
@@ -234,13 +244,13 @@ def avscToPretty(avsc, indent=0):
             name = avsc["name"]
             if "namespace" in avsc and len(avsc["namespace"]) > 0:
                 name = avsc["namespace"] + "." + name
-            return " " * indent + "fixed(" + name + ", size: " + str(avsc["size"]) + ")"
+            return " " * indent + "fixed(" + str(avsc["size"]) + ", " + name + ")"
 
         elif tpe == "enum":
             name = avsc["name"]
             if "namespace" in avsc and len(avsc["namespace"]) > 0:
                 name = avsc["namespace"] + "." + name
-            return " " * indent + "enum(" + name + ", symbols: [" + ", ".join(x for x in avsc["symbols"]) + "])"
+            return " " * indent + "enum([" + ", ".join(x for x in avsc["symbols"]) + "], " + name + ")"
 
         else:
             raise TypeError("malformed Avro schema")

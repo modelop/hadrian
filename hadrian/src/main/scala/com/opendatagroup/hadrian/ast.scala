@@ -1,15 +1,15 @@
 // Copyright (C) 2014  Open Data ("Open Data" refers to
 // one or more of the following companies: Open Data Partners LLC,
 // Open Data Research LLC, or Open Data Capital LLC.)
-// 
+//
 // This file is part of Hadrian.
-// 
+//
 // Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-// 
+//
 //     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
-// 
+//
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,11 +18,20 @@
 
 package com.opendatagroup.hadrian
 
+import java.io.ByteArrayInputStream
+
 import scala.collection.mutable
+import scala.collection.JavaConversions._
 import scala.language.postfixOps
 import scala.runtime.ScalaRunTime
 
+import org.apache.avro.Schema
+import org.apache.avro.file.DataFileStream
+
 import org.codehaus.jackson.JsonNode
+import org.codehaus.jackson.JsonParser
+import org.codehaus.jackson.JsonToken
+import org.codehaus.jackson.node.BinaryNode
 import org.codehaus.jackson.node.BooleanNode
 import org.codehaus.jackson.node.DoubleNode
 import org.codehaus.jackson.node.IntNode
@@ -30,10 +39,16 @@ import org.codehaus.jackson.node.JsonNodeFactory
 import org.codehaus.jackson.node.LongNode
 import org.codehaus.jackson.node.NullNode
 import org.codehaus.jackson.node.TextNode
-import org.codehaus.jackson.node.BinaryNode
 
+import org.apache.avro.io.DecoderFactory
+
+import com.opendatagroup.hadrian.data.PFADatumReader
+import com.opendatagroup.hadrian.data.PFASpecificData
+import com.opendatagroup.hadrian.data.toAvro
+import com.opendatagroup.hadrian.data.toJson
 import com.opendatagroup.hadrian.errors.PFASemanticException
 import com.opendatagroup.hadrian.errors.PFASyntaxException
+import com.opendatagroup.hadrian.errors.PFAInitializationException
 import com.opendatagroup.hadrian.jvmcompiler.JavaCode
 import com.opendatagroup.hadrian.jvmcompiler.JVMCompiler
 import com.opendatagroup.hadrian.jvmcompiler.JVMNameMangle
@@ -76,8 +91,19 @@ import com.opendatagroup.hadrian.datatype.AvroRecord
 import com.opendatagroup.hadrian.datatype.AvroField
 import com.opendatagroup.hadrian.datatype.AvroUnion
 import com.opendatagroup.hadrian.datatype.AvroPlaceholder
-import com.opendatagroup.hadrian.datatype.AvroTypeBuilder
 import com.opendatagroup.hadrian.datatype.ForwardDeclarationParser
+
+import com.opendatagroup.hadrian.data.PFAArray
+import com.opendatagroup.hadrian.data.PFAMap
+import com.opendatagroup.hadrian.reader.JsonDom
+import com.opendatagroup.hadrian.reader.JsonObject
+import com.opendatagroup.hadrian.reader.JsonArray
+import com.opendatagroup.hadrian.reader.JsonNull
+import com.opendatagroup.hadrian.reader.JsonTrue
+import com.opendatagroup.hadrian.reader.JsonFalse
+import com.opendatagroup.hadrian.reader.JsonString
+import com.opendatagroup.hadrian.reader.JsonLong
+import com.opendatagroup.hadrian.reader.JsonDouble
 
 package object ast {
   def inferType(
@@ -165,7 +191,7 @@ package ast {
   trait Fcn {
     def sig: Signature
     def javaRef(fcnType: FcnType): JavaCode
-    def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode
+    def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode
 
     def wrapArgs(args: Seq[JavaCode], paramTypes: Seq[Type], boxed: Boolean): String =
       args zip paramTypes map {
@@ -183,14 +209,14 @@ package ast {
     def name: String
     def doc: scala.xml.Elem
     def javaRef(fcnType: FcnType): JavaCode = JavaCode(this.getClass.getName + ".MODULE$")
-    def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("%s.apply(%s)", javaRef(FcnType(argContext collect {case x: ExpressionContext => x.retType}, retType)).toString, wrapArgs(args, paramTypes, true))
   }
 
   case class UserFcn(name: String, sig: Sig) extends Fcn {
     import JVMNameMangle._
     def javaRef(fcnType: FcnType) = JavaCode("(new %s())", f(name))
-    def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("""(new %s()).apply(%s)""", f(name), wrapArgs(args, paramTypes, true))
   }
   object UserFcn {
@@ -201,7 +227,7 @@ package ast {
   case class EmitFcn(outputType: AvroType) extends Fcn {
     val sig = Sig(List(("output", P.fromType(outputType))), P.Null)
     def javaRef(fcnType: FcnType): JavaCode = throw new PFASemanticException("cannot reference the emit function", None)
-    def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("com.opendatagroup.hadrian.jvmcompiler.W.n(f_emit.apply(%s))", wrapArg(0, args, paramTypes, true).toString)
   }
 
@@ -215,6 +241,7 @@ package ast {
       lib1.enum.provides ++
       lib1.fixed.provides ++
       lib1.impute.provides ++
+      lib1.interp.provides ++
       lib1.la.provides ++
       lib1.map.provides ++
       lib1.math.provides ++
@@ -227,7 +254,7 @@ package ast {
       lib1.string.provides ++
       lib1.stat.change.provides ++
       lib1.stat.sample.provides ++
-      lib1.time.provides ++ 
+      lib1.time.provides ++
       lib1.model.cluster.provides ++
       lib1.model.neighbor.provides ++
       lib1.model.reg.provides ++
@@ -595,7 +622,288 @@ package ast {
     ) extends AstContext
   }
 
-  case class Cell(avroPlaceholder: AvroPlaceholder, init: String, shared: Boolean, rollback: Boolean, pos: Option[String] = None) extends Ast {
+  object CellPoolSource extends Enumeration {
+    type CellPoolSource = Value
+    val EMBEDDED, JSON, AVRO = Value
+  }
+
+  trait CellSource {
+    def jsonNode: JsonNode
+    def value(specificData: PFASpecificData): AnyRef
+  }
+
+  trait PoolSource {
+    def jsonNode: JsonNode
+    def initialize(specificData: PFASpecificData): Unit
+    def keys: Set[String]
+    def value(key: String): AnyRef
+  }
+
+  case class EmbeddedJsonDomCellSource(jsonDom: JsonDom, avroPlaceholder: AvroPlaceholder) extends CellSource {
+    def avroType = avroPlaceholder.avroType
+    def jsonNode = jsonDom.jsonNode
+    def value(specificData: PFASpecificData): AnyRef = interpret(avroType, jsonDom, specificData)
+    private def interpret(t: AvroType, x: JsonDom, specificData: PFASpecificData): AnyRef = (t, x) match {
+      case (_: AvroNull, JsonNull) => null
+      case (_: AvroBoolean, JsonTrue) => java.lang.Boolean.TRUE
+      case (_: AvroBoolean, JsonFalse) => java.lang.Boolean.FALSE
+      case (_: AvroInt, y @ JsonLong(value)) if (value >= java.lang.Integer.MIN_VALUE  &&  value <= java.lang.Integer.MAX_VALUE) => y.asJavaInteger
+      case (_: AvroLong, JsonLong(value)) => java.lang.Long.valueOf(value)
+      case (_: AvroFloat, JsonDouble(value)) => java.lang.Float.valueOf(value.toFloat)
+      case (_: AvroFloat, JsonLong(value)) => java.lang.Float.valueOf(value.toFloat)
+      case (_: AvroDouble, JsonDouble(value)) => java.lang.Double.valueOf(value)
+      case (_: AvroDouble, JsonLong(value)) => java.lang.Double.valueOf(value)
+      case (_: AvroBytes, JsonString(value)) => value.getBytes
+      case (tt: AvroFixed, JsonString(value)) if (value.getBytes.size == tt.size) =>
+        val constructor = specificData.getClassLoader.loadClass(tt.fullName).getConstructor(classOf[Array[Byte]])
+        constructor.newInstance(value.getBytes).asInstanceOf[AnyRef]
+      case (_: AvroString, JsonString(value)) => value
+      case (tt: AvroEnum, JsonString(value)) if (tt.symbols.contains(value)) =>
+        val constructor = specificData.getClassLoader.loadClass(tt.fullName).getConstructor(classOf[Schema], classOf[String])
+        constructor.newInstance(tt.schema, value).asInstanceOf[AnyRef]
+      case (AvroArray(items), JsonArray(entries)) =>
+        val out = PFAArray.empty[AnyRef](entries.size)
+        entries foreach {y => out.add(interpret(items, y, specificData))}
+        out
+      case (AvroMap(values), JsonObject(entries)) =>
+        val out = PFAMap.empty[AnyRef](entries.size)
+        entries foreach {case (k, v) => out.put(k.value, interpret(values, v, specificData))}
+        out
+      case (tt: AvroRecord, JsonObject(entries)) =>
+        val constructor = specificData.getClassLoader.loadClass(tt.fullName).getConstructor(classOf[Array[AnyRef]])
+        val fields = tt.fields
+        val convertedFields = Array.fill[AnyRef](fields.size)(null)
+        var index = 0
+        while (index < fields.size) {
+          val fieldName = fields(index).name
+          val fieldType = fields(index).avroType
+          entries.get(JsonString(fieldName)) match {
+            case Some(y) => convertedFields(index) = interpret(fieldType, y, specificData)
+            case None => throw new PFAInitializationException("record field \"%s\" is missing from JSON datum %s".format(fieldName, x.json))
+          }
+          index += 1
+        }
+        constructor.newInstance(convertedFields).asInstanceOf[AnyRef]
+      case (AvroUnion(types), JsonNull) if (types.contains(AvroNull())) => null
+      case (AvroUnion(types), JsonObject(entries)) if (entries.size == 1) =>
+        val tag = entries.keys.head.value
+        val value = entries.values.head
+        types.find(_.fullName == tag) match {
+          case Some(tt) => interpret(tt, value, specificData)
+          case None => throw new PFAInitializationException("JSON datum %s does not match any type in union %s".format(x.json, t))
+        }
+      case _ => throw new PFAInitializationException("JSON datum %s does not match type %s".format(x.json, t))
+    }
+  }
+
+  case class EmbeddedJsonDomPoolSource(jsonDoms: Map[String, JsonDom], avroPlaceholder: AvroPlaceholder) extends PoolSource {
+    def avroType = avroPlaceholder.avroType
+    def jsonNode = {
+      val out = JsonNodeFactory.instance.objectNode
+      jsonDoms foreach {case (k, v) => out.put(k, v.jsonNode)}
+      out
+    }
+    private var specificData: PFASpecificData = null
+    def initialize(specificData: PFASpecificData) {
+      this.specificData = specificData
+    }
+    def keys = jsonDoms.keySet
+    def value(key: String): AnyRef =
+      EmbeddedJsonDomCellSource(jsonDoms(key), avroPlaceholder).value(specificData)
+  }
+
+  case class ExternalAvroCellSource(url: java.net.URL, avroPlaceholder: AvroPlaceholder) extends CellSource {
+    def avroType = avroPlaceholder.avroType
+    def jsonNode = JsonNodeFactory.instance.textNode(url.toString)
+    def value(specificData: PFASpecificData): AnyRef = {
+      val reader = new PFADatumReader[AnyRef](specificData)
+      reader.setSchema(avroType.schema)
+      val fileStream = new DataFileStream[AnyRef](url.openStream(), reader)
+
+      val fileSchema = schemaToAvroType(fileStream.getSchema)
+      if (!avroType.accepts(fileSchema))
+        throw new PFAInitializationException("external Avro file %s has schema %s\nbut expecting schema %s".format(url.toString, fileSchema, avroType))
+
+      val out = fileStream.next()
+      fileStream.close()
+      out
+    }
+  }
+
+  case class ExternalAvroPoolSource(url: java.net.URL, avroPlaceholder: AvroPlaceholder) extends PoolSource {
+    def avroType = avroPlaceholder.avroType
+    def jsonNode = JsonNodeFactory.instance.textNode(url.toString)
+    private val data = new java.util.HashMap[String, AnyRef]()
+    def initialize(specificData: PFASpecificData) {
+      val poolAvroType = AvroMap(avroType)
+
+      val reader = new PFADatumReader[AnyRef](specificData)
+      reader.setSchema(poolAvroType.schema)
+      val fileStream = new DataFileStream[AnyRef](url.openStream(), reader)
+
+      val fileSchema = schemaToAvroType(fileStream.getSchema)
+      if (!poolAvroType.accepts(fileSchema))
+        throw new PFAInitializationException("external Avro file %s has schema %s\nbut expecting schema %s".format(url.toString, fileSchema, poolAvroType))
+
+      val out = fileStream.next()
+      fileStream.close()
+      out.asInstanceOf[PFAMap[AnyRef]].toMap foreach {case (k, v) => data.put(k, v)}
+    }
+    def keys = asScalaSet(data.keySet).toSet
+    def value(key: String): AnyRef = {
+      val out = data.get(key)
+      data.remove(key)
+      out
+    }
+  }
+
+  trait DirectJsonToData {
+    def interpret(t: AvroType, parser: JsonParser, token: JsonToken, specificData: PFASpecificData, strings: mutable.Map[String, String], dot: String): AnyRef = (t, token) match {
+      case (_: AvroNull, JsonToken.VALUE_NULL) => null
+      case (_: AvroBoolean, JsonToken.VALUE_TRUE) => java.lang.Boolean.TRUE
+      case (_: AvroBoolean, JsonToken.VALUE_FALSE) => java.lang.Boolean.FALSE
+      case (_: AvroInt, JsonToken.VALUE_NUMBER_INT) => java.lang.Integer.valueOf(parser.getIntValue)
+      case (_: AvroLong, JsonToken.VALUE_NUMBER_INT) => java.lang.Long.valueOf(parser.getLongValue)
+      case (_: AvroFloat, JsonToken.VALUE_NUMBER_INT) => java.lang.Float.valueOf(parser.getFloatValue)
+      case (_: AvroFloat, JsonToken.VALUE_NUMBER_FLOAT) => java.lang.Float.valueOf(parser.getFloatValue)
+      case (_: AvroDouble, JsonToken.VALUE_NUMBER_INT) => java.lang.Double.valueOf(parser.getDoubleValue)
+      case (_: AvroDouble, JsonToken.VALUE_NUMBER_FLOAT) => java.lang.Double.valueOf(parser.getDoubleValue)
+      case (_: AvroBytes, JsonToken.VALUE_STRING) => parser.getText.getBytes
+      case (tt: AvroFixed, JsonToken.VALUE_STRING) if (parser.getText.getBytes.size == tt.size) =>
+        val constructor = specificData.getClassLoader.loadClass(tt.fullName).getConstructor(classOf[Array[Byte]])
+        constructor.newInstance(parser.getText.getBytes).asInstanceOf[AnyRef]
+      case (_: AvroString, JsonToken.VALUE_STRING) =>
+        val x = parser.getText
+        strings.get(x) match {
+          case Some(y) => y
+          case None =>
+            strings(x) = x
+            x
+        }
+      case (tt: AvroEnum, JsonToken.VALUE_STRING) if (tt.symbols.contains(parser.getText)) =>
+        val constructor = specificData.getClassLoader.loadClass(tt.fullName).getConstructor(classOf[Schema], classOf[String])
+        constructor.newInstance(tt.schema, parser.getText).asInstanceOf[AnyRef]
+      case (AvroArray(items), JsonToken.START_ARRAY) =>
+        val out = PFAArray.empty[AnyRef]
+        var subtoken = parser.nextToken()
+        var index = 0
+        while (subtoken != JsonToken.END_ARRAY) {
+          out.add(interpret(items, parser, subtoken, specificData, strings, dot + "." + index.toString))
+          subtoken = parser.nextToken()
+          index += 1
+        }
+        out
+      case (AvroMap(values), JsonToken.START_OBJECT) =>
+        val out = PFAMap.empty[AnyRef]
+        var subtoken = parser.nextToken()
+        while (subtoken != JsonToken.END_OBJECT) {
+          if (parser.getCurrentName == "@")
+            reader.jsonToAst.ingestJsonAndIgnore(parser, parser.nextToken(), "")
+          else {
+            val x = parser.getCurrentName
+            val key = strings.get(x) match {
+              case Some(y) => y
+              case None =>
+                strings(x) = x
+                x
+            }
+            out.put(key, interpret(values, parser, parser.nextToken(), specificData, strings, dot + "." + key))
+          }
+          subtoken = parser.nextToken()
+        }
+        out
+      case (tt: AvroRecord, JsonToken.START_OBJECT) =>
+        val constructor = specificData.getClassLoader.loadClass(tt.fullName).getConstructor(classOf[Array[AnyRef]])
+        val fields = tt.fields
+        val nameToIndex = fields.zipWithIndex map {case (x, i) => (x.name, i)} toMap
+        val convertedFields = Array.fill[AnyRef](fields.size)(null)
+        var numFieldsFilled = 0
+        var subtoken = parser.nextToken()
+        while (subtoken != JsonToken.END_OBJECT) {
+          if (nameToIndex.contains(parser.getCurrentName)) {
+            val index = nameToIndex(parser.getCurrentName)
+            convertedFields(index) = interpret(fields(index).avroType, parser, parser.nextToken(), specificData, strings, dot + "." + parser.getCurrentName)
+            numFieldsFilled += 1
+          }
+          else
+            reader.jsonToAst.ingestJsonAndIgnore(parser, parser.nextToken(), "")
+          subtoken = parser.nextToken()
+        }
+        if (numFieldsFilled != fields.size)
+          throw new PFAInitializationException("record field is missing from JSON datum representing %s at %s".format(tt, dot))
+        constructor.newInstance(convertedFields).asInstanceOf[AnyRef]
+      case (AvroUnion(types), JsonToken.VALUE_NULL) if (types.contains(AvroNull())) => null
+      case (AvroUnion(types), JsonToken.START_OBJECT) =>
+        var out: AnyRef = null
+        var subtoken = parser.nextToken()
+        var numPairs = 0
+        while (subtoken != JsonToken.END_OBJECT) {
+          if (parser.getCurrentName == "@")
+            reader.jsonToAst.ingestJsonAndIgnore(parser, parser.nextToken(), "")
+          else {
+            val tag = parser.getCurrentName
+            types.find(_.fullName == tag) match {
+              case Some(tt) =>
+                out = interpret(tt, parser, parser.nextToken(), specificData, strings, dot)
+              case None => throw new PFAInitializationException("JSON datum does not match type %s at %s".format(tag, dot))
+            }
+            numPairs += 1
+          }
+          subtoken = parser.nextToken()
+        }
+        if (numPairs == 1)
+          out
+        else
+          throw new PFAInitializationException("JSON datum representing union must have only one tag-value pair at %s".format(dot))
+      case (_, x) => throw new PFAInitializationException("JSON token %s does not match type %s at %s".format(token, t, dot))
+    }
+  }
+
+  case class ExternalJsonCellSource(url: java.net.URL, avroPlaceholder: AvroPlaceholder) extends CellSource with DirectJsonToData {
+    def avroType = avroPlaceholder.avroType
+    def jsonNode = reader.jsonToAst.objectMapper.readTree(url.openStream())
+    def value(specificData: PFASpecificData): AnyRef = {
+      val parser = reader.jsonToAst.jsonFactory.createJsonParser(url.openStream())
+      try {
+        interpret(avroType, parser, parser.nextToken(), specificData, mutable.Map[String, String](), url.toString + ": ")
+      }
+      finally {
+        parser.close()
+      }
+    }
+  }
+
+  case class ExternalJsonPoolSource(url: java.net.URL, avroPlaceholder: AvroPlaceholder) extends PoolSource with DirectJsonToData {
+    def avroType = avroPlaceholder.avroType
+    def jsonNode = reader.jsonToAst.objectMapper.readTree(url.openStream())
+    private val data = new java.util.HashMap[String, AnyRef]()
+    def initialize(specificData: PFASpecificData): Unit = {
+      val t = avroType
+      val parser = reader.jsonToAst.jsonFactory.createJsonParser(url.openStream())
+      val strings = mutable.Map[String, String]()
+      try {
+        var subtoken = parser.nextToken()
+        while (subtoken != JsonToken.END_OBJECT) {
+          if (parser.getCurrentName == "@")
+            reader.jsonToAst.ingestJsonAndIgnore(parser, parser.nextToken(), "")
+          else
+            data.put(parser.getCurrentName, interpret(t, parser, parser.nextToken(), specificData, strings, url.toString + ": " + parser.getCurrentName))
+          subtoken = parser.nextToken()
+        }
+      }
+      finally {
+        parser.close()
+      }
+    }
+    def keys = asScalaSet(data.keySet).toSet
+    def value(key: String): AnyRef = {
+      val out = data.get(key)
+      data.remove(key)
+      out
+    }
+  }
+
+  case class Cell(avroPlaceholder: AvroPlaceholder, init: CellSource, shared: Boolean, rollback: Boolean, source: CellPoolSource.CellPoolSource, pos: Option[String] = None) extends Ast {
     def avroType: AvroType = avroPlaceholder.avroType
 
     if (shared && rollback)
@@ -603,10 +911,10 @@ package ast {
 
     override def equals(other: Any): Boolean = other match {
       case that: Cell =>
-        this.avroPlaceholder.toString == that.avroPlaceholder.toString  &&  convertFromJson(this.init) == convertFromJson(that.init)  &&  this.shared == that.shared  &&  this.rollback == that.rollback  // but not pos
+        this.avroPlaceholder.toString == that.avroPlaceholder.toString  &&  this.init.jsonNode == that.init.jsonNode  &&  this.shared == that.shared  &&  this.rollback == that.rollback  &&  this.source == that.source  // but not pos
       case _ => false
     }
-    override def hashCode(): Int = ScalaRunTime._hashCode((avroPlaceholder.toString, convertFromJson(this.init), shared, rollback))
+    override def hashCode(): Int = ScalaRunTime._hashCode((avroPlaceholder.toString, this.init.jsonNode, shared, rollback, source))
 
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
       val context = Cell.Context()
@@ -619,9 +927,14 @@ package ast {
       if (lineNumbers) pos.foreach(out.put("@", _))
 
       out.put("type", avroPlaceholder.jsonNode(memo))
-      out.put("init", convertFromJson(init))
+      out.put("init", init.jsonNode)
       out.put("shared", shared)
       out.put("rollback", rollback)
+      source match {
+        case CellPoolSource.EMBEDDED =>
+        case CellPoolSource.JSON => out.put("source", "json")
+        case CellPoolSource.AVRO => out.put("source", "avro")
+      }
       out
     }
   }
@@ -629,7 +942,7 @@ package ast {
     case class Context() extends AstContext
   }
 
-  case class Pool(avroPlaceholder: AvroPlaceholder, init: Map[String, String], shared: Boolean, rollback: Boolean, pos: Option[String] = None) extends Ast {
+  case class Pool(avroPlaceholder: AvroPlaceholder, init: PoolSource, shared: Boolean, rollback: Boolean, source: CellPoolSource.CellPoolSource, pos: Option[String] = None) extends Ast {
     def avroType: AvroType = avroPlaceholder.avroType
 
     if (shared && rollback)
@@ -638,12 +951,13 @@ package ast {
     override def equals(other: Any): Boolean = other match {
       case that: Pool =>
         this.avroPlaceholder.toString == that.avroPlaceholder.toString  &&
-          (this.init map {case (k, v) => (k, convertFromJson(v))}) == (that.init map {case (k, v) => (k, convertFromJson(v))})  &&
-          this.shared == that.shared  &&
-          this.rollback == that.rollback  // but not pos
+        this.init.jsonNode == that.init.jsonNode  &&
+        this.shared == that.shared  &&
+        this.rollback == that.rollback  &&
+        this.source == that.source  // but not pos
       case _ => false
     }
-    override def hashCode(): Int = ScalaRunTime._hashCode((avroPlaceholder.toString, this.init map {case (k, v) => (k, convertFromJson(v))}, shared, rollback))
+    override def hashCode(): Int = ScalaRunTime._hashCode((avroPlaceholder.toString, this.init.jsonNode, shared, rollback, source))
 
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
       val context = Pool.Context()
@@ -656,14 +970,14 @@ package ast {
       if (lineNumbers) pos.foreach(out.put("@", _))
 
       out.put("type", avroPlaceholder.jsonNode(memo))
-
-      val jsonInits = factory.objectNode
-      for ((name, value) <- init)
-        jsonInits.put(name, convertFromJson(value))
-      out.put("init", jsonInits)
-
+      out.put("init", init.jsonNode)
       out.put("shared", shared)
       out.put("rollback", rollback)
+      source match {
+        case CellPoolSource.EMBEDDED =>
+        case CellPoolSource.JSON => out.put("source", "json")
+        case CellPoolSource.AVRO => out.put("source", "avro")
+      }
       out
     }
   }
@@ -870,7 +1184,7 @@ package ast {
       }
 
       val fillScope = symbolTable.newScope(true, true)
-      val argTypeResult: Map[String, (Type, TaskResult)] = fill map {case (name, arg) => 
+      val argTypeResult: Map[String, (Type, TaskResult)] = fill map {case (name, arg) =>
         val (argCtx: ArgumentContext, argRes: TaskResult) = arg.walk(task, fillScope, functionTable, engineOptions)
 
         calls ++= argCtx.calls
@@ -939,7 +1253,7 @@ package ast {
       if (pf.isDefinedAt(this))
         pf.apply(this)
       else
-        CallUserFcn(name,
+        CallUserFcn(name.replace(pf).asInstanceOf[Expression],
                     args.map(_.replace(pf).asInstanceOf[Expression]),
                     pos)
 
@@ -991,7 +1305,7 @@ package ast {
           case err: IncompatibleTypes => throw new PFASemanticException(err.getMessage, pos)
         }
 
-      val context = CallUserFcn.Context(retType, calls.toSet, nameResult, nameToNum, nameToFcn.toMap, argResults map { _._2 }, argResults map { _._1 }, nameToParamTypes.toMap, nameToRetTypes.toMap)
+      val context = CallUserFcn.Context(retType, calls.toSet, nameResult, nameToNum, nameToFcn.toMap, argResults map { _._2 }, argResults map { _._1 }, nameToParamTypes.toMap, nameToRetTypes.toMap, engineOptions)
       (context, task(context, engineOptions))
     }
 
@@ -1011,7 +1325,7 @@ package ast {
     }
   }
   object CallUserFcn {
-    case class Context(retType: AvroType, calls: Set[String], name: TaskResult, nameToNum: Map[String, Int], nameToFcn: Map[String, Fcn], args: Seq[TaskResult], argContext: Seq[AstContext], nameToParamTypes: Map[String, Seq[Type]], nameToRetTypes: Map[String, AvroType]) extends ExpressionContext
+    case class Context(retType: AvroType, calls: Set[String], name: TaskResult, nameToNum: Map[String, Int], nameToFcn: Map[String, Fcn], args: Seq[TaskResult], argContext: Seq[AstContext], nameToParamTypes: Map[String, Seq[Type]], nameToRetTypes: Map[String, AvroType], engineOptions: EngineOptions) extends ExpressionContext
   }
 
   case class Call(name: String, args: Seq[Argument], pos: Option[String] = None) extends Expression {
@@ -1065,7 +1379,7 @@ package ast {
               case _ =>
             }
 
-            Call.Context(retType, calls.toSet, fcn, argTaskResults.toList, argContexts, paramTypes)
+            Call.Context(retType, calls.toSet, fcn, argTaskResults.toList, argContexts, paramTypes, engineOptions)
           }
           case None => throw new PFASemanticException("parameters of function \"%s\" do not accept [%s]".format(name, argTypes.mkString(",")), pos)
         }
@@ -1086,7 +1400,7 @@ package ast {
     }
   }
   object Call {
-    case class Context(retType: AvroType, calls: Set[String], fcn: Fcn, args: Seq[TaskResult], argContext: Seq[AstContext], paramTypes: Seq[Type]) extends ExpressionContext
+    case class Context(retType: AvroType, calls: Set[String], fcn: Fcn, args: Seq[TaskResult], argContext: Seq[AstContext], paramTypes: Seq[Type], engineOptions: EngineOptions) extends ExpressionContext
   }
 
   case class Ref(name: String, pos: Option[String] = None) extends Expression {
@@ -1315,7 +1629,7 @@ package ast {
     case class Context(retType: AvroType, calls: Set[String], value: String) extends ExpressionContext
   }
 
-  case class NewObject(fields: Map[String, Expression], avroPlaceholder: AvroPlaceholder, avroTypeBuilder: AvroTypeBuilder, pos: Option[String] = None) extends Expression {
+  case class NewObject(fields: Map[String, Expression], avroPlaceholder: AvroPlaceholder, pos: Option[String] = None) extends Expression {
     def avroType: AvroType = avroPlaceholder.avroType
 
     override def equals(other: Any): Boolean = other match {
@@ -1334,7 +1648,6 @@ package ast {
       else
         NewObject(fields map {case (k, v) => (k, v.replace(pf).asInstanceOf[Expression])},
                   avroPlaceholder,
-                  avroTypeBuilder,
                   pos)
 
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
@@ -1392,7 +1705,7 @@ package ast {
     case class Context(retType: AvroType, calls: Set[String], fields: Map[String, TaskResult]) extends ExpressionContext
   }
 
-  case class NewArray(items: Seq[Expression], avroPlaceholder: AvroPlaceholder, avroTypeBuilder: AvroTypeBuilder, pos: Option[String] = None) extends Expression {
+  case class NewArray(items: Seq[Expression], avroPlaceholder: AvroPlaceholder, pos: Option[String] = None) extends Expression {
     def avroType: AvroType = avroPlaceholder.avroType
 
     override def equals(other: Any): Boolean = other match {
@@ -1411,7 +1724,6 @@ package ast {
       else
         NewArray(items.map(_.replace(pf).asInstanceOf[Expression]),
                  avroPlaceholder,
-                 avroTypeBuilder,
                  pos)
 
     override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
@@ -2101,8 +2413,8 @@ package ast {
       val thenResults: Seq[(ExpressionContext, TaskResult)] = thenClause.map(_.walk(task, thenScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       for ((exprCtx, _) <- thenResults)
         calls ++= exprCtx.calls
-     
-      val (retType, elseTaskResults, elseSymbols) = 
+
+      val (retType, elseTaskResults, elseSymbols) =
         elseClause match {
           case Some(clause) => {
             val elseScope = symbolTable.newScope(false, false)
@@ -3004,6 +3316,283 @@ package ast {
   object IfNotNull {
     val desc = "ifnotnull"
     case class Context(retType: AvroType, calls: Set[String], symbolTypeResult: Seq[(String, AvroType, TaskResult)], thenSymbols: Map[String, AvroType], thenClause: Seq[TaskResult], elseSymbols: Option[Map[String, AvroType]], elseClause: Option[Seq[TaskResult]]) extends ExpressionContext
+  }
+
+  object BinaryFormatter {
+    val FormatPad = """\s*(pad)\s*""".r
+    val FormatBoolean = """\s*(boolean)\s*""".r
+    val FormatByte = """\s*(byte|int8)\s*""".r
+    val FormatUnsignedByte = """\s*unsigned\s*(byte|int8)\s*""".r
+    val FormatShort = """\s*(<|>|!|little|big|network)?\s*(short|int16)\s*""".r
+    val FormatUnsignedShort = """\s*(<|>|!|little|big|network)?\s*(unsigned\s*short|unsigned\s*int16)\s*""".r
+    val FormatInt = """\s*(<|>|!|little|big|network)?\s*(int|int32)\s*""".r
+    val FormatUnsignedInt = """\s*(<|>|!|little|big|network)?\s*(unsigned\s*int|unsigned\s*int32)\s*""".r
+    val FormatLong = """\s*(<|>|!|little|big|network)?\s*(long|long\s+long|int64)\s*""".r
+    val FormatUnsignedLong = """\s*(<|>|!|little|big|network)?\s*(unsigned\s*long|unsigned\s*long\s+long|unsigned\s*int64)\s*""".r
+    val FormatFloat = """\s*(<|>|!|little|big|network)?\s*(float|float32)\s*""".r
+    val FormatDouble = """\s*(<|>|!|little|big|network)?\s*(double|float64)\s*""".r
+    val FormatRaw = """\s*raw\s*""".r
+    val FormatRawSize = """\s*raw\s*([0-9]+)\s*""".r
+    val FormatToNull = """\s*(null\s*)?terminated\s*""".r
+    val FormatPrefixed = """\s*(length\s*)?prefixed\s*""".r
+
+    def isLittleEndian(endianness: String) = (endianness == "<"  ||  endianness == "little")
+
+    trait Declare[T] {
+      val value: T
+      val avroType: AvroType
+    }
+
+    case class DeclarePad[T](value: T) extends Declare[T] {
+      val avroType = AvroNull()
+    }
+    case class DeclareBoolean[T](value: T) extends Declare[T] {
+      val avroType = AvroBoolean()
+    }
+    case class DeclareByte[T](value: T, unsigned: Boolean) extends Declare[T] {
+      val avroType = AvroInt()
+    }
+    case class DeclareShort[T](value: T, littleEndian: Boolean, unsigned: Boolean) extends Declare[T] {
+      val avroType = AvroInt()
+    }
+    case class DeclareInt[T](value: T, littleEndian: Boolean, unsigned: Boolean) extends Declare[T] {
+      val avroType = if (unsigned) AvroLong() else AvroInt()
+    }
+    case class DeclareLong[T](value: T, littleEndian: Boolean, unsigned: Boolean) extends Declare[T] {
+      val avroType = if (unsigned) AvroDouble() else AvroLong()
+    }
+    case class DeclareFloat[T](value: T, littleEndian: Boolean) extends Declare[T] {
+      val avroType = AvroFloat()
+    }
+    case class DeclareDouble[T](value: T, littleEndian: Boolean) extends Declare[T] {
+      val avroType = AvroDouble()
+    }
+    case class DeclareRaw[T](value: T) extends Declare[T] {
+      val avroType = AvroBytes()
+    }
+    case class DeclareRawSize[T](value: T, size: Int) extends Declare[T] {
+      val avroType = AvroBytes()
+    }
+    case class DeclareToNull[T](value: T) extends Declare[T] {
+      val avroType = AvroBytes()
+    }
+    case class DeclarePrefixed[T](value: T) extends Declare[T] {
+      val avroType = AvroBytes()
+    }
+
+    def formatToDeclare[T](value: T, f: String, pos: Option[String], output: Boolean): Declare[T] = f match {
+      case FormatPad(_) =>                       DeclarePad(value)
+      case FormatBoolean(_) =>                   DeclareBoolean(value)
+      case FormatByte(_) =>                      DeclareByte(value, false)
+      case FormatUnsignedByte(_) =>              DeclareByte(value, true)
+      case FormatShort(endianness, _) =>         DeclareShort(value, isLittleEndian(endianness), false)
+      case FormatUnsignedShort(endianness, _) => DeclareShort(value, isLittleEndian(endianness), true)
+      case FormatInt(endianness, _) =>           DeclareInt(value, isLittleEndian(endianness), false)
+      case FormatUnsignedInt(endianness, _) =>   DeclareInt(value, isLittleEndian(endianness), true)
+      case FormatLong(endianness, _) =>          DeclareLong(value, isLittleEndian(endianness), false)
+      case FormatUnsignedLong(endianness, _) =>  DeclareLong(value, isLittleEndian(endianness), true)
+      case FormatFloat(endianness, _) =>         DeclareFloat(value, isLittleEndian(endianness))
+      case FormatDouble(endianness, _) =>        DeclareDouble(value, isLittleEndian(endianness))
+      case FormatRawSize(size) =>                DeclareRawSize(value, size.toInt)
+      case FormatToNull(_) =>                    DeclareToNull(value)
+      case FormatPrefixed(_) =>                  DeclarePrefixed(value)
+      case FormatRaw() =>
+        if (output)
+          DeclareRaw(value)
+        else
+          throw new PFASemanticException("cannot read from unsized \"raw\" in binary formatter", pos)
+      case x => throw new PFASemanticException("unrecognized \"%s\" found in binary formatter".format(x), pos)
+    }
+  }
+
+  case class Pack(exprs: Seq[(String, Expression)], pos: Option[String]) extends Expression {
+    override def equals(other: Any): Boolean = other match {
+      case that: Pack => this.exprs == that.exprs  // but not pos
+      case _ => false
+    }
+    override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1(exprs))
+
+    override def collect[X](pf: PartialFunction[Ast, X]): Seq[X] =
+      super.collect(pf) ++
+        exprs.flatMap(_._2.collect(pf))
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        Pack(exprs map {case (k, v) => (k, v.replace(pf).asInstanceOf[Expression])}, pos)
+
+    if (exprs.size < 1)
+      throw new PFASyntaxException("\"pack\" must contain at least one format-expression mapping", pos)
+
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+      val calls = mutable.Set[String]()
+
+      var exprsDeclareRes = List[BinaryFormatter.Declare[TaskResult]]()
+      for ((f, expr) <- exprs) {
+        val (exprCtx: ExpressionContext, exprRes: TaskResult) = expr.walk(task, symbolTable.newScope(true, true), functionTable, engineOptions)
+
+        val declare = BinaryFormatter.formatToDeclare(exprRes, f, pos, true)
+
+        if (!declare.avroType.accepts(exprCtx.retType))
+          throw new PFASemanticException("\"pack\" expression with type %s cannot be cast to %s".format(exprCtx.retType, f), pos)
+        calls ++= exprCtx.calls
+
+        exprsDeclareRes = declare :: exprsDeclareRes
+      }
+      exprsDeclareRes = exprsDeclareRes.reverse
+
+      val context = Pack.Context(AvroBytes(), calls.toSet + Pack.desc, exprsDeclareRes)
+      (context, task(context, engineOptions))
+    }
+
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
+      val factory = JsonNodeFactory.instance
+      val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
+      val jsonPack = factory.arrayNode
+      for ((f, expr) <- exprs) {
+        val pair = factory.objectNode
+        pair.put(f, expr.jsonNode(lineNumbers, memo))
+        jsonPack.add(pair)
+      }
+      out.put("pack", jsonPack)
+
+      out
+    }
+  }
+  object Pack {
+    val desc = "pack"
+    case class Context(retType: AvroType, calls: Set[String], exprsDeclareRes: Seq[BinaryFormatter.Declare[TaskResult]]) extends ExpressionContext
+  }
+
+  case class Unpack(bytes: Expression, format: Seq[(String, String)], thenClause: Seq[Expression], elseClause: Option[Seq[Expression]], pos: Option[String]) extends Expression {
+    override def equals(other: Any): Boolean = other match {
+      case that: Unpack => this.bytes == that.bytes  &&  this.format == that.format  &&  this.thenClause == that.thenClause  &&  this.elseClause == that.elseClause  // but not pos
+      case _ => false
+    }
+    override def hashCode(): Int = ScalaRunTime._hashCode((bytes, format, thenClause, elseClause))
+
+    override def collect[X](pf: PartialFunction[Ast, X]): Seq[X] =
+      super.collect(pf) ++
+        bytes.collect(pf) ++
+        thenClause.flatMap(_.collect(pf)) ++
+        (if (elseClause == None) List[X]() else elseClause.get.flatMap(_.collect(pf)))
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        Unpack(bytes.replace(pf).asInstanceOf[Expression],
+          format,
+          thenClause.map(_.replace(pf).asInstanceOf[Expression]),
+          elseClause.map(x => x.map(_.replace(pf).asInstanceOf[Expression])),
+          pos)
+
+    if (format.size < 1)
+      throw new PFASyntaxException("unpack's \"format\" must contain at least one symbol-format mapping", pos)
+
+    if (thenClause.size < 1)
+        throw new PFASyntaxException("\"then\" clause must contain at least one expression", pos)
+
+    if (elseClause != None  &&  elseClause.size < 1)
+      throw new PFASyntaxException("\"else\" clause must contain at least one expression", pos)
+
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+      val calls = mutable.Set[String]()
+
+      val bytesScope = symbolTable.newScope(true, true)
+      val assignmentScope = symbolTable.newScope(false, false)
+
+      val (bytesCtx: ExpressionContext, bytesRes: TaskResult) = bytes.walk(task, bytesScope, functionTable, engineOptions)
+      if (!bytesCtx.retType.isInstanceOf[AvroBytes])
+        throw new PFASemanticException("\"unpack\" expression must be a bytes object", pos)
+      calls ++= bytesCtx.calls
+
+      var formatter = List[BinaryFormatter.Declare[String]]()
+      for ((s, f) <- format) {
+        if (assignmentScope.get(s) != None)
+          throw new PFASemanticException("symbol \"%s\" may not be redeclared or shadowed".format(s), pos)
+
+        if (!validSymbolName(s))
+          throw new PFASemanticException("\"%s\" is not a valid symbol name".format(s), pos)
+
+        val declare = BinaryFormatter.formatToDeclare(s, f, pos, false)
+        formatter = declare :: formatter
+        assignmentScope.put(s, declare.avroType)
+      }
+      formatter = formatter.reverse
+
+      val thenScope = assignmentScope.newScope(false, false)
+      val thenResults: Seq[(ExpressionContext, TaskResult)] = thenClause.map(_.walk(task, thenScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      for ((exprCtx, _) <- thenResults)
+        calls ++= exprCtx.calls
+
+      val (retType, elseTaskResults, elseSymbols) =
+        elseClause match {
+          case Some(clause) => {
+            val elseScope = symbolTable.newScope(false, false)
+
+            val elseResults = clause.map(_.walk(task, elseScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+            for ((exprCtx, _) <- elseResults)
+              calls ++= exprCtx.calls
+
+            val thenType = thenResults.last._1.retType
+            val elseType = elseResults.last._1.retType
+            val retType =
+              try {
+                P.mustBeAvro(LabelData.broadestType(List(thenType, elseType)))
+              }
+              catch {
+                case err: IncompatibleTypes => throw new PFASemanticException(err.getMessage, pos)
+              }
+
+            (retType, Some(elseResults map {_._2}), Some(elseScope.inThisScope))
+          }
+          case None => (AvroNull(), None, None)
+        }
+
+      val context = Unpack.Context(retType, calls.toSet + Unpack.desc, bytesRes, formatter, thenScope.inThisScope, thenResults map {_._2}, elseSymbols, elseTaskResults)
+      (context, task(context, engineOptions))
+    }
+
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
+      val factory = JsonNodeFactory.instance
+      val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+
+      out.put("unpack", bytes.jsonNode(lineNumbers, memo))
+
+      val jsonFormat = factory.arrayNode
+      for ((s, f) <- format) {
+        val pair = factory.objectNode
+        pair.put(s, f)
+        jsonFormat.add(pair)
+      }
+      out.put("format", jsonFormat)
+
+      val jsonThenClause = factory.arrayNode
+      for (expr <- thenClause)
+        jsonThenClause.add(expr.jsonNode(lineNumbers, memo))
+      out.put("then", jsonThenClause)
+
+      elseClause match {
+        case Some(clause) => {
+          val jsonElseClause = factory.arrayNode
+          for (expr <- clause)
+            jsonElseClause.add(expr.jsonNode(lineNumbers, memo))
+          out.put("else", jsonElseClause)
+        }
+        case None =>
+      }
+
+      out
+    }
+  }
+  object Unpack {
+    val desc = "unpack"
+    case class Context(retType: AvroType, calls: Set[String], bytes: TaskResult, formatter: Seq[BinaryFormatter.Declare[String]], thenSymbols: Map[String, AvroType], thenClause: Seq[TaskResult], elseSymbols: Option[Map[String, AvroType]], elseClause: Option[Seq[TaskResult]]) extends ExpressionContext
   }
 
   case class Doc(comment: String, pos: Option[String] = None) extends Expression {

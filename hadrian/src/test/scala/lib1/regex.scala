@@ -39,7 +39,7 @@ class Lib1RegexSuite extends FlatSpec with Matchers {
 input: string
 output: {type: array, items: int}
 action:
-  - {re.rIndex: [input, [ab(c|d)*]]}
+  - {re.rindex: [input, [ab(c|d)*]]}
 """).head
     for (i <- 0 to 200000) {
        engine.action("abcccdc")
@@ -281,7 +281,7 @@ action:
 input: string
 output: {type: array, items: int}
 action:
-  - {re.rIndex: [input, [ab(c|d)*]]}
+  - {re.rindex: [input, [ab(c|d)*]]}
 """).head
     engine.action("abcccdc").asInstanceOf[PFAArray[Int]].toVector should be (Vector(0,7))
     engine.action("abddddd").asInstanceOf[PFAArray[Int]].toVector should be (Vector(0,7))
@@ -291,7 +291,7 @@ action:
 input: string
 output: {type: array, items: int}
 action:
-  - {re.rIndex: [input, [dog]]}
+  - {re.rindex: [input, [dog]]}
 """).head
     engine1.action("999dogggggg").asInstanceOf[PFAArray[Int]].toVector should be (Vector(3,6))
     engine1.action("cat").asInstanceOf[PFAArray[Int]].toVector should be (Vector())
@@ -302,7 +302,7 @@ action:
 input: string
 output: {type: array, items: int}
 action:
-  - {re.rIndex: [input, [对讲机(讲|机)*]]}   
+  - {re.rindex: [input, [对讲机(讲|机)*]]}   
 """).head
     engine2.action("abcccdc").asInstanceOf[PFAArray[Int]].toVector should be (Vector())
     engine2.action("xyzzzz对讲机机abcc对讲机机mmmmm对讲机机aa").asInstanceOf[PFAArray[Int]].toVector should be (Vector(23,27))
@@ -312,7 +312,7 @@ action:
 input: bytes
 output: {type: array, items: int}
 action:
-  - re.rIndex: [input, {bytes.encodeUtf8: {string: "对讲机(讲|机)*"}}]   
+  - re.rindex: [input, {bytes.encodeUtf8: {string: "对讲机(讲|机)*"}}]   
 """).head
     engine3.action("abcccdc".getBytes("UTF-8")).asInstanceOf[PFAArray[Int]].toVector should be (Vector())
     engine3.action("xyzzzz对讲机机abcc对讲机机mmmmm对讲机机aa".getBytes("UTF-8")).asInstanceOf[PFAArray[Int]].toVector should be (Vector(39,51))
@@ -379,7 +379,7 @@ action:
 input: string
 output: {type: array, items: {type: array, items: int}}
 action:
-  - {re.indexAll: [input, [ab]]}
+  - {re.indexall: [input, [ab]]}
 """).head
     engine.action("abcabcabc").asInstanceOf[PFAArray[PFAArray[Int]]].toVector.map(_.toVector) should be (Vector(Vector(0,2), Vector(3,5), Vector(6,8)))
     engine.action("88cabcc").asInstanceOf[PFAArray[PFAArray[Int]]].toVector.map(_.toVector) should be (Vector(Vector(3,5)))
@@ -388,7 +388,7 @@ action:
 input: string
 output: {type: array, items: {type: array, items: int}}
 action:
-  - {re.indexAll: [input, [(the )\1]]}
+  - {re.indexall: [input, [(the )\1]]}
 """).head
     engine2.action("Paris in the the spring, LA in the the summer").asInstanceOf[PFAArray[PFAArray[Int]]].toVector.map(_.toVector) should be (Vector(Vector(9,17), Vector(31,39)))
 
@@ -397,7 +397,7 @@ action:
 input: string
 output: {type: array, items: {type: array, items: int}}
 action:
-  - {re.indexAll: [input, [对讲机(讲|机)*]]}   
+  - {re.indexall: [input, [对讲机(讲|机)*]]}   
 """).head
     engine3.action("abcccdc").asInstanceOf[PFAArray[PFAArray[Int]]].toVector.map(_.toVector) should be (Vector())
     engine3.action("xyzzzz对讲机机abcc对讲机机mmmmm对讲机机aa").asInstanceOf[PFAArray[PFAArray[Int]]].toVector.map(_.toVector) should be (Vector(Vector(6,10), Vector(14,18), Vector(23,27)))
@@ -407,7 +407,7 @@ action:
 input: bytes
 output: {type: array, items: {type: array, items: int}}
 action:
-  - re.indexAll: [input, {bytes.encodeUtf8: {string: "对讲机(讲|机)*"}}]   
+  - re.indexall: [input, {bytes.encodeUtf8: {string: "对讲机(讲|机)*"}}]   
 """).head
     engine4.action("abcccdc".getBytes("UTF-8")).asInstanceOf[PFAArray[PFAArray[Int]]].toVector.map(_.toVector) should be (Vector())
     engine4.action("xyzzzz对讲机机abcc对讲机机mmmmm对讲机机aa".getBytes("UTF-8")).asInstanceOf[PFAArray[PFAArray[Int]]].toVector.map(_.toVector) should be (Vector(Vector(6,18), Vector(22,34), Vector(39,51)))
@@ -422,7 +422,7 @@ action:
 input: string
 output: {type: array, items: string}
 action:
-  - {re.findAll: [input, [猫(机)+猫]]}
+  - {re.findall: [input, [猫(机)+猫]]}
 """).head
     engineTEST.action("猫机猫oooo猫机机猫ppp猫机机机猫bbbb猫机aaaa猫机机").asInstanceOf[PFAArray[String]].toVector should be (Vector("猫机猫" ,"猫机机猫","猫机机机猫"))
 
@@ -431,7 +431,7 @@ action:
 input: string
 output: {type: array, items: string}
 action:
-  - {re.findAll: [input, [ab]]}
+  - {re.findall: [input, [ab]]}
 """).head
     engine.action("abcabcabc").asInstanceOf[PFAArray[String]].toVector should be (Vector("ab","ab", "ab"))
     engine.action("88cabcc").asInstanceOf[PFAArray[String]].toVector should be (Vector("ab"))
@@ -442,7 +442,7 @@ action:
 input: string
 output: {type: array, items: string}
 action:
-  - {re.findAll: [input, [机机+]]}
+  - {re.findall: [input, [机机+]]}
 """).head
     engine1.action("abc机机+abca机机bc  asdkj 机机sd").asInstanceOf[PFAArray[String]].toVector should be (Vector("机机","机机", "机机"))
 
@@ -451,7 +451,7 @@ action:
 input: bytes
 output: {type: array, items: bytes}
 action:
-  - re.findAll: [input, {bytes.encodeUtf8: {string: "ab+"}}]   
+  - re.findall: [input, {bytes.encodeUtf8: {string: "ab+"}}]   
 """).head
     engine2.action("xyz".getBytes("UTF-8")).asInstanceOf[PFAArray[Array[Byte]]].toVector should be (Vector())
     for ((x, y) <- engine2.action("ab+c机机ab+cabc".getBytes("UTF-8")).asInstanceOf[PFAArray[Array[Byte]]].toVector zip Vector(Array[Byte](97,98) ,  Array[Byte](97,98), Array[Byte](97,98))) { x.sameElements(y) should be (true) } 
@@ -464,7 +464,7 @@ action:
 input: string
 output: [string, "null"]
 action:
-  - {re.findFirst: [input, [ab+]]}
+  - {re.findfirst: [input, [ab+]]}
 """).head
     engine.action("88ccc555").asInstanceOf[String] should be (null)
     engine.action("abcabcab+c").asInstanceOf[String] should be ("ab")
@@ -474,7 +474,7 @@ action:
 input: string
 output: [string, "null"]
 action:
-  - {re.findFirst: [input, [机机+]]}
+  - {re.findfirst: [input, [机机+]]}
 """).head
     engine1.action("abc机机abca机机bc  asdkj 机机sd").asInstanceOf[String] should be ("机机") 
     engine1.action("abdefg").asInstanceOf[String] should be (null) 
@@ -484,7 +484,7 @@ action:
 input: bytes
 output: [bytes, "null"]
 action:
-  - re.findFirst: [input, {bytes.encodeUtf8: {string: "对讲机(讲|机)*"}}]   
+  - re.findfirst: [input, {bytes.encodeUtf8: {string: "对讲机(讲|机)*"}}]   
 """).head
     engine2.action("abcde对讲机讲fgg对讲机讲h".getBytes("UTF-8")).asInstanceOf[Array[Byte]].deep should be ("对讲机讲".getBytes("UTF-8").deep)  
     engine2.action("abcdefghijk".getBytes("UTF-8")).asInstanceOf[Array[Byte]] should be (null)  
@@ -496,7 +496,7 @@ action:
 input: string
 output: {type: array, items: string}
 action:
-  - {re.findGroupsFirst: [input, [ab]]}
+  - {re.findgroupsfirst: [input, [ab]]}
 """).head
     engine.action("abcabcabc").asInstanceOf[PFAArray[String]].toVector should be (Vector("ab"))
     engine.action("88ccc").asInstanceOf[PFAArray[String]].toVector should be (Vector())
@@ -505,7 +505,7 @@ action:
 input: string
 output: {type: array, items: string}
 action:
-  - {re.findGroupsFirst: [input, [()(a)bc(def)ghijk]]}
+  - {re.findgroupsfirst: [input, [()(a)bc(def)ghijk]]}
 """).head
     engine1.action("abcdefghijk").asInstanceOf[PFAArray[String]].toVector should be (Vector("abcdefghijk", "", "a", "def"))
 
@@ -513,7 +513,7 @@ action:
 input: string
 output: {type: array, items: string}
 action:
-  - {re.findGroupsFirst: [input, [(the.)\1]]}
+  - {re.findgroupsfirst: [input, [(the.)\1]]}
 """).head
     engine2.action("Paris in the the spring").asInstanceOf[PFAArray[String]].toVector should be (Vector("the the ", "the "))
 
@@ -522,7 +522,7 @@ action:
 input: string
 output: {type: array, items: string}
 action:
-  - {re.findGroupsFirst: [input, [机(机)]]}
+  - {re.findgroupsfirst: [input, [机(机)]]}
 """).head
     engine3.action("abc机机abca机机bc").asInstanceOf[PFAArray[String]].toVector should be (Vector("机机", "机")) 
 
@@ -531,7 +531,7 @@ action:
 input: bytes
 output: {type: array, items: bytes}
 action:
-  - re.findGroupsFirst: [input, {bytes.encodeUtf8: {string: "机(机)"}}]   
+  - re.findgroupsfirst: [input, {bytes.encodeUtf8: {string: "机(机)"}}]   
 """).head
   for ((x, y) <- engine4.action("abc机机abca机机bc".getBytes("UTF-8")).asInstanceOf[PFAArray[Array[Byte]]].toVector zip Vector(Array[Byte](-26, -100, -70, -26, -100, -70), Array[Byte](-26, -100, -70))) {x.sameElements(y) should be (true) }
   engine4.action("abcd".getBytes("UTF-8")).asInstanceOf[PFAArray[Array[Byte]]].toVector should be (Vector())  
@@ -543,7 +543,7 @@ action:
 input: string
 output: {type: array, items: {type: array, items: string}}
 action:
-  - {re.findGroupsAll: [input, [ab]]}
+  - {re.findgroupsall: [input, [ab]]}
 """).head
     engine.action("aabb").asInstanceOf[PFAArray[PFAArray[String]]].toVector.map(_.toVector) should be (Vector(Vector("ab")))
     engine.action("kkabkkabkkab").asInstanceOf[PFAArray[PFAArray[String]]].toVector.map(_.toVector) should be (Vector(Vector("ab"), Vector("ab"), Vector("ab")))
@@ -553,7 +553,7 @@ action:
 input: string
 output: {type: array, items: {type: array, items: string}}
 action:
-  - {re.findGroupsAll: [input, [()(a)bc(def)ghijk]]}
+  - {re.findgroupsall: [input, [()(a)bc(def)ghijk]]}
 """).head
     engine1.action("abcdefghijkMMMMMabcdefghijkMMMM").asInstanceOf[PFAArray[PFAArray[String]]].toVector.map(_.toVector) should be (Vector(Vector("abcdefghijk", "", "a", "def"), Vector("abcdefghijk","", "a", "def")))
 
@@ -562,7 +562,7 @@ action:
 input: string
 output: {type: array, items: {type: array, items: string}}
 action:
-  - {re.findGroupsAll: [input, [机(机)]]}
+  - {re.findgroupsall: [input, [机(机)]]}
 """).head
     engine2.action("abc机机abca机机bc").asInstanceOf[PFAArray[PFAArray[String]]].toVector.map(_.toVector) should be (Vector(Vector("机机", "机"), Vector("机机", "机"))) 
 
@@ -571,7 +571,7 @@ action:
 input: bytes
 output: {type: array, items: {type: array, items: bytes}}
 action:
-  - re.findGroupsAll: [input, {bytes.encodeUtf8: {string: "机(机)"}}]   
+  - re.findgroupsall: [input, {bytes.encodeUtf8: {string: "机(机)"}}]   
 """).head
     for ((x, y) <- engine3.action("abc机机abca机机bc".getBytes("UTF-8")).asInstanceOf[PFAArray[PFAArray[Array[Byte]]]].toVector.map(_.toVector).flatten zip Vector(Vector(Array[Byte](-26, -100, -70, -26, -100, -70), Array[Byte](-26, -100, -70)), Vector(Array[Byte](-26, -100, -70, -26, -100, -70), Array[Byte](-26, -100, -70))).flatten) {x.sameElements(y) should be (true) }
   engine3.action("abcd".getBytes("UTF-8")).asInstanceOf[PFAArray[PFAArray[Array[Byte]]]].toVector.map(_.toVector) should be (Vector())  
@@ -583,7 +583,7 @@ action:
 input: string
 output: {type: array, items: {type: array, items: {type: array, items: int}}}
 action:
-  - {re.groupsAll: [input, [()(a)bc(def)ghijk]]}
+  - {re.groupsall: [input, [()(a)bc(def)ghijk]]}
 """).head
     engine.action("abcdefghijkMMMMMabcdefghijkMMMM").asInstanceOf[PFAArray[PFAArray[PFAArray[Int]]]].toVector.map(_.toVector.map(_.toVector)) should be (Vector(Vector(Vector(0,11), Vector(0,0), Vector(0,1), Vector(3,6)), Vector(Vector(16, 27),Vector(16,16),Vector(16,17), Vector(19,22))))
 
@@ -592,7 +592,7 @@ action:
 input: string
 output: {type: array, items: {type: array, items: {type: array, items: int}}}
 action:
-  - {re.groupsAll: [input, [(机)机]]}
+  - {re.groupsall: [input, [(机)机]]}
 """).head
     engine1.action("abc机机abca机机bc").asInstanceOf[PFAArray[PFAArray[PFAArray[Int]]]].toVector.map(_.toVector.map(_.toVector)) should be (Vector(Vector(Vector(3,5), Vector(3,4)), Vector(Vector(9,11), Vector(9,10))))
 
@@ -601,7 +601,7 @@ action:
 input: bytes
 output: {type: array, items: {type: array, items: {type: array, items: int}}}
 action:
-  - re.groupsAll: [input, {bytes.encodeUtf8: {string: "(机)机"}}]   
+  - re.groupsall: [input, {bytes.encodeUtf8: {string: "(机)机"}}]   
 """).head
     engine2.action("abc机机abca机机bc".getBytes("UTF-8")).asInstanceOf[PFAArray[PFAArray[PFAArray[Int]]]].toVector.map(_.toVector.map(_.toVector)) should be (Vector(Vector(Vector(3,9), Vector(3,6)), Vector(Vector(13,19), Vector(13,16))))
   }
@@ -612,7 +612,7 @@ action:
 input: string
 output: string
 action:
-  - {re.replaceFirst: [input, ["ab(c|d)*"], ["person"]]}
+  - {re.replacefirst: [input, ["ab(c|d)*"], ["person"]]}
 """).head
     engine.action("abcccdcPPPP").asInstanceOf[String] should be ("personPPPP")
     engine.action("PPPPabcccdcPPPPabcccdc").asInstanceOf[String] should be ("PPPPpersonPPPPabcccdc")
@@ -623,7 +623,7 @@ action:
 input: string
 output: string
 action:
-  - {re.replaceFirst: [input, ["ab(c|d)*"], ["walkie talkie"]]}
+  - {re.replacefirst: [input, ["ab(c|d)*"], ["walkie talkie"]]}
 """).head
     engine1.action("This abcccdc works better than that abcccdc.").asInstanceOf[String] should be ("This walkie talkie works better than that abcccdc.")
 
@@ -632,7 +632,7 @@ action:
 input: string
 output: string
 action:
-  - {re.replaceFirst: [input, [对讲机+], ["walkie talkie"]]}
+  - {re.replacefirst: [input, [对讲机+], ["walkie talkie"]]}
 """).head
     engine2.action("This 对讲机 works better than that 对讲机.").asInstanceOf[String] should be ("This walkie talkie works better than that 对讲机.")
 
@@ -641,7 +641,7 @@ action:
 input: bytes
 output: bytes
 action:
-  - {re.replaceFirst: [input, {bytes.encodeUtf8: {string: "对讲机+"}}, {bytes.encodeUtf8: {string: "walkie talkie"}}]}
+  - {re.replacefirst: [input, {bytes.encodeUtf8: {string: "对讲机+"}}, {bytes.encodeUtf8: {string: "walkie talkie"}}]}
 """).head
     engine3.action("This 对讲机 works better than that 对讲机.".getBytes("UTF-8")).asInstanceOf[Array[Byte]].deep should be ("This walkie talkie works better than that 对讲机.".getBytes("UTF-8").deep)
   }
@@ -652,7 +652,7 @@ action:
 input: string
 output: string
 action:
-  - {re.replaceLast: [input, ["ab(c|d)*"], ["person"]]}
+  - {re.replacelast: [input, ["ab(c|d)*"], ["person"]]}
 """).head
     engine.action("abcccdcPPPPabcccdc").asInstanceOf[String] should be ("abcccdcPPPPperson")
     engine.action("abcccdcPPPPabcccdcPPPP").asInstanceOf[String] should be ("abcccdcPPPPpersonPPPP")
@@ -662,7 +662,7 @@ action:
 input: string
 output: string
 action:
-  - {re.replaceLast: [input, [对讲机+], ["walkie talkie"]]}
+  - {re.replacelast: [input, [对讲机+], ["walkie talkie"]]}
 """).head
     engine1.action("This 对讲机 works better than that 对讲机.").asInstanceOf[String] should be ("This 对讲机 works better than that walkie talkie.")
 
@@ -671,7 +671,7 @@ action:
 input: bytes
 output: bytes
 action:
-  - {re.replaceLast: [input, {bytes.encodeUtf8: {string: "对讲机+"}}, {bytes.encodeUtf8: {string: "walkie talkie"}}]}
+  - {re.replacelast: [input, {bytes.encodeUtf8: {string: "对讲机+"}}, {bytes.encodeUtf8: {string: "walkie talkie"}}]}
 """).head
     engine2.action("This 对讲机 works better than that 对讲机.".getBytes("UTF-8")).asInstanceOf[Array[Byte]].deep should be ("This 对讲机 works better than that walkie talkie.".getBytes("UTF-8").deep)
   }
@@ -682,7 +682,7 @@ action:
 input: string
 output: string
 action:
-  - {re.replaceAll: [input, [cow], [doggy]]}
+  - {re.replaceall: [input, [cow], [doggy]]}
 """).head
     engine.action("pcowppcowpppcow").asInstanceOf[String] should be ("pdoggyppdoggypppdoggy")
     engine.action("cowpcowppcowppp").asInstanceOf[String] should be ("doggypdoggyppdoggyppp")
@@ -691,7 +691,7 @@ action:
 input: string
 output: string
 action:
-  - {re.replaceAll: [input, [cow], [Y]]}
+  - {re.replaceall: [input, [cow], [Y]]}
 """).head
     engine2.action("cowpcowppcowppp").asInstanceOf[String] should be ("YpYppYppp")
     engine2.action("pcowppcowpppcow").asInstanceOf[String] should be ("pYppYpppY")
@@ -700,7 +700,7 @@ action:
 input: string
 output: string
 action:
-  - {re.replaceAll: [input, [ab(c|d)*], [cow]]}
+  - {re.replaceall: [input, [ab(c|d)*], [cow]]}
 """).head
     engine1.action("abcccdcPPPP").asInstanceOf[String] should be ("cowPPPP")
     engine1.action("PPPPabcccdc").asInstanceOf[String] should be ("PPPPcow")
@@ -711,7 +711,7 @@ action:
 input: string
 output: string
 action:
-  - {re.replaceAll: [input, [对讲机+], ["walkie talkie"]]}
+  - {re.replaceall: [input, [对讲机+], ["walkie talkie"]]}
 """).head
     engine3.action("This 对讲机 works better than that 对讲机.").asInstanceOf[String] should be ("This walkie talkie works better than that walkie talkie.")
 
@@ -720,7 +720,7 @@ action:
 input: bytes
 output: bytes
 action:
-  - {re.replaceAll: [input, {bytes.encodeUtf8: {string: "对讲机+"}}, {bytes.encodeUtf8: {string: "walkie talkie"}}]}
+  - {re.replaceall: [input, {bytes.encodeUtf8: {string: "对讲机+"}}, {bytes.encodeUtf8: {string: "walkie talkie"}}]}
 """).head
     engine4.action("This 对讲机 works better than that 对讲机.".getBytes("UTF-8")).asInstanceOf[Array[Byte]].deep should be ("This walkie talkie works better than that walkie talkie.".getBytes("UTF-8").deep)
   }

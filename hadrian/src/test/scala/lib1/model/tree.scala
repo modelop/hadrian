@@ -459,10 +459,62 @@ action:
         do: {model.tree.simpleTest: [d, t]}
 """).head
 
-    engine.action(engine.fromJson("""{"one": 1, "two": 7, "three": "whatever"}""", engine.inputType)) should be ("yes-yes")
-    engine.action(engine.fromJson("""{"one": 1, "two": 0, "three": "whatever"}""", engine.inputType)) should be ("yes-no")
-    engine.action(engine.fromJson("""{"one": 15, "two": 7, "three": "TEST"}""", engine.inputType)) should be ("no-yes")
-    engine.action(engine.fromJson("""{"one": 15, "two": 7, "three": "ZEST"}""", engine.inputType)) should be ("no-no")
+    engine.action(engine.jsonInput("""{"one": 1, "two": 7, "three": "whatever"}""")) should be ("yes-yes")
+    engine.action(engine.jsonInput("""{"one": 1, "two": 0, "three": "whatever"}""")) should be ("yes-no")
+    engine.action(engine.jsonInput("""{"one": 15, "two": 7, "three": "TEST"}""")) should be ("no-yes")
+    engine.action(engine.jsonInput("""{"one": 15, "two": 7, "three": "ZEST"}""")) should be ("no-no")
+  }
+
+  it must "work for for the same example with the union order switched" taggedAs(Lib1, Lib1ModelTree) in {
+    val engine = PFAEngine.fromYaml("""
+input: {type: record, name: Datum, fields: [{name: one, type: int}, {name: two, type: double}, {name: three, type: string}]}
+output: string
+cells:
+  tree:
+    type:
+      type: record
+      name: TreeNode
+      fields:
+        - name: field
+          type:
+            type: enum
+            name: Fields
+            symbols: [one, two, three]
+        - {name: operator, type: string}
+        - {name: value, type: [int, double, string]}
+        - {name: pass, type: [TreeNode, string]}
+        - {name: fail, type: [TreeNode, string]}
+    init:
+      field: one
+      operator: "<"
+      value: {double: 12}
+      pass:
+        TreeNode:
+          field: two
+          operator: ">"
+          value: {double: 3.5}
+          pass: {string: yes-yes}
+          fail: {string: yes-no}
+      fail:
+        TreeNode:
+          field: three
+          operator: ==
+          value: {string: TEST}
+          pass: {string: no-yes}
+          fail: {string: no-no}
+action:
+  - model.tree.simpleWalk:
+      - input
+      - cell: tree
+      - params: [{d: Datum}, {t: TreeNode}]
+        ret: boolean
+        do: {model.tree.simpleTest: [d, t]}
+""").head
+
+    engine.action(engine.jsonInput("""{"one": 1, "two": 7, "three": "whatever"}""")) should be ("yes-yes")
+    engine.action(engine.jsonInput("""{"one": 1, "two": 0, "three": "whatever"}""")) should be ("yes-no")
+    engine.action(engine.jsonInput("""{"one": 15, "two": 7, "three": "TEST"}""")) should be ("no-yes")
+    engine.action(engine.jsonInput("""{"one": 15, "two": 7, "three": "ZEST"}""")) should be ("no-no")
   }
 
   it must "work with a completely user-defined predicate" taggedAs(Lib1, Lib1ModelTree) in {
@@ -505,10 +557,10 @@ fcns:
       else: {"==": [datum.three, [TEST]]}
 """).head
 
-    engine.action(engine.fromJson("""{"one": 1, "two": 7, "three": "whatever"}""", engine.inputType)) should be ("yes-yes")
-    engine.action(engine.fromJson("""{"one": 1, "two": 0, "three": "whatever"}""", engine.inputType)) should be ("yes-no")
-    engine.action(engine.fromJson("""{"one": 15, "two": 7, "three": "TEST"}""", engine.inputType)) should be ("no-yes")
-    engine.action(engine.fromJson("""{"one": 15, "two": 7, "three": "ZEST"}""", engine.inputType)) should be ("no-no")
+    engine.action(engine.jsonInput("""{"one": 1, "two": 7, "three": "whatever"}""")) should be ("yes-yes")
+    engine.action(engine.jsonInput("""{"one": 1, "two": 0, "three": "whatever"}""")) should be ("yes-no")
+    engine.action(engine.jsonInput("""{"one": 15, "two": 7, "three": "TEST"}""")) should be ("no-yes")
+    engine.action(engine.jsonInput("""{"one": 15, "two": 7, "three": "ZEST"}""")) should be ("no-no")
   }
 
 }

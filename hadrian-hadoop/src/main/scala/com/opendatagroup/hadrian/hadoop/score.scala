@@ -1,6 +1,8 @@
 package com.opendatagroup.hadrian
 
 import scala.collection.JavaConversions._
+import scala.collection.mutable.ArrayBuffer
+
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.conf.Configured
@@ -25,6 +27,8 @@ import com.opendatagroup.hadrian.datatype.AvroRecord
 import com.opendatagroup.hadrian.datatype.AvroField
 import com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine
 import com.opendatagroup.hadrian.jvmcompiler.PFAEngine
+
+import scala.io.Source
 
 package hadoop {
   //////////////////////////////////////////////////////////// reducer used for scoring only
@@ -65,16 +69,57 @@ package hadoop {
   //////////////////////////////////////////////////////////// configures and executes a scoring jbo
   class ScoringJob extends Configured with Tool {
     override def run(args: Array[String]): Int =
-      if (args.length != 4) {
+      if (args.length < 3 || args.length > 5) {
         System.err.println("Usage: score <pfaMapper> <pfaReducer> <inputData> <outputData>")
         -1
       }
       else {
-        val Array(pfaMapper, pfaReducer, inputData, outputData) = args
+        var pfaMapper: String = ""
+        var pfaReducer: String = ""
+        var inputData: String = ""
+        var outputData: String = ""
 
-        val conf = new Configuration
+        args.length match {
+          case 4 => {
+            pfaMapper = args(0)
+            pfaReducer = args(1)
+            inputData = args(2)
+            outputData = args(3)
+          }
+          case 5 => {
+            pfaMapper = args(0)
+            pfaReducer = args(1)
+            args(2) match {
+              case "-file" => {
+                val filename = args(3)
+                System.err.println("File             ---> " + filename)
+                var inputs = ArrayBuffer[String]()
+                var nlines: Int = 0
+                for (line <- Source.fromFile(filename).getLines()) {
+                  inputs += line
+                    nlines += 1
+                  System.err.println(s"\t"+nlines+": "+line)
+                }
+                inputData = inputs.mkString(",")
+                System.err.println("#Dirs             ---> " + nlines)
+                outputData = args(4)
+              }
+              case _ => { 
+                System.err.println("Usage: score <pfaMapper> <pfaReducer> -file <inputDataFile> <outputData>")
+                return -1
+              }
+            }
+          }
+          case _ => {
+            System.err.println("Usage: score <pfaMapper> <pfaReducer> -file <inputDataFile> <outputData>")
+            return -1
+          }
+        }
+
         conf.set("pfa.mapper", pfaMapper)
         conf.set("pfa.reducer", pfaReducer)
+
+
 
         val job = new Job(conf, "hadrian-hadoop")
         job.setMapperClass(classOf[ScoreMapper])

@@ -42,7 +42,42 @@ def provide(fcn):
 
 prefix = "cast."
 
-#################################################################### number precisionsA
+#################################################################### wrap-around arithmetic
+
+def bitsToMax(x): return 2**x
+
+def doUnsigned(x, bits):
+    maximum = bitsToMax(bits)
+    if x < 0:
+        y = x + maximum * int(math.ceil(-float(x) / maximum))
+    else:
+        y = x
+    return y % maximum
+
+class ToSigned(LibFcn):
+    name = prefix + "signed"
+    sig = Sig([{"x": P.Long()}, {"bits": P.Int()}], P.Long())
+    def __call__(self, state, scope, paramTypes, x, bits):
+        if bits < 2 or bits > 64:
+            raise PFARuntimeException("unrepresentable unsigned number")
+        y = doUnsigned(x, bits)
+        maximum = bitsToMax(bits - 1)
+        if y > maximum - 1:
+            return y - 2*maximum
+        else:
+            return y
+provide(ToSigned())
+
+class ToUnsigned(LibFcn):
+    name = prefix + "unsigned"
+    sig = Sig([{"x": P.Long()}, {"bits": P.Int()}], P.Long())
+    def __call__(self, state, scope, paramTypes, x, bits):
+        if bits < 1 or bits > 63:
+            raise PFARuntimeException("unrepresentable unsigned number")
+        return doUnsigned(x, bits)
+provide(ToUnsigned())
+
+#################################################################### number precisions
 
 class ToInt(LibFcn):
     name = prefix + "int"

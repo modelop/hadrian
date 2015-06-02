@@ -53,7 +53,7 @@ package object string {
   //////////////////////////////////////////////////////////////////// basic access
 
   ////   len (Len)
-  object Len extends LibFcn {
+  object Len extends LibFcn with Function1[String, Int] {
     val name = prefix + "len"
     val sig = Sig(List("s" -> P.String), P.Int)
     val doc =
@@ -65,7 +65,7 @@ package object string {
   provide(Len)
 
   ////   substr (Substr)
-  object Substr extends LibFcn {
+  object Substr extends LibFcn with Function3[String, Int, Int, String] {
     val name = prefix + "substr"
     val sig = Sig(List("s" -> P.String, "start" -> P.Int, "end" -> P.Int), P.String)
     val doc =
@@ -80,7 +80,7 @@ package object string {
   provide(Substr)
 
   ////   substrto (SubstrTo)
-  object SubstrTo extends LibFcn {
+  object SubstrTo extends LibFcn with Function4[String, Int, Int, String, String] {
     val name = prefix + "substrto"
     val sig = Sig(List("s" -> P.String, "start" -> P.Int, "end" -> P.Int, "replacement" -> P.String), P.String)
     val doc =
@@ -97,7 +97,7 @@ package object string {
   //////////////////////////////////////////////////////////////////// searching
 
   ////   contains (Contains)
-  object Contains extends LibFcn {
+  object Contains extends LibFcn with Function2[String, String, Boolean] {
     val name = prefix + "contains"
     val sig = Sig(List("haystack" -> P.String, "needle" -> P.String), P.Boolean)
     val doc =
@@ -110,7 +110,7 @@ package object string {
   provide(Contains)
 
   ////   count (Count)
-  object Count extends LibFcn {
+  object Count extends LibFcn with Function2[String, String, Int] {
     val name = prefix + "count"
     val sig = Sig(List("haystack" -> P.String, "needle" -> P.String), P.Int)
     val doc =
@@ -128,7 +128,7 @@ package object string {
   provide(Count)
 
   ////   index (Index)
-  object Index extends LibFcn {
+  object Index extends LibFcn with Function2[String, String, Int] {
     val name = prefix + "index"
     val sig = Sig(List("haystack" -> P.String, "needle" -> P.String), P.Int)
     val doc =
@@ -140,7 +140,7 @@ package object string {
   provide(Index)
 
   ////   rindex (RIndex)
-  object RIndex extends LibFcn {
+  object RIndex extends LibFcn with Function2[String, String, Int] {
     val name = prefix + "rindex"
     val sig = Sig(List("haystack" -> P.String, "needle" -> P.String), P.Int)
     val doc =
@@ -152,7 +152,7 @@ package object string {
   provide(RIndex)
 
   ////   startswith (StartsWith)
-  object StartsWith extends LibFcn {
+  object StartsWith extends LibFcn with Function2[String, String, Boolean] {
     val name = prefix + "startswith"
     val sig = Sig(List("haystack" -> P.String, "needle" -> P.String), P.Boolean)
     val doc =
@@ -164,7 +164,7 @@ package object string {
   provide(StartsWith)
 
   ////   endswith (EndsWith)
-  object EndsWith extends LibFcn {
+  object EndsWith extends LibFcn with Function2[String, String, Boolean] {
     val name = prefix + "endswith"
     val sig = Sig(List("haystack" -> P.String, "needle" -> P.String), P.Boolean)
     val doc =
@@ -178,7 +178,7 @@ package object string {
   //////////////////////////////////////////////////////////////////// conversions to/from other types
 
   ////   join (Join)
-  object Join extends LibFcn {
+  object Join extends LibFcn with Function2[PFAArray[String], String, String] {
     val name = prefix + "join"
     val sig = Sig(List("array" -> P.Array(P.String), "sep" -> P.String), P.String)
     val doc =
@@ -190,7 +190,7 @@ package object string {
   provide(Join)
 
   ////   split (Split)
-  object Split extends LibFcn {
+  object Split extends LibFcn with Function2[String, String, PFAArray[String]] {
     val name = prefix + "split"
     val sig = Sig(List("s" -> P.String, "sep" -> P.String), P.Array(P.String))
     val doc =
@@ -215,6 +215,42 @@ package object string {
   }
   provide(Split)
 
+  ////   hex (Hex)
+  object Hex extends LibFcn {
+    val name = prefix + "hex"
+    val sig = Sigs(List(Sig(List("x" -> P.Long), P.String),
+                        Sig(List("x" -> P.Long, "width" -> P.Int, "zeroPad" -> P.Boolean), P.String)))
+    val doc =
+      <doc>
+        <desc>Format an unsigned number as a hexidecimal string.</desc>
+        <param name="x">The number.</param>
+        <param name="width">Width of the string.  If negative, left-justify.  If omitted, the string will be as wide as it needs to be to provide the precision.</param>
+        <param name="zeroPad">If true, pad the integer with zeros to fill up to <p>width</p>.</param>
+        <detail>If the <p>precision</p> requires more space than <p>width</p>, the string will be wide enough to accommodate the <p>precision</p>.</detail>
+        <detail>Digits "a" (decimal 10) through "f" (decimal 15) are represented by lowercase letters.</detail>
+        <error>If <p>width</p> is negative and <p>zeroPad</p> is <c>true</c>, a "negative width cannot be used with zero-padding" error is raised.</error>
+        <error>If <p>x</p> is negative, a "negative number" error is raised.</error>
+      </doc>
+
+    def apply(x: Long): String =
+      if (x < 0)
+        throw new PFARuntimeException("negative number")
+      else
+        "%x".format(x)
+
+    def apply(x: Long, width: Int, zeroPad: Boolean): String = {
+      if (x < 0)
+        throw new PFARuntimeException("negative number")
+      val formatStr = (width, zeroPad) match {
+        case (w, false) => "%" + w.toString + "x"
+        case (w, true) if (w < 0) => throw new PFARuntimeException("negative width cannot be used with zero-padding")
+        case (w, true) => "%0" + w.toString + "x"
+      }
+      formatStr.format(x)
+    }
+  }
+  provide(Hex)
+
   ////   number (Number)
   object Number extends LibFcn {
     val name = prefix + "number"
@@ -224,7 +260,7 @@ package object string {
                         Sig(List("x" -> P.Double, "width" -> P.Union(List(P.Int, P.Null)), "precision" -> P.Union(List(P.Int, P.Null)), "minNoExp" -> P.Double, "maxNoExp" -> P.Double), P.String)))
     val doc =
       <doc>
-        <desc>Format a number as a string.</desc>
+        <desc>Format a number as a decimal string.</desc>
         <param name="x">The number.  Note that different signatures apply to integers and floating point numbers.</param>
         <param name="width">Width of the string.  If negative, left-justify.  If omitted, the string will be as wide as it needs to be to provide the precision.</param>
         <param name="zeroPad">If true, pad the integer with zeros to fill up to <p>width</p>.</param>
@@ -320,7 +356,7 @@ package object string {
   //////////////////////////////////////////////////////////////////// conversions to/from other strings
 
   ////   concat (Concat)
-  object Concat extends LibFcn {
+  object Concat extends LibFcn with Function2[String, String, String] {
     val name = prefix + "concat"
     val sig = Sig(List("x" -> P.String, "y" -> P.String), P.String)
     val doc =
@@ -333,7 +369,7 @@ package object string {
   provide(Concat)
 
   ////   repeat (Repeat)
-  object Repeat extends LibFcn {
+  object Repeat extends LibFcn with Function2[String, Int, String] {
     val name = prefix + "repeat"
     val sig = Sig(List("s" -> P.String, "n" -> P.Int), P.String)
     val doc =
@@ -345,7 +381,7 @@ package object string {
   provide(Repeat)
 
   ////   lower (Lower)
-  object Lower extends LibFcn {
+  object Lower extends LibFcn with Function1[String, String] {
     val name = prefix + "lower"
     val sig = Sig(List("s" -> P.String), P.String)
     val doc =
@@ -357,7 +393,7 @@ package object string {
   provide(Lower)
 
   ////   upper (Upper)
-  object Upper extends LibFcn {
+  object Upper extends LibFcn with Function1[String, String] {
     val name = prefix + "upper"
     val sig = Sig(List("s" -> P.String), P.String)
     val doc =
@@ -369,7 +405,7 @@ package object string {
   provide(Upper)
 
   ////   lstrip (LStrip)
-  object LStrip extends LibFcn {
+  object LStrip extends LibFcn with Function2[String, String, String] {
     val name = prefix + "lstrip"
     val sig = Sig(List("s" -> P.String, "chars" -> P.String), P.String)
     val doc =
@@ -386,7 +422,7 @@ package object string {
   provide(LStrip)
 
   ////   rstrip (RStrip)
-  object RStrip extends LibFcn {
+  object RStrip extends LibFcn with Function2[String, String, String] {
     val name = prefix + "rstrip"
     val sig = Sig(List("s" -> P.String, "chars" -> P.String), P.String)
     val doc =
@@ -403,7 +439,7 @@ package object string {
   provide(RStrip)
 
   ////   strip (Strip)
-  object Strip extends LibFcn {
+  object Strip extends LibFcn with Function2[String, String, String] {
     val name = prefix + "strip"
     val sig = Sig(List("s" -> P.String, "chars" -> P.String), P.String)
     val doc =
@@ -424,7 +460,7 @@ package object string {
   provide(Strip)
 
   ////   replaceall (ReplaceAll)
-  object ReplaceAll extends LibFcn {
+  object ReplaceAll extends LibFcn with Function3[String, String, String, String] {
     val name = prefix + "replaceall"
     val sig = Sig(List("s" -> P.String, "original" -> P.String, "replacement" -> P.String), P.String)
     val doc =
@@ -436,7 +472,7 @@ package object string {
   provide(ReplaceAll)
 
   ////   replacefirst (ReplaceFirst)
-  object ReplaceFirst extends LibFcn {
+  object ReplaceFirst extends LibFcn with Function3[String, String, String, String] {
     val name = prefix + "replacefirst"
     val sig = Sig(List("s" -> P.String, "original" -> P.String, "replacement" -> P.String), P.String)
     val doc =
@@ -451,7 +487,7 @@ package object string {
   provide(ReplaceFirst)
 
   ////   replacelast (ReplaceLast)
-  object ReplaceLast extends LibFcn {
+  object ReplaceLast extends LibFcn with Function3[String, String, String, String] {
     val name = prefix + "replacelast"
     val sig = Sig(List("s" -> P.String, "original" -> P.String, "replacement" -> P.String), P.String)
     val doc =
@@ -466,7 +502,7 @@ package object string {
   provide(ReplaceLast)
 
   ////   translate (Translate)
-  object Translate extends LibFcn {
+  object Translate extends LibFcn with Function3[String, String, String, String] {
     val name = prefix + "translate"
     val sig = Sig(List("s" -> P.String, "oldchars" -> P.String, "newchars" -> P.String), P.String)
     val doc =

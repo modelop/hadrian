@@ -616,27 +616,27 @@ action:
           - {"-": [input.datum.0, {cell: state, path: [[mean], 0]}]}
           - {"-": [input.datum.1, {cell: state, path: [[mean], 1]}]}
 """).head
-    engine.action(engine.fromJson("""{"datum": [12, 85], "update": true}""", engine.inputType))
-    engine.action(engine.fromJson("""{"datum": [32, 40], "update": true}""", engine.inputType))
-    engine.action(engine.fromJson("""{"datum": [4, 90], "update": true}""", engine.inputType))
-    engine.action(engine.fromJson("""{"datum": [3, 77], "update": true}""", engine.inputType))
-    engine.action(engine.fromJson("""{"datum": [7, 87], "update": true}""", engine.inputType))
-    engine.action(engine.fromJson("""{"datum": [88, 2], "update": true}""", engine.inputType))
-    engine.action(engine.fromJson("""{"datum": [56, 5], "update": true}""", engine.inputType))
+    engine.action(engine.jsonInput("""{"datum": [12, 85], "update": true}"""))
+    engine.action(engine.jsonInput("""{"datum": [32, 40], "update": true}"""))
+    engine.action(engine.jsonInput("""{"datum": [4, 90], "update": true}"""))
+    engine.action(engine.jsonInput("""{"datum": [3, 77], "update": true}"""))
+    engine.action(engine.jsonInput("""{"datum": [7, 87], "update": true}"""))
+    engine.action(engine.jsonInput("""{"datum": [88, 2], "update": true}"""))
+    engine.action(engine.jsonInput("""{"datum": [56, 5], "update": true}"""))
 
-    chi2Vector(engine.action(engine.fromJson("""{"datum": [12, 85], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
+    chi2Vector(engine.action(engine.jsonInput("""{"datum": [12, 85], "update": false}""")).asInstanceOf[PFAArray[Double]],
          Vector(-0.728, 0.775)) should be (0.00 +- 0.01)
-    chi2Vector(engine.action(engine.fromJson("""{"datum": [32, 40], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
+    chi2Vector(engine.action(engine.jsonInput("""{"datum": [32, 40], "update": false}""")).asInstanceOf[PFAArray[Double]],
          Vector(0.295, -0.943)) should be (0.00 +- 0.01)
-    chi2Vector(engine.action(engine.fromJson("""{"datum": [4, 90], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
+    chi2Vector(engine.action(engine.jsonInput("""{"datum": [4, 90], "update": false}""")).asInstanceOf[PFAArray[Double]],
          Vector(-0.921, 0.378)) should be (0.00 +- 0.01)
-    chi2Vector(engine.action(engine.fromJson("""{"datum": [3, 77], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
+    chi2Vector(engine.action(engine.jsonInput("""{"datum": [3, 77], "update": false}""")).asInstanceOf[PFAArray[Double]],
          Vector(-0.718, -0.808)) should be (0.00 +- 0.01)
-    chi2Vector(engine.action(engine.fromJson("""{"datum": [7, 87], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
+    chi2Vector(engine.action(engine.jsonInput("""{"datum": [7, 87], "update": false}""")).asInstanceOf[PFAArray[Double]],
          Vector(-0.830, 0.433)) should be (0.00 +- 0.01)
-    chi2Vector(engine.action(engine.fromJson("""{"datum": [88, 2], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
+    chi2Vector(engine.action(engine.jsonInput("""{"datum": [88, 2], "update": false}""")).asInstanceOf[PFAArray[Double]],
          Vector(1.695, 1.585)) should be (0.00 +- 0.01)
-    chi2Vector(engine.action(engine.fromJson("""{"datum": [56, 5], "update": false}""", engine.inputType)).asInstanceOf[PFAArray[Double]],
+    chi2Vector(engine.action(engine.jsonInput("""{"datum": [56, 5], "update": false}""")).asInstanceOf[PFAArray[Double]],
          Vector(1.207, -1.420)) should be (0.00 +- 0.01)
   }
 
@@ -708,11 +708,11 @@ action:
           ret: double
           do: {"-": [x, {cell: state, path: [[mean], i]}]}
 """).head
-    engine.action(engine.fromJson("""[23, 56, 12, 34, 72]""", engine.inputType))
-    engine.action(engine.fromJson("""[52, 61, 12, 71, 91]""", engine.inputType))
-    engine.action(engine.fromJson("""[15, 12, 89, 23, 48]""", engine.inputType))
+    engine.action(engine.jsonInput("""[23, 56, 12, 34, 72]"""))
+    engine.action(engine.jsonInput("""[52, 61, 12, 71, 91]"""))
+    engine.action(engine.jsonInput("""[15, 12, 89, 23, 48]"""))
 
-    chi2Vector(engine.action(engine.fromJson("""[16, 27, 36, 84, 52]""", engine.inputType)).asInstanceOf[PFAArray[Double]],
+    chi2Vector(engine.action(engine.jsonInput("""[16, 27, 36, 84, 52]""")).asInstanceOf[PFAArray[Double]],
          Vector(-0.038, -1.601)) should be (0.00 +- 0.01)
   }
 

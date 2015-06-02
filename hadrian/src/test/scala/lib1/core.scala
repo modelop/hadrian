@@ -573,10 +573,10 @@ output: boolean
 action:
   - {"==": [input, {type: Category1, value: x}]}
 """).head
-    engine.action(engine.fromJson(""""z"""", engine.inputType)).asInstanceOf[Boolean] should be (false)
-    engine.action(engine.fromJson(""""y"""", engine.inputType)).asInstanceOf[Boolean] should be (false)
-    engine.action(engine.fromJson(""""x"""", engine.inputType)).asInstanceOf[Boolean] should be (true)
-    engine.action(engine.fromJson(""""w"""", engine.inputType)).asInstanceOf[Boolean] should be (false)
+    engine.action(engine.jsonInput(""""z"""")).asInstanceOf[Boolean] should be (false)
+    engine.action(engine.jsonInput(""""y"""")).asInstanceOf[Boolean] should be (false)
+    engine.action(engine.jsonInput(""""x"""")).asInstanceOf[Boolean] should be (true)
+    engine.action(engine.jsonInput(""""w"""")).asInstanceOf[Boolean] should be (false)
 
     evaluating { PFAEngine.fromYaml("""
 input: {type: enum, name: Category1, symbols: [z, y, x, w]}

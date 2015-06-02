@@ -54,7 +54,7 @@ action:
     - input
     - cell: model
 """).head
-    engine.action(engine.fromJson("""[0.1, 0.2, 0.3, 0.4, 0.5]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (103.9 +- 0.1)
+    engine.action(engine.jsonInput("""[0.1, 0.2, 0.3, 0.4, 0.5]""")).asInstanceOf[java.lang.Double].doubleValue should be (103.9 +- 0.1)
   }
 
   it must "do two-level array signature" taggedAs(Lib1, Lib1ModelReg) in {
@@ -79,7 +79,7 @@ action:
     - input
     - cell: model
 """).head
-    val out = engine.action(engine.fromJson("""[0.1, 0.2, 0.3, 0.4, 0.5]""", engine.inputType)).asInstanceOf[PFAArray[Double]].toVector
+    val out = engine.action(engine.jsonInput("""[0.1, 0.2, 0.3, 0.4, 0.5]""")).asInstanceOf[PFAArray[Double]].toVector
     out(0) should be (3.9 +- 0.1)
     out(1) should be (1.5 +- 0.1)
     out(2) should be (100.5 +- 0.1)
@@ -105,7 +105,7 @@ action:
     - input
     - cell: model
 """).head
-    engine.action(engine.fromJson("""{"one": 0.1, "two": 0.2, "three": 0.3, "four": 0.4, "five": 0.5}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (103.9 +- 0.1)
+    engine.action(engine.jsonInput("""{"one": 0.1, "two": 0.2, "three": 0.3, "four": 0.4, "five": 0.5}""")).asInstanceOf[java.lang.Double].doubleValue should be (103.9 +- 0.1)
   }
 
   it must "do two-level map signature" taggedAs(Lib1, Lib1ModelReg) in {
@@ -132,7 +132,7 @@ action:
     - input
     - cell: model
 """).head
-    val out = engine.action(engine.fromJson("""{"one": 0.1, "two": 0.2, "three": 0.3, "four": 0.4, "five": 0.5}""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Double]].toMap
+    val out = engine.action(engine.jsonInput("""{"one": 0.1, "two": 0.2, "three": 0.3, "four": 0.4, "five": 0.5}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
     out("uno").doubleValue should be (3.9 +- 0.1)
     out("dos").doubleValue should be (1.5 +- 0.1)
     out("tres").doubleValue should be (100.5 +- 0.1)
@@ -144,7 +144,7 @@ input: {type: array, items: double}
 output: {type: array, items: double}
 action: {model.reg.norm.softmax: input}
 """).head
-    val out2 = engine2.action(engine2.fromJson("""[1, 2, 3, 4]""", engine2.inputType)).asInstanceOf[PFAArray[Double]].toVector
+    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3, 4]""")).asInstanceOf[PFAArray[Double]].toVector
     out2(0) should be (0.03205860328008499 +- 0.0000001)
     out2(1) should be (0.08714431874203257 +- 0.0000001)
     out2(2) should be (0.23688281808991013 +- 0.0000001)
@@ -155,7 +155,7 @@ input: {type: map, values: double}
 output: {type: map, values: double}
 action: {model.reg.norm.softmax: input}
 """).head
-    val out3 = engine3.action(engine3.fromJson("""{"one": 1, "two": 2, "three": 3, "four": 4}""", engine3.inputType)).asInstanceOf[PFAMap[java.lang.Double]].toMap
+    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3, "four": 4}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
     out3("one").doubleValue should be (0.03205860328008499 +- 0.0000001)
     out3("two").doubleValue should be (0.08714431874203257 +- 0.0000001)
     out3("three").doubleValue should be (0.23688281808991013 +- 0.0000001)
@@ -168,14 +168,14 @@ input: double
 output: double
 action: {model.reg.norm.logit: input}
 """).head
-    engine1.action(engine1.fromJson("""2.2""", engine1.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (0.9002495108803148 +- 0.0000001)
+    engine1.action(engine1.jsonInput("""2.2""")).asInstanceOf[java.lang.Double].doubleValue should be (0.9002495108803148 +- 0.0000001)
 
     val engine2 = PFAEngine.fromYaml("""
 input: {type: array, items: double}
 output: {type: array, items: double}
 action: {model.reg.norm.logit: input}
 """).head
-    val out2 = engine2.action(engine2.fromJson("""[1, 2, 3, 4]""", engine2.inputType)).asInstanceOf[PFAArray[Double]].toVector
+    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3, 4]""")).asInstanceOf[PFAArray[Double]].toVector
     out2(0) should be (0.7310585786300049 +- 0.0000001)
     out2(1) should be (0.8807970779778823 +- 0.0000001)
     out2(2) should be (0.9525741268224334 +- 0.0000001)
@@ -186,7 +186,7 @@ input: {type: map, values: double}
 output: {type: map, values: double}
 action: {model.reg.norm.logit: input}
 """).head
-    val out3 = engine3.action(engine3.fromJson("""{"one": 1, "two": 2, "three": 3, "four": 4}""", engine3.inputType)).asInstanceOf[PFAMap[java.lang.Double]].toMap
+    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3, "four": 4}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
     out3("one").doubleValue should be (0.7310585786300049 +- 0.0000001)
     out3("two").doubleValue should be (0.8807970779778823 +- 0.0000001)
     out3("three").doubleValue should be (0.9525741268224334 +- 0.0000001)
@@ -199,7 +199,7 @@ input: double
 output: double
 action: {model.reg.norm.probit: input}
 """).head
-    engine1.action(engine1.fromJson("""2.2""", engine1.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (0.9860965524865013 +- 0.0000001)
+    engine1.action(engine1.jsonInput("""2.2""")).asInstanceOf[java.lang.Double].doubleValue should be (0.9860965524865013 +- 0.0000001)
 
     // println("below is testing logit, not probit")
     val engine2 = PFAEngine.fromYaml("""
@@ -207,7 +207,7 @@ input: {type: array, items: double}
 output: {type: array, items: double}
 action: {model.reg.norm.probit: input}
 """).head
-    val out2 = engine2.action(engine2.fromJson("""[1, 2, 3, 4]""", engine2.inputType)).asInstanceOf[PFAArray[Double]].toVector
+    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3, 4]""")).asInstanceOf[PFAArray[Double]].toVector
     out2(0) should be (0.841344746068543  +- 0.0000001)
     out2(1) should be (0.9772498680518207 +- 0.0000001)
     out2(2) should be (0.9986501019683699 +- 0.0000001)
@@ -219,7 +219,7 @@ input: {type: map, values: double}
 output: {type: map, values: double}
 action: {model.reg.norm.probit: input}
 """).head
-    val out3 = engine3.action(engine3.fromJson("""{"one": 1, "two": 2, "three": 3, "four": 4}""", engine3.inputType)).asInstanceOf[PFAMap[java.lang.Double]].toMap
+    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3, "four": 4}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
     out3("one").doubleValue should be   (0.841344746068543  +- 0.0000001)
     out3("two").doubleValue should be   (0.9772498680518207 +- 0.0000001)
     out3("three").doubleValue should be (0.9986501019683699 +- 0.0000001)
@@ -232,14 +232,14 @@ input: double
 output: double
 action: {model.reg.norm.cloglog: input}
 """).head
-    engine1.action(engine1.fromJson("""2.2""", engine1.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (0.9998796388196516 +- 0.0000001)
+    engine1.action(engine1.jsonInput("""2.2""")).asInstanceOf[java.lang.Double].doubleValue should be (0.9998796388196516 +- 0.0000001)
 
     val engine2 = PFAEngine.fromYaml("""
 input: {type: array, items: double}
 output: {type: array, items: double}
 action: {model.reg.norm.cloglog: input}
 """).head
-    val out2 = engine2.action(engine2.fromJson("""[1, 2, 3, 4]""", engine2.inputType)).asInstanceOf[PFAArray[Double]].toVector
+    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3, 4]""")).asInstanceOf[PFAArray[Double]].toVector
     out2(0) should be (0.9340119641546875 +- 0.0000001)
     out2(1) should be (0.9993820210106689 +- 0.0000001)
     out2(2) should be (0.9999999981078213 +- 0.0000001)
@@ -250,7 +250,7 @@ input: {type: map, values: double}
 output: {type: map, values: double}
 action: {model.reg.norm.cloglog: input}
 """).head
-    val out3 = engine3.action(engine3.fromJson("""{"one": 1, "two": 2, "three": 3, "four": 4}""", engine3.inputType)).asInstanceOf[PFAMap[java.lang.Double]].toMap
+    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3, "four": 4}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
     out3("one").doubleValue should be (0.9340119641546875 +- 0.0000001)
     out3("two").doubleValue should be (0.9993820210106689 +- 0.0000001)
     out3("three").doubleValue should be (0.9999999981078213 +- 0.0000001)
@@ -263,14 +263,14 @@ input: double
 output: double
 action: {model.reg.norm.loglog: input}
 """).head
-    engine1.action(engine1.fromJson("""2.2""", engine1.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (1.203611803484212E-4 +- 0.0000001)
+    engine1.action(engine1.jsonInput("""2.2""")).asInstanceOf[java.lang.Double].doubleValue should be (1.203611803484212E-4 +- 0.0000001)
 
     val engine2 = PFAEngine.fromYaml("""
 input: {type: array, items: double}
 output: {type: array, items: double}
 action: {model.reg.norm.loglog: input}
 """).head
-    val out2 = engine2.action(engine2.fromJson("""[1, 2, 3, 4]""", engine2.inputType)).asInstanceOf[PFAArray[Double]].toVector
+    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3, 4]""")).asInstanceOf[PFAArray[Double]].toVector
     out2(0) should be (0.06598803584531254 +- 0.0000001)
     out2(1) should be (6.179789893310934E-4 +- 0.0000001)
     out2(2) should be (1.8921786948382924E-9 +- 0.0000001)
@@ -281,7 +281,7 @@ input: {type: map, values: double}
 output: {type: map, values: double}
 action: {model.reg.norm.loglog: input}
 """).head
-    val out3 = engine3.action(engine3.fromJson("""{"one": 1, "two": 2, "three": 3, "four": 4}""", engine3.inputType)).asInstanceOf[PFAMap[java.lang.Double]].toMap
+    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3, "four": 4}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
     out3("one").doubleValue should be (0.06598803584531254 +- 0.0000001)
     out3("two").doubleValue should be (6.179789893310934E-4 +- 0.0000001)
     out3("three").doubleValue should be (1.8921786948382924E-9 +- 0.0000001)
@@ -294,14 +294,14 @@ input: double
 output: double
 action: {model.reg.norm.cauchit: input}
 """).head
-    engine1.action(engine1.fromJson("""2.2""", engine1.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (0.8642002512199081 +- 0.0000001)
+    engine1.action(engine1.jsonInput("""2.2""")).asInstanceOf[java.lang.Double].doubleValue should be (0.8642002512199081 +- 0.0000001)
 
     val engine2 = PFAEngine.fromYaml("""
 input: {type: array, items: double}
 output: {type: array, items: double}
 action: {model.reg.norm.cauchit: input}
 """).head
-    val out2 = engine2.action(engine2.fromJson("""[1, 2, 3, 4]""", engine2.inputType)).asInstanceOf[PFAArray[Double]].toVector
+    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3, 4]""")).asInstanceOf[PFAArray[Double]].toVector
     out2(0) should be (0.75 +- 0.0000001)
     out2(1) should be (0.8524163823495667 +- 0.0000001)
     out2(2) should be (0.8975836176504333 +- 0.0000001)
@@ -312,7 +312,7 @@ input: {type: map, values: double}
 output: {type: map, values: double}
 action: {model.reg.norm.cauchit: input}
 """).head
-    val out3 = engine3.action(engine3.fromJson("""{"one": 1, "two": 2, "three": 3, "four": 4}""", engine3.inputType)).asInstanceOf[PFAMap[java.lang.Double]].toMap
+    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3, "four": 4}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
     out3("one").doubleValue should be (0.75 +- 0.0000001)
     out3("two").doubleValue should be (0.8524163823495667 +- 0.0000001)
     out3("three").doubleValue should be (0.8975836176504333 +- 0.0000001)
@@ -339,7 +339,7 @@ action:
     - type: {type: array, items: double}
       value: [2.5, 2.5, 2.5]
 """).head
-    val out2 = engine2.action(engine2.fromJson("""[1, 2, 3]""", engine2.inputType)).asInstanceOf[PFAArray[Double]].toVector
+    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3]""")).asInstanceOf[PFAArray[Double]].toVector
     out2(0) should be (-1.5 +- 0.1)
     out2(1) should be (-0.5 +- 0.1)
     out2(2) should be (0.5 +- 0.1)
@@ -353,7 +353,7 @@ action:
     - type: {type: map, values: double}
       value: {one: 2.5, two: 2.5, three: 2.5}
 """).head
-    val out3 = engine3.action(engine3.fromJson("""{"one": 1, "two": 2, "three": 3}""", engine3.inputType)).asInstanceOf[PFAMap[java.lang.Double]].toMap
+    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
     out3("one").doubleValue should be (-1.5 +- 0.1)
     out3("two").doubleValue should be (-0.5 +- 0.1)
     out3("three").doubleValue should be (0.5 +- 0.1)
@@ -382,7 +382,7 @@ action:
     - type: {type: array, items: double}
       value: [2.0, 2.0, 2.0]
 """).head
-    val out2 = engine2.action(engine2.fromJson("""[1, 2, 3]""", engine2.inputType)).asInstanceOf[PFAArray[Double]].toVector
+    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3]""")).asInstanceOf[PFAArray[Double]].toVector
     out2(0) should be (-0.75 +- 0.1)
     out2(1) should be (-0.25 +- 0.1)
     out2(2) should be (0.25 +- 0.1)
@@ -398,7 +398,7 @@ action:
     - type: {type: map, values: double}
       value: {one: 2.0, two: 2.0, three: 2.0}
 """).head
-    val out3 = engine3.action(engine3.fromJson("""{"one": 1, "two": 2, "three": 3}""", engine3.inputType)).asInstanceOf[PFAMap[java.lang.Double]].toMap
+    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
     out3("one").doubleValue should be (-0.75 +- 0.1)
     out3("two").doubleValue should be (-0.25 +- 0.1)
     out3("three").doubleValue should be (0.25 +- 0.1)
@@ -418,7 +418,7 @@ action:
               [0.0, 4.0, 0.0],
               [0.0, 0.0, 1.0]]
 """).head
-    engine2.action(engine2.fromJson("""[1, 2, 3]""", engine2.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (1.19895788083 +- 0.1)
+    engine2.action(engine2.jsonInput("""[1, 2, 3]""")).asInstanceOf[java.lang.Double].doubleValue should be (1.19895788083 +- 0.1)
 
     val engine3 = PFAEngine.fromYaml("""
 input: {type: map, values: double}
@@ -433,7 +433,7 @@ action:
               two:   {one: 0.0, two: 4.0, three: 0.0},
               three: {one: 0.0, two: 0.0, three: 1.0}}
 """).head
-    engine3.action(engine3.fromJson("""{"one": 1, "two": 2, "three": 3}""", engine3.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (1.19895788083 +- 0.1)
+    engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3}""")).asInstanceOf[java.lang.Double].doubleValue should be (1.19895788083 +- 0.1)
   }
 
   "model.reg.*chi2*" must "work" taggedAs(Lib1, Lib1ModelReg) in {

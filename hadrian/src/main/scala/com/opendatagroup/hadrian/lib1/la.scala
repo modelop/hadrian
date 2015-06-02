@@ -28,6 +28,7 @@ import com.opendatagroup.hadrian.ast.LibFcn
 import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.jvmcompiler.JavaCode
 import com.opendatagroup.hadrian.jvmcompiler.javaSchema
+import com.opendatagroup.hadrian.options.EngineOptions
 
 import com.opendatagroup.hadrian.ast.AstContext
 import com.opendatagroup.hadrian.ast.ExpressionContext
@@ -194,7 +195,7 @@ package object la {
         <desc>Scale vector or matrix <p>x</p> by factor <p>alpha</p>.</desc>
         <detail>The order in which elements are computed is not specified, and may be in parallel.</detail>
     </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       if (retType.accepts(AvroArray(AvroDouble()))  ||  retType.accepts(AvroMap(AvroDouble())))
         JavaCode("%s.MODULE$.applyVec(%s, %s)",
           this.getClass.getName,
@@ -287,7 +288,7 @@ package object la {
         <detail>The order in which elements are computed is not specified, and may be in parallel.</detail>
         <error>In the array signature, if any element in <p>x</p> does not have a corresponding element in <p>y</p> (or vice-versa), this function raises a "misaligned matrices" error.</error>
     </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       if (retType.accepts(AvroArray(AvroDouble()))  ||  retType.accepts(AvroMap(AvroDouble())))
         JavaCode("%s.MODULE$.applyVec(%s, %s)",
           this.getClass.getName,
@@ -381,7 +382,7 @@ package object la {
         <detail>The order in which elements are computed is not specified, and may be in parallel.</detail>
         <error>In the array signature, if any element in <p>x</p> does not have a corresponding element in <p>y</p> (or vice-versa), this function raises a "misaligned matrices" error.</error>
     </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       if (retType.accepts(AvroArray(AvroDouble()))  ||  retType.accepts(AvroMap(AvroDouble())))
         JavaCode("%s.MODULE$.applyVec(%s, %s)",
           this.getClass.getName,
@@ -477,7 +478,7 @@ package object la {
         <error>In the array signature, if the dimensions of <p>x</p> do not correspond to the dimension(s) of <p>y</p>, this function raises a "misaligned matrices" error.</error>
       </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = paramTypes(1) match {
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode = paramTypes(1) match {
       case AvroArray(AvroDouble()) | AvroMap(AvroDouble()) =>
         JavaCode("%s.MODULE$.applyVector(%s, %s)",
           this.getClass.getName,

@@ -65,6 +65,133 @@ package object cast {
 
   val prefix = "cast."
 
+  //////////////////////////////////////////////////////////////////// wrap-around arithmetic
+
+  val bitsToMax = Map(1 -> 2L,
+    2 -> 4L,
+    3 -> 8L,
+    4 -> 16L,
+    5 -> 32L,
+    6 -> 64L,
+    7 -> 128L,
+    8 -> 256L,
+    9 -> 512L,
+    10 -> 1024L,
+    11 -> 2048L,
+    12 -> 4096L,
+    13 -> 8192L,
+    14 -> 16384L,
+    15 -> 32768L,
+    16 -> 65536L,
+    17 -> 131072L,
+    18 -> 262144L,
+    19 -> 524288L,
+    20 -> 1048576L,
+    21 -> 2097152L,
+    22 -> 4194304L,
+    23 -> 8388608L,
+    24 -> 16777216L,
+    25 -> 33554432L,
+    26 -> 67108864L,
+    27 -> 134217728L,
+    28 -> 268435456L,
+    29 -> 536870912L,
+    30 -> 1073741824L,
+    31 -> 2147483648L,
+    32 -> 4294967296L,
+    33 -> 8589934592L,
+    34 -> 17179869184L,
+    35 -> 34359738368L,
+    36 -> 68719476736L,
+    37 -> 137438953472L,
+    38 -> 274877906944L,
+    39 -> 549755813888L,
+    40 -> 1099511627776L,
+    41 -> 2199023255552L,
+    42 -> 4398046511104L,
+    43 -> 8796093022208L,
+    44 -> 17592186044416L,
+    45 -> 35184372088832L,
+    46 -> 70368744177664L,
+    47 -> 140737488355328L,
+    48 -> 281474976710656L,
+    49 -> 562949953421312L,
+    50 -> 1125899906842624L,
+    51 -> 2251799813685248L,
+    52 -> 4503599627370496L,
+    53 -> 9007199254740992L,
+    54 -> 18014398509481984L,
+    55 -> 36028797018963968L,
+    56 -> 72057594037927936L,
+    57 -> 144115188075855872L,
+    58 -> 288230376151711744L,
+    59 -> 576460752303423488L,
+    60 -> 1152921504606846976L,
+    61 -> 2305843009213693952L,
+    62 -> 4611686018427387904L)
+
+  ////   signed (ToSigned)
+  object ToSigned extends LibFcn with Function2[Long, Int, Long] {
+    val name = prefix + "signed"
+    val sig = Sig(List("x" -> P.Long, "bits" -> P.Int), P.Long)
+    val doc =
+      <doc>
+        <desc>Truncate <p>x</p> as though its signed long two's complement representation were inserted, bit-for-bit, into a signed two's complement representation that is <p>bits</p> wide, removing the most significant bits.</desc>
+        <detail>The result of this function may be negative, zero, or positive.</detail>
+        <error>If <p>bits</p> is less than 2 or greater than 64, an "unrepresentable unsigned number" error is raised.</error>
+      </doc>
+    def apply(x: Long, bits: Int): Long = {
+      if (bits == 64)
+        x
+      else if (bits == 1)
+        throw new PFARuntimeException("unrepresentable unsigned number")
+      else {
+        val y = ToUnsigned(x, bits)
+        val maximum = bitsToMax(bits - 1)
+        if (y > maximum - 1)
+          y - 2*maximum
+        else
+          y
+      }
+    }
+  }
+  provide(ToSigned)
+
+  ////   unsigned (ToUnsigned)
+  object ToUnsigned extends LibFcn with Function2[Long, Int, Long] {
+    val name = prefix + "unsigned"
+    val sig = Sig(List("x" -> P.Long, "bits" -> P.Int), P.Long)
+    val doc =
+      <doc>
+        <desc>Truncate <p>x</p> as though its signed long two's complement representation were inserted, bit-for-bit, into an unsigned register that is <p>bits</p> wide, removing the most significant bits.</desc>
+        <detail>The result of this function is always nonnegative.</detail>
+        <error>If <p>bits</p> is less than 1 or greater than 63, an "unrepresentable unsigned number" error is raised.</error>
+      </doc>
+    def apply(x: Long, bits: Int): Long = {
+      if (bits == 63) {
+        if (x < 0)
+          x + 9223372036854775807L + 1
+        else
+          x
+      }
+      else {
+        val maximum = try {
+          bitsToMax(bits)
+        }
+        catch {
+          case err: java.util.NoSuchElementException => throw new PFARuntimeException("unrepresentable unsigned number")
+        }
+        val y =
+          if (x < 0)
+            x + maximum * Math.ceil(-x.toDouble / maximum).toLong
+          else
+            x
+        y % maximum
+      }
+    }
+  }
+  provide(ToUnsigned)
+
   //////////////////////////////////////////////////////////////////// number precisions
 
   ////   int (ToInt)

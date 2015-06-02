@@ -72,4 +72,18 @@ package object fixed {
   }
   provide(ToBytes)
 
+  ////   fromBytes (FromBytes)
+  object FromBytes extends LibFcn {
+    val name = prefix + "fromBytes"
+    val sig = Sig(List("original" -> P.WildFixed("A"), "replacement" -> P.Bytes), P.Wildcard("A"))
+    val doc =
+      <doc>
+        <desc>Overlay <p>replacement</p> on top of <p>original</p>.</desc>
+        <detail>If <p>replacement</p> is shorter than <p>original</p>, the bytes beyond <p>replacement</p>'s length are taken from <p>original</p>.</detail>
+        <detail>If <p>replacement</p> is longer than <p>original</p>, the excess bytes are truncated.</detail>
+      </doc>
+    def apply(original: PFAFixed, replacement: Array[Byte]): PFAFixed = original.overlay(replacement)
+  }
+  provide(FromBytes)
+
 }

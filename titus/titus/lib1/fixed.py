@@ -37,3 +37,11 @@ class ToBytes(LibFcn):
     def __call__(self, state, scope, paramTypes, x):
         return x
 provide(ToBytes())
+
+class FromBytes(LibFcn):
+    name = prefix + "fromBytes"
+    sig = Sig([{"original": P.WildFixed("A")}, {"replacement": P.Bytes()}], P.Wildcard("A"))
+    def __call__(self, state, scope, paramTypes, original, replacement):
+        length = min(len(original), len(replacement))
+        return replacement[0:length] + original[length:len(original)]
+provide(FromBytes())

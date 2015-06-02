@@ -32,6 +32,7 @@ import com.opendatagroup.hadrian.ast.LibFcn
 import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.jvmcompiler.JavaCode
 import com.opendatagroup.hadrian.jvmcompiler.javaSchema
+import com.opendatagroup.hadrian.options.EngineOptions
 
 import com.opendatagroup.hadrian.ast.AstContext
 import com.opendatagroup.hadrian.ast.ExpressionContext
@@ -100,7 +101,7 @@ package object reg {
         <error>Raises a "misaligned const" error if <pf>const</pf> does not have the same indexes as <p>datum</p>.</error>
       </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("%s.apply%s(%s, %s)",
         javaRef(FcnType(argContext collect {case x: ExpressionContext => x.retType}, retType)).toString,
         (paramTypes(0), retType) match {

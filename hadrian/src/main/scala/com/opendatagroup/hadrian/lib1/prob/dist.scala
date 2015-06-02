@@ -216,7 +216,7 @@ package object dist {
 
 //////////////////////////////////////////// Exponential distribution
 ////   exponentialPDF (ExponentialPDF)
-  object ExponentialPDF extends LibFcn {
+  object ExponentialPDF extends LibFcn with Function2[Double, Double, Double] {
     val name = prefix + "exponentialPDF"
     val sig = Sig(List("x" -> P.Double, "lambda" -> P.Double), P.Double)
     val doc =
@@ -244,7 +244,7 @@ package object dist {
   provide(ExponentialPDF)
 
   ////   exponentialCDF (ExponentialCDF)
-  object ExponentialCDF extends LibFcn {
+  object ExponentialCDF extends LibFcn with Function2[Double, Double, Double] {
     val name = prefix + "exponentialCDF"
     val sig = Sig(List("x" -> P.Double, "lambda" -> P.Double), P.Double)
     val doc =
@@ -269,7 +269,7 @@ package object dist {
   provide(ExponentialCDF)
 
   ////   exponentialQF (ExponentialQF)
-  object ExponentialQF extends LibFcn {
+  object ExponentialQF extends LibFcn with Function2[Double, Double, Double] {
     val name = prefix + "exponentialQF"
     val sig = Sig(List("p" -> P.Double, "lambda" -> P.Double), P.Double)
     val doc =
@@ -302,7 +302,7 @@ package object dist {
 
 //////////////////////////////////////////// Chi^2 distribution
 ////   chi2PDF (Chi2PDF)
-  object Chi2PDF extends LibFcn {
+  object Chi2PDF extends LibFcn with Function2[Double, Int, Double] {
     val name = prefix + "chi2PDF"
     val sig = Sig(List("x" -> P.Double, "df" -> P.Int), P.Double)
     val doc =
@@ -332,7 +332,7 @@ package object dist {
   provide(Chi2PDF)
 
   ////   chi2CDF (Chi2CDF)
-  object Chi2CDF extends LibFcn {
+  object Chi2CDF extends LibFcn with Function2[Double, Int, Double] {
     val name = prefix + "chi2CDF"
     val sig = Sig(List("x" -> P.Double, "df" -> P.Int), P.Double)
     val doc =
@@ -359,7 +359,7 @@ package object dist {
   provide(Chi2CDF)
 
   ////   chi2QF (Chi2QF)
-  object Chi2QF extends LibFcn {
+  object Chi2QF extends LibFcn with Function2[Double, Int, Double] {
     val name = prefix + "chi2QF"
     val sig = Sig(List("p" -> P.Double, "df" -> P.Int), P.Double)
     val doc =
@@ -392,7 +392,7 @@ package object dist {
   
 //////////////////////////////////////////// Poisson distribution
 ////   poissonPDF (PoissonPDF)
-  object PoissonPDF extends LibFcn {
+  object PoissonPDF extends LibFcn with Function2[Int, Double, Double] {
     val name = prefix + "poissonPDF"
     val sig = Sig(List("k" -> P.Int, "lambda" -> P.Double), P.Double)
     val doc =
@@ -422,7 +422,7 @@ package object dist {
   provide(PoissonPDF)
 
   ////   poissonCDF (PoissonCDF)
-  object PoissonCDF extends LibFcn {
+  object PoissonCDF extends LibFcn with Function2[Double, Double, Double] {
     val name = prefix + "poissonCDF"
     val sig = Sig(List("k" -> P.Double, "lambda" -> P.Double), P.Double)
     val doc =
@@ -449,7 +449,7 @@ package object dist {
   provide(PoissonCDF)
 
   ////   poissonQF (PoissonQF)
-  object PoissonQF extends LibFcn {
+  object PoissonQF extends LibFcn with Function2[Double, Double, Double] {
     val name = prefix + "poissonQF"
     val sig = Sig(List("p" -> P.Double, "lambda" -> P.Double), P.Double)
     val doc =
@@ -480,7 +480,7 @@ package object dist {
 
 //////////////////////////////////////////// Gamma distribution
 ////   gammaPDF (GammaPDF)
-  object GammaPDF extends LibFcn {
+  object GammaPDF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "gammaPDF"
     val sig = Sig(List("x" -> P.Double, "shape" -> P.Double, "scale" -> P.Double), P.Double)
     val doc =
@@ -511,7 +511,7 @@ package object dist {
   provide(GammaPDF)
 
   ////   gammaCDF (GammaCDF)
-  object GammaCDF extends LibFcn {
+  object GammaCDF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "gammaCDF"
     val sig = Sig(List("x" -> P.Double, "shape" -> P.Double, "scale" -> P.Double), P.Double)
     val doc =
@@ -541,7 +541,7 @@ package object dist {
   provide(GammaCDF)
 
   ////   gammaQF (GammaQF)
-  object GammaQF extends LibFcn {
+  object GammaQF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "gammaQF"
     val sig = Sig(List("p" -> P.Double, "shape" -> P.Double, "scale" -> P.Double), P.Double)
     val doc =
@@ -573,7 +573,7 @@ package object dist {
 
 //////////////////////////////////////////// Beta distribution
 ////   betaPDF (BetaPDF)
-  object BetaPDF extends LibFcn {
+  object BetaPDF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "betaPDF"
     val sig = Sig(List("x" -> P.Double, "shape1" -> P.Double, "shape2" -> P.Double), P.Double)
     val doc =
@@ -597,7 +597,7 @@ package object dist {
   provide(BetaPDF)
 
   ////   betaCDF (BetaCDF)
-  object BetaCDF extends LibFcn {
+  object BetaCDF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "betaCDF"
     val sig = Sig(List("x" -> P.Double, "shape1" -> P.Double, "shape2" -> P.Double), P.Double)
     val doc =
@@ -623,7 +623,7 @@ package object dist {
   provide(BetaCDF)
 
   ////   betaQF (BetaQF)
-  object BetaQF extends LibFcn {
+  object BetaQF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "betaQF"
     val sig = Sig(List("p" -> P.Double, "shape1" -> P.Double, "shape2" -> P.Double), P.Double)
     val doc =
@@ -655,7 +655,7 @@ package object dist {
 
 //////////////////////////////////////////// Cauchy distribution
 ////   cauchyPDF (CauchyPDF)
-  object CauchyPDF extends LibFcn {
+  object CauchyPDF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "cauchyPDF"
     val sig = Sig(List("x" -> P.Double, "location" -> P.Double, "scale" -> P.Double), P.Double)
     val doc =
@@ -678,7 +678,7 @@ package object dist {
   provide(CauchyPDF)
 
   ////   cauchyCDF (CauchyCDF)
-  object CauchyCDF extends LibFcn {
+  object CauchyCDF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "cauchyCDF"
     val sig = Sig(List("x" -> P.Double, "location" -> P.Double, "scale" -> P.Double), P.Double)
     val doc =
@@ -700,7 +700,7 @@ package object dist {
   provide(CauchyCDF)
 
   ////   cauchyQF (CauchyQF)
-  object CauchyQF extends LibFcn {
+  object CauchyQF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "cauchyQF"
     val sig = Sig(List("p" -> P.Double, "location" -> P.Double, "scale" -> P.Double), P.Double)
     val doc =
@@ -730,7 +730,7 @@ package object dist {
 
 //////////////////////////////////////////// F distribution
 ////   fPDF (FPDF)
-  object FPDF extends LibFcn {
+  object FPDF extends LibFcn with Function3[Double, Int, Int, Double] {
     val name = prefix + "fPDF"
     val sig = Sig(List("x" -> P.Double, "df1" -> P.Int, "df2" -> P.Int), P.Double)
     val doc =
@@ -755,7 +755,7 @@ package object dist {
   provide(FPDF)
 
   ////   fCDF (FCDF)
-  object FCDF extends LibFcn {
+  object FCDF extends LibFcn with Function3[Double, Int, Int, Double] {
     val name = prefix + "fCDF"
     val sig = Sig(List("x" -> P.Double, "df1" -> P.Int, "df2" -> P.Int), P.Double)
     val doc =
@@ -768,7 +768,7 @@ package object dist {
         <error>Raises "invalid parameterization" if the <m>{"df1 \\leq 0"}</m> OR if <m>{"df2 \\leq 0"}</m>.</error>
       </doc>
 
-    def apply(x: Double, df1: Double, df2: Double): Double =
+    def apply(x: Double, df1: Int, df2: Int): Double =
       if (df2 <= 0  ||  df1 <= 0)
         throw new PFARuntimeException("invalid parameterization")
       else
@@ -777,7 +777,7 @@ package object dist {
   provide(FCDF)
 
   ////   fQF (FQF)
-  object FQF extends LibFcn {
+  object FQF extends LibFcn with Function3[Double, Int, Int, Double] {
     val name = prefix + "fQF"
     val sig = Sig(List("p" -> P.Double, "df1" -> P.Int, "df2" -> P.Int), P.Double)
     val doc =
@@ -807,7 +807,7 @@ package object dist {
 
 //////////////////////////////////////////// Lognormal distribution
 ////   lognormalPDF (LognormalPDF)
-  object LognormalPDF extends LibFcn {
+  object LognormalPDF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "lognormalPDF"
     val sig = Sig(List("x" -> P.Double, "meanlog" -> P.Double, "sdlog" -> P.Double), P.Double)
     val doc =
@@ -830,7 +830,7 @@ package object dist {
   provide(LognormalPDF)
 
   ////   lognormalCDF (LognormalCDF)
-  object LognormalCDF extends LibFcn {
+  object LognormalCDF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "lognormalCDF"
     val sig = Sig(List("x" -> P.Double, "meanlog" -> P.Double, "sdlog" -> P.Double), P.Double)
     val doc =
@@ -852,7 +852,7 @@ package object dist {
   provide(LognormalCDF)
 
   ////   lognormalQF (LognormalQF)
-  object LognormalQF extends LibFcn {
+  object LognormalQF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "lognormalQF"
     val sig = Sig(List("p" -> P.Double, "meanlog" -> P.Double, "sdlog" -> P.Double), P.Double)
     val doc =
@@ -882,7 +882,7 @@ package object dist {
 
 //////////////////////////////////////////// T distribution
 ////   tPDF (TPDF)
-  object TPDF extends LibFcn {
+  object TPDF extends LibFcn with Function2[Double, Int, Double] {
     val name = prefix + "tPDF"
     val sig = Sig(List("x" -> P.Double, "df" -> P.Int), P.Double)
     val doc =
@@ -903,7 +903,7 @@ package object dist {
   provide(TPDF)
 
   ////   tCDF (TCDF)
-  object TCDF extends LibFcn {
+  object TCDF extends LibFcn with Function2[Double, Int, Double] {
     val name = prefix + "tCDF"
     val sig = Sig(List("x" -> P.Double, "df" -> P.Int), P.Double)
     val doc =
@@ -924,7 +924,7 @@ package object dist {
   provide(TCDF)
 
   ////   tQF (TQF)
-  object TQF extends LibFcn {
+  object TQF extends LibFcn with Function2[Double, Int, Double] {
     val name = prefix + "tQF"
     val sig = Sig(List("p" -> P.Double, "df" -> P.Int), P.Double)
     val doc =
@@ -955,7 +955,7 @@ package object dist {
 
 //////////////////////////////////////////// Binomial distribution
 //// binomialPDF (BinomialPDF)
-  object BinomialPDF extends LibFcn {
+  object BinomialPDF extends LibFcn with Function3[Int, Int, Double, Double] {
     val name = prefix + "binomialPDF"
     val sig = Sig(List("x" -> P.Int, "size" -> P.Int, "prob" -> P.Double), P.Double)
     val doc =
@@ -982,7 +982,7 @@ package object dist {
   provide(BinomialPDF)
 
   ////   binomialCDF (BinomialCDF)
-  object BinomialCDF extends LibFcn {
+  object BinomialCDF extends LibFcn with Function3[Double, Int, Double, Double] {
     val name = prefix + "binomialCDF"
     val sig = Sig(List("x" -> P.Double, "size" -> P.Int, "prob" -> P.Double), P.Double)
     val doc =
@@ -1008,7 +1008,7 @@ package object dist {
   provide(BinomialCDF)
 
   ////   binomialQF (BinomialQF)
-  object BinomialQF extends LibFcn {
+  object BinomialQF extends LibFcn with Function3[Double, Int, Double, Double] {
     val name = prefix + "binomialQF"
     val sig = Sig(List("p" -> P.Double, "size" -> P.Int, "prob" -> P.Double), P.Double)
     val doc =
@@ -1042,7 +1042,7 @@ package object dist {
 
 //////////////////////////////////////////// Uniform distribution
 ////   uniformPDF (UniformPDF)
-  object UniformPDF extends LibFcn {
+  object UniformPDF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "uniformPDF"
     val sig = Sig(List("x" -> P.Double, "min" -> P.Double, "max" -> P.Double), P.Double)
     val doc =
@@ -1064,7 +1064,7 @@ package object dist {
   provide(UniformPDF)
 
   ////   uniformCDF (UniformCDF)
-  object UniformCDF extends LibFcn {
+  object UniformCDF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "uniformCDF"
     val sig = Sig(List("x" -> P.Double, "min" -> P.Double, "max" -> P.Double), P.Double)
     val doc =
@@ -1086,7 +1086,7 @@ package object dist {
   provide(UniformCDF)
 
   ////   uniformQF (UniformQF)
-  object UniformQF extends LibFcn {
+  object UniformQF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "uniformQF"
     val sig = Sig(List("p" -> P.Double, "min" -> P.Double, "max" -> P.Double), P.Double)
     val doc =
@@ -1114,7 +1114,7 @@ package object dist {
 
 //////////////////////////////////////////// Geometric distribution
 ////   geometricPDF (GeometricPDF)
-  object GeometricPDF extends LibFcn {
+  object GeometricPDF extends LibFcn with Function2[Int, Double, Double] {
     val name = prefix + "geometricPDF"
     val sig = Sig(List("x" -> P.Int, "prob" -> P.Double), P.Double)
     val doc =
@@ -1135,7 +1135,7 @@ package object dist {
   provide(GeometricPDF)
 
   ////   geometricCDF (GeometricCDF)
-  object GeometricCDF extends LibFcn {
+  object GeometricCDF extends LibFcn with Function2[Double, Double, Double] {
     val name = prefix + "geometricCDF"
     val sig = Sig(List("x" -> P.Double, "prob" -> P.Double), P.Double)
     val doc =
@@ -1156,7 +1156,7 @@ package object dist {
   provide(GeometricCDF)
 
   ////   geometricQF (GeometricQF)
-  object GeometricQF extends LibFcn {
+  object GeometricQF extends LibFcn with Function2[Double, Double, Double] {
     val name = prefix + "geometricQF"
     val sig = Sig(List("p" -> P.Double, "prob" -> P.Double), P.Double)
     val doc =
@@ -1185,7 +1185,7 @@ package object dist {
 
 //////////////////////////////////////////HYPERGEOMETRIC DISTRIBUTION/////////////////////// 
 ////   hypergeometricPDF (HypergeometricPDF)
-  object HypergeometricPDF extends LibFcn {
+  object HypergeometricPDF extends LibFcn with Function4[Int, Int, Int, Int, Double] {
     val name = prefix + "hypergeometricPDF"
     val sig = Sig(List("x" -> P.Int, "m" -> P.Int, "n" -> P.Int, "k" -> P.Int), P.Double)
     val doc =
@@ -1210,7 +1210,7 @@ package object dist {
   provide(HypergeometricPDF)
 
   ////   hypergeometricCDF (HypergeometricCDF)
-  object HypergeometricCDF extends LibFcn {
+  object HypergeometricCDF extends LibFcn with Function4[Int, Int, Int, Int, Double] {
     val name = prefix + "hypergeometricCDF"
     val sig = Sig(List("x" -> P.Int, "m" -> P.Int, "n" -> P.Int, "k" -> P.Int), P.Double)
     val doc =
@@ -1235,7 +1235,7 @@ package object dist {
   provide(HypergeometricCDF)
 
   ////   hypergeometricQF (HypergeometricQF)
-  object HypergeometricQF extends LibFcn {
+  object HypergeometricQF extends LibFcn with Function4[Double, Int, Int, Int, Double] {
     val name = prefix + "hypergeometricQF"
     val sig = Sig(List("p" -> P.Double, "m" -> P.Int, "n" -> P.Int, "k" -> P.Int), P.Double)
     val doc =
@@ -1262,7 +1262,7 @@ package object dist {
 
 //////////////////////////////////////////// Weibull distribution
 ////   weibullPDF (WeibullPDF)
-  object WeibullPDF extends LibFcn {
+  object WeibullPDF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "weibullPDF"
     val sig = Sig(List("x" -> P.Double, "shape" -> P.Double, "scale" -> P.Double), P.Double)
     val doc =
@@ -1288,7 +1288,7 @@ package object dist {
   provide(WeibullPDF)
 
   ////   weibullCDF (WeibullCDF)
-  object WeibullCDF extends LibFcn {
+  object WeibullCDF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "weibullCDF"
     val sig = Sig(List("x" -> P.Double, "shape" -> P.Double, "scale" -> P.Double), P.Double)
     val doc =
@@ -1314,7 +1314,7 @@ package object dist {
   provide(WeibullCDF)
 
   ////   weibullQF (WeibullQF)
-  object WeibullQF extends LibFcn {
+  object WeibullQF extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "weibullQF"
     val sig = Sig(List("p" -> P.Double, "shape" -> P.Double, "scale" -> P.Double), P.Double)
     val doc =
@@ -1342,7 +1342,7 @@ package object dist {
 
 //////////////////////////////////////////// Negative binomial distribution
 ////   negativeBinomialPDF (NegativeBinomialPDF)
-  object NegativeBinomialPDF extends LibFcn {
+  object NegativeBinomialPDF extends LibFcn with Function3[Int, Int, Double, Double] {
     val name = prefix + "negativeBinomialPDF"
     val sig = Sig(List("x" -> P.Int, "size" -> P.Int, "prob" -> P.Double), P.Double)
     val doc =
@@ -1375,7 +1375,7 @@ package object dist {
   provide(NegativeBinomialPDF)
 
   ////   negativeBinomialCDF (NegativeBinomialCDF)
-  object NegativeBinomialCDF extends LibFcn {
+  object NegativeBinomialCDF extends LibFcn with Function3[Double, Int, Double, Double] {
     val name = prefix + "negativeBinomialCDF"
     val sig = Sig(List("x" -> P.Double, "size" -> P.Int, "prob" -> P.Double), P.Double)
     val doc =
@@ -1408,7 +1408,7 @@ package object dist {
   provide(NegativeBinomialCDF)
 
   ////   negativeBinomialQF (NegativeBinomialQF)
-  object NegativeBinomialQF extends LibFcn {
+  object NegativeBinomialQF extends LibFcn with Function3[Double, Int, Double, Double] {
     val name = prefix + "negativeBinomialQF"
     val sig = Sig(List("p" -> P.Double, "size" -> P.Int, "prob" -> P.Double), P.Double)
     val doc =
@@ -1423,21 +1423,21 @@ package object dist {
         <error>Raises "invalid input" if <m>{"p < 0"}</m> OR if <m>{"p > 1"}</m>.</error>
       </doc>
 
-    def apply(p: Double, size: Double, prob: Double): Double =
+    def apply(p: Double, size: Int, prob: Double): Double =
       if (prob <= 0.0  ||  prob > 1.0)
         throw new PFARuntimeException("invalid parameterization")
-      else if (size < 0.0)
+      else if (size < 0)
         throw new PFARuntimeException("invalid parameterization")
-      else if (p == 0 && size == 0.0)
+      else if (p == 0 && size == 0)
         0.0
-      else if (size == 0.0)
+      else if (size == 0)
         0.0
       else if (p == 1.0)
         java.lang.Double.POSITIVE_INFINITY
       else if (p > 1.0  ||  p < 0.0)
         throw new PFARuntimeException("invalid input")
       else if (p > 0.0  ||  p < 1.0)
-        new PascalDistribution(size.toInt, prob).inverseCumulativeProbability(p)
+        new PascalDistribution(size, prob).inverseCumulativeProbability(p)
       else
         0.0
   }

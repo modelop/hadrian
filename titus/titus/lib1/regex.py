@@ -80,53 +80,59 @@ class RegexSpecs(object):
         self.field_rm_co = ("rm_co", ctypes.c_int)
         self.importSuccessfull = True
 
-# get clib regex specs for the wrapper
-clibSpecs = RegexSpecs()
-
 class Regexer(object):
-    # this block is here to run only when titus evaluates a pfa regex function
-    if not clibSpecs.importSuccessfull:
-        raise ImportError("clib unavailable")
-    else:
-        # define the uninstantiated regex_t class
-        regex_t_fields = []
-        for i in range(0, clibSpecs.numNullPointersBefore_re_nsub):
-            regex_t_fields.append( ("unusedname", ctypes.c_void_p) )
-        regex_t_fields.append(clibSpecs.field_re_nsub)
-        for i in range(0, clibSpecs.numNullPointersAfter_re_nsub):
-            regex_t_fields.append( ("unusedname", ctypes.c_void_p) )
-        global Regex_t
-        Regex_t = type("Regex_t", (ctypes.Structure,), {"_fields_": regex_t_fields})
-        # define the uninstantiated regmatch_t class
-        regmatch_t_fields = [clibSpecs.field_rm_so, clibSpecs.field_rm_co]
-        global Regmatch_t
-        Regmatch_t = type("Regmatch_t", (ctypes.Structure,), {"_fields_": regmatch_t_fields})
-        # actually import the clibrary
-        global libc
-        libc = ctypes.cdll.LoadLibrary(clibSpecs.libname)
+    firstTime = True
+    clibSpecs = None
+    Regex_t = None
+    Regmatch_t = None
+    libc = None
 
     def __init__(self, haystack, pattern):
+        if Regexer.firstTime:
+            # get clib regex specs for the wrapper
+            Regexer.clibSpecs = RegexSpecs()
+
+            # this block is here to run only when titus evaluates a pfa regex function
+            if not Regexer.clibSpecs.importSuccessfull:
+                raise ImportError("clib unavailable")
+            else:
+                # define the uninstantiated regex_t class
+                regex_t_fields = []
+                for i in range(0, Regexer.clibSpecs.numNullPointersBefore_re_nsub):
+                    regex_t_fields.append( ("unusedname", ctypes.c_void_p) )
+                regex_t_fields.append(Regexer.clibSpecs.field_re_nsub)
+                for i in range(0, Regexer.clibSpecs.numNullPointersAfter_re_nsub):
+                    regex_t_fields.append( ("unusedname", ctypes.c_void_p) )
+                Regexer.Regex_t = type("Regex_t", (ctypes.Structure,), {"_fields_": regex_t_fields})
+                # define the uninstantiated regmatch_t class
+                regmatch_t_fields = [Regexer.clibSpecs.field_rm_so, Regexer.clibSpecs.field_rm_co]
+                Regexer.Regmatch_t = type("Regmatch_t", (ctypes.Structure,), {"_fields_": regmatch_t_fields})
+                # actually import the clibrary
+                Regexer.libc = ctypes.cdll.LoadLibrary(Regexer.clibSpecs.libname)
+
+            Regexer.firstTime = False
+
         # haystack and pattern come in as type(haystack) == unicode
         self.haystack = haystack
         # keep track of haystack unicode indexes
         self.haystack_indices = utf8ByteIndexes(str(haystack))
         # compile pattern into regex_t object
-        regex_t = Regex_t()
+        regex_t = Regexer.Regex_t()
         try:
-            comp = libc.regcomp(ctypes.byref(regex_t), pattern.encode("utf-8"), clibSpecs.posixExtendedSyntaxFlag)
+            comp = Regexer.libc.regcomp(ctypes.byref(regex_t), pattern.encode("utf-8"), Regexer.clibSpecs.posixExtendedSyntaxFlag)
         except UnicodeDecodeError:
-            comp = libc.regcomp(ctypes.byref(regex_t), pattern, clibSpecs.posixExtendedSyntaxFlag)
+            comp = Regexer.libc.regcomp(ctypes.byref(regex_t), pattern, Regexer.clibSpecs.posixExtendedSyntaxFlag)
 
         if (comp != 0):
             raise PFARuntimeException("bad pattern")
         self.regex_t = regex_t
 
         self.numGroups = int(self.regex_t.re_nsub) + 1
-        self.groupArray = (Regmatch_t * self.numGroups)()
+        self.groupArray = (Regexer.Regmatch_t * self.numGroups)()
         self.indexOffset = 0
 
     def search(self, start):
-        ex = libc.regexec(ctypes.byref(self.regex_t), self.haystack[start:],
+        ex = Regexer.libc.regexec(ctypes.byref(self.regex_t), self.haystack[start:],
                           self.numGroups, self.groupArray, 0)
         self.indexOffset = start
         if (ex != 0) or (start >= len(self.haystack)):
@@ -147,7 +153,7 @@ class Regexer(object):
 
     def free(self):
         # free after every use!
-        libc.regfree(ctypes.byref(self.regex_t))
+        Regexer.libc.regfree(ctypes.byref(self.regex_t))
 
 # region class (for use similar to joni in scala)
 class Region(object):
@@ -234,7 +240,7 @@ provide(Count())
 
 ############################################################# Rindex
 class RIndex(LibFcn):
-    name = prefix + "rIndex"
+    name = prefix + "rindex"
     sig = Sigs([Sig([{"haystack": P.String()}, {"pattern": P.String()}], P.Array(P.Int())),
                 Sig([{"haystack": P.Bytes()}, {"pattern": P.Bytes()}], P.Array(P.Int()))])
     def __call__(self, state, scope, paramTypes, haystack, pattern):
@@ -278,7 +284,7 @@ provide(Groups())
 
 ############################################################# IndexAll
 class IndexAll(LibFcn):
-    name = prefix + "indexAll"
+    name = prefix + "indexall"
     sig = Sigs([Sig([{"haystack": P.String()}, {"pattern": P.String()}], P.Array(P.Array(P.Int()))),
                 Sig([{"haystack": P.Bytes()}, {"pattern": P.Bytes()}], P.Array(P.Array(P.Int())))])
     def __call__(self, state, scope, paramTypes, haystack, pattern):
@@ -302,7 +308,7 @@ provide(IndexAll())
 
 ############################################################# FindAll
 class FindAll(LibFcn):
-    name = prefix + "findAll"
+    name = prefix + "findall"
     sig = Sigs([Sig([{"haystack": P.String()}, {"pattern": P.String()}], P.Array(P.String())),
                 Sig([{"haystack": P.Bytes()}, {"pattern": P.Bytes()}], P.Array(P.Bytes()))])
     def __call__(self, state, scope, paramTypes, haystack, pattern):
@@ -326,7 +332,7 @@ provide(FindAll())
 
 ############################################################# FindFirst
 class FindFirst(LibFcn):
-    name = prefix + "findFirst"
+    name = prefix + "findfirst"
     sig = Sigs([Sig([{"haystack": P.String()}, {"pattern": P.String()}], P.String()),
                 Sig([{"haystack": P.Bytes()}, {"pattern": P.Bytes()}], P.Bytes())])
     def __call__(self, state, scope, paramTypes, haystack, pattern):
@@ -344,7 +350,7 @@ provide(FindFirst())
 
 ############################################################# FindGroupsFirst
 class FindGroupsFirst(LibFcn):
-    name = prefix + "findGroupsFirst"
+    name = prefix + "findgroupsfirst"
     sig = Sigs([Sig([{"haystack": P.String()}, {"pattern": P.String()}], P.Array(P.String())),
                 Sig([{"haystack": P.Bytes()}, {"pattern": P.Bytes()}], P.Array(P.Bytes()))])
     def __call__(self, state, scope, paramTypes, haystack, pattern):
@@ -365,7 +371,7 @@ provide(FindGroupsFirst())
 
 ############################################################# FindGroupsAll
 class FindGroupsAll(LibFcn):
-    name = prefix + "findGroupsAll"
+    name = prefix + "findgroupsall"
     sig = Sigs([Sig([{"haystack": P.String()}, {"pattern": P.String()}], P.Array(P.Array(P.String()))),
                 Sig([{"haystack": P.Bytes()}, {"pattern": P.Bytes()}], P.Array(P.Array(P.Bytes())))])
     def __call__(self, state, scope, paramTypes, haystack, pattern):
@@ -392,7 +398,7 @@ provide(FindGroupsAll())
 
 ############################################################# GroupsAll
 class GroupsAll(LibFcn):
-    name = prefix + "groupsAll"
+    name = prefix + "groupsall"
     sig = Sigs([Sig([{"haystack": P.String()}, {"pattern": P.String()}], P.Array(P.Array(P.Array(P.Int())))),
                 Sig([{"haystack": P.Bytes()}, {"pattern": P.Bytes()}], P.Array(P.Array(P.Array(P.Int()))))])
     def __call__(self, state, scope, paramTypes, haystack, pattern):
@@ -419,7 +425,7 @@ provide(GroupsAll())
 
 ############################################################# ReplaceFirst
 class ReplaceFirst(LibFcn):
-    name = prefix + "replaceFirst"
+    name = prefix + "replacefirst"
     sig = Sigs([Sig([{"haystack": P.String()}, {"pattern": P.String()}, {"replacement": P.String()}], P.String()),
                 Sig([{"haystack": P.Bytes()}, {"pattern": P.Bytes()}, {"replacement": P.Bytes()}], P.Bytes())])
     def __call__(self, state, scope, paramTypes, haystack, pattern, replacement):
@@ -437,7 +443,7 @@ provide(ReplaceFirst())
 
 ############################################################# ReplaceLast
 class ReplaceLast(LibFcn):
-    name = prefix + "replaceLast"
+    name = prefix + "replacelast"
     sig = Sigs([Sig([{"haystack": P.String()}, {"pattern": P.String()}, {"replacement": P.String()}], P.String()),
                 Sig([{"haystack": P.Bytes()}, {"pattern": P.Bytes()}, {"replacement": P.Bytes()}], P.Bytes())])
     def __call__(self, state, scope, paramTypes, haystack, pattern, replacement):
@@ -495,7 +501,7 @@ provide(Split())
 
 ############################################################# ReplaceAll
 class ReplaceAll(LibFcn):
-    name = prefix + "replaceAll"
+    name = prefix + "replaceall"
     sig = Sigs([Sig([{"haystack": P.String()}, {"pattern": P.String()}, {"replacement": P.String()}], P.String()),
                 Sig([{"haystack": P.Bytes()}, {"pattern": P.Bytes()}, {"replacement": P.Bytes()}], P.Bytes())])
     def __call__(self, state, scope, paramTypes, haystack, pattern, replacement):

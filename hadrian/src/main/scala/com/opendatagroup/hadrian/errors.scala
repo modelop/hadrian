@@ -19,30 +19,30 @@
 package com.opendatagroup.hadrian
 
 package errors {
-  class PFAException(message: String, cause: Exception) extends RuntimeException(message, cause)
+  class PFAException(val message: String, val cause: Exception) extends RuntimeException(message, cause)
 
-  class PFASyntaxException(message: String, pos: Option[String])
+  class PFASyntaxException(override val message: String, val pos: Option[String])
       extends PFAException("PFA syntax error%s: %s".format(pos match {
         case Some(position) => " " + position
         case None => ""
       }, message), null)
 
-  class PFASemanticException(message: String, pos: Option[String])
+  class PFASemanticException(override val message: String, val pos: Option[String])
       extends PFAException("PFA semantic error%s: %s".format(pos match {
         case Some(position) => " " + position
         case None => ""
       }, message), null)
 
-  class PFAInitializationException(message: String)
+  class PFAInitializationException(override val message: String)
       extends PFAException("PFA initialization error: " + message, null)
 
-  class PFARuntimeException(val message: String, cause: Exception = null)
+  class PFARuntimeException(override val message: String, cause: Exception = null)
       extends PFAException("PFA runtime error: " + message, cause)
 
-  class PFAUserException(val message: String, val code: Option[Int])
+  class PFAUserException(override val message: String, val code: Option[Int])
       extends PFAException("PFA user-defined error: " +
         (if (code == None) message else "%s (code %s)".format(message, code.get)), null)
 
-  class PFATimeoutException(val message: String)
+  class PFATimeoutException(override val message: String)
       extends PFAException("PFA timeout error: " + message, null)
 }

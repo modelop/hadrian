@@ -55,6 +55,9 @@ import com.opendatagroup.hadrian.signature.Sigs
 import com.opendatagroup.hadrian.signature.Sig
 import com.opendatagroup.hadrian.signature.P
 
+import com.opendatagroup.hadrian.lib1.array.startEnd
+import com.opendatagroup.hadrian.lib1.array.describeIndex
+
 package object bytes {
   private var fcns = Map[String, LibFcn]()
   def provides = fcns
@@ -62,6 +65,59 @@ package object bytes {
     fcns = fcns + Tuple2(libFcn.name, libFcn)
 
   val prefix = "bytes."
+
+  //////////////////////////////////////////////////////////////////// basic access
+
+  ////   len (Len)
+  object Len extends LibFcn with Function1[Array[Byte], Int] {
+    val name = prefix + "len"
+    val sig = Sig(List("x" -> P.Bytes), P.Int)
+    val doc =
+      <doc>
+        <desc>Return the length of byte array <p>x</p>.</desc>
+      </doc>
+    def apply(x: Array[Byte]): Int = x.size
+  }
+  provide(Len)
+
+  ////   subseq (Subseq)
+  object Subseq extends LibFcn with Function3[Array[Byte], Int, Int, Array[Byte]] {
+    val name = prefix + "subseq"
+    val sig = Sig(List("x" -> P.Bytes, "start" -> P.Int, "end" -> P.Int), P.Bytes)
+    val doc =
+      <doc>
+        <desc>Return the subsequence of <p>x</p> from <p>start</p> (inclusive) until <p>end</p> (exclusive).</desc>{describeIndex}
+      </doc>
+    def apply(x: Array[Byte], start: Int, end: Int): Array[Byte] = {
+      val (normStart, normEnd) = startEnd(x.size, start, end)
+      java.util.Arrays.copyOfRange(x, normStart, normEnd)
+    }
+  }
+  provide(Subseq)
+
+  ////   subseqto (SubseqTo)
+  object SubseqTo extends LibFcn with Function4[Array[Byte], Int, Int, Array[Byte], Array[Byte]] {
+    val name = prefix + "subseqto"
+    val sig = Sig(List("x" -> P.Bytes, "start" -> P.Int, "end" -> P.Int, "replacement" -> P.Bytes), P.Bytes)
+    val doc =
+      <doc>
+        <desc>Replace <p>x</p> from <p>start</p> (inclusive) until <p>end</p> (exclusive) with <p>replacement</p>.</desc>{describeIndex}
+      </doc>
+    def apply(x: Array[Byte], start: Int, end: Int, replacement: Array[Byte]): Array[Byte] = {
+      val (normStart, normEnd) = startEnd(x.size, start, end)
+
+      val out = Array.fill[Byte]((normStart - 0) + replacement.size + (x.size - normEnd))(0)
+
+      //               src            srcPos     dest   destPos                         length
+      System.arraycopy(x,             0,         out,   0,                              normStart)
+      System.arraycopy(replacement,   0,         out,   normStart,                      replacement.size)
+      System.arraycopy(x,             normEnd,   out,   normStart + replacement.size,   x.size - normEnd)
+      out
+    }
+  }
+  provide(SubseqTo)
+
+  //////////////////////////////////////////////////////////////////// encoding/decoding
 
   case class Decoder(charset: String) {
     val decoder = java.nio.charset.Charset.forName(charset).newDecoder
@@ -205,7 +261,7 @@ package object bytes {
   //////////////////////////////////////////////////////////////////// decoders
 
   ////   decodeAscii (DecodeAscii)
-  object DecodeAscii extends LibFcn {
+  object DecodeAscii extends LibFcn with Function1[Array[Byte], String] {
     val name = prefix + "decodeAscii"
     val sig = Sig(List("x" -> P.Bytes), P.String)
     val doc =
@@ -219,7 +275,7 @@ package object bytes {
   provide(DecodeAscii)
 
   ////   decodeLatin1 (DecodeLatin1)
-  object DecodeLatin1 extends LibFcn {
+  object DecodeLatin1 extends LibFcn with Function1[Array[Byte], String] {
     val name = prefix + "decodeLatin1"
     val sig = Sig(List("x" -> P.Bytes), P.String)
     val doc =
@@ -233,7 +289,7 @@ package object bytes {
   provide(DecodeLatin1)
 
   ////   decodeUtf8 (DecodeUtf8)
-  object DecodeUtf8 extends LibFcn {
+  object DecodeUtf8 extends LibFcn with Function1[Array[Byte], String] {
     val name = prefix + "decodeUtf8"
     val sig = Sig(List("x" -> P.Bytes), P.String)
     val doc =
@@ -247,7 +303,7 @@ package object bytes {
   provide(DecodeUtf8)
 
   ////   decodeUtf16 (DecodeUtf16)
-  object DecodeUtf16 extends LibFcn {
+  object DecodeUtf16 extends LibFcn with Function1[Array[Byte], String] {
     val name = prefix + "decodeUtf16"
     val sig = Sig(List("x" -> P.Bytes), P.String)
     val doc =
@@ -261,7 +317,7 @@ package object bytes {
   provide(DecodeUtf16)
 
   ////   decodeUtf16be (DecodeUtf16BE)
-  object DecodeUtf16BE extends LibFcn {
+  object DecodeUtf16BE extends LibFcn with Function1[Array[Byte], String] {
     val name = prefix + "decodeUtf16be"
     val sig = Sig(List("x" -> P.Bytes), P.String)
     val doc =
@@ -275,7 +331,7 @@ package object bytes {
   provide(DecodeUtf16BE)
 
   ////   decodeUtf16le (DecodeUtf16LE)
-  object DecodeUtf16LE extends LibFcn {
+  object DecodeUtf16LE extends LibFcn with Function1[Array[Byte], String] {
     val name = prefix + "decodeUtf16le"
     val sig = Sig(List("x" -> P.Bytes), P.String)
     val doc =
@@ -291,7 +347,7 @@ package object bytes {
   //////////////////////////////////////////////////////////////////// encoders
 
   ////   encodeAscii (EncodeAscii)
-  object EncodeAscii extends LibFcn {
+  object EncodeAscii extends LibFcn with Function1[String, Array[Byte]] {
     val name = prefix + "encodeAscii"
     val sig = Sig(List("s" -> P.String), P.Bytes)
     val doc =
@@ -305,7 +361,7 @@ package object bytes {
   provide(EncodeAscii)
 
   ////   encodeLatin1 (EncodeLatin1)
-  object EncodeLatin1 extends LibFcn {
+  object EncodeLatin1 extends LibFcn with Function1[String, Array[Byte]] {
     val name = prefix + "encodeLatin1"
     val sig = Sig(List("s" -> P.String), P.Bytes)
     val doc =
@@ -319,7 +375,7 @@ package object bytes {
   provide(EncodeLatin1)
 
   ////   encodeUtf8 (EncodeUtf8)
-  object EncodeUtf8 extends LibFcn {
+  object EncodeUtf8 extends LibFcn with Function1[String, Array[Byte]] {
     val name = prefix + "encodeUtf8"
     val sig = Sig(List("s" -> P.String), P.Bytes)
     val doc =
@@ -333,7 +389,7 @@ package object bytes {
   provide(EncodeUtf8)
 
   ////   encodeUtf16 (EncodeUtf16)
-  object EncodeUtf16 extends LibFcn {
+  object EncodeUtf16 extends LibFcn with Function1[String, Array[Byte]] {
     val name = prefix + "encodeUtf16"
     val sig = Sig(List("s" -> P.String), P.Bytes)
     val doc =
@@ -347,7 +403,7 @@ package object bytes {
   provide(EncodeUtf16)
 
   ////   encodeUtf16be (EncodeUtf16BE)
-  object EncodeUtf16BE extends LibFcn {
+  object EncodeUtf16BE extends LibFcn with Function1[String, Array[Byte]] {
     val name = prefix + "encodeUtf16be"
     val sig = Sig(List("s" -> P.String), P.Bytes)
     val doc =
@@ -361,7 +417,7 @@ package object bytes {
   provide(EncodeUtf16BE)
 
   ////   encodeUtf16le (EncodeUtf16LE)
-  object EncodeUtf16LE extends LibFcn {
+  object EncodeUtf16LE extends LibFcn with Function1[String, Array[Byte]] {
     val name = prefix + "encodeUtf16le"
     val sig = Sig(List("s" -> P.String), P.Bytes)
     val doc =
@@ -377,7 +433,7 @@ package object bytes {
   //////////////////////////////////////////////////////////////////// base64
 
   ////   toBase64 (ToBase64)
-  object ToBase64 extends LibFcn {
+  object ToBase64 extends LibFcn with Function1[Array[Byte], String] {
     val name = prefix + "toBase64"
     val sig = Sig(List("x" -> P.Bytes), P.String)
     val doc =
@@ -390,7 +446,7 @@ package object bytes {
   provide(ToBase64)
 
   ////   fromBase64 (FromBase64)
-  object FromBase64 extends LibFcn {
+  object FromBase64 extends LibFcn with Function1[String, Array[Byte]] {
     val name = prefix + "fromBase64"
     val sig = Sig(List("s" -> P.String), P.Bytes)
     val doc =

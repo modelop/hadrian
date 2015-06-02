@@ -20,6 +20,7 @@ package com.opendatagroup.hadrian.lib1
 
 import scala.util.Random
 import scala.language.postfixOps
+import scala.collection.mutable
 
 import com.opendatagroup.hadrian.ast.LibFcn
 import com.opendatagroup.hadrian.errors.PFARuntimeException
@@ -35,6 +36,8 @@ import com.opendatagroup.hadrian.signature.P
 import com.opendatagroup.hadrian.signature.Sig
 import com.opendatagroup.hadrian.signature.Signature
 import com.opendatagroup.hadrian.signature.Sigs
+
+import com.opendatagroup.hadrian.data.PFAArray
 
 import com.opendatagroup.hadrian.datatype.Type
 import com.opendatagroup.hadrian.datatype.FcnType
@@ -148,6 +151,80 @@ package object rand {
     }
   }
   provide(RandomDouble)
+
+  /////////////////////////////////////////////////////////// items from arrays
+
+  ////   choice (RandomChoice)
+  object RandomChoice extends LibFcn {
+    val name = prefix + "choice"
+    val sig = Sig(List("population" -> P.Array(P.Wildcard("A"))), P.Wildcard("A"))
+    val doc =
+      <doc>
+        <desc>Return a random item from a bag of items.</desc>
+        <error>Raises a "population must not be empty" error if <p>population</p> is empty.</error>
+      </doc>
+    override def javaRef(fcnType: FcnType): JavaCode =
+      JavaCode("(new " + this.getClass.getName + "Selector(randomGenerator()))")
+    class Selector(randomGenerator: Random) {
+      def apply[X](population: PFAArray[X]): X = {
+        val vector = population.toVector
+        if (vector.isEmpty)
+          throw new PFARuntimeException("population must not be empty")
+        vector(randomGenerator.nextInt(vector.size))
+      }
+    }
+  }
+  provide(RandomChoice)
+
+  ////   choices (RandomChoices)
+  object RandomChoices extends LibFcn {
+    val name = prefix + "choices"
+    val sig = Sig(List("size" -> P.Int, "population" -> P.Array(P.Wildcard("A"))), P.Array(P.Wildcard("A")))
+    val doc =
+      <doc>
+        <desc>Return an array of random items (with replacement) from a bag of items.</desc>
+        <error>Raises a "population must not be empty" error if <p>population</p> is empty.</error>
+      </doc>
+    override def javaRef(fcnType: FcnType): JavaCode =
+      JavaCode("(new " + this.getClass.getName + "Selector(randomGenerator()))")
+    class Selector(randomGenerator: Random) {
+      def apply[X](size: Int, population: PFAArray[X]): PFAArray[X] = {
+        val vector = population.toVector
+        if (vector.isEmpty)
+          throw new PFARuntimeException("population must not be empty")
+        PFAArray.fromVector(Vector.fill(size)(vector(randomGenerator.nextInt(vector.size))))
+      }
+    }
+  }
+  provide(RandomChoices)
+
+  ////   sample (RandomSample)
+  object RandomSample extends LibFcn {
+    val name = prefix + "sample"
+    val sig = Sig(List("size" -> P.Int, "population" -> P.Array(P.Wildcard("A"))), P.Array(P.Wildcard("A")))
+    val doc =
+      <doc>
+        <desc>Return an array of random items (without replacement) from a bag of items.</desc>
+        <error>Raises a "population must not be empty" error if <p>population</p> is empty.</error>
+        <error>Raises a "population smaller than requested subsample" error if the size of <p>population</p> is less than <p>size</p>.</error>
+      </doc>
+    override def javaRef(fcnType: FcnType): JavaCode =
+      JavaCode("(new " + this.getClass.getName + "Selector(randomGenerator()))")
+    class Selector(randomGenerator: Random) {
+      def apply[X](size: Int, population: PFAArray[X]): PFAArray[X] = {
+        val vector = population.toVector
+        if (vector.isEmpty)
+          throw new PFARuntimeException("population must not be empty")
+        if (vector.size < size)
+          throw new PFARuntimeException("population smaller than requested subsample")
+        val indexes = mutable.Set[Int]()
+        while (indexes.size < size)
+          indexes += randomGenerator.nextInt(vector.size)
+        PFAArray.fromVector(indexes.toVector.map(vector(_)))
+      }
+    }
+  }
+  provide(RandomSample)
 
   /////////////////////////////////////////////////////////// strings and byte arrays
 

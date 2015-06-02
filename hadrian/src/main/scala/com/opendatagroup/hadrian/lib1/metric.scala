@@ -24,6 +24,7 @@ import com.opendatagroup.hadrian.ast.LibFcn
 import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.jvmcompiler.JavaCode
 import com.opendatagroup.hadrian.jvmcompiler.javaSchema
+import com.opendatagroup.hadrian.options.EngineOptions
 
 import com.opendatagroup.hadrian.ast.AstContext
 import com.opendatagroup.hadrian.ast.ExpressionContext
@@ -65,7 +66,7 @@ package object metric {
   val prefix = "metric."
 
   ////   simpleEuclidean (SimpleEuclidean)
-  object SimpleEuclidean extends LibFcn with Function2[PFAArray[Double], PFAArray[Double], Double] {
+  object SimpleEuclidean extends LibFcn with Function2[PFAArray[java.lang.Number], PFAArray[java.lang.Number], Double] {
     val name = prefix + "simpleEuclidean"
     val sig = Sig(List("x" -> P.Array(P.Double), "y" -> P.Array(P.Double)), P.Double)
     val doc =
@@ -76,10 +77,10 @@ package object metric {
         <ret>Returns <m>{"\\sqrt{\\sum_i (x_i - y_i)^2}"}</m>.</ret>
         <error>Raises "dimensions of vectors do not match" if all vectors do not have the same dimension.</error>
       </doc>
-    def apply(x: PFAArray[Double], y: PFAArray[Double]): Double = {
+    def apply(x: PFAArray[java.lang.Number], y: PFAArray[java.lang.Number]): Double = {
       var out = 0.0
-      val xvector = x.toVector
-      val yvector = y.toVector
+      val xvector = x.toVector.map(_.doubleValue)
+      val yvector = y.toVector.map(_.doubleValue)
       val size = xvector.size
       if (yvector.size != size)
         throw new PFARuntimeException("dimensions of vectors do not match")
@@ -107,14 +108,14 @@ package object metric {
   provide(AbsDiff)
 
   ////   gaussianSimilarity (GaussianSimilarity)
-  object GaussianSimilarity extends LibFcn with Function3[java.lang.Number, java.lang.Number, java.lang.Number, Double] {
+  object GaussianSimilarity extends LibFcn with Function3[Double, Double, Double, Double] {
     val name = prefix + "gaussianSimilarity"
     val sig = Sig(List("x" -> P.Double, "y" -> P.Double, "sigma" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Similarity function (1-dimensional metric) that returns <m>{"\\exp(-\\ln(2) (x - y)^2 / \\mbox{sigma}^2)"}</m>.</desc>
       </doc>
-    def apply(x: java.lang.Number, y: java.lang.Number, sigma: java.lang.Number): Double = Math.exp(-Math.log(2) * Math.pow(x.doubleValue - y.doubleValue, 2) / Math.pow(sigma.doubleValue, 2))
+    def apply(x: Double, y: Double, sigma: Double): Double = Math.exp(-Math.log(2) * Math.pow(x - y, 2) / Math.pow(sigma, 2))
   }
   provide(GaussianSimilarity)
 
@@ -123,7 +124,7 @@ package object metric {
     def increment(tally: Double, x: Double): Double
     def finalize(x: Double): Double
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode = {
       (paramTypes(1), paramTypes(2)) match {
         case (AvroArray(AvroDouble()), AvroArray(AvroDouble())) =>
           JavaCode("%s.MODULE$.applyDouble(%s, %s, %s)",
@@ -311,7 +312,7 @@ package object metric {
         <error>Raises "dimensions of vectors do not match" if all vectors do not have the same dimension.</error>
       </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode = {
       (paramTypes(1), paramTypes(2)) match {
         case (AvroArray(AvroDouble()), AvroArray(AvroDouble())) =>
           JavaCode("%s.MODULE$.applyDouble(%s, %s, %s, %s)",
@@ -392,7 +393,7 @@ package object metric {
   provide(Minkowski)
 
   ////   simpleMatching (SimpleMatching)
-  object SimpleMatching extends LibFcn {
+  object SimpleMatching extends LibFcn with Function2[PFAArray[Boolean], PFAArray[Boolean], Double] {
     val name = prefix + "simpleMatching"
     val sig = Sig(List("x" -> P.Array(P.Boolean), "y" -> P.Array(P.Boolean)), P.Double)
     val doc =
@@ -420,7 +421,7 @@ package object metric {
   provide(SimpleMatching)
 
   ////   jaccard (Jaccard)
-  object Jaccard extends LibFcn {
+  object Jaccard extends LibFcn with Function2[PFAArray[Boolean], PFAArray[Boolean], Double] {
     val name = prefix + "jaccard"
     val sig = Sig(List("x" -> P.Array(P.Boolean), "y" -> P.Array(P.Boolean)), P.Double)
     val doc =
@@ -448,7 +449,7 @@ package object metric {
   provide(Jaccard)
 
   ////   tanimoto (Tanimoto)
-  object Tanimoto extends LibFcn {
+  object Tanimoto extends LibFcn with Function2[PFAArray[Boolean], PFAArray[Boolean], Double] {
     val name = prefix + "tanimoto"
     val sig = Sig(List("x" -> P.Array(P.Boolean), "y" -> P.Array(P.Boolean)), P.Double)
     val doc =
@@ -476,7 +477,7 @@ package object metric {
   provide(Tanimoto)
 
   ////   binarySimilarity (BinarySimilarity)
-  object BinarySimilarity extends LibFcn {
+  object BinarySimilarity extends LibFcn with Function10[PFAArray[Boolean], PFAArray[Boolean], Double, Double, Double, Double, Double, Double, Double, Double, Double] {
     val name = prefix + "binarySimilarity"
     val sig = Sig(List("x" -> P.Array(P.Boolean), "y" -> P.Array(P.Boolean), "c00" -> P.Double, "c01" -> P.Double, "c10" -> P.Double, "c11" -> P.Double, "d00" -> P.Double, "d01" -> P.Double, "d10" -> P.Double, "d11" -> P.Double), P.Double)
     val doc =

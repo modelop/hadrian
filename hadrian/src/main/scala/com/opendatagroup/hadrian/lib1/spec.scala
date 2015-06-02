@@ -79,7 +79,7 @@ package object spec {
   val prefix = "m.special."
 
   ////   nChooseK (NChooseK)
-  object NChooseK extends LibFcn {
+  object NChooseK extends LibFcn with Function2[Int, Int, Int] {
     val name = prefix + "nChooseK"
     val sig = Sig(List( "n" -> P.Int, "k" -> P.Int), P.Int)
     val doc =
@@ -100,7 +100,7 @@ package object spec {
   provide(NChooseK)
 
   ////   lnBeta (LnBeta)
-  object LnBeta extends LibFcn {
+  object LnBeta extends LibFcn with Function2[Double, Double, Double] {
     val name = prefix + "lnBeta"
     val sig = Sig(List("a" -> P.Double, "b" -> P.Double), P.Double)
     val doc =
@@ -119,7 +119,7 @@ package object spec {
   provide(LnBeta)
 
   ////   erf (Erf)
-  object Erf extends LibFcn {
+  object Erf extends LibFcn with Function1[Double, Double] {
     val name = prefix + "erf"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
@@ -131,7 +131,7 @@ package object spec {
   provide(Erf)
 
   ////   erfc (Erfc)
-  object Erfc extends LibFcn {
+  object Erfc extends LibFcn with Function1[Double, Double] {
     val name = prefix + "erfc"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
@@ -143,7 +143,7 @@ package object spec {
   provide(Erfc)
 
   ////   lnGamma (LnGamma)
-  object LnGamma extends LibFcn {
+  object LnGamma extends LibFcn with Function1[Double, Double] {
     val name = prefix + "lnGamma"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
@@ -162,7 +162,7 @@ package object spec {
 
 //////////////////////////////////////////// regularized beta function
 //////   incompletebetafcn (IncompleteBetaFcn)
-//  object IncompleteBetaFcn extends LibFcn {
+//  object IncompleteBetaFcn extends LibFcn with Function3[Double, Double, Double, Double] {
 //    val name = prefix + "incompletebetafcn"
 //    val sig = Sig(List("x" -> P.Double, "a" -> P.Double, "b" -> P.Double), P.Double)
 //    val doc =
@@ -188,7 +188,7 @@ package object spec {
 //
 //////////////////////////////////////////// inverse incomplete beta function
 //////   incompletebetafcninv (IncompleteBetaFcninv)
-//  object IncompleteBetaFcnInv extends LibFcn {
+//  object IncompleteBetaFcnInv extends LibFcn with Function3[Double, Double, Double, Double] {
 //    val name = prefix + "incompletebetafcninv"
 //    val sig = Sig(List("x" -> P.Double, "a" -> P.Double, "b" -> P.Double), P.Double)
 //    val doc =
@@ -214,7 +214,7 @@ package object spec {
 //
 //////////////////////////////////////////// regularized gamma Q
 //////   regularizedgammaqfcn (RegularizedGammaQFcn)
-//  object RegularizedGammaQFcn extends LibFcn {
+//  object RegularizedGammaQFcn extends LibFcn with Function2[Double, Double, Double] {
 //    val name = prefix + "regularizedgammaqfcn"
 //    val sig = Sig(List( "s" -> P.Double, "x" -> P.Double), P.Double)
 //    val doc =
@@ -241,7 +241,7 @@ package object spec {
 //
 //////////////////////////////////////////// regularized gamma P
 //////   regularizedgammapfcn (RegularizedGammaPFcn)
-//  object RegularizedGammaPFcn extends LibFcn {
+//  object RegularizedGammaPFcn extends LibFcn with Function2[Double, Double, Double] {
 //    val name = prefix + "regularizedgammapfcn"
 //    val sig = Sig(List( "s" -> P.Double, "x" -> P.Double), P.Double)
 //    val doc =

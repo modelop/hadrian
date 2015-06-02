@@ -1,7 +1,7 @@
 Hadrian: implementations of the PFA specification
 =======
 
-**Version v.0.6.2**
+**Version v.0.6.11**
 
 This repository contains two implementations of PFA (see http://scoringengine.org for details).
 

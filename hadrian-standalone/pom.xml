@@ -7,7 +7,7 @@
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian-standalone</artifactId>
-  <version>0.6.2</version>
+  <version>0.6.11</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -31,7 +31,7 @@
     <dependency>
       <groupId>com.opendatagroup</groupId>
       <artifactId>hadrian</artifactId>
-      <version>0.6.2</version>
+      <version>0.6.11</version>
     </dependency>
 
     <dependency>
@@ -96,38 +96,29 @@
       </plugin>
 
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
+        <artifactId>maven-assembly-plugin</artifactId>
         <version>2.4</version>
         <configuration>
+            <descriptorRefs>
+                <descriptorRef>jar-with-dependencies</descriptorRef>
+            </descriptorRefs>
           <archive>
             <manifest>
               <mainClass>com.opendatagroup.hadrian.standalone.Main</mainClass>
-              <addClasspath>true</addClasspath>
-              <classpathPrefix>./lib</classpathPrefix>
             </manifest>
           </archive>
         </configuration>
-      </plugin>
-      
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
         <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>copy-dependencies</goal>
-            </goals>
-            <configuration>
-              <outputDirectory>
-                target/lib
-              </outputDirectory>
-            </configuration>
-          </execution>
+           <execution>
+               <id>make-assembly</id>
+               <phase>package</phase>
+               <goals>
+                   <goal>single</goal>
+               </goals>
+           </execution>
         </executions>
       </plugin>
-
+      
     </plugins>
   </build>
 </project>

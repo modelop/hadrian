@@ -212,13 +212,13 @@ action:
   path: [{string: covariance}, 0, 1]
 """).head
 
-    engine.action(engine.fromJson("""[12, 85]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (0.00 +- 0.01)
-    engine.action(engine.fromJson("""[32, 40]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-225.00 +- 0.01)
-    engine.action(engine.fromJson("""[4, 90]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-260.00 +- 0.01)
-    engine.action(engine.fromJson("""[3, 77]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01)
-    engine.action(engine.fromJson("""[7, 87]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-179.28 +- 0.01)
-    engine.action(engine.fromJson("""[88, 2]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-932.50 +- 0.01)
-    engine.action(engine.fromJson("""[56, 5]""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
+    engine.action(engine.jsonInput("""[12, 85]""")).asInstanceOf[java.lang.Double].doubleValue should be (0.00 +- 0.01)
+    engine.action(engine.jsonInput("""[32, 40]""")).asInstanceOf[java.lang.Double].doubleValue should be (-225.00 +- 0.01)
+    engine.action(engine.jsonInput("""[4, 90]""")).asInstanceOf[java.lang.Double].doubleValue should be (-260.00 +- 0.01)
+    engine.action(engine.jsonInput("""[3, 77]""")).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01)
+    engine.action(engine.jsonInput("""[7, 87]""")).asInstanceOf[java.lang.Double].doubleValue should be (-179.28 +- 0.01)
+    engine.action(engine.jsonInput("""[88, 2]""")).asInstanceOf[java.lang.Double].doubleValue should be (-932.50 +- 0.01)
+    engine.action(engine.jsonInput("""[56, 5]""")).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
   }
 
   it must "accumulate a covariance using maps" taggedAs(Lib1, Lib1StatSample) in {
@@ -252,13 +252,13 @@ action:
   path: [{string: covariance}, {string: x}, {string: y}]
 """).head
 
-    engine.action(engine.fromJson("""{"x": 12, "y": 85}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (0.00 +- 0.01)   
-    engine.action(engine.fromJson("""{"x": 32, "y": 40}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-225.00 +- 0.01)
-    engine.action(engine.fromJson("""{"x": 4, "y": 90}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-260.00 +- 0.01) 
-    engine.action(engine.fromJson("""{"x": 3, "y": 77}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
-    engine.action(engine.fromJson("""{"x": 7, "y": 87}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-179.28 +- 0.01) 
-    engine.action(engine.fromJson("""{"x": 88, "y": 2}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-932.50 +- 0.01) 
-    engine.action(engine.fromJson("""{"x": 56, "y": 5}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
+    engine.action(engine.jsonInput("""{"x": 12, "y": 85}""")).asInstanceOf[java.lang.Double].doubleValue should be (0.00 +- 0.01)   
+    engine.action(engine.jsonInput("""{"x": 32, "y": 40}""")).asInstanceOf[java.lang.Double].doubleValue should be (-225.00 +- 0.01)
+    engine.action(engine.jsonInput("""{"x": 4, "y": 90}""")).asInstanceOf[java.lang.Double].doubleValue should be (-260.00 +- 0.01) 
+    engine.action(engine.jsonInput("""{"x": 3, "y": 77}""")).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
+    engine.action(engine.jsonInput("""{"x": 7, "y": 87}""")).asInstanceOf[java.lang.Double].doubleValue should be (-179.28 +- 0.01) 
+    engine.action(engine.jsonInput("""{"x": 88, "y": 2}""")).asInstanceOf[java.lang.Double].doubleValue should be (-932.50 +- 0.01) 
+    engine.action(engine.jsonInput("""{"x": 56, "y": 5}""")).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
 
     val engine2 = PFAEngine.fromYaml("""
 input: {type: map, values: double}
@@ -290,18 +290,18 @@ action:
   path: [{string: covariance}, {string: x}, {string: y}]
 """).head
 
-    engine2.action(engine.fromJson("""{"x": 12, "y": 85}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (0.00 +- 0.01)   
-    engine2.action(engine.fromJson("""{"x": 32, "y": 40}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-225.00 +- 0.01)
-    engine2.action(engine.fromJson("""{"x": 4, "y": 90}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-260.00 +- 0.01) 
-    engine2.action(engine.fromJson("""{"x": 3, "y": 77}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
-    engine2.action(engine.fromJson("""{"w": 999, "z": 999}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
-    engine2.action(engine.fromJson("""{"w": 999, "z": 999}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
-    engine2.action(engine.fromJson("""{"w": 999, "z": 999}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
-    engine2.action(engine.fromJson("""{"x": 7, "y": 87}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-179.28 +- 0.01) 
-    engine2.action(engine.fromJson("""{"x": 88, "y": 2}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-932.50 +- 0.01) 
-    engine2.action(engine.fromJson("""{"x": 56, "y": 5}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
-    engine2.action(engine.fromJson("""{"w": 999, "z": 999}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
-    engine2.action(engine.fromJson("""{"w": 999, "z": 999}""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
+    engine2.action(engine.jsonInput("""{"x": 12, "y": 85}""")).asInstanceOf[java.lang.Double].doubleValue should be (0.00 +- 0.01)   
+    engine2.action(engine.jsonInput("""{"x": 32, "y": 40}""")).asInstanceOf[java.lang.Double].doubleValue should be (-225.00 +- 0.01)
+    engine2.action(engine.jsonInput("""{"x": 4, "y": 90}""")).asInstanceOf[java.lang.Double].doubleValue should be (-260.00 +- 0.01) 
+    engine2.action(engine.jsonInput("""{"x": 3, "y": 77}""")).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
+    engine2.action(engine.jsonInput("""{"w": 999, "z": 999}""")).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
+    engine2.action(engine.jsonInput("""{"w": 999, "z": 999}""")).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
+    engine2.action(engine.jsonInput("""{"w": 999, "z": 999}""")).asInstanceOf[java.lang.Double].doubleValue should be (-208.00 +- 0.01) 
+    engine2.action(engine.jsonInput("""{"x": 7, "y": 87}""")).asInstanceOf[java.lang.Double].doubleValue should be (-179.28 +- 0.01) 
+    engine2.action(engine.jsonInput("""{"x": 88, "y": 2}""")).asInstanceOf[java.lang.Double].doubleValue should be (-932.50 +- 0.01) 
+    engine2.action(engine.jsonInput("""{"x": 56, "y": 5}""")).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
+    engine2.action(engine.jsonInput("""{"w": 999, "z": 999}""")).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
+    engine2.action(engine.jsonInput("""{"w": 999, "z": 999}""")).asInstanceOf[java.lang.Double].doubleValue should be (-1026.12 +- 0.01)
   }
 
   "updateWindow" must "accumulate a counter" taggedAs(Lib1, Lib1StatSample) in {

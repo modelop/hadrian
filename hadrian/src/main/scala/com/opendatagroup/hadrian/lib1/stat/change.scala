@@ -31,6 +31,7 @@ import com.opendatagroup.hadrian.jvmcompiler.javaSchema
 import com.opendatagroup.hadrian.jvmcompiler.javaType
 import com.opendatagroup.hadrian.jvmcompiler.JVMNameMangle
 import com.opendatagroup.hadrian.jvmcompiler.PFAEngineBase
+import com.opendatagroup.hadrian.options.EngineOptions
 
 import com.opendatagroup.hadrian.ast.AstContext
 import com.opendatagroup.hadrian.ast.ExpressionContext
@@ -134,7 +135,7 @@ package object change {
         <param name="unbiased">If <c>true</c>, use <pf>count</pf> to correct for the bias due to the fact that a variance centered on the mean has one fewer degrees of freedom than the dataset that it was sampled from (Bessel's correction).</param>
         <ret>If <p>unbiased</p> is <c>false</c>, <m>{"(x - mean)/\\sqrt{variance}"}</m>; otherwise <m>{"(x - mean)(1/\\sqrt{variance})\\sqrt{count/(count - 1)}"}</m>.</ret>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("%s.MODULE$.apply(%s, ((%s)%s).%s, ((%s)%s).%s, ((%s)%s).%s, %s)",
         this.getClass.getName,
         wrapArg(0, args, paramTypes, true),

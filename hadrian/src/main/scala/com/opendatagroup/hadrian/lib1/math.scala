@@ -22,6 +22,7 @@ import com.opendatagroup.hadrian.ast.LibFcn
 import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.jvmcompiler.JavaCode
 import com.opendatagroup.hadrian.jvmcompiler.javaSchema
+import com.opendatagroup.hadrian.options.EngineOptions
 
 import com.opendatagroup.hadrian.ast.AstContext
 import com.opendatagroup.hadrian.ast.ExpressionContext
@@ -63,28 +64,28 @@ package object math {
   //////////////////////////////////////////////////////////////////// constants (0-arity side-effect free functions)
 
   ////   pi (Pi)
-  object Pi extends LibFcn {
+  object Pi extends LibFcn with Function0[Double] {
     val name = prefix + "pi"
     val sig = Sig(List(), P.Double)
     val doc =
       <doc>
         <desc>The double-precision number that is closer than any other to <m>\pi</m>, the ratio of a circumference of a circle to its diameter.</desc>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.PI")
     def apply(): Double = java.lang.Math.PI
   }
   provide(Pi)
 
   ////   e (E)
-  object E extends LibFcn {
+  object E extends LibFcn with Function0[Double] {
     val name = prefix + "e"
     val sig = Sig(List(), P.Double)
     val doc =
       <doc>
         <desc>The double-precision number that is closer than any other to <m>e</m>, the base of natural logarithms.</desc>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.E")
     def apply(): Double = java.lang.Math.E
   }
@@ -114,11 +115,11 @@ package object math {
         <error>For exactly one integer value, {java.lang.Integer.MIN_VALUE}, this function produces an "int overflow" runtime error.</error>
         <error>For exactly one long value, {java.lang.Long.MIN_VALUE}, this function produces a "long overflow" runtime error.</error>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       if (retType.accepts(AvroFloat()))
         JavaCode("Math.abs(%s)", wrapArg(0, args, paramTypes, false))
       else
-        super.javaCode(args, argContext, paramTypes, retType)
+        super.javaCode(args, argContext, paramTypes, retType, engineOptions)
     def apply(x: Double): Double = java.lang.Math.abs(x)
     def apply(x: Float): Float = java.lang.Math.abs(x)
     def apply(x: Long): Long = {
@@ -135,49 +136,49 @@ package object math {
   provide(Abs)
 
   ////   acos (ACos)
-  object ACos extends LibFcn {
+  object ACos extends LibFcn with Function1[Double, Double] {
     val name = prefix + "acos"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the arc-cosine (inverse of the cosine function) of <p>x</p> as an angle in radians between <m>0</m> and <m>\pi</m>.</desc>{domain("-1", "1")}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.acos(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.acos(x)
   }
   provide(ACos)
 
   ////   asin (ASin)
-  object ASin extends LibFcn {
+  object ASin extends LibFcn with Function1[Double, Double] {
     val name = prefix + "asin"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the arc-sine (inverse of the sine function) of <p>x</p> as an angle in radians between <m>-\pi/2</m> and <m>\pi/2</m>.</desc>{domain("-1", "1")}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.asin(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.asin(x)
   }
   provide(ASin)
 
   ////   atan (ATan)
-  object ATan extends LibFcn {
+  object ATan extends LibFcn with Function1[Double, Double] {
     val name = prefix + "atan"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the arc-tangent (inverse of the tangent function) of <p>x</p> as an angle in radians between <m>-\pi/2</m> and <m>\pi/2</m>.</desc>{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.atan(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.atan(x)
   }
   provide(ATan)
 
   ////   atan2 (ATan2)
-  object ATan2 extends LibFcn {
+  object ATan2 extends LibFcn with Function2[Double, Double, Double] {
     val name = prefix + "atan2"
     val sig = Sig(List("y" -> P.Double, "x" -> P.Double), P.Double)
     val doc =
@@ -185,21 +186,21 @@ package object math {
         <desc>Return the arc-tangent (inverse of the tangent function) of <p>y</p>/<p>x</p> without loss of precision for small <p>x</p>.</desc>{wholePlane()}
         <detail>Note that <p>y</p> is the first parameter and <p>x</p> is the second parameter.</detail>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.atan2(%s, %s)", wrapArg(0, args, paramTypes, false), wrapArg(1, args, paramTypes, false))
     def apply(x: Double, y: Double): Double = java.lang.Math.atan2(x, y)
   }
   provide(ATan2)
 
   ////   ceil (Ceil)
-  object Ceil extends LibFcn {
+  object Ceil extends LibFcn with Function1[Double, Double] {
     val name = prefix + "ceil"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the smallest (closest to negative infinity, not closest to zero) whole number that is greater than or equal to the input.</desc>{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.ceil(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.ceil(x)
   }
@@ -222,91 +223,91 @@ package object math {
   provide(CopySign)
 
   ////   cos (Cos)
-  object Cos extends LibFcn {
+  object Cos extends LibFcn with Function1[Double, Double] {
     val name = prefix + "cos"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the trigonometric cosine of <p>x</p>, which is assumed to be in radians.</desc>{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.cos(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.cos(x)
   }
   provide(Cos)
 
   ////   cosh (CosH)
-  object CosH extends LibFcn {
+  object CosH extends LibFcn with Function1[Double, Double] {
     val name = prefix + "cosh"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the hyperbolic cosine of <p>x</p>, which is equal to <m>{"""\frac{e^x + e^{-x}}{2}"""}</m></desc>{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.cosh(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.cosh(x)
   }
   provide(CosH)
 
   ////   exp (Exp)
-  object Exp extends LibFcn {
+  object Exp extends LibFcn with Function1[Double, Double] {
     val name = prefix + "exp"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return <f>m.e</f> raised to the power of <p>x</p>.</desc>{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.exp(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.exp(x)
   }
   provide(Exp)
 
   ////   expm1 (ExpM1)
-  object ExpM1 extends LibFcn {
+  object ExpM1 extends LibFcn with Function1[Double, Double] {
     val name = prefix + "expm1"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return <m>e^x - 1</m>.</desc>{avoidsRoundoff}{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.expm1(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.expm1(x)
   }
   provide(ExpM1)
 
   ////   floor (Floor)
-  object Floor extends LibFcn {
+  object Floor extends LibFcn with Function1[Double, Double] {
     val name = prefix + "floor"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the largest (closest to positive infinity) whole number that is less than or equal to the input.</desc>{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.floor(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.floor(x)
   }
   provide(Floor)
 
   ////   hypot (Hypot)
-  object Hypot extends LibFcn {
+  object Hypot extends LibFcn with Function2[Double, Double, Double] {
     val name = prefix + "hypot"
     val sig = Sig(List("x" -> P.Double, "y" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return <m>{"""\sqrt{x^2 + y^2}"""}</m>.</desc>{avoidsRoundoff}{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.hypot(%s, %s)", wrapArg(0, args, paramTypes, false), wrapArg(1, args, paramTypes, false))
     def apply(x: Double, y: Double): Double = java.lang.Math.hypot(x, y)
   }
   provide(Hypot)
 
   ////   ln (Ln)
-  object Ln extends LibFcn {
+  object Ln extends LibFcn with Function1[Double, Double] {
     val name = prefix + "ln"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
@@ -314,14 +315,14 @@ package object math {
         <desc>Return the natural logarithm of <p>x</p>.</desc>
         {domain("0", "infinity", "", " (exclusive)", <x>Given zero, the result is negative infinity, and below zero, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.toArray)}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.log(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.log(x)
   }
   provide(Ln)
 
   ////   log10 (Log10)
-  object Log10 extends LibFcn {
+  object Log10 extends LibFcn with Function1[Double, Double] {
     val name = prefix + "log10"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
@@ -329,14 +330,14 @@ package object math {
         <desc>Return the logarithm base 10 of <p>x</p>.</desc>
         {domain("0", "infinity", "", " (exclusive)", <x>Given zero, the result is negative infinity, and below zero, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.toArray)}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.log10(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.log10(x)
   }
   provide(Log10)
 
   ////   log (Log)
-  object Log extends LibFcn {
+  object Log extends LibFcn with Function2[Double, Int, Double] {
     val name = prefix + "log"
     val sig = Sig(List("x" -> P.Double, "base" -> P.Int), P.Double)
     val doc =
@@ -354,7 +355,7 @@ package object math {
   provide(Log)
 
   ////   ln1p (Ln1p)
-  object Ln1p extends LibFcn {
+  object Ln1p extends LibFcn with Function1[Double, Double] {
     val name = prefix + "ln1p"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
@@ -362,7 +363,7 @@ package object math {
         <desc>Return <m>ln(x^2 + 1)</m>.</desc>{avoidsRoundoff}
         {domain("-1", "infinity", "", " (exclusive)", <x>Given -1, the result is negative infinity, and below -1, the result is <c>NaN</c>, not an exception (see IEEE 754).</x>.child.toArray)}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.log1p(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.log1p(x)
   }
@@ -394,98 +395,98 @@ package object math {
   provide(Round)
 
   ////   rint (RInt)
-  object RInt extends LibFcn {
+  object RInt extends LibFcn with Function1[Double, Double] {
     val name = prefix + "rint"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the closest whole number to <p>x</p>, rounding toward the nearest even number if the fractional part is exactly one-half.</desc>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.rint(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.rint(x)
   }
   provide(RInt)
 
   ////   signum (Signum)
-  object Signum extends LibFcn {
+  object Signum extends LibFcn with Function1[Double, Int] {
     val name = prefix + "signum"
     val sig = Sig(List("x" -> P.Double), P.Int)
     val doc =
       <doc>
         <desc>Return 0 if <p>x</p> is zero, 1 if <p>x</p> is positive, and -1 if <p>x</p> is negative.</desc>{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("((int)(Math.signum(%s)))", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Int = java.lang.Math.signum(x).toInt
   }
   provide(Signum)
 
   ////   sin (Sin)
-  object Sin extends LibFcn {
+  object Sin extends LibFcn with Function1[Double, Double] {
     val name = prefix + "sin"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the trigonometric sine of <p>x</p>, which is assumed to be in radians.</desc>{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.sin(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.sin(x)
   }
   provide(Sin)
 
   ////   sinh (SinH)
-  object SinH extends LibFcn {
+  object SinH extends LibFcn with Function1[Double, Double] {
     val name = prefix + "sinh"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the hyperbolic sine of <p>x</p>, which is equal to <m>{"""\frac{e^x - e^{-x}}{2}"""}</m>.</desc>{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.sinh(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.sinh(x)
   }
   provide(SinH)
 
   ////   sqrt (Sqrt)
-  object Sqrt extends LibFcn {
+  object Sqrt extends LibFcn with Function1[Double, Double] {
     val name = prefix + "sqrt"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the positive square root of <p>x</p>.</desc>{domain("0", "infinity", lowInclusive = " (inclusive)", highInclusive = "")}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.sqrt(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.sqrt(x)
   }
   provide(Sqrt)
 
   ////   tan (Tan)
-  object Tan extends LibFcn {
+  object Tan extends LibFcn with Function1[Double, Double] {
     val name = prefix + "tan"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the trigonometric tangent of <p>x</p>, which is assumed to be in radians.</desc>{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.tan(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.tan(x)
   }
   provide(Tan)
 
   ////   tanh (TanH)
-  object TanH extends LibFcn {
+  object TanH extends LibFcn with Function1[Double, Double] {
     val name = prefix + "tanh"
     val sig = Sig(List("x" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Return the hyperbolic tangent of <p>x</p>, which is equal to <m>{"""\frac{e^x - e^{-x}}{e^x + e^{-x}}"""}</m>.</desc>{wholeLine()}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("Math.tanh(%s)", wrapArg(0, args, paramTypes, false))
     def apply(x: Double): Double = java.lang.Math.tanh(x)
   }
@@ -494,7 +495,7 @@ package object math {
   //////////////////////////////////////////////////////////////////// special functions
 
   // ////   erf (Erf)
-  // object SpecialErf extends LibFcn {
+  // object SpecialErf extends LibFcn with Function1[Double, Double] {
   //   val a1: Double =  0.254829592
   //   val a2: Double = -0.284496736
   //   val a3: Double =  1.421413741

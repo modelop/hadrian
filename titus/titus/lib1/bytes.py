@@ -27,6 +27,7 @@ from titus.signature import Sig
 from titus.signature import Sigs
 from titus.datatype import *
 from titus.errors import *
+from titus.util import startEnd
 import titus.P as P
 
 provides = {}
@@ -34,6 +35,34 @@ def provide(fcn):
     provides[fcn.name] = fcn
 
 prefix = "bytes."
+
+#################################################################### basic access
+
+class Len(LibFcn):
+    name = prefix + "len"
+    sig = Sig([{"x": P.Bytes()}], P.Int())
+    def genpy(self, paramTypes, args):
+        return "len({0})".format(*args)
+    def __call__(self, state, scope, paramTypes, x):
+        return len(x)
+provide(Len())
+
+class Subseq(LibFcn):
+    name = prefix + "subseq"
+    sig = Sig([{"x": P.Bytes()}, {"start": P.Int()}, {"end": P.Int()}], P.Bytes())
+    def __call__(self, state, scope, paramTypes, x, start, end):
+        return x[start:end]
+provide(Subseq())
+
+class SubseqTo(LibFcn):
+    name = prefix + "subseqto"
+    sig = Sig([{"x": P.Bytes()}, {"start": P.Int()}, {"end": P.Int()}, {"replacement": P.Bytes()}], P.Bytes())
+    def __call__(self, state, scope, paramTypes, x, start, end, replacement):
+        normStart, normEnd = startEnd(len(x), start, end)
+        before = x[:normStart]
+        after = x[normEnd:]
+        return before + replacement + after
+provide(SubseqTo())
 
 #################################################################### testers
 

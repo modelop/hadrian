@@ -164,6 +164,76 @@ action:
 """).head.action("one, two, three") should be (PFAArray.fromVector(Vector("one", "two", "three")))
   }
 
+  it must "do hex" taggedAs(Lib1, Lib1String) in {
+    val engine1 = PFAEngine.fromYaml("""
+input: int
+output: string
+action:
+  s.concat: [{s.hex: [input]}, {string: "|"}]
+""").head
+
+    engine1.action(java.lang.Integer.valueOf(0))      should be ("0|")
+    engine1.action(java.lang.Integer.valueOf(1))      should be ("1|")
+    engine1.action(java.lang.Integer.valueOf(15))     should be ("f|")
+    engine1.action(java.lang.Integer.valueOf(16))     should be ("10|")
+    engine1.action(java.lang.Integer.valueOf(255))    should be ("ff|")
+    engine1.action(java.lang.Integer.valueOf(256))    should be ("100|")
+    engine1.action(java.lang.Integer.valueOf(65535))  should be ("ffff|")
+    engine1.action(java.lang.Integer.valueOf(65536))  should be ("10000|")
+    evaluating { engine1.action(java.lang.Integer.valueOf(-1)) } should produce [PFARuntimeException]
+
+    val engine2 = PFAEngine.fromYaml("""
+input: int
+output: string
+action:
+  s.concat: [{s.hex: [input, 8, false]}, {string: "|"}]
+""").head
+
+    engine2.action(java.lang.Integer.valueOf(0))      should be ("       0|")
+    engine2.action(java.lang.Integer.valueOf(1))      should be ("       1|")
+    engine2.action(java.lang.Integer.valueOf(15))     should be ("       f|")
+    engine2.action(java.lang.Integer.valueOf(16))     should be ("      10|")
+    engine2.action(java.lang.Integer.valueOf(255))    should be ("      ff|")
+    engine2.action(java.lang.Integer.valueOf(256))    should be ("     100|")
+    engine2.action(java.lang.Integer.valueOf(65535))  should be ("    ffff|")
+    engine2.action(java.lang.Integer.valueOf(65536))  should be ("   10000|")
+    evaluating { engine2.action(java.lang.Integer.valueOf(-1)) } should produce [PFARuntimeException]
+
+    val engine2a = PFAEngine.fromYaml("""
+input: int
+output: string
+action:
+  s.concat: [{s.hex: [input, 8, true]}, {string: "|"}]
+""").head
+
+    engine2a.action(java.lang.Integer.valueOf(0))      should be ("00000000|")
+    engine2a.action(java.lang.Integer.valueOf(1))      should be ("00000001|")
+    engine2a.action(java.lang.Integer.valueOf(15))     should be ("0000000f|")
+    engine2a.action(java.lang.Integer.valueOf(16))     should be ("00000010|")
+    engine2a.action(java.lang.Integer.valueOf(255))    should be ("000000ff|")
+    engine2a.action(java.lang.Integer.valueOf(256))    should be ("00000100|")
+    engine2a.action(java.lang.Integer.valueOf(65535))  should be ("0000ffff|")
+    engine2a.action(java.lang.Integer.valueOf(65536))  should be ("00010000|")
+    evaluating { engine2a.action(java.lang.Integer.valueOf(-1)) } should produce [PFARuntimeException]
+
+    val engine3 = PFAEngine.fromYaml("""
+input: int
+output: string
+action:
+  s.concat: [{s.hex: [input, -8, false]}, {string: "|"}]
+""").head
+
+    engine3.action(java.lang.Integer.valueOf(0))      should be ("0       |")
+    engine3.action(java.lang.Integer.valueOf(1))      should be ("1       |")
+    engine3.action(java.lang.Integer.valueOf(15))     should be ("f       |")
+    engine3.action(java.lang.Integer.valueOf(16))     should be ("10      |")
+    engine3.action(java.lang.Integer.valueOf(255))    should be ("ff      |")
+    engine3.action(java.lang.Integer.valueOf(256))    should be ("100     |")
+    engine3.action(java.lang.Integer.valueOf(65535))  should be ("ffff    |")
+    engine3.action(java.lang.Integer.valueOf(65536))  should be ("10000   |")
+    evaluating { engine3.action(java.lang.Integer.valueOf(-1)) } should produce [PFARuntimeException]
+  }
+
   it must "do number" taggedAs(Lib1, Lib1String) in {
     val engine1 = PFAEngine.fromYaml("""
 input: int

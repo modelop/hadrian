@@ -78,7 +78,7 @@ package object time {
   val prefix = "time."
 ///////////////////////////////////////////// Year /////////////////////// 
 ////   year (Year)
-  object Year extends LibFcn {
+  object Year extends LibFcn with Function1[Double, Int] {
     val name = prefix + "year"
     val sig = Sig(List("ts" -> P.Double), P.Int)
     val doc =
@@ -95,7 +95,7 @@ package object time {
 
 ///////////////////////////////////////////// MonthOfYear /////////////////////// 
 ////   monthOfYear (MonthOfYear)
-  object MonthOfYear extends LibFcn {
+  object MonthOfYear extends LibFcn with Function1[Double, Int] {
     val name = prefix + "monthOfYear"
     val sig = Sig(List("ts" -> P.Double), P.Int)
     val doc =
@@ -113,7 +113,7 @@ package object time {
 
 ///////////////////////////////////////////// DayOfYear /////////////////////// 
 ////   dayOfYear (DayOfYear)
-  object DayOfYear extends LibFcn {
+  object DayOfYear extends LibFcn with Function1[Double, Int] {
     val name = prefix + "dayOfYear"
     val sig = Sig(List("ts" -> P.Double), P.Int)
     val doc =
@@ -131,7 +131,7 @@ package object time {
 
 ///////////////////////////////////////////// DayOfMonth /////////////////////// 
 ////   dayOfMonth (DayOfMonth)
-  object DayOfMonth extends LibFcn {
+  object DayOfMonth extends LibFcn with Function1[Double, Int] {
     val name = prefix + "dayOfMonth"
     val sig = Sig(List("ts" -> P.Double), P.Int)
     val doc =
@@ -148,7 +148,7 @@ package object time {
 
 ///////////////////////////////////////////// DayOfWeek /////////////////////// 
 ////   dayOfWeek (DayOfWeek)
-  object DayOfWeek extends LibFcn {
+  object DayOfWeek extends LibFcn with Function1[Double, Int] {
     val name = prefix + "dayOfWeek"
     val sig = Sig(List("ts" -> P.Double), P.Int)
     val doc =
@@ -165,7 +165,7 @@ package object time {
 
 ///////////////////////////////////////////// HourOfDay /////////////////////// 
 ////   hourOfDay (HourOfDay)
-  object HourOfDay extends LibFcn {
+  object HourOfDay extends LibFcn with Function1[Double, Int] {
     val name = prefix + "hourOfDay"
     val sig = Sig(List("ts" -> P.Double), P.Int)
     val doc =
@@ -183,7 +183,7 @@ package object time {
 
 ///////////////////////////////////////////// MinuteOfHour /////////////////////// 
 ////   minuteOfHour (MinuteOfHour)
-  object MinuteOfHour extends LibFcn {
+  object MinuteOfHour extends LibFcn with Function1[Double, Int] {
     val name = prefix + "minuteOfHour"
     val sig = Sig(List("ts" -> P.Double), P.Int)
     val doc =
@@ -200,7 +200,7 @@ package object time {
 
 ///////////////////////////////////////////// SecondOfMinute /////////////////////// 
 ////   secondOfMinute (SecondOfMinute)
-  object SecondOfMinute extends LibFcn {
+  object SecondOfMinute extends LibFcn with Function1[Double, Int] {
     val name = prefix + "secondOfMinute"
     val sig = Sig(List("ts" -> P.Double), P.Int)
     val doc =
@@ -217,7 +217,7 @@ package object time {
 
 ///////////////////////////////////////////// MakeTimestamp /////////////////////// 
 ////   makeTimestamp (MakeTimestamp)
-  object MakeTimestamp extends LibFcn {
+  object MakeTimestamp extends LibFcn with Function7[Int, Int, Int, Int, Int, Int, Int, Double] {
     val name = prefix + "makeTimestamp"
     val sig = Sig(List("year" -> P.Int, "month" -> P.Int, "day" -> P.Int, "hour" -> P.Int, 
                        "minute" -> P.Int, "second" -> P.Int, "millisecond" -> P.Int), P.Double)
@@ -248,7 +248,7 @@ package object time {
 
 ///////////////////////////////////////////// IsSecondOfMinute /////////////////////// 
 ////   IsSecondOfMinute (IsSecondOfMinute)
-  object IsSecondOfMinute extends LibFcn {
+  object IsSecondOfMinute extends LibFcn with Function3[Double, Double, Double, Boolean] {
     val name = prefix + "isSecondOfMinute"
     val sig = Sig(List("ts" -> P.Double, "low" -> P.Double, "high" -> P.Double), P.Boolean)
     val doc =
@@ -276,7 +276,7 @@ package object time {
 
 ///////////////////////////////////////////// IsMinuteOfHour /////////////////////// 
 ////   IsMinuteOfHour (IsMinuteOfHour)
-  object IsMinuteOfHour extends LibFcn {
+  object IsMinuteOfHour extends LibFcn with Function3[Double, Double, Double, Boolean] {
     val name = prefix + "isMinuteOfHour"
     val sig = Sig(List("ts" -> P.Double, "low" -> P.Double, "high" -> P.Double), P.Boolean)
     val doc =
@@ -304,7 +304,7 @@ package object time {
 
 ///////////////////////////////////////////// IsHourOfDay /////////////////////// 
 ////   IsHourOfDay (IsHourOfDay)
-  object IsHourOfDay extends LibFcn {
+  object IsHourOfDay extends LibFcn with Function3[Double, Double, Double, Boolean] {
     val name = prefix + "isHourOfDay"
     val sig = Sig(List("ts" -> P.Double, "low" -> P.Double, "high" -> P.Double), P.Boolean)
     val doc =
@@ -332,7 +332,7 @@ package object time {
 
 ///////////////////////////////////////////// IsDayOfWeek /////////////////////// 
 ////   IsDayOfWeek (IsDayOfWeek)
-  object IsDayOfWeek extends LibFcn {
+  object IsDayOfWeek extends LibFcn with Function3[Double, Double, Double, Boolean] {
     val name = prefix + "isDayOfWeek"
     val sig = Sig(List("ts" -> P.Double, "low" -> P.Double, "high" -> P.Double), P.Boolean)
     val doc =
@@ -360,7 +360,7 @@ package object time {
 
 ///////////////////////////////////////////// IsDayOfMonth /////////////////////// 
 ////   IsDayOfMonth (IsDayOfMonth)
-  object IsDayOfMonth extends LibFcn {
+  object IsDayOfMonth extends LibFcn with Function3[Double, Double, Double, Boolean] {
     val name = prefix + "isDayOfMonth"
     val sig = Sig(List("ts" -> P.Double, "low" -> P.Double, "high" -> P.Double), P.Boolean)
     val doc =
@@ -388,7 +388,7 @@ package object time {
 
 ///////////////////////////////////////////// IsMonthOfYear /////////////////////// 
 ////   IsMonthOfYear (IsMonthOfYear)
-  object IsMonthOfYear extends LibFcn {
+  object IsMonthOfYear extends LibFcn with Function3[Double, Double, Double, Boolean] {
     val name = prefix + "isMonthOfYear"
     val sig = Sig(List("ts" -> P.Double, "low" -> P.Double, "high" -> P.Double), P.Boolean)
     val doc =
@@ -416,7 +416,7 @@ package object time {
 
 ///////////////////////////////////////////// IsDayOfYear /////////////////////// 
 ////   IsDayOfYear (IsDayOfYear)
-  object IsDayOfYear extends LibFcn {
+  object IsDayOfYear extends LibFcn with Function3[Double, Double, Double, Boolean] {
     val name = prefix + "isDayOfYear"
     val sig = Sig(List("ts" -> P.Double, "low" -> P.Double, "high" -> P.Double), P.Boolean)
     val doc =
@@ -444,7 +444,7 @@ package object time {
 
 ///////////////////////////////////////////// IsWeekend /////////////////////// 
 ////   IsWeekend (IsWeekend)
-  object IsWeekend extends LibFcn {
+  object IsWeekend extends LibFcn with Function1[Double, Boolean] {
     val name = prefix + "isWeekend"
     val sig = Sig(List("ts" -> P.Double), P.Boolean)
     val doc =
@@ -459,7 +459,7 @@ package object time {
     def apply(ts: Double): Boolean = { 
       val dt: DateTime = new DateTime(ts.toLong*1000L).withZone(DateTimeZone.forOffsetMillis(0))   
       val day: Int = dt.getDayOfWeek() - 1
-      if ((day == 5) && (day == 6))
+      if (day >= 5)
         return true
       else 
         return false
@@ -470,7 +470,7 @@ package object time {
 
 ///////////////////////////////////////////// IsWorkHours /////////////////////// 
 ////   IsWorkHours (IsWorkHours)
-  object IsWorkHours extends LibFcn {
+  object IsWorkHours extends LibFcn with Function1[Double, Boolean] {
     val name = prefix + "isWorkHours"
     val sig = Sig(List("ts" -> P.Double), P.Boolean)
     val doc =
@@ -482,7 +482,7 @@ package object time {
       val dt: DateTime = new DateTime(ts.toLong*1000L).withZone(DateTimeZone.forOffsetMillis(0))   
       val hour: Int = dt.getHourOfDay()
       val day: Int = dt.getDayOfWeek() - 1
-      if ((day != 5) && (day != 6) && (hour >= 9) && (hour < 17))
+      if ((day < 5) && ((hour >= 9) && (hour < 17)))
         return true
       else 
         return false
@@ -493,7 +493,7 @@ package object time {
 
 ///////////////////////////////////////////// IsNonWorkHours /////////////////////// 
 ////   IsNonWorkHours (IsNonWorkHours)
-  object IsNonWorkHours extends LibFcn {
+  object IsNonWorkHours extends LibFcn with Function1[Double, Boolean] {
     val name = prefix + "isNonWorkHours"
     val sig = Sig(List("ts" -> P.Double), P.Boolean)
     val doc =
@@ -505,10 +505,10 @@ package object time {
       val dt: DateTime = new DateTime(ts.toLong*1000L).withZone(DateTimeZone.forOffsetMillis(0))   
       val hour: Int = dt.getHourOfDay()
       val day: Int = dt.getDayOfWeek() - 1
-      if ((day < 5) && (hour < 9) || (hour >= 17))
-        return true
-      else 
+      if ((day < 5) && ((hour >= 9) && (hour < 17)))
         return false
+      else 
+        return true
     }
   }
   provide(IsNonWorkHours)
@@ -516,7 +516,7 @@ package object time {
 
 ///////////////////////////////////////////// FromUTCToLocal /////////////////////// 
 ////   FromUTCToLocal (FromUTCToLocal)
-  object FromUTCToLocal extends LibFcn {
+  object FromUTCToLocal extends LibFcn with Function2[Double, Double, Double] {
     val name = prefix + "fromUTCToLocal"
     val sig = Sig(List("ts" -> P.Double, "offset" -> P.Double), P.Double)
     val doc =
@@ -537,7 +537,7 @@ package object time {
 
 ///////////////////////////////////////////// FromLocalToUTC /////////////////////// 
 ////   FromLocalToUTC (FromLocalToUTC)
-  object FromLocalToUTC extends LibFcn {
+  object FromLocalToUTC extends LibFcn with Function2[Double, Double, Double] {
     val name = prefix + "fromLocalToUTC"
     val sig = Sig(List("ts" -> P.Double, "offset" -> P.Double), P.Double)
     val doc =
@@ -554,47 +554,4 @@ package object time {
     }
   }
   provide(FromLocalToUTC)
-
-
-
-
-
-
-
-
-
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

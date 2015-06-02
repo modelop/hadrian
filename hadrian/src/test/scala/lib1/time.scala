@@ -238,6 +238,7 @@ action:
   - {time.isWeekend: input}
 """).head
     engine.action(java.lang.Double.valueOf(1425508527.52482)).asInstanceOf[Boolean] should be (false)
+    engine.action(java.lang.Double.valueOf(1427598240.0)).asInstanceOf[Boolean] should be (true)
 }
 
   "isWorkHours" must "return the correct answer" taggedAs(Lib1, Lib1Time) in {
@@ -248,6 +249,7 @@ action:
   - {time.isWorkHours: input}
 """).head
     engine.action(java.lang.Double.valueOf(1425508527.52482)).asInstanceOf[Boolean] should be (false)
+    engine.action(java.lang.Double.valueOf(1427724421.0)).asInstanceOf[Boolean] should be (true)
 }
 
   "isNonWorkHours" must "return the correct answer" taggedAs(Lib1, Lib1Time) in {
@@ -258,6 +260,7 @@ action:
   - {time.isNonWorkHours: input}
 """).head
     engine.action(java.lang.Double.valueOf(1425508527.52482)).asInstanceOf[Boolean] should be (true)
+    engine.action(java.lang.Double.valueOf(1427724421.0)).asInstanceOf[Boolean] should be (false)
 }
 
   "fromUTCToLocal" must "return the correct answer" taggedAs(Lib1, Lib1Time) in {

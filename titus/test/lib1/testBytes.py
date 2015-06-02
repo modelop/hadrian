@@ -26,7 +26,44 @@ from titus.genpy import PFAEngine
 from titus.errors import *
     
 class TestLib1Bytes(unittest.TestCase):
-#################################################################### testers
+#################################################################### basic access
+
+    def testGetLength(self):
+        engine, = PFAEngine.fromYaml('''
+input: bytes
+output: int
+action:
+  bytes.len: input
+''')
+        self.assertEqual(engine.action(struct.pack("bbbbb", 104, 101, 108, 108, 111)), 5)
+
+    def testGetSubseq(self):
+        engine, = PFAEngine.fromYaml('''
+input: int
+output: string
+action:
+  {bytes.decodeAscii: {bytes.subseq: [{bytes.encodeAscii: {string: ABCDEFGHIJKLMNOPQRSTUVWXYZ}}, 5, input]}}
+''')
+        self.assertEqual(engine.action(10), "FGHIJ")
+        self.assertEqual(engine.action(-10), "FGHIJKLMNOP")
+        self.assertEqual(engine.action(0), "")
+        self.assertEqual(engine.action(1), "")
+        self.assertEqual(engine.action(100), "FGHIJKLMNOPQRSTUVWXYZ")
+
+    def testGetSubseqTo(self):
+        engine, = PFAEngine.fromYaml('''
+input: int
+output: string
+action:
+  {bytes.decodeAscii: {bytes.subseqto: [{bytes.encodeAscii: {string: ABCDEFGHIJKLMNOPQRSTUVWXYZ}}, 5, input, {bytes.encodeAscii: {string: ...}}]}}
+''')
+        self.assertEqual(engine.action(10), "ABCDE...KLMNOPQRSTUVWXYZ")
+        self.assertEqual(engine.action(-10), "ABCDE...QRSTUVWXYZ")
+        self.assertEqual(engine.action(0), "ABCDE...FGHIJKLMNOPQRSTUVWXYZ")
+        self.assertEqual(engine.action(1), "ABCDE...FGHIJKLMNOPQRSTUVWXYZ")
+        self.assertEqual(engine.action(100), "ABCDE...")
+
+#################################################################### encoding testers
 
     def testCheckAscii(self):
         engine, = PFAEngine.fromYaml('''

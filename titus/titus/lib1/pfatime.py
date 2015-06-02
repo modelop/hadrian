@@ -253,7 +253,7 @@ class IsWeekend(LibFcn):
     def __call__(self, state, scope, paramTypes, ts):
         dt = datetime.datetime.utcfromtimestamp(ts)
         day = dt.weekday()
-        if (day == 5 and day == 6):
+        if (day == 5 or day == 6):
             return True
         else:
             return False
@@ -268,7 +268,7 @@ class IsWorkHours(LibFcn):
         dt = datetime.datetime.utcfromtimestamp(ts)
         day = dt.weekday()
         hour = dt.hour
-        if (day != 5 and day != 6 and hour >= 9 and hour < 17):
+        if ((day != 5 or day != 6) and (hour >= 9 and hour < 17)):
             return True
         else:
             return False
@@ -282,10 +282,10 @@ class IsNonWorkHours(LibFcn):
         dt = datetime.datetime.utcfromtimestamp(ts)
         day = dt.weekday()
         hour = dt.hour
-        if (day < 5 and (hour < 9 or hour >= 17)):
-            return True
-        else:
+        if ((day != 5 or day != 6) and (hour >= 9 and hour < 17)):
             return False
+        else:
+            return True
 provide(IsNonWorkHours())
 
 ############################################################# FromUTCToLocal ################

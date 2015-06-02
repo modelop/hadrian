@@ -238,31 +238,31 @@ class Apply(PmmlBinding, Expression):
             if len(expressions) == 2:
                 return ast.Call("min", args)
             else:
-                return ast.Call("a.min", [ast.NewArray(args, AvroArray(self.broadestType(self.argTypes(args, context))), context.avroTypeBuilder)])
+                return ast.Call("a.min", [ast.NewArray(args, AvroArray(self.broadestType(self.argTypes(args, context))))])
 
         elif self.function == "max":
             if len(expressions) == 2:
                 return ast.Call("max", args)
             else:
-                return ast.Call("a.max", [ast.NewArray(args, AvroArray(self.broadestType(self.argTypes(args, context))), context.avroTypeBuilder)])
+                return ast.Call("a.max", [ast.NewArray(args, AvroArray(self.broadestType(self.argTypes(args, context))))])
 
         elif self.function == "sum":
             if len(expressions) == 2:
                 return ast.Call("+", args)
             else:
-                return ast.Call("a.sum", [ast.NewArray(args, AvroArray(self.broadestType(self.argTypes(args, context))), context.avroTypeBuilder)])
+                return ast.Call("a.sum", [ast.NewArray(args, AvroArray(self.broadestType(self.argTypes(args, context))))])
 
         elif self.function == "avg":
-            return ast.Call("a.mean", [ast.NewArray(args, AvroArray(self.broadestType(self.argTypes(args, context))), context.avroTypeBuilder)])
+            return ast.Call("a.mean", [ast.NewArray(args, AvroArray(self.broadestType(self.argTypes(args, context))))])
 
         elif self.function == "median":
-            return ast.Call("a.median", [ast.NewArray(args, AvroArray(self.broadestType(self.argTypes(args, context))), context.avroTypeBuilder)])
+            return ast.Call("a.median", [ast.NewArray(args, AvroArray(self.broadestType(self.argTypes(args, context))))])
 
         elif self.function == "product":
             if len(expressions) == 2:
                 return ast.Call("*", args)
             else:
-                return ast.Call("a.product", [ast.NewArray(args, AvroArray(self.broadestType(self.argTypes(args, context))), context.avroTypeBuilder)])
+                return ast.Call("a.product", [ast.NewArray(args, AvroArray(self.broadestType(self.argTypes(args, context))))])
 
         elif self.function == "threshold":
             return ast.If(ast.Call(">", args), [ast.LiteralInt(1)], [ast.LiteralInt(0)])
@@ -292,7 +292,7 @@ class Apply(PmmlBinding, Expression):
             if len(expressions) == 2:
                 return ast.Call("s.concat", args)
             else:
-                return ast.Call("a.join", [ast.NewArray(args, AvroArray(AvroString()), context.avroTypeBuilder), ast.LiteralString("")])
+                return ast.Call("a.join", [ast.NewArray(args, AvroArray(AvroString())), ast.LiteralString("")])
 
         elif self.function == "replace" or self.function == "matches":
             raise NotImplementedError    # requires regular expressions
@@ -1314,7 +1314,7 @@ class TreeModel(PmmlBinding, ModelElement):
             predicateTypes = set(x.predicate().__class__.__name__ for x in otherNodes)
 
             if predicateTypes == set(["SimplePredicate"]):
-                modelData = topNode.simpleWalk(context, self.functionName, self.splitCharacteristic, predicateTypes)
+                modelData = topNode.simpleWalk(context, self.functionName, self.splitCharacteristic, predicateTypes)["TreeNode"]
 
                 inputTypes = sorted(set(x["type"] for x in context.dataDictionary.values()))
                 if self.functionName == "regression":
@@ -1334,7 +1334,7 @@ class TreeModel(PmmlBinding, ModelElement):
                     ]}
 
                 if context.storageType == "cell":
-                    context.cells[context.storageName] = ast.Cell(context.avroTypeBuilder.makePlaceholder(json.dumps(modelType)), json.dumps(modelData), False, False)
+                    context.cells[context.storageName] = ast.Cell(context.avroTypeBuilder.makePlaceholder(json.dumps(modelType)), json.dumps(modelData), False, False, ast.CellPoolSource.EMBEDDED)
                     return [ast.Call("model.tree.simpleWalk", [
                         ast.Ref("input"),
                         ast.CellGet(context.storageName, []),
@@ -1346,7 +1346,7 @@ class TreeModel(PmmlBinding, ModelElement):
                 elif context.storageType == "pool":
                     poolName, itemName, refName = context.storageName
                     if poolName not in context.pools:
-                        context.pools[poolName] = ast.Pool(context.avroTypeBuilder.makePlaceholder(json.dumps(modelType)), {}, False)
+                        context.pools[poolName] = ast.Pool(context.avroTypeBuilder.makePlaceholder(json.dumps(modelType)), {}, False, ast.CellPoolSource.EMBEDDED)
                     context.pools[poolName].init[itemName] = json.dumps(modelData)
                     return [ast.Call("model.tree.simpleWalk", [
                         ast.Ref("input"),

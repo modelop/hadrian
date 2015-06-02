@@ -25,6 +25,140 @@ from titus.genpy import PFAEngine
 from titus.errors import *
     
 class TestLib1Cast(unittest.TestCase):
+    def testSigned(self):
+        engine2, = PFAEngine.fromYaml('''
+input: long
+output: long
+action: {cast.signed: [input, 2]}
+''')
+
+        self.assertEqual(engine2.action(-2), -2)
+        self.assertEqual(engine2.action(-1), -1)
+        self.assertEqual(engine2.action(0), 0)
+        self.assertEqual(engine2.action(1), 1)
+        self.assertEqual(engine2.action(2), -2)
+
+        engine8, = PFAEngine.fromYaml('''
+input: long
+output: long
+action: {cast.signed: [input, 8]}
+''')
+
+        self.assertEqual(engine8.action(-2 - 256), -2)
+        self.assertEqual(engine8.action(-1 - 256), -1)
+        self.assertEqual(engine8.action(0 - 256), 0)
+        self.assertEqual(engine8.action(1 - 256), 1)
+        self.assertEqual(engine8.action(2 - 256), 2)
+
+        self.assertEqual(engine8.action(-2 - 128), 126)
+        self.assertEqual(engine8.action(-1 - 128), 127)
+        self.assertEqual(engine8.action(0 - 128), -128)
+        self.assertEqual(engine8.action(1 - 128), -127)
+        self.assertEqual(engine8.action(2 - 128), -126)
+
+        self.assertEqual(engine8.action(-2), -2)
+        self.assertEqual(engine8.action(-1), -1)
+        self.assertEqual(engine8.action(0), 0)
+        self.assertEqual(engine8.action(1), 1)
+        self.assertEqual(engine8.action(2), 2)
+
+        self.assertEqual(engine8.action(-2 + 128), 126)
+        self.assertEqual(engine8.action(-1 + 128), 127)
+        self.assertEqual(engine8.action(0 + 128), -128)
+        self.assertEqual(engine8.action(1 + 128), -127)
+        self.assertEqual(engine8.action(2 + 128), -126)
+
+        self.assertEqual(engine8.action(-2 + 256), -2)
+        self.assertEqual(engine8.action(-1 + 256), -1)
+        self.assertEqual(engine8.action(0 + 256), 0)
+        self.assertEqual(engine8.action(1 + 256), 1)
+        self.assertEqual(engine8.action(2 + 256), 2)
+
+        engine64, = PFAEngine.fromYaml('''
+input: long
+output: long
+action: {cast.signed: [input, 64]}
+''')
+
+        self.assertEqual(engine64.action(-9223372036854775808), -9223372036854775808)
+        self.assertEqual(engine64.action(-9223372036854775808 + 1), -9223372036854775808 + 1)
+        self.assertEqual(engine64.action(-9223372036854775808 + 2), -9223372036854775808 + 2)
+
+        self.assertEqual(engine64.action(-1), -1)
+        self.assertEqual(engine64.action(0), 0)
+        self.assertEqual(engine64.action(1), 1)
+
+        self.assertEqual(engine64.action(9223372036854775807 - 2), 9223372036854775807 - 2)
+        self.assertEqual(engine64.action(9223372036854775807 - 1), 9223372036854775807 - 1)
+        self.assertEqual(engine64.action(9223372036854775807), 9223372036854775807)
+
+    def testUnsigned(self):
+        engine1, = PFAEngine.fromYaml('''
+input: long
+output: long
+action: {cast.unsigned: [input, 1]}
+''')
+
+        self.assertEqual(engine1.action(-2), 0)
+        self.assertEqual(engine1.action(-1), 1)
+        self.assertEqual(engine1.action(0), 0)
+        self.assertEqual(engine1.action(1), 1)
+        self.assertEqual(engine1.action(2), 0)
+
+        engine8, = PFAEngine.fromYaml('''
+input: long
+output: long
+action: {cast.unsigned: [input, 8]}
+''')
+
+        self.assertEqual(engine8.action(-2 - 2*256), 254)
+        self.assertEqual(engine8.action(-1 - 2*256), 255)
+        self.assertEqual(engine8.action(0 - 2*256), 0)
+        self.assertEqual(engine8.action(1 - 2*256), 1)
+        self.assertEqual(engine8.action(2 - 2*256), 2)
+
+        self.assertEqual(engine8.action(-2 - 256), 254)
+        self.assertEqual(engine8.action(-1 - 256), 255)
+        self.assertEqual(engine8.action(0 - 256), 0)
+        self.assertEqual(engine8.action(1 - 256), 1)
+        self.assertEqual(engine8.action(2 - 256), 2)
+
+        self.assertEqual(engine8.action(-2), 254)
+        self.assertEqual(engine8.action(-1), 255)
+        self.assertEqual(engine8.action(0), 0)
+        self.assertEqual(engine8.action(1), 1)
+        self.assertEqual(engine8.action(2), 2)
+
+        self.assertEqual(engine8.action(-2 + 256), 254)
+        self.assertEqual(engine8.action(-1 + 256), 255)
+        self.assertEqual(engine8.action(0 + 256), 0)
+        self.assertEqual(engine8.action(1 + 256), 1)
+        self.assertEqual(engine8.action(2 + 256), 2)
+
+        self.assertEqual(engine8.action(-2 + 2*256), 254)
+        self.assertEqual(engine8.action(-1 + 2*256), 255)
+        self.assertEqual(engine8.action(0 + 2*256), 0)
+        self.assertEqual(engine8.action(1 + 2*256), 1)
+        self.assertEqual(engine8.action(2 + 2*256), 2)
+
+        engine63, = PFAEngine.fromYaml('''
+input: long
+output: long
+action: {cast.unsigned: [input, 63]}
+''')
+
+        self.assertEqual(engine63.action(-9223372036854775808), 0)
+        self.assertEqual(engine63.action(-9223372036854775808 + 1), 1)
+        self.assertEqual(engine63.action(-9223372036854775808 + 2), 2)
+
+        self.assertEqual(engine63.action(-1), 9223372036854775807)
+        self.assertEqual(engine63.action(0), 0)
+        self.assertEqual(engine63.action(1), 1)
+
+        self.assertEqual(engine63.action(9223372036854775807 - 2), 9223372036854775807 - 2)
+        self.assertEqual(engine63.action(9223372036854775807 - 1), 9223372036854775807 - 1)
+        self.assertEqual(engine63.action(9223372036854775807), 9223372036854775807)
+
     def testToInt(self):
         self.assertEqual(PFAEngine.fromYaml('''
 input: int

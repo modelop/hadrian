@@ -63,7 +63,7 @@ package object parse {
   ////////////////////////////////////////////////////////////////////
 
   ////   int (ParseInt)
-  object ParseInt extends LibFcn {
+  object ParseInt extends LibFcn with Function2[String, Int, Int] {
     val name = prefix + "int"
     val sig = Sig(List("str" -> P.String, "base" -> P.Int), P.Int)
     val doc =
@@ -89,7 +89,7 @@ package object parse {
   provide(ParseInt)
 
   ////   long (ParseLong)
-  object ParseLong extends LibFcn {
+  object ParseLong extends LibFcn with Function2[String, Int, Long] {
     val name = prefix + "long"
     val sig = Sig(List("str" -> P.String, "base" -> P.Int), P.Long)
     val doc =
@@ -115,7 +115,7 @@ package object parse {
   provide(ParseLong)
 
   ////   float (ParseFloat)
-  object ParseFloat extends LibFcn {
+  object ParseFloat extends LibFcn with Function1[String, Float] {
     val name = prefix + "float"
     val sig = Sig(List("str" -> P.String), P.Float)
     val doc =
@@ -147,7 +147,7 @@ package object parse {
   provide(ParseFloat)
 
   ////   double (ParseDouble)
-  object ParseDouble extends LibFcn {
+  object ParseDouble extends LibFcn with Function1[String, Double] {
     val name = prefix + "double"
     val sig = Sig(List("str" -> P.String), P.Double)
     val doc =

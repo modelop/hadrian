@@ -29,6 +29,9 @@ import com.opendatagroup.hadrian.errors.PFATimeoutException
 import com.opendatagroup.hadrian.errors.PFAUserException
 import com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine
 import com.opendatagroup.hadrian.jvmcompiler.PFAEngine
+import com.opendatagroup.hadrian.memory.compute
+import com.opendatagroup.hadrian.memory.EnginesReport
+import com.opendatagroup.hadrian.memory.Usage
 
 package object workflow {
   val GB_PER_BYTE = 1.0 / 1024.0 / 1024.0 / 1024.0
@@ -81,9 +84,9 @@ package object workflow {
       case cfg: config.Queue =>
         val queue =
           if (cfg.hashKeys.isEmpty)
-            new Queue(monitor, s"$name -> ${cfg.to}", cfg)
+            new Queue(monitor, s"$name -> ${cfg.to}", node.outputType, cfg)
           else
-            new HashQueue(monitor, s"$name -> ${cfg.to}", cfg)
+            new HashQueue(monitor, s"$name -> ${cfg.to}", node.outputType, cfg)
         queues.add(queue)
 
         val sourceOrEngineByName = (sources.get(name) ++ engines.get(name)).head
@@ -242,9 +245,11 @@ package workflow {
   case class DropAllData(really: Boolean) extends Message
 
   case class MonitorSource(name: String) extends Message
-  case class MonitorEngineAnnounce(name: String, shellEngine: Boolean, multiplicity: Int) extends Message
+  case class MonitorMemoryInEngine(watchMemory: Option[config.WatchMemory], pfaEngine: PFAEngine[AnyRef, AnyRef])
+  case class MonitorEngineAnnounce(name: String, isShellEngine: Boolean, multiplicity: Int, monitorMemoryInEngine: Option[MonitorMemoryInEngine] = None) extends Message
   case class MonitorTimeInEngine(name: String, diff: Long) extends Message
   case class MonitorError(name: String) extends Message
+  case class MonitorQueueMemory(name: String, watchMemoryOrCount: Option[config.WatchMemoryOrCount], isHash: Boolean) extends Message
   case class MonitorQueueDepth(name: String, depth: Int) extends Message
   case class MonitorHashQueueDepth(name: String, depths: Seq[Int]) extends Message
   case class MonitorQueueDropped(name: String) extends Message
@@ -417,7 +422,7 @@ package workflow {
 
       case Start() =>
         Future {
-          monitor.receive(MonitorEngineAnnounce(name, false, cfg.multiplicity), this)
+          monitor.receive(MonitorEngineAnnounce(name, false, cfg.multiplicity, monitorMemoryInEngine = Some(MonitorMemoryInEngine(cfg.watchMemory, engine))), this)
           engine.begin()
           sources foreach {_.receive(ReadyForData(), this)}
           saveStateThread foreach {_.start()}
@@ -724,7 +729,11 @@ package workflow {
     }
   }
 
-  class Queue(monitor: Monitor, name: String, cfg: config.Queue) extends SimpleActor {
+  trait CanComputeMemoryUsage {     // FIXME: THIS BREAKS THE ACTOR MODEL
+    def memoryUsage(numItems: Int): Usage
+  }
+
+  class Queue(monitor: Monitor, name: String, avroType: AvroType, cfg: config.Queue) extends SimpleActor with CanComputeMemoryUsage {
     private var from = Seq[SimpleActor]()
     private var to = Seq[SimpleActor]()
 
@@ -734,12 +743,18 @@ package workflow {
 
     private var dropAllData = false
 
+    def memoryUsage(numItems: Int): Usage = compute(avroType) match {
+      case Some(usage) => usage * numItems
+      case None => data.iterator.toSeq.map(x => compute(avroType, x.value)).reduce(_ + _)
+    }
+
     override def receive(x: Message, sender: SimpleActor) = x match {
       case AttachNodes(from, to) =>
         this.from = from
         this.to = to
 
       case Start() =>
+        monitor.receive(MonitorQueueMemory(name, cfg.watchMemoryOrCount, false), this)
         monitor.receive(MonitorQueueDepth(name, 0), this)
 
       case x: ReadyForData =>
@@ -776,7 +791,7 @@ package workflow {
     }
   }
 
-  class HashQueue(monitor: Monitor, name: String, cfg: config.Queue) extends SimpleActor {
+  class HashQueue(monitor: Monitor, name: String, avroType: AvroType, cfg: config.Queue) extends SimpleActor with CanComputeMemoryUsage {
     private var from = Seq[SimpleActor]()
     private var to = Seq[SimpleActor]()
 
@@ -797,6 +812,11 @@ package workflow {
       to((to.size * (keys.hashCode.toLong - java.lang.Integer.MIN_VALUE.toLong) /
         (java.lang.Integer.MAX_VALUE.toLong - java.lang.Integer.MIN_VALUE.toLong)).toInt)
 
+    def memoryUsage(numItems: Int): Usage = compute(avroType) match {
+      case Some(usage) => usage * numItems
+      case None => data.values.flatMap(_.iterator).toSeq.map(x => compute(avroType, x.value)).reduce(_ + _)
+    }
+
     override def receive(x: Message, sender: SimpleActor) = x match {
       case AttachNodes(from, to) =>
         this.from = from
@@ -811,6 +831,7 @@ package workflow {
         }
 
       case Start() =>
+        monitor.receive(MonitorQueueMemory(name, cfg.watchMemoryOrCount, true), this)
         monitor.receive(MonitorHashQueueDepth(name, Seq.fill(this.to.size)(0)), this)
 
       case x: ReadyForData =>
@@ -888,7 +909,7 @@ package workflow {
     }
   }
 
-  case class EngineData(shellEngine: Boolean, count: AtomicInteger, sum: AtomicLong, var max: Long, errors: AtomicInteger, multiplicity: Int) {
+  case class EngineData(isShellEngine: Boolean, count: AtomicInteger, sum: AtomicLong, var max: Long, errors: AtomicInteger, multiplicity: Int, watchMemory: Option[config.WatchMemory], pfaEngines: List[PFAEngine[AnyRef, AnyRef]]) {
     def reset(): Unit = {
       count.set(0)
       sum.set(0)
@@ -915,12 +936,13 @@ package workflow {
   }
 
   class Monitor extends SimpleActor {
-    val sourceCount           = new java.util.HashMap[String, AtomicLong]
-    val sourceCumulativeCount = new java.util.HashMap[String, AtomicLong]
-    val engineData            = new java.util.HashMap[String, EngineData]
-    val queueDepths           = new java.util.HashMap[String, Int]
-    val hashQueueDepths       = new java.util.HashMap[String, Seq[Int]]
-    val queueDropped          = new java.util.HashMap[String, AtomicInteger]
+    val sourceCount             = new java.util.HashMap[String, AtomicLong]
+    val sourceCumulativeCount   = new java.util.HashMap[String, AtomicLong]
+    val engineData              = new java.util.HashMap[String, EngineData]
+    val queueWatchMemoryOrCount = new java.util.HashMap[String, Tuple3[Option[config.WatchMemoryOrCount], Boolean, SimpleActor]]
+    val queueDepths             = new java.util.HashMap[String, Int]
+    val hashQueueDepths         = new java.util.HashMap[String, Seq[Int]]
+    val queueDropped            = new java.util.HashMap[String, AtomicInteger]
 
     override def receive(x: Message, sender: SimpleActor) = x match {
       case StartMonitor(monitorFreqSeconds) =>
@@ -949,9 +971,18 @@ package workflow {
           }
       }
 
-      case MonitorEngineAnnounce(name, shellEngine, multiplicity) =>
+      case MonitorEngineAnnounce(name, isShellEngine, multiplicity, None) =>
         engineData.synchronized {
-          engineData.put(name, EngineData(shellEngine, new AtomicInteger, new AtomicLong, 0L, new AtomicInteger, multiplicity))
+          engineData.put(name, EngineData(isShellEngine, new AtomicInteger, new AtomicLong, 0L, new AtomicInteger, multiplicity, None, List[PFAEngine[AnyRef, AnyRef]]()))
+        }
+
+      case MonitorEngineAnnounce(name, isShellEngine, multiplicity, Some(MonitorMemoryInEngine(watchMemory, pfaEngine))) =>
+        engineData.synchronized {
+          val otherPfaEngines = engineData.get(name) match {
+            case null => List[PFAEngine[AnyRef, AnyRef]]()
+            case EngineData(_, _, _, _, _, _, _, pfaEngines) => pfaEngines
+          }
+          engineData.put(name, EngineData(isShellEngine, new AtomicInteger, new AtomicLong, 0L, new AtomicInteger, multiplicity, watchMemory, pfaEngine :: otherPfaEngines))
         }
 
       case MonitorTimeInEngine(name, diff) =>
@@ -959,6 +990,9 @@ package workflow {
 
       case MonitorError(name) =>
         engineData.get(name).updateErrors()
+
+      case MonitorQueueMemory(name, watchMemoryOrCount, isHash) =>
+        queueWatchMemoryOrCount.put(name, (watchMemoryOrCount, isHash, sender))
 
       case MonitorQueueDepth(name, depth) =>
         queueDepths.put(name, depth)
@@ -1018,38 +1052,47 @@ package workflow {
 
           engineData.keySet.toSeq.sorted foreach {key =>
             val edata = engineData.get(key)
-            if (!edata.shellEngine)
+            if (!edata.isShellEngine) {
               main.Main.logger.info(f"""$key%-15s rate: ${edata.count.get * 1000.0 / timeDifference}%9.3f/s average: ${edata.averageTime}%7.3fms max: ${edata.max}%4dms busyCPUs: ${edata.sum.get.toDouble / timeDifference}%5.2f/${edata.multiplicity} errors: ${edata.errors.get}%4d""")
+              edata.watchMemory match {
+                case Some(config.WatchMemory()) =>
+                  val report = EnginesReport(edata.pfaEngines)
+                  report.toString("    ").split("\n") foreach {line => main.Main.logger.info(line)}
+                case _ =>
+              }
+            }
             else
               main.Main.logger.info(f"""$key%-15s                                                      errors: ${edata.errors.get}%4d""")
           }
           engineData.values foreach {_.reset()}
 
-          queueDepths.keySet.toSeq.sorted foreach {key =>
+          queueWatchMemoryOrCount.keySet.toSeq.sorted foreach {key =>
+            val (watchMemoryOrCount, isHash, queue) = queueWatchMemoryOrCount(key)
             val dropped =
               try {
-                queueDropped.get(key).get
+                  queueDropped.get(key).get
               }
               catch {
                 case _: NullPointerException => 0
               }
-            if (dropped > 0)
-              main.Main.logger.info(f"""$key%-24s depth: ${queueDepths.get(key)}%5d                           dropped: $dropped%5d""")
-            else
-              main.Main.logger.debug(f"""$key%-24s depth: ${queueDepths.get(key)}%5d                           dropped: $dropped%5d""")
-          }
-          hashQueueDepths.keySet.toSeq.sorted foreach {key =>
-            val dropped =
-              try {
-                queueDropped.get(key).get
-              }
-              catch {
-                case _: NullPointerException => 0
-              }
-            if (dropped > 0)
-              main.Main.logger.info(f"""$key%-24s depths: ${hashQueueDepths.get(key).mkString(" ")}%-30s dropped: ${dropped}%5d""")
-            else
-              main.Main.logger.debug(f"""$key%-24s depths: ${hashQueueDepths.get(key).mkString(" ")}%-30s dropped: ${dropped}%5d""")
+
+            if (dropped > 0  ||  !watchMemoryOrCount.isEmpty) watchMemoryOrCount match {
+              case Some(config.WatchMemory()) =>
+                if (isHash) {
+                  val usage = queue.asInstanceOf[CanComputeMemoryUsage].memoryUsage(hashQueueDepths.get(key).sum)   // FIXME: THIS BREAKS THE ACTOR MODEL
+                  main.Main.logger.info(f"""$key%-24s depths: ${hashQueueDepths.get(key).mkString(" ")}%-30s dropped: ${dropped}%5d   memory: $usage""")
+                }
+                else {
+                  val usage = queue.asInstanceOf[CanComputeMemoryUsage].memoryUsage(queueDepths.get(key))           // FIXME: THIS BREAKS THE ACTOR MODEL
+                  main.Main.logger.info(f"""$key%-24s depth: ${queueDepths.get(key)}%5d                           dropped: $dropped%5d   memory: $usage""")
+                }
+
+              case _ =>
+                if (isHash)
+                  main.Main.logger.info(f"""$key%-24s depths: ${hashQueueDepths.get(key).mkString(" ")}%-30s dropped: ${dropped}%5d""")
+                else
+                  main.Main.logger.info(f"""$key%-24s depth: ${queueDepths.get(key)}%5d                           dropped: $dropped%5d""")
+            }
           }
           main.Main.logger.info("")
 

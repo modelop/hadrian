@@ -47,14 +47,16 @@ class Linear(LibFcn):
                  Sig([{"datum": P.Map(P.Double())}, {"model": P.WildRecord("M", {"coeff": P.Map(P.Double()), "const": P.Double()})}], P.Double()),
                  Sig([{"datum": P.Map(P.Double())}, {"model": P.WildRecord("M", {"coeff": P.Map(P.Map(P.Double())), "const": P.Map(P.Double())})}], P.Map(P.Double()))])
     def __call__(self, state, scope, paramTypes, datum, model):
-        if paramTypes[1]["fields"][0]["type"] == {'items': 'double', 'type': 'array'}: #sig1
+        coeffType = [x["type"] for x in paramTypes[1]["fields"] if x["name"] == "coeff"][0]
+
+        if coeffType == {'items': 'double', 'type': 'array'}: #sig1
             coeff = model["coeff"] + [model["const"]]
             datum = numpy.array(datum + [1.0])
             if len(datum) != len(coeff):
                 raise PFARuntimeException("misaligned coeff")
             return float(numpy.dot(coeff, datum))
 
-        elif paramTypes[1]["fields"][0]["type"] == {'items': {'items': 'double', 'type': 'array'}, 'type': 'array'}: #sig2
+        elif coeffType == {'items': {'items': 'double', 'type': 'array'}, 'type': 'array'}: #sig2
             coeff = numpy.array(model["coeff"])
             const = numpy.array(model["const"])
             datum = numpy.array(datum + [1.0])
@@ -64,7 +66,7 @@ class Linear(LibFcn):
                 raise PFARuntimeException('misaligned coeff')
             return map(float, numpy.dot(coeff.T, datum))
 
-        elif paramTypes[1]["fields"][0]["type"] == {'values': 'double', 'type': 'map'}: #sig3
+        elif coeffType == {'values': 'double', 'type': 'map'}: #sig3
             coeff = model["coeff"]
             const = model["const"]
             if len(datum) != len(coeff):

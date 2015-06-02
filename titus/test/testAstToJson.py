@@ -124,7 +124,7 @@ class TestAstToJson(unittest.TestCase):
         {"f": FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])},
         None,
         None,
-        {"private": Cell(AvroInt(), "0", False, False)},
+        {"private": Cell(AvroInt(), "0", False, False, CellPoolSource.EMBEDDED)},
         {},
         None,
         None,
@@ -154,8 +154,8 @@ class TestAstToJson(unittest.TestCase):
          {"f": FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])},
          None,
          None,
-         {"private": Cell(AvroInt(), "0", False, False)},
-         {"private": Pool(AvroInt(), {}, False, False)},
+         {"private": Cell(AvroInt(), "0", False, False, CellPoolSource.EMBEDDED)},
+         {"private": Pool(AvroInt(), {}, False, False, CellPoolSource.EMBEDDED)},
          None,
          None,
          None,
@@ -185,8 +185,8 @@ class TestAstToJson(unittest.TestCase):
         {"f": FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])},
         None,
         None,
-        {"private": Cell(AvroInt(), "0", False, False)},
-        {"private": Pool(AvroInt(), {}, False, False)},
+        {"private": Cell(AvroInt(), "0", False, False, CellPoolSource.EMBEDDED)},
+        {"private": Pool(AvroInt(), {}, False, False, CellPoolSource.EMBEDDED)},
         12345,
         None,
         None,
@@ -217,8 +217,8 @@ class TestAstToJson(unittest.TestCase):
         {"f": FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])},
         None,
         None,
-        {"private": Cell(AvroInt(), "0", False, False)},
-        {"private": Pool(AvroInt(), {}, False, False)},
+        {"private": Cell(AvroInt(), "0", False, False, CellPoolSource.EMBEDDED)},
+        {"private": Pool(AvroInt(), {}, False, False, CellPoolSource.EMBEDDED)},
         12345,
         "hello",
         None,
@@ -250,8 +250,8 @@ class TestAstToJson(unittest.TestCase):
         {"f": FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])},
         None,
         None,
-        {"private": Cell(AvroInt(), "0", False, False)},
-        {"private": Pool(AvroInt(), {}, False, False)},
+        {"private": Cell(AvroInt(), "0", False, False, CellPoolSource.EMBEDDED)},
+        {"private": Pool(AvroInt(), {}, False, False, CellPoolSource.EMBEDDED)},
         12345,
         "hello",
         None,
@@ -284,8 +284,8 @@ class TestAstToJson(unittest.TestCase):
         {"f": FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()])},
         None,
         None,
-        {"private": Cell(AvroInt(), "0", False, False)},
-        {"private": Pool(AvroInt(), {}, False, False)},
+        {"private": Cell(AvroInt(), "0", False, False, CellPoolSource.EMBEDDED)},
+        {"private": Pool(AvroInt(), {}, False, False, CellPoolSource.EMBEDDED)},
         12345,
         "hello",
         None,
@@ -309,11 +309,11 @@ class TestAstToJson(unittest.TestCase):
 }'''))
 
     def testCell(self):
-        self.assertEqual(json.loads(Cell(AvroInt(), "0", False, False).toJson(lineNumbers=False)), json.loads('''{"type":"int","init":0,"shared":false,"rollback":false}'''))
+        self.assertEqual(json.loads(Cell(AvroInt(), "0", False, False, CellPoolSource.EMBEDDED).toJson(lineNumbers=False)), json.loads('''{"type":"int","init":0,"shared":false,"rollback":false}'''))
 
     def testPool(self):
-        self.assertEqual(json.loads(Pool(AvroInt(), {}, False, False).toJson(lineNumbers=False)), json.loads('''{"type":"int","init":{},"shared":false,"rollback":false}'''))
-        self.assertEqual(json.loads(Pool(AvroInt(), {"one": "1"}, False, False).toJson(lineNumbers=False)), json.loads('''{"type":"int","init":{"one":1},"shared":false,"rollback":false}'''))
+        self.assertEqual(json.loads(Pool(AvroInt(), {}, False, False, CellPoolSource.EMBEDDED).toJson(lineNumbers=False)), json.loads('''{"type":"int","init":{},"shared":false,"rollback":false}'''))
+        self.assertEqual(json.loads(Pool(AvroInt(), {"one": "1"}, False, False, CellPoolSource.EMBEDDED).toJson(lineNumbers=False)), json.loads('''{"type":"int","init":{"one":1},"shared":false,"rollback":false}'''))
 
     def testDefineFunction(self):
         self.assertEqual(json.loads(FcnDef([{"x": AvroInt()}, {"y": AvroString()}], AvroNull(), [LiteralNull()]).toJson(lineNumbers=False)), json.loads('''{"params":[{"x":"int"},{"y":"string"}],"ret":"null","do":[null]}'''))

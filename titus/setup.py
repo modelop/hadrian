@@ -43,11 +43,11 @@ setup(name="titus",
                 "titus.lib1.stat",
                 "titus.pmml",
                 "titus.inspector"],
-      scripts = ["scripts/inspector"],
+      scripts = ["scripts/pfainspector", "scripts/pfachain"],
       description="Python implementation of Portable Format for Analytics (PFA): producer, converter, and consumer.",
       test_suite="test",
-      install_requires=["python >= 2.6.6", "python < 3.0", "avro >= 1.7.6"],
-      tests_require=["python >= 2.6.6", "python < 3.0", "avro >= 1.7.6", "PyYAML >= 3.10", "numpy >= 1.6.1", "ply >= 3.4"],
+      install_requires=["python >= 2.6.6", "python < 3.0", "avro >= 1.7.6", "ply >= 3.4"],
+      tests_require=["python >= 2.6.6", "python < 3.0", "avro >= 1.7.6", "ply >= 3.4", "PyYAML >= 3.10", "numpy >= 1.6.1"],
       )
 
 ### details of dependencies:
@@ -56,10 +56,10 @@ setup(name="titus",
 # Will not work in Python 3.x without 2to3 conversion (also untested).
 # The module is pure-Python, so (for instance) it works in Jython 2.7.
 # 
-# Avro is required, only versions 1.7.6 -- 1.7.7 has been tested.
+# Avro is required; it is an integral part of PFA (only versions 1.7.6 -- 1.7.7 have been tested).
+# PLY is required; it is used to parse PrettyPFA and Inspector commandlines (only version 3.4 has been tested).
 # 
-# PyYAML is an optional dependency; it is only used by the titus.reader.yamlToAst function (and only version 3.11 has been tested).
-# Numpy is an optional dependency; it is only used by the titus.producer modules (and only version 1.7.1 has been tested).
-# PLY is an optional dependency; it is only used by the titus.producer.prettypfa module (and only version 3.4 has been tested).
+# PyYAML is an optional dependency; it is only used by the titus.reader.yamlToAst function (only version 3.11 has been tested).
+# Numpy is an optional dependency; it is only used by the producer modules (only version 1.7.1 has been tested).
 # 
 # The test suite attempts to import all optional dependencies.

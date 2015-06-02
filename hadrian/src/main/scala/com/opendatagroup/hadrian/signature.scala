@@ -327,23 +327,27 @@ package signature {
         val atypesPermutations = atypes.permutations
 
         while (!found  &&  !atypesPermutations.isEmpty) {
-          val available = mutable.Map[Int, Pattern]((0 until ptypes.size) map {i => (i, ptypes(i))} : _*)
+          val available = mutable.LinkedHashMap[Int, Pattern]((0 until ptypes.size) map {i => (i, ptypes(i))} : _*)
           found = atypesPermutations.next() forall {a =>
-            available find {case (i, p) => check(p, a, labelData2, true, reversed)} match {
+            available find {case (i, p) =>
+              check(p, a, labelData2, true, reversed)
+            } match {
               case Some((i, p)) => {
                 available.remove(i)
                 true
               }
-              case None => false
+              case None =>
+                false
             }
           }
-
-          if (!found)
+          if (!found) {
             labelData2 = mutable.Map(originalLabelData.toSeq: _*)
+          }
         }
 
         for ((k, v) <- labelData2)
           labelData(k) = v
+
         found
       }
       case (P.Union(ptypes), a: AvroType) => ptypes exists {p => check(p, a, labelData, strict, reversed)}

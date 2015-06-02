@@ -26,6 +26,7 @@ object Main {
                     inputFormat: Format.Value = Format.AVRO,
                     outputFormat: Format.Value = Format.AVRO,
                     saveState: Option[String] = None,
+                    printTime: Boolean = false,
                     debug: Boolean = false)
 
   def main(args: Array[String]): Unit = {
@@ -65,6 +66,11 @@ object Main {
             failure(y.getAbsolutePath + " does not exist")})
         .action((x, c) => c.copy(saveState = Some(x)))
         .text("base file name for saving the scoring engine state (a directory, file name prefix, or both)")
+
+      opt[Unit]("printTime")
+        .optional
+        .action((_, c) => c.copy(printTime = true))
+        .text("print average time of action to standard error (approximately every 10 seconds, does not include data input/output)")
 
       opt[Unit]("debug")
         .action((x, c) => c.copy(debug = true))
@@ -144,15 +150,38 @@ input.
 
       // keeps going while inputThread is alive or there's work to be done
       class EngineRunnable(engine: PFAEngine[AnyRef, AnyRef]) extends Runnable {
+        private var lastPrintout = 0L
+        private var timeInAction = 0L
+        private var callsToAction = 0.0
+
+        def action(engine: PFAEngine[AnyRef, AnyRef], input: AnyRef): AnyRef = {
+          val startTime = System.currentTimeMillis
+          val out = engine.action(input)
+          val endTime = System.currentTimeMillis
+
+          timeInAction += endTime - startTime
+          callsToAction += 1.0
+
+          if (endTime - lastPrintout > 10000  ||  lastPrintout == 0L) {
+            if (config.printTime  &&  lastPrintout != 0L)
+              System.err.println(timeInAction / callsToAction)
+            timeInAction = 0L
+            callsToAction = 0.0
+            lastPrintout = endTime
+          }
+
+          out
+        }
+
         def run() {
           val processInput =
             engine match {
               case emitEngine: PFAEmitEngine[_, _] =>
                 emitEngine.emit = {fx: AnyRef => outputQueue.add(Some(fx))}
-                {x: AnyRef => emitEngine.action(x)}
+                {x: AnyRef => action(emitEngine, x)}
 
               case _ =>
-                {x: AnyRef => outputQueue.add(Some(engine.action(x)))}
+                {x: AnyRef => outputQueue.add(Some(action(engine, x)))}
             }
 
           val index = engine.instance

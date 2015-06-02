@@ -39,10 +39,10 @@ output: string
 action:
   enum.toString: input
 """).head
-    engine.action(engine.fromJson(""""A"""", engine.inputType)) should be ("A")
-    engine.action(engine.fromJson(""""B"""", engine.inputType)) should be ("B")
-    engine.action(engine.fromJson(""""C"""", engine.inputType)) should be ("C")
-    evaluating { engine.fromJson(""""D"""", engine.inputType) } should produce [org.apache.avro.AvroTypeException]
+    engine.action(engine.jsonInput(""""A"""")) should be ("A")
+    engine.action(engine.jsonInput(""""B"""")) should be ("B")
+    engine.action(engine.jsonInput(""""C"""")) should be ("C")
+    evaluating { engine.jsonInput(""""D"""") } should produce [org.apache.avro.AvroTypeException]
   }
 
   it must "convert to int" taggedAs(Lib1, Lib1Enum) in {
@@ -52,9 +52,9 @@ output: int
 action:
   enum.toInt: input
 """).head
-    engine.action(engine.fromJson(""""A"""", engine.inputType)) should be (0)
-    engine.action(engine.fromJson(""""B"""", engine.inputType)) should be (1)
-    engine.action(engine.fromJson(""""C"""", engine.inputType)) should be (2)
+    engine.action(engine.jsonInput(""""A"""")) should be (0)
+    engine.action(engine.jsonInput(""""B"""")) should be (1)
+    engine.action(engine.jsonInput(""""C"""")) should be (2)
   }
 
   it must "return numSymbols" taggedAs(Lib1, Lib1Enum) in {
@@ -64,9 +64,9 @@ output: int
 action:
   enum.numSymbols: input
 """).head
-    engine.action(engine.fromJson(""""A"""", engine.inputType)) should be (3)
-    engine.action(engine.fromJson(""""B"""", engine.inputType)) should be (3)
-    engine.action(engine.fromJson(""""C"""", engine.inputType)) should be (3)
+    engine.action(engine.jsonInput(""""A"""")) should be (3)
+    engine.action(engine.jsonInput(""""B"""")) should be (3)
+    engine.action(engine.jsonInput(""""C"""")) should be (3)
   }
 
 }

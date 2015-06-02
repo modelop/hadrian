@@ -30,6 +30,7 @@ import com.opendatagroup.hadrian.ast._
 import com.opendatagroup.hadrian.data._
 import com.opendatagroup.hadrian.datatype._
 import com.opendatagroup.hadrian.datatype.AvroConversions._
+import com.opendatagroup.hadrian.reader._
 import com.opendatagroup.hadrian.util._
 import test.scala._
 
@@ -133,7 +134,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       Map("f" -> FcnDef(List("x" -> AvroInt(), "y" -> AvroString()), AvroNull(), List(LiteralNull()))),
       None,
       None,
-      Map("private" -> Cell(AvroInt(), "0", false, false)),
+      Map("private" -> Cell(AvroInt(), EmbeddedJsonDomCellSource(JsonLong(0L), AvroInt()), false, false, CellPoolSource.EMBEDDED)),
       Map(),
       None,
       None,
@@ -163,8 +164,8 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       Map("f" -> FcnDef(List("x" -> AvroInt(), "y" -> AvroString()), AvroNull(), List(LiteralNull()))),
       None,
       None,
-      Map("private" -> Cell(AvroInt(), "0", false, false)),
-      Map("private" -> Pool(AvroInt(), Map[String, String](), false, false)),
+      Map("private" -> Cell(AvroInt(), EmbeddedJsonDomCellSource(JsonLong(0L), AvroInt()), false, false, CellPoolSource.EMBEDDED)),
+      Map("private" -> Pool(AvroInt(), EmbeddedJsonDomPoolSource(Map(), AvroInt()), false, false, CellPoolSource.EMBEDDED)),
       None,
       None,
       None,
@@ -194,8 +195,8 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       Map("f" -> FcnDef(List("x" -> AvroInt(), "y" -> AvroString()), AvroNull(), List(LiteralNull()))),
       None,
       None,
-      Map("private" -> Cell(AvroInt(), "0", false, false)),
-      Map("private" -> Pool(AvroInt(), Map[String, String](), false, false)),
+      Map("private" -> Cell(AvroInt(), EmbeddedJsonDomCellSource(JsonLong(0L), AvroInt()), false, false, CellPoolSource.EMBEDDED)),
+      Map("private" -> Pool(AvroInt(), EmbeddedJsonDomPoolSource(Map(), AvroInt()), false, false, CellPoolSource.EMBEDDED)),
       Some(12345),
       None,
       None,
@@ -226,8 +227,8 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       Map("f" -> FcnDef(List("x" -> AvroInt(), "y" -> AvroString()), AvroNull(), List(LiteralNull()))),
       None,
       None,
-      Map("private" -> Cell(AvroInt(), "0", false, false)),
-      Map("private" -> Pool(AvroInt(), Map[String, String](), false, false)),
+      Map("private" -> Cell(AvroInt(), EmbeddedJsonDomCellSource(JsonLong(0L), AvroInt()), false, false, CellPoolSource.EMBEDDED)),
+      Map("private" -> Pool(AvroInt(), EmbeddedJsonDomPoolSource(Map(), AvroInt()), false, false, CellPoolSource.EMBEDDED)),
       Some(12345),
       Some("hello"),
       None,
@@ -259,8 +260,8 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       Map("f" -> FcnDef(List("x" -> AvroInt(), "y" -> AvroString()), AvroNull(), List(LiteralNull()))),
       None,
       None,
-      Map("private" -> Cell(AvroInt(), "0", false, false)),
-      Map("private" -> Pool(AvroInt(), Map[String, String](), false, false)),
+      Map("private" -> Cell(AvroInt(), EmbeddedJsonDomCellSource(JsonLong(0L), AvroInt()), false, false, CellPoolSource.EMBEDDED)),
+      Map("private" -> Pool(AvroInt(), EmbeddedJsonDomPoolSource(Map(), AvroInt()), false, false, CellPoolSource.EMBEDDED)),
       Some(12345),
       Some("hello"),
       None,
@@ -293,8 +294,8 @@ class AstToJsonSuite extends FlatSpec with Matchers {
       Map("f" -> FcnDef(List("x" -> AvroInt(), "y" -> AvroString()), AvroNull(), List(LiteralNull()))),
       None,
       None,
-      Map("private" -> Cell(AvroInt(), "0", false, false)),
-      Map("private" -> Pool(AvroInt(), Map[String, String](), false, false)),
+      Map("private" -> Cell(AvroInt(), EmbeddedJsonDomCellSource(JsonLong(0L), AvroInt()), false, false, CellPoolSource.EMBEDDED)),
+      Map("private" -> Pool(AvroInt(), EmbeddedJsonDomPoolSource(Map(), AvroInt()), false, false, CellPoolSource.EMBEDDED)),
       Some(12345),
       Some("hello"),
       None,
@@ -319,12 +320,12 @@ class AstToJsonSuite extends FlatSpec with Matchers {
   }
 
   it must "cell" taggedAs(AstToJson) in {
-    checkAstToJson(Cell(AvroInt(), "0", false, false), """{"type":"int","init":0,"shared":false,"rollback":false}""")
+    checkAstToJson(Cell(AvroInt(), EmbeddedJsonDomCellSource(JsonLong(0L), AvroInt()), false, false, CellPoolSource.EMBEDDED), """{"type":"int","init":0,"shared":false,"rollback":false}""")
   }
 
   it must "pool" taggedAs(AstToJson) in {
-    checkAstToJson(Pool(AvroInt(), Map[String, String](), false, false), """{"type":"int","init":{},"shared":false,"rollback":false}""")
-    checkAstToJson(Pool(AvroInt(), Map[String, String]("one" -> "1"), false, false), """{"type":"int","init":{"one":1},"shared":false,"rollback":false}""")
+    checkAstToJson(Pool(AvroInt(), EmbeddedJsonDomPoolSource(Map(), AvroInt()), false, false, CellPoolSource.EMBEDDED), """{"type":"int","init":{},"shared":false,"rollback":false}""")
+    checkAstToJson(Pool(AvroInt(), EmbeddedJsonDomPoolSource(Map("one" -> JsonLong(1L)), AvroInt()), false, false, CellPoolSource.EMBEDDED), """{"type":"int","init":{"one":1},"shared":false,"rollback":false}""")
   }
 
   it must "define function" taggedAs(AstToJson) in {
@@ -388,12 +389,12 @@ class AstToJsonSuite extends FlatSpec with Matchers {
 
   it must "new record" taggedAs(AstToJson) in {
     checkAstToJson(NewObject(Map("one" -> LiteralInt(1), "two" -> LiteralDouble(2.2), "three" -> LiteralString("THREE")),
-      AvroRecord(List(AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())), "SimpleRecord"), new AvroTypeBuilder),
+      AvroRecord(List(AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())), "SimpleRecord")),
       """{"new":{"one":1,"two":2.2,"three":{"string":"THREE"}},"type":{"type":"record","fields":[{"name":"one","type":"int"},{"name":"two","type":"double"},{"name":"three","type":"string"}],"name":"SimpleRecord"}}""")
   }
 
   it must "new array" taggedAs(AstToJson) in {
-    checkAstToJson(NewArray(List(LiteralInt(1), LiteralInt(2), LiteralInt(3)), AvroArray(AvroInt()), new AvroTypeBuilder), """{"new":[1,2,3],"type":{"type":"array","items":"int"}}""")
+    checkAstToJson(NewArray(List(LiteralInt(1), LiteralInt(2), LiteralInt(3)), AvroArray(AvroInt())), """{"new":[1,2,3],"type":{"type":"array","items":"int"}}""")
   }
 
   it must "do" taggedAs(AstToJson) in {

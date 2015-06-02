@@ -23,6 +23,7 @@ import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.jvmcompiler.JavaCode
 import com.opendatagroup.hadrian.jvmcompiler.javaSchema
 import com.opendatagroup.hadrian.jvmcompiler.javaType
+import com.opendatagroup.hadrian.options.EngineOptions
 
 import com.opendatagroup.hadrian.ast.AstContext
 import com.opendatagroup.hadrian.ast.ExpressionContext
@@ -79,11 +80,11 @@ package object core {
       <doc>
         <desc>Add <p>x</p> and <p>y</p>.</desc>{describeOverflowErrors}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       if (retType.accepts(AvroFloat()))
         JavaCode("(%s + %s)", wrapArg(0, args, paramTypes, true), wrapArg(1, args, paramTypes, true))
       else
-        super.javaCode(args, argContext, paramTypes, retType)
+        super.javaCode(args, argContext, paramTypes, retType, engineOptions)
     def apply(x: Double, y: Double): Double = x + y
     def apply(x: Float, y: Float): Float = x + y
     def apply(x: Long, y: Long): Long =
@@ -111,11 +112,11 @@ package object core {
       <doc>
         <desc>Subtract <p>y</p> from <p>x</p>.</desc>{describeOverflowErrors}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       if (retType.accepts(AvroFloat()))
         JavaCode("(%s - %s)", wrapArg(0, args, paramTypes, true), wrapArg(1, args, paramTypes, true))
       else
-        super.javaCode(args, argContext, paramTypes, retType)
+        super.javaCode(args, argContext, paramTypes, retType, engineOptions)
     def apply(x: Double, y: Double): Double = x - y
     def apply(x: Float, y: Float): Float = x - y
     def apply(x: Long, y: Long): Long =
@@ -143,11 +144,11 @@ package object core {
       <doc>
         <desc>Multiply <p>x</p> and <p>y</p>.</desc>{describeOverflowErrors}
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       if (retType.accepts(AvroFloat()))
         JavaCode("(%s * %s)", wrapArg(0, args, paramTypes, true), wrapArg(1, args, paramTypes, true))
       else
-        super.javaCode(args, argContext, paramTypes, retType)
+        super.javaCode(args, argContext, paramTypes, retType, engineOptions)
     def apply(x: Double, y: Double): Double = x * y
     def apply(x: Float, y: Float): Float = x * y
     def apply(x: Long, y: Long): Long = {
@@ -178,18 +179,18 @@ package object core {
   provide(Times)
 
   ////   / (Divide)
-  object Divide extends LibFcn {
+  object Divide extends LibFcn with Function2[Double, Double, Double] {
     val name = "/"
     val sig = Sig(List("x" -> P.Double, "y" -> P.Double), P.Double)
     val doc =
       <doc>
         <desc>Divide <p>y</p> from <p>x</p>, returning a floating-point number (even if <p>x</p> and <p>y</p> are integers).</desc>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       if (retType.accepts(AvroFloat()))
         JavaCode("(%s / (double)%s)", wrapArg(0, args, paramTypes, true), wrapArg(1, args, paramTypes, true))
       else
-        super.javaCode(args, argContext, paramTypes, retType)
+        super.javaCode(args, argContext, paramTypes, retType, engineOptions)
     def apply(x: Double, y: Double): Double = x / y
   }
   provide(Divide)
@@ -202,7 +203,7 @@ package object core {
       <doc>
         <desc>Divide <p>y</p> from <p>x</p>, returning the largest whole number <c>N</c> for which <c>N</c> {"\u2264"} <p>x</p>/<p>y</p> (integral floor division).</desc>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("(%s / %s)", wrapArg(0, args, paramTypes, true), wrapArg(1, args, paramTypes, true))
     def apply(x: Int, y: Int): Int = x / y
     def apply(x: Long, y: Long): Long = x / y
@@ -219,11 +220,11 @@ package object core {
         <error>For exactly one integer value, {java.lang.Integer.MIN_VALUE}, this function produces an "int overflow" runtime error.</error>
         <error>For exactly one long value, {java.lang.Long.MIN_VALUE}, this function produces a "long overflow" runtime error.</error>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       if (retType.accepts(AvroFloat()))
         JavaCode("(-(%s))", wrapArg(0, args, paramTypes, true))
       else
-        super.javaCode(args, argContext, paramTypes, retType)
+        super.javaCode(args, argContext, paramTypes, retType, engineOptions)
     def apply(x: Double): Double = -x
     def apply(x: Float): Float = -x
     def apply(x: Long): Long =
@@ -264,7 +265,7 @@ package object core {
         <desc>Return the remainder of <p>k</p> divided by <p>n</p>; the result has the same sign as the dividend <p>k</p>.</desc>
         <detail>This is the behavior of the <c>%</c> operator in Fortran, C/C++, and Java, <c>rem</c>/<c>remainder</c> in Ada, Haskell, and Scheme.</detail>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("(%s %% %s)", wrapArg(0, args, paramTypes, true), wrapArg(1, args, paramTypes, true))
     def apply(k: Double, n: Double): Double = k % n
     def apply(k: Float, n: Float): Float = k % n
@@ -306,7 +307,7 @@ package object core {
       case _ =>
         throw new Exception  // should never be called
     }
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("%s.apply(%s)", javaRef(FcnType(argContext collect {case x: ExpressionContext => x.retType}, retType)).toString, wrapArgs(args, paramTypes, false))
   }
   provide(Comparison)
@@ -444,9 +445,9 @@ package object core {
       case _ =>
         throw new Exception  // should never be called
     }
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = retType match {
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode = retType match {
       case _: AvroInt | _: AvroLong | _: AvroFloat | _: AvroDouble =>
-        super.javaCode(args, argContext, paramTypes, retType)
+        super.javaCode(args, argContext, paramTypes, retType, engineOptions)
       case _ =>
         JavaCode("((%s)(%s.apply((Object)%s, (Object)%s)))",
           javaType(retType, true, true, false),
@@ -473,9 +474,9 @@ package object core {
       case _ =>
         throw new Exception  // should never be called
     }
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = retType match {
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode = retType match {
       case _: AvroInt | _: AvroLong | _: AvroFloat | _: AvroDouble =>
-        super.javaCode(args, argContext, paramTypes, retType)
+        super.javaCode(args, argContext, paramTypes, retType, engineOptions)
       case _ =>
         JavaCode("((%s)(%s.apply((Object)%s, (Object)%s)))",
           javaType(retType, true, true, false),
@@ -496,7 +497,7 @@ package object core {
         <desc>Return <c>true</c> if <p>x</p> and <p>y</p> are both <c>true</c>, <c>false</c> otherwise.</desc>
         <detail>If <p>x</p> is <c>false</c>, <p>y</p> won't be evaluated.  (Only relevant for arguments with side effects.)</detail>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("(%s && %s)", wrapArg(0, args, paramTypes, false), wrapArg(1, args, paramTypes, false))
     def apply(x: => Boolean, y: => Boolean): Boolean = x && y
   }
@@ -511,7 +512,7 @@ package object core {
         <desc>Return <c>true</c> if either <p>x</p> or <p>y</p> (or both) are <c>true</c>, <c>false</c> otherwise.</desc>
         <detail>If <p>x</p> is <c>true</c>, <p>y</p> won't be evaluated.  (Only relevant for arguments with side effects.)</detail>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("(%s || %s)", wrapArg(0, args, paramTypes, false), wrapArg(1, args, paramTypes, false))
     def apply(x: => Boolean, y: => Boolean): Boolean = x || y
   }
@@ -525,7 +526,7 @@ package object core {
       <doc>
         <desc>Return <c>true</c> if <p>x</p> is <c>true</c> and <p>y</p> is <c>false</c> or if <p>x</p> is <c>false</c> and <p>y</p> is <c>true</c>, but return <c>false</c> for any other case.</desc>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("(((%s ? 1 : 0) ^ (%s ? 1 : 0)) != 0)", wrapArg(0, args, paramTypes, false), wrapArg(1, args, paramTypes, false))
     def apply(x: Boolean, y: Boolean): Boolean = (x && !y) || (y && !x)
   }
@@ -539,7 +540,7 @@ package object core {
       <doc>
         <desc>Return <c>true</c> if <p>x</p> is <c>false</c> and <c>false</c> if <p>x</p> is <c>true</c>.</desc>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("(!%s)", wrapArg(0, args, paramTypes, false).toString)
     def apply(x: Boolean): Boolean = !x
   }
@@ -608,7 +609,7 @@ package object core {
   //////////////////////////////////////////////////////////////////// bitwise arithmetic
 
   ////   & (BitwiseAnd)
-  object BitwiseAnd extends LibFcn {
+  object BitwiseAnd extends LibFcn with Function2[Long, Long, Long] {
     val name = "&"
     val sig = Sigs(List(Sig(List("x" -> P.Int, "y" -> P.Int), P.Int),
                         Sig(List("x" -> P.Long, "y" -> P.Long), P.Long)))
@@ -616,7 +617,7 @@ package object core {
       <doc>
         <desc>Calculate the bitwise-and of <p>x</p> and <p>y</p>.</desc>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("(%s & %s)", wrapArg(0, args, paramTypes, false), wrapArg(1, args, paramTypes, false))
     def apply(x: Int, y: Int): Int = x & y
     def apply(x: Long, y: Long): Long = x & y
@@ -624,7 +625,7 @@ package object core {
   provide(BitwiseAnd)
 
   ////   | (BitwiseOr)
-  object BitwiseOr extends LibFcn {
+  object BitwiseOr extends LibFcn with Function2[Long, Long, Long] {
     val name = "|"
     val sig = Sigs(List(Sig(List("x" -> P.Int, "y" -> P.Int), P.Int),
                         Sig(List("x" -> P.Long, "y" -> P.Long), P.Long)))
@@ -632,7 +633,7 @@ package object core {
       <doc>
         <desc>Calculate the bitwise-or of <p>x</p> and <p>y</p>.</desc>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("(%s | %s)", wrapArg(0, args, paramTypes, false), wrapArg(1, args, paramTypes, false))
     def apply(x: Int, y: Int): Int = x | y
     def apply(x: Long, y: Long): Long = x | y
@@ -640,7 +641,7 @@ package object core {
   provide(BitwiseOr)
 
   ////   ^ (BitwiseXOr)
-  object BitwiseXOr extends LibFcn {
+  object BitwiseXOr extends LibFcn with Function2[Long, Long, Long] {
     val name = "^"
     val sig = Sigs(List(Sig(List("x" -> P.Int, "y" -> P.Int), P.Int),
                         Sig(List("x" -> P.Long, "y" -> P.Long), P.Long)))
@@ -648,7 +649,7 @@ package object core {
       <doc>
         <desc>Calculate the bitwise-exclusive-or of <p>x</p> and <p>y</p>.</desc>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("(%s ^ %s)", wrapArg(0, args, paramTypes, false), wrapArg(1, args, paramTypes, false))
     def apply(x: Int, y: Int): Int = x ^ y
     def apply(x: Long, y: Long): Long = x ^ y
@@ -656,7 +657,7 @@ package object core {
   provide(BitwiseXOr)
 
   ////   ~ (BitwiseNot)
-  object BitwiseNot extends LibFcn {
+  object BitwiseNot extends LibFcn with Function1[Long, Long] {
     val name = "~"
     val sig = Sigs(List(Sig(List("x" -> P.Int), P.Int),
                         Sig(List("x" -> P.Long), P.Long)))
@@ -664,7 +665,7 @@ package object core {
       <doc>
         <desc>Calculate the bitwise-not of <p>x</p>.</desc>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("(~%s)", wrapArg(0, args, paramTypes, false).toString)
     def apply(x: Int): Int = ~x
     def apply(x: Long): Long = ~x

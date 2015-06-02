@@ -91,6 +91,55 @@ action: {rand.double: [5, 10]}
         self.assertAlmostEqual(engine.action(None), 5.05084584729, places=5)
         self.assertAlmostEqual(engine.action(None), 9.12603254627, places=5)
 
+    def testChoice(self):
+        engine, = PFAEngine.fromYaml('''
+input:
+  type: array
+  items: string
+output: string
+randseed: 12345
+action: {rand.choice: input}
+''')
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), "three")
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), "one")
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), "five")
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), "two")
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), "two")
+
+    def testChoicesWithReplacement(self):
+        engine, = PFAEngine.fromYaml('''
+input:
+  type: array
+  items: string
+output:
+  type: array
+  items: string
+randseed: 12345
+action: {rand.choices: [3, input]}
+''')
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), ["three", "one", "five"])
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), ["two", "two", "one"])
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), ["three", "one", "one"])
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), ["three", "three", "one"])
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), ["three", "two", "five"])
+
+    def testSampleWithoutReplacement(self):
+        engine, = PFAEngine.fromYaml('''
+input:
+  type: array
+  items: string
+output:
+  type: array
+  items: string
+randseed: 12345
+action: {rand.sample: [3, input]}
+''')
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), ["three", "one", "five"])
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), ["two", "five", "one"])
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), ["three", "one", "four"])
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), ["three", "five", "one"])
+        self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), ["three", "two", "five"])
+
     def testString(self):
         engine1, = PFAEngine.fromYaml('''
 input: "null"

@@ -32,7 +32,47 @@ import test.scala._
 
 @RunWith(classOf[JUnitRunner])
 class Lib1BytesSuite extends FlatSpec with Matchers {
-  //////////////////////////////////////////////////////////////////// testers
+  //////////////////////////////////////////////////////////////////// basic access
+  
+  "basic access" must "get length" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: int
+action:
+  bytes.len: input
+""").head
+    engine.action(Array[Byte](104, 101, 108, 108, 111)).asInstanceOf[java.lang.Integer].intValue should be (5)
+  }
+
+  it must "get subseq" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: int
+output: string
+action:
+  {bytes.decodeAscii: {bytes.subseq: [{bytes.encodeAscii: {string: ABCDEFGHIJKLMNOPQRSTUVWXYZ}}, 5, input]}}
+""").head
+    engine.action(java.lang.Integer.valueOf(10)) should be ("FGHIJ")
+    engine.action(java.lang.Integer.valueOf(-10)) should be ("FGHIJKLMNOP")
+    engine.action(java.lang.Integer.valueOf(0)) should be ("")
+    engine.action(java.lang.Integer.valueOf(1)) should be ("")
+    engine.action(java.lang.Integer.valueOf(100)) should be ("FGHIJKLMNOPQRSTUVWXYZ")
+  }
+
+  it must "set subseq" taggedAs(Lib1, Lib1Bytes) in {
+    val engine = PFAEngine.fromYaml("""
+input: int
+output: string
+action:
+  {bytes.decodeAscii: {bytes.subseqto: [{bytes.encodeAscii: {string: ABCDEFGHIJKLMNOPQRSTUVWXYZ}}, 5, input, {bytes.encodeAscii: {string: ...}}]}}
+""").head
+    engine.action(java.lang.Integer.valueOf(10)) should be ("ABCDE...KLMNOPQRSTUVWXYZ")
+    engine.action(java.lang.Integer.valueOf(-10)) should be ("ABCDE...QRSTUVWXYZ")
+    engine.action(java.lang.Integer.valueOf(0)) should be ("ABCDE...FGHIJKLMNOPQRSTUVWXYZ")
+    engine.action(java.lang.Integer.valueOf(1)) should be ("ABCDE...FGHIJKLMNOPQRSTUVWXYZ")
+    engine.action(java.lang.Integer.valueOf(100)) should be ("ABCDE...")
+  }
+
+  //////////////////////////////////////////////////////////////////// encoding testers
 
   "tests" must "check ascii" taggedAs(Lib1, Lib1Bytes) in {
     val engine = PFAEngine.fromYaml("""

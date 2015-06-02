@@ -19,12 +19,14 @@
 package com.opendatagroup.hadrian
 
 import org.codehaus.jackson.JsonNode
+import org.codehaus.jackson.node.TextNode
+import org.codehaus.jackson.node.BooleanNode
 
 import com.opendatagroup.hadrian.errors.PFAInitializationException
 
 package options {
   object EngineOptions {
-    val recognizedKeys = Set("@", "timeout", "timeout.begin", "timeout.action", "timeout.end", "data.PFARecord.interface")
+    val recognizedKeys = Set("@", "timeout", "timeout.begin", "timeout.action", "timeout.end", "data.PFARecord.interface", "lib.model.neighbor.nearestK.kdtree")
   }
 
   class EngineOptions(requestedOptions: Map[String, JsonNode], hostOptions: Map[String, JsonNode]) {
@@ -47,9 +49,14 @@ package options {
     val timeout_end = longOpt("timeout.end", timeout)
 
     val data_pfarecord_interface = combinedOptions.get("data.PFARecord.interface") flatMap {_ match {
-      case x: JsonNode if (x.isTextual) => Some(x.getTextValue)
+      case x: TextNode => Some(x.getTextValue)
       case _ => throw new PFAInitializationException("data.PFARecord.interface must be a string")
     }}
+
+    val lib_model_neighbor_nearestK_kdtree: Boolean = combinedOptions.get("lib.model.neighbor.nearestK.kdtree") map {_ match {
+      case x: BooleanNode => x == BooleanNode.TRUE
+      case _ => throw new PFAInitializationException("lib.model.neighbor.nearestK.kdtree must be a string")
+    }} getOrElse false
 
     // ...
 

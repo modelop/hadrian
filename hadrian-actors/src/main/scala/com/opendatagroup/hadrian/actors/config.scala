@@ -14,6 +14,7 @@ import org.codehaus.jackson.node.IntNode
 import org.codehaus.jackson.node.NumericNode
 import org.codehaus.jackson.node.ObjectNode
 import org.codehaus.jackson.node.TextNode
+import org.codehaus.jackson.node.BooleanNode
 
 import com.opendatagroup.hadrian.ast.EngineConfig
 import com.opendatagroup.hadrian.reader.jsonToAst
@@ -52,6 +53,13 @@ package object config {
     case x => AvroConversions.stringToAvroType(objectMapper.writeValueAsString(x))
   }
 
+  def readWatchMemory(obj: JsonNode) = obj match {
+    case null => None
+    case BooleanNode.FALSE => None
+    case BooleanNode.TRUE => Some(WatchMemory())
+    case x => throw new ConfigurationException(s"""pfa-engine parameter "watchMemory" must be boolean, not ${x.toString}""")
+  }
+
   def readDestination(jsonNode: JsonNode): Destination = jsonNode match {
     case objectNode: ObjectNode =>
       if (objectNode.get("to") != null) {
@@ -78,7 +86,13 @@ package object config {
           case x => throw new ConfigurationException(s"""queue-destination parameter "limitBuffer" must be \"none\" or a positive integer, not ${x.toString}""")
         }
 
-        Queue(to, hashKeys, limitBuffer)
+        val watchMemoryOrCount = objectNode.get("watchMemory") match {
+          case null => None
+          case textNode: TextNode if (textNode.getTextValue == "count") => Some(new WatchMemoryOrCount)
+          case x => readWatchMemory(x)
+        }
+
+        Queue(to, hashKeys, limitBuffer, watchMemoryOrCount)
       }
 
       else if (objectNode.get("file") != null) {
@@ -90,9 +104,9 @@ package object config {
 
         val format = objectNode.get("format") match {
           case null => throw new ConfigurationException("""file-destination parameter "format" is missing""")
-          case textNode: TextNode if (textNode.getTextValue == "avro") => Format.AVRO
-          case textNode: TextNode if (textNode.getTextValue == "json") => Format.JSON
-          case textNode: TextNode if (textNode.getTextValue == "json+schema") => Format.JSONSCHEMA
+          case textNode: TextNode if (textNode.getTextValue.toUpperCase == "AVRO") => Format.AVRO
+          case textNode: TextNode if (textNode.getTextValue.toUpperCase == "JSON") => Format.JSON
+          case textNode: TextNode if (textNode.getTextValue.toUpperCase == "JSON+SCHEMA") => Format.JSONSCHEMA
           case x => throw new ConfigurationException(s"""file-destination parameter "format" must be one of "avro", "json" and "json+schema", not ${x.toString}""")
         }
 
@@ -127,6 +141,7 @@ package object config {
 
     case x => throw new ConfigurationException(s"""destination must be a map from parameter names to values, not ${x.toString}""")
   }
+
 }
 
 package config {
@@ -156,10 +171,13 @@ package config {
   }
   trait Destination
 
+  class WatchMemoryOrCount
+  case class WatchMemory() extends WatchMemoryOrCount
+
   case class FileSource(file: java.io.File, outputType: AvroType, format: Format.Format, destinations: Seq[Destination]) extends Source
 
-  case class SaveState(baseName: String, freqSeconds: Option[Int] = None)
-  case class Engine(engineConfig: EngineConfig, options: Map[String, JsonNode], multiplicity: Int, saveState: Option[SaveState], destinations: Seq[Destination]) extends Processor {
+  case class SaveState(baseName: String, freqSeconds: Option[Int])
+  case class Engine(engineConfig: EngineConfig, options: Map[String, JsonNode], multiplicity: Int, saveState: Option[SaveState], watchMemory: Option[WatchMemory], destinations: Seq[Destination]) extends Processor {
     def inputType = engineConfig.input
     def outputType = engineConfig.output
   }
@@ -170,7 +188,7 @@ package config {
     inputType: AvroType, outputType: AvroType, multiplicity: Int, destinations: Seq[Destination])
       extends Processor
 
-  case class Queue(to: String, hashKeys: Seq[String], limitBuffer: Option[Int]) extends Destination
+  case class Queue(to: String, hashKeys: Seq[String], limitBuffer: Option[Int], watchMemoryOrCount: Option[WatchMemoryOrCount]) extends Destination
   case class FileDestination(file: java.io.File, format: Format.Format, limitSeconds: Option[Double], limitRecords: Option[Long]) extends Destination
 
   //////////////////////////////////////// extension sources, processors, and destinations
@@ -338,8 +356,8 @@ package config {
 
       val format = objectNode.get("format") match {
         case null => throw new ConfigurationException("""file-source parameter "format" is missing""")
-        case textNode: TextNode if (textNode.getTextValue == "avro") => Format.AVRO
-        case textNode: TextNode if (textNode.getTextValue == "json") => Format.JSON
+        case textNode: TextNode if (textNode.getTextValue.toUpperCase == "AVRO") => Format.AVRO
+        case textNode: TextNode if (textNode.getTextValue.toUpperCase == "JSON") => Format.JSON
         case x => throw new ConfigurationException(s"""file-source parameter "format" must be one of "avro" and "json", not ${x.toString}""")
       }
 
@@ -404,13 +422,15 @@ package config {
         case x => throw new ConfigurationException(s"""pfa-engine parameter "saveState" must be a map, not ${x.toString}""")
       }
 
+      val watchMemory = readWatchMemory(objectNode.get("watchMemory"))
+
       val destinations = objectNode.get("destinations") match {
         case null => Seq[Destination]()
         case arrayNode: ArrayNode => arrayNode.getElements.toSeq.map(readDestination)
         case x => throw new ConfigurationException(s"""pfa-engine parameter "destinations" must be an array of queues or outputs, not ${x.toString}""")
       }
 
-      Engine(engineConfig, options, multiplicity, saveState, destinations)
+      Engine(engineConfig, options, multiplicity, saveState, watchMemory, destinations)
     }
 
     private def readJAREngine(objectNode: ObjectNode): JarEngine = {

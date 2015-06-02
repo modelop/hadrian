@@ -76,6 +76,9 @@ from titus.pfaast import Forkeyval
 from titus.pfaast import CastCase
 from titus.pfaast import CastBlock
 from titus.pfaast import Upcast
+from titus.pfaast import BinaryFormatter
+from titus.pfaast import Pack
+from titus.pfaast import Unpack
 from titus.pfaast import IfNotNull
 from titus.pfaast import Doc
 from titus.pfaast import Error
@@ -547,11 +550,11 @@ class MiniCall(MiniAst):
             if isinstance(td, dict) and td.get("type") == "array":
                 if any(isinstance(x, MiniParam) for x in self.args[1:]):
                     raise PrettyPfaException("new array must only consist of plain expressions, not key-value pairs, at {0}".format(self.pos))
-                return NewArray([x.asExpr(state) for x in self.args[1:]], state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(td), state.avroTypeMemo), state.avroTypeBuilder, self.pos)
+                return NewArray([x.asExpr(state) for x in self.args[1:]], state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(td), state.avroTypeMemo), self.pos)
             else:
                 if not all(isinstance(x, MiniParam) for x in self.args[1:]):
                     raise PrettyPfaException("new map/record must only consist of key-value pairs, not plain expressions, at {0}".format(self.pos))
-                return NewObject(dict((x.name, x.typeExpr.asExpr(state)) for x in self.args[1:]), state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(td), state.avroTypeMemo), state.avroTypeBuilder, self.pos)
+                return NewObject(dict((x.name, x.typeExpr.asExpr(state)) for x in self.args[1:]), state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(td), state.avroTypeMemo), self.pos)
 
         elif self.name == "upcast":
             if len(self.args) != 2:
@@ -560,6 +563,11 @@ class MiniCall(MiniAst):
             v = self.args[1].asExpr(state)
             return Upcast(v, t, self.pos)
 
+        elif self.name == "pack":
+            if len(self.args) < 1 or not all(isinstance(x, MiniParam) for x in self.args):
+                raise PrettyPfaException("pack function requires at least one argument and all arguments must be format-expression pairs")
+            return Pack([(x.name, x.typeExpr.asExpr(state)) for x in self.args], self.pos)
+            
         elif self.name == "doc":
             if len(self.args) != 1:
                 raise PrettyPfaException("doc function has only 1 argument, not {0}, at {1}".format(len(self.args), self.pos))
@@ -785,20 +793,22 @@ class MiniNamedFcnDef(MiniAst):
                                   [x.asExpr(state) for x in self.definition]))
 
 class MiniCellPool(MiniAst):
-    def __init__(self, name, objType, init, shared, rollback, low, high):
+    def __init__(self, name, objType, init, shared, rollback, source, low, high):
         self.name = name
         self.objType = objType
         self.init = init
         self.shared = shared
         self.rollback = rollback
+        self.source = source
         super(MiniCellPool, self).__init__(low, high)
     def __repr__(self):
-        return "MiniCellPool({0}, {1}, {2}, {3}, {4})".format(self.name, self.objType, self.init, self.shared, self.rollback)
+        return "MiniCellPool({0}, {1}, {2}, {3}, {4}, {5})".format(self.name, self.objType, self.init, self.shared, self.rollback, self.source)
     def asCell(self, state):
         return (self.name, Cell(state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.objType.asType(state)), state.avroTypeMemo),
                                 jsonlib.dumps(self.init.asJson()),
                                 self.shared,
                                 self.rollback,
+                                self.source,
                                 self.pos))
     def asPool(self, state):
         init = self.init.asJson()
@@ -808,6 +818,7 @@ class MiniCellPool(MiniAst):
                                 dict((k, jsonlib.dumps(v)) for k, v in init.items()),
                                 self.shared,
                                 self.rollback,
+                                self.source,
                                 self.pos))
 
 class MiniIf(MiniAst):
@@ -900,7 +911,45 @@ class MiniIfNotNull(MiniAst):
             elseClause = [self.elseClause.asExpr(state)]
 
         return IfNotNull(params, thenClause, elseClause, self.pos)
-        
+
+class MiniUnpack(MiniAst):
+    def __init__(self, bytesExpr, params, thenClause, elseClause, low, high):
+        self.bytesExpr = bytesExpr
+        self.params = params
+        self.thenClause = thenClause
+        self.elseClause = elseClause
+        super(MiniUnpack, self).__init__(low, high)
+    def __repr__(self):
+        return "MiniUnpack({0}, {1}, {2}, {3})".format(self.bytesExpr, self.params, self.thenClause, self.elseClause)
+    def asExpr(self, state):
+        bytesExpr = self.bytesExpr.asExpr(state)
+        params = []
+        for x in self.params:
+            if isinstance(x.typeExpr, MiniDotName):
+                params.append((x.name, x.typeExpr.name))
+            elif isinstance(x.typeExpr, MiniString):
+                params.append((x.name, x.typeExpr.value))
+            else:
+                raise PrettyPfaException("unpack formatters must all be strings, not {0}, at {1}".format(x.typeExpr, self.pos))
+
+        if isinstance(self.thenClause, MiniCall) and self.thenClause.name == "do":
+            thenClause = [x.asExpr(state) for x in self.thenClause.args]
+        elif isinstance(self.thenClause, (list, tuple)):
+            thenClause = [x.asExpr(state) for x in self.thenClause]
+        else:
+            thenClause = [self.thenClause.asExpr(state)]
+
+        if self.elseClause is None:
+            elseClause = None
+        elif isinstance(self.elseClause, MiniCall) and self.elseClause.name == "do":
+            elseClause = [x.asExpr(state) for x in self.elseClause.args]
+        elif isinstance(self.elseClause, (list, tuple)):
+            elseClause = [x.asExpr(state) for x in self.elseClause]
+        else:
+            elseClause = [self.elseClause.asExpr(state)]
+
+        return Unpack(bytesExpr, params, thenClause, elseClause, self.pos)
+
 class MiniWhile(MiniAst):
     def __init__(self, predicate, body, pretest, low, high):
         self.predicate = predicate
@@ -1086,6 +1135,7 @@ class Parser(object):
                     "cast": "CAST",
                     "as": "AS",
                     "ifnotnull": "IFNOTNULL",
+                    "unpack": "UNPACK",
                     "try": "TRY",
                     "var": "VAR",
                     "to": "TO",
@@ -1670,6 +1720,7 @@ class Parser(object):
 
                 shared = False
                 rollback = False
+                source = "embedded"
                 objType = None
                 others = []
                 for param in p[3]:
@@ -1688,6 +1739,13 @@ class Parser(object):
                                 rollback = False
                             else:
                                 raise PrettyPfaException("cell/pool parameter \"rollback\" must be true or false, not {0}, at {1}".format(param.typeExpr, param.pos))
+                        elif param.name == "source":
+                            if isinstance(param.typeExpr, MiniDotName):
+                                source = param.typeExpr.name
+                            elif isinstance(param.typeExpr, MiniString):
+                                source = param.typeExpr.value
+                            else:
+                                raise PrettyPfaException("cell/pool parameter \"source\" must be a string, not {0}, at {1}".format(param.typeExpr, param.pos))
                         elif param.name == "type":
                             objType = param.typeExpr
                         else:
@@ -1702,7 +1760,7 @@ class Parser(object):
                 else:
                     raise PrettyPfaException("only one unnamed parameter, the type, can be provided in a cell/pool declaration, and only if it is not also provided as a named parameter at PrettyPFA line {0}".format(p[1].lineno))
 
-                p[0] = MiniCellPool(name, objType, init, shared, rollback, p[1].lineno, high)
+                p[0] = MiniCellPool(name, objType, init, shared, rollback, source, p[1].lineno, high)
 
             def p_cellpools(p):
                 r'''cellpools : cellpool
@@ -1824,6 +1882,20 @@ class Parser(object):
                 elseClause = None
                 high = thenClause.high
             p[0] = MiniIfNotNull(params, thenClause, elseClause, p[1].lineno, high)
+
+        def p_unpack(p):
+            r'''expression : UNPACK LPAREN expression "," parameters RPAREN expression
+                           | UNPACK LPAREN expression "," parameters RPAREN expression ELSE expression'''
+            bytesExpr = p[3]
+            params = p[5]
+            thenClause = p[7]
+            if len(p) > 8:
+                elseClause = p[9]
+                high = elseClause.high
+            else:
+                elseClause = None
+                high = thenClause.high
+            p[0] = MiniUnpack(bytesExpr, params, thenClause, elseClause, p[1].lineno, high)
 
         def p_try(p):
             r'''expression : TRY expression
@@ -1989,7 +2061,7 @@ def ast(text, check=True, subs={}, **subs2):
     anysubs.isDefinedAt = lambda x: isinstance(x, Subs)
 
     if check and len(out.collect(anysubs)) == 0:
-        titus.pfaast.check(out)
+        PFAEngine.fromAst(out)
     return out
 
 def jsonNode(text, lineNumbers=True, check=True, subs={}, **subs2):
@@ -1999,7 +2071,7 @@ def json(text, lineNumbers=True, check=True, subs={}, **subs2):
     return ast(text, check, subs, **subs2).toJson(lineNumbers)
 
 def engine(text, options=None, sharedState=None, multiplicity=1, style="pure", debug=False, subs={}, **subs2):
-    return PFAEngine.fromAst(ast(text, subs, **subs2), options, sharedState, multiplicity, style, debug)
+    return PFAEngine.fromAst(ast(text, False, subs, **subs2), options, sharedState, multiplicity, style, debug)
 
 ###
 

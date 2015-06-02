@@ -94,7 +94,6 @@ package hadoop {
       else {
         val Array(pfaMapper, pfaReducerTemplate, inputData, outputParameters, trainingScript, segmentationPool, mergedModel) = args
 
-        val conf = new Configuration
         conf.set("pfa.mapper", pfaMapper)
         conf.set("pfa.reducer", pfaReducerTemplate)
         DistributedCache.addCacheFile(new java.net.URI(trainingScript), conf)

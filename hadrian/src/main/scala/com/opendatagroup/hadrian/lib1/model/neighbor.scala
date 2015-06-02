@@ -25,10 +25,15 @@ import scala.util.Random
 
 import org.apache.avro.AvroRuntimeException
 
+import com.thesamet.spatial.DimensionalOrdering
+import com.thesamet.spatial.Metric
+import com.thesamet.spatial.KDTree
+
 import com.opendatagroup.hadrian.ast.LibFcn
 import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.jvmcompiler.JavaCode
 import com.opendatagroup.hadrian.jvmcompiler.javaSchema
+import com.opendatagroup.hadrian.options.EngineOptions
 
 import com.opendatagroup.hadrian.ast.AstContext
 import com.opendatagroup.hadrian.ast.ExpressionContext
@@ -144,6 +149,12 @@ package object neighbor {
         <error>If arrays in the <p>codebook</p> or the <p>codebook</p> and the <p>datum</p> have different sizes (without a <p>metric</p>), an "inconsistent dimensionality" error will be raised.</error>
       </doc>
 
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
+      if (engineOptions.lib_model_neighbor_nearestK_kdtree)
+        JavaCode("%s.applyKDTree(%s)", javaRef(FcnType(argContext collect {case x: ExpressionContext => x.retType}, retType)).toString, wrapArgs(args, paramTypes, true))
+      else
+        JavaCode("%s.apply(%s)", javaRef(FcnType(argContext collect {case x: ExpressionContext => x.retType}, retType)).toString, wrapArgs(args, paramTypes, true))
+
     def apply[A, B](k: Int, datum: A, codebook: PFAArray[B], metric: (A, B) => Double): PFAArray[B] = {
       if (k < 0)
         throw new PFARuntimeException("k must be nonnegative")
@@ -178,7 +189,32 @@ package object neighbor {
 
     private val squaredEuclidean = {(x: PFAArray[Double], y: PFAArray[Double]) => (x.toVector zip y.toVector) map {case (x, y) => (x - y)*(x - y)} sum}
 
-    def apply(k: Int, datum: PFAArray[Double], codebook: PFAArray[PFAArray[Double]]): PFAArray[PFAArray[Double]] = {
+    private class PFAArrayDimensionalOrdering(val dimensions: Int) extends DimensionalOrdering[PFAArray[Double]] {
+      def compareProjection(d: Int)(x: PFAArray[Double], y: PFAArray[Double]) = {
+        val xv = x.toVector
+        val yv = y.toVector
+        xv(d) compareTo yv(d)
+      }
+    }
+
+    private implicit val pfaArrayMetric = new Metric[PFAArray[Double], Double] {
+      def distance(x: PFAArray[Double], y: PFAArray[Double]): Double = squaredEuclidean(x, y)
+      def planarDistance(d: Int)(x: PFAArray[Double], y: PFAArray[Double]): Double = {
+        val xv = x.toVector
+        val yv = y.toVector
+        val diff = (xv(d) - yv(d))
+        diff * diff
+      }
+    }
+
+    private val minCountForTreeSearch = 10
+    private def treeSearch(k: Int, datum: PFAArray[Double], kdtree: KDTree[PFAArray[Double]]): PFAArray[PFAArray[Double]] =
+      PFAArray.fromVector(kdtree.findNearest(datum, k).toVector)
+
+    def apply(k: Int, datum: PFAArray[Double], codebook: PFAArray[PFAArray[Double]]): PFAArray[PFAArray[Double]] =
+      apply(k, datum, codebook, squaredEuclidean)
+
+    def applyKDTree(k: Int, datum: PFAArray[Double], codebook: PFAArray[PFAArray[Double]]): PFAArray[PFAArray[Double]] = {
       val vector = codebook.toVector
 
       if (vector.isEmpty)
@@ -186,7 +222,24 @@ package object neighbor {
       val dimensions = datum.size
       vector foreach {x => if (x.size != dimensions) throw new PFARuntimeException("inconsistent dimensionality")}
 
-      apply(k, datum, codebook, squaredEuclidean)
+      val metadata = codebook.metadata
+      metadata.get("kdtree") match {
+        case Some(kdtree) =>
+          treeSearch(k, datum, kdtree.asInstanceOf[KDTree[PFAArray[Double]]])
+
+        case None =>
+          val count = metadata.getOrElse("count", 0).asInstanceOf[Int]
+          if (count < minCountForTreeSearch) {
+            codebook.metadata = metadata.updated("count", count + 1)
+            apply(k, datum, codebook, squaredEuclidean)
+          }
+          else {
+            implicit val pfaArrayDimensionalOrdering = new PFAArrayDimensionalOrdering(dimensions)
+            val kdtree = KDTree(vector: _*)
+            codebook.metadata = metadata.updated("kdtree", kdtree)
+            treeSearch(k, datum, kdtree)
+          }
+      }
     }
   }
   provide(NearestK)

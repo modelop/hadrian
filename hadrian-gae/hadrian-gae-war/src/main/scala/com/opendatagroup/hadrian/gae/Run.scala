@@ -18,6 +18,7 @@ import org.codehaus.jackson.JsonParseException
 import org.yaml.snakeyaml.error.YAMLException
 
 import com.opendatagroup.hadrian.ast._
+import com.opendatagroup.hadrian.data.toJson
 import com.opendatagroup.hadrian.errors._
 import com.opendatagroup.hadrian.jvmcompiler._
 import com.opendatagroup.hadrian.reader._
@@ -213,7 +214,7 @@ class Run extends HttpServlet {
 
         engine match {
           case x: PFAEmitEngine[_, _] => {
-            x.emit = {result: AnyRef => writer.println(engine.toJson(result, engine.outputType))}
+            x.emit = {result: AnyRef => writer.println(toJson(result, engine.outputType))}
           }
           case _ =>
         }
@@ -239,7 +240,7 @@ class Run extends HttpServlet {
               try {
                 val result = engine.action(datum)
                 if (engine.config.method != Method.EMIT)
-                  writer.println(engine.toJson(result, engine.outputType))
+                  writer.println(toJson(result, engine.outputType))
               }
               catch {
                 case err: PFAException => runtimeError(writer, err)

@@ -24,6 +24,7 @@ import math
 import threading
 import time
 import random
+import struct
 
 from avro.datafile import DataFileReader, DataFileWriter
 from avro.io import DatumReader, DatumWriter
@@ -79,6 +80,9 @@ from titus.pfaast import CastCase
 from titus.pfaast import CastBlock
 from titus.pfaast import Upcast
 from titus.pfaast import IfNotNull
+from titus.pfaast import BinaryFormatter
+from titus.pfaast import Pack
+from titus.pfaast import Unpack
 from titus.pfaast import Doc
 from titus.pfaast import Error
 from titus.pfaast import Try
@@ -187,6 +191,11 @@ class GeneratePython(titus.pfaast.Task):
         if self.config.version is not None:
             scope.let({'version': self.config.version})
 """ + self.commandsBeginEnd(begin, "        "))
+            else:
+                out.append("""
+    def begin(self):
+        pass
+""")
 
             if context.method == Method.MAP:
                 commands = self.commandsMap(action, "            ")
@@ -256,6 +265,11 @@ class GeneratePython(titus.pfaast.Task):
         if self.config.version is not None:
             scope.let({'version': self.config.version})
 """ + tallyLine + self.commandsBeginEnd(end, "        "))
+            else:
+                out.append("""
+    def end(self):
+        pass
+""")
 
             return "".join(out)
 
@@ -389,6 +403,15 @@ class GeneratePython(titus.pfaast.Task):
             else:
                 return "ifNotNullElse(state, scope, {" + ", ".join(repr(n) + ": " + e for n, t, e in context.symbolTypeResult) + "}, {" + ", ".join(repr(n) + ": '" + repr(t) + "'" for n, t, e in context.symbolTypeResult) + "}, lambda state, scope: do(" + ", ".join(context.thenClause) + "), lambda state, scope: do(" + ", ".join(context.elseClause) + "))"
 
+        elif isinstance(context, Pack.Context):
+            return "pack(state, scope, [" + ", ".join("(" + str(d.value) + ", " + str(d) + ")" for d in context.exprsDeclareRes) + "])"
+
+        elif isinstance(context, Unpack.Context):
+            if context.elseClause is None:
+                return "unpack(state, scope, " + context.bytes + ", [" + ", ".join(str(x) for x in context.formatter) + "], lambda state, scope: do(" + ", ".join(context.thenClause) + "))"
+            else:
+                return "unpackElse(state, scope, " + context.bytes + ", [" + ", ".join(str(x) for x in context.formatter) + "], lambda state, scope: do(" + ", ".join(context.thenClause) + "), lambda state, scope: do(" + ", ".join(context.elseClause) + "))"
+
         elif isinstance(context, Doc.Context):
             return "None"
 
@@ -436,16 +459,17 @@ class SharedState(object):
         return "SharedState({0} cells, {1} pools)".format(len(self.cells), len(self.pools))
 
 class PersistentStorageItem(object):
-    def __init__(self, value, shared, rollback):
+    def __init__(self, value, shared, rollback, source):
         self.value = value
         self.shared = shared
         self.rollback = rollback
+        self.source = source
 
 class Cell(PersistentStorageItem):
-    def __init__(self, value, shared, rollback):
+    def __init__(self, value, shared, rollback, source):
         if shared:
             self.lock = threading.Lock()
-        super(Cell, self).__init__(value, shared, rollback)
+        super(Cell, self).__init__(value, shared, rollback, source)
 
     def __repr__(self):
         contents = repr(self.value)
@@ -474,11 +498,11 @@ class Cell(PersistentStorageItem):
             self.value = self.oldvalue
 
 class Pool(PersistentStorageItem):
-    def __init__(self, value, shared, rollback):
+    def __init__(self, value, shared, rollback, source):
         if shared:
             self.locklock = threading.Lock()
             self.locks = {}
-        super(Pool, self).__init__(value, shared, rollback)
+        super(Pool, self).__init__(value, shared, rollback, source)
 
     def __repr__(self):
         contents = repr(self.value)
@@ -726,6 +750,101 @@ def ifNotNullElse(state, scope, nameExpr, nameType, thenClause, elseClause):
     else:
         return elseClause(state, scope)
 
+def pack(state, scope, exprsDeclareRes):
+    out = []
+    for value, (v, f, l) in exprsDeclareRes:
+        if f == "raw":
+            if l is not None and len(value) != l:
+                raise PFARuntimeException("raw bytes expression does not have size " + str(l))
+            out.append(value)
+
+        elif f == "tonull":
+            out.append(value)
+            out.append(chr(0))
+
+        elif f == "prefixed":
+            if len(value) > 255:
+                raise PFARuntimeException("length prefixed bytes expression is larger than 255 bytes")
+            out.append(chr(len(value)))
+            out.append(value)
+
+        elif f == "x":
+            out.append(chr(0))
+
+        else:
+            out.append(struct.pack(f, value))
+
+    return "".join(out)
+
+class MisalignedPacking(Exception): pass
+
+def unpackOne(bytes, scope, s, f, l):
+    if f == "raw":
+        this, that = bytes[:l], bytes[l:]
+        if len(this) != l:
+            raise MisalignedPacking()
+        scope.let({s: this})
+
+    elif f == "tonull":
+        try:
+            nullbyte = bytes.index(chr(0))
+        except ValueError:
+            raise MisalignedPacking()
+        else:
+            this = bytes[:nullbyte]
+            that = bytes[(nullbyte + 1):]
+            scope.let({s: this})
+
+    elif f == "prefixed":
+        if len(bytes) < 1:
+            raise MisalignedPacking()
+        length = ord(bytes[0])
+        this = bytes[1:(length + 1)]
+        that = bytes[(length + 1):]
+        if len(this) != length:
+            raise MisalignedPacking()
+        scope.let({s: this})
+
+    elif f == "x":
+        this, that = bytes[:l], bytes[l:]
+        if len(this) != l:
+            raise MisalignedPacking()
+        struct.unpack(f, this)
+        scope.let({s: None})
+        
+    else:
+        this, that = bytes[:l], bytes[l:]
+        if len(this) != l:
+            raise MisalignedPacking()
+        value, = struct.unpack(f, this)
+        scope.let({s: value})
+
+    return that
+
+def unpack(state, scope, bytes, format, thenClause):
+    thenScope = DynamicScope(scope)
+    try:
+        for s, f, l in format:
+            bytes = unpackOne(bytes, thenScope, s, f, l)
+    except MisalignedPacking:
+        pass
+    else:
+        if len(bytes) == 0:
+            thenClause(state, thenScope)
+
+def unpackElse(state, scope, bytes, format, thenClause, elseClause):
+    thenScope = DynamicScope(scope)
+    try:
+        for s, f, l in format:
+            bytes = unpackOne(bytes, thenScope, s, f, l)
+    except MisalignedPacking:
+        return elseClause(state, scope)
+    else:
+        if len(bytes) != 0:
+            return elseClause(state, scope)
+        else:
+            return thenClause(state, thenScope)
+
 def error(message, code):
     raise PFAUserException(message, code)
 
@@ -814,6 +933,9 @@ class PFAEngine(object):
                    "cast": cast,
                    "ifNotNull": ifNotNull,
                    "ifNotNullElse": ifNotNullElse,
+                   "pack": pack,
+                   "unpack": unpack,
+                   "unpackElse": unpackElse,
                    "error": error,
                    "tryCatch": tryCatch,
                    # Titus dependencies
@@ -831,16 +953,22 @@ class PFAEngine(object):
 
         for cellName, cellConfig in engineConfig.cells.items():
             if cellConfig.shared and cellName not in sharedState.cells:
-                value = titus.datatype.jsonDecoder(cellConfig.avroType, json.loads(cellConfig.init))
-                sharedState.cells[cellName] = Cell(value, cellConfig.shared, cellConfig.rollback)
+                if callable(cellConfig.init):
+                    value = cellConfig.init(cellConfig.avroType)
+                else:
+                    value = titus.datatype.jsonDecoder(cellConfig.avroType, json.loads(cellConfig.init))
+                sharedState.cells[cellName] = Cell(value, cellConfig.shared, cellConfig.rollback, cellConfig.source)
 
         for poolName, poolConfig in engineConfig.pools.items():
             if poolConfig.shared and poolName not in sharedState.pools:
-                init = {}
-                for k, v in poolConfig.init.items():
-                    init[k] = json.loads(v)
-                value = titus.datatype.jsonDecoder(titus.datatype.AvroMap(poolConfig.avroType), init)
-                sharedState.pools[poolName] = Pool(value, poolConfig.shared, poolConfig.rollback)
+                if callable(poolConfig.init):
+                    value = poolConfig.init(titus.datatype.AvroMap(poolConfig.avroType))
+                else:
+                    init = {}
+                    for k, v in poolConfig.init.items():
+                        init[k] = json.loads(v)
+                    value = titus.datatype.jsonDecoder(titus.datatype.AvroMap(poolConfig.avroType), init)
+                sharedState.pools[poolName] = Pool(value, poolConfig.shared, poolConfig.rollback, poolConfig.source)
 
         out = []
         for index in xrange(multiplicity):
@@ -849,16 +977,22 @@ class PFAEngine(object):
 
             for cellName, cellConfig in engineConfig.cells.items():
                 if not cellConfig.shared:
-                    value = titus.datatype.jsonDecoder(cellConfig.avroType, json.loads(cellConfig.init))
-                    cells[cellName] = Cell(value, cellConfig.shared, cellConfig.rollback)
+                    if callable(cellConfig.init):
+                        value = cellConfig.init(cellConfig.avroType)
+                    else:
+                        value = titus.datatype.jsonDecoder(cellConfig.avroType, json.loads(cellConfig.init))
+                    cells[cellName] = Cell(value, cellConfig.shared, cellConfig.rollback, cellConfig.source)
 
             for poolName, poolConfig in engineConfig.pools.items():
                 if not poolConfig.shared:
-                    init = {}
-                    for k, v in poolConfig.init.items():
-                        init[k] = json.loads(v)
-                    value = titus.datatype.jsonDecoder(titus.datatype.AvroMap(poolConfig.avroType), init)
-                    pools[poolName] = Pool(value, poolConfig.shared, poolConfig.rollback)
+                    if callable(poolConfig.init):
+                        value = poolConfig.init(titus.datatype.AvroMap(poolConfig.avroType))
+                    else:
+                        init = {}
+                        for k, v in poolConfig.init.items():
+                            init[k] = json.loads(v)
+                        value = titus.datatype.jsonDecoder(titus.datatype.AvroMap(poolConfig.avroType), init)
+                    pools[poolName] = Pool(value, poolConfig.shared, poolConfig.rollback, poolConfig.source)
 
             if engineConfig.method == Method.FOLD:
                 zero = titus.datatype.jsonDecoder(engineConfig.output, json.loads(engineConfig.zero))
@@ -896,8 +1030,8 @@ class PFAEngine(object):
         return PFAEngine.fromAst(titus.reader.yamlToAst(src), options, sharedState, multiplicity, style, debug)
 
     def snapshot(self):
-        newCells = dict((k, AstCell(self.config.cells[k].avroPlaceholder, json.dumps(v.value), v.shared, v.rollback)) for k, v in self.cells.items())
-        newPools = dict((k, AstPool(self.config.pools[k].avroPlaceholder, dict((kk, json.dumps(vv)) for kk, vv in v.value.items()), v.shared, v.rollback)) for k, v in self.pools.items())
+        newCells = dict((k, AstCell(self.config.cells[k].avroPlaceholder, json.dumps(v.value), v.shared, v.rollback, v.source)) for k, v in self.cells.items())
+        newPools = dict((k, AstPool(self.config.pools[k].avroPlaceholder, dict((kk, json.dumps(vv)) for kk, vv in v.value.items()), v.shared, v.rollback, v.source)) for k, v in self.pools.items())
 
         return EngineConfig(
             self.config.name,

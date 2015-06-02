@@ -43,7 +43,7 @@ class SpeedSuite extends FlatSpec with Matchers {
     val dataset =
       (for (line <- new java.util.Scanner(getClass.getResourceAsStream("/resources/hipparcos_numerical.csv")).useDelimiter("\\n")) yield {
         val words = line.split(",")
-        engine.fromJson(s"""{
+        engine.jsonInput(s"""{
     "ra": ${words(0)},
     "dec": ${words(1)},
     "dist": ${words(2)},
@@ -56,7 +56,7 @@ class SpeedSuite extends FlatSpec with Matchers {
     "vy": ${words(9)},
     "vz": ${words(10)},
     "spectrum": "${words(11)}"
-}""", engine.inputType)
+}""")
       }).toList
 
     val datasetSize = dataset.size
@@ -87,7 +87,7 @@ class SpeedSuite extends FlatSpec with Matchers {
     val dataset =
       (for (line <- new java.util.Scanner(getClass.getResourceAsStream("/resources/hipparcos_numerical.csv")).useDelimiter("\\n")) yield {
         val words = line.split(",")
-        engine.fromJson(s"""{
+        engine.jsonInput(s"""{
     "ra": ${words(0)},
     "dec": ${words(1)},
     "dist": ${words(2)},
@@ -100,7 +100,7 @@ class SpeedSuite extends FlatSpec with Matchers {
     "vy": ${words(9)},
     "vz": ${words(10)},
     "spectrum": "${words(11)}"
-}""", engine.inputType)
+}""")
       }).toList
 
     println("loaded dataset")

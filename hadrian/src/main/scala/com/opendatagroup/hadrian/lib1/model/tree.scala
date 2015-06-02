@@ -31,6 +31,7 @@ import com.opendatagroup.hadrian.jvmcompiler.JavaCode
 import com.opendatagroup.hadrian.jvmcompiler.javaSchema
 import com.opendatagroup.hadrian.jvmcompiler.javaType
 import com.opendatagroup.hadrian.jvmcompiler.JVMNameMangle
+import com.opendatagroup.hadrian.options.EngineOptions
 
 import com.opendatagroup.hadrian.ast.AstContext
 import com.opendatagroup.hadrian.ast.ExpressionContext
@@ -228,7 +229,7 @@ package object tree {
         <error>Raises a "bad value type" if the <pf>field</pf> of <p>datum</p> and <tp>V</tp> are not both numbers and the <pf>field</pf> cannot be upcast to <tp>V</tp>.</error>
       </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("""(new Object() {
 public boolean apply(com.opendatagroup.hadrian.data.PFARecord datum, %s comparison) {
 com.opendatagroup.hadrian.data.PFAEnumSymbol field = (com.opendatagroup.hadrian.data.PFAEnumSymbol)(comparison.%s);
@@ -263,7 +264,7 @@ return com.opendatagroup.hadrian.lib1.model.tree.package$SimpleComparison$.MODUL
         <error>Raises a "bad value type" if the <pf>field</pf> of <p>datum</p> and <tp>V</tp> are not both numbers and the <pf>field</pf> cannot be upcast to <tp>V</tp>.</error>
       </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("""(new Object() {
 public java.lang.Boolean apply(com.opendatagroup.hadrian.data.PFARecord datum, %s comparison) {
 com.opendatagroup.hadrian.data.PFAEnumSymbol field = (com.opendatagroup.hadrian.data.PFAEnumSymbol)(comparison.%s);

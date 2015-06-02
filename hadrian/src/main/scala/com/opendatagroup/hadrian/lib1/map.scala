@@ -30,6 +30,7 @@ import com.opendatagroup.hadrian.jvmcompiler.JavaCode
 import com.opendatagroup.hadrian.jvmcompiler.javaSchema
 import com.opendatagroup.hadrian.jvmcompiler.javaType
 import com.opendatagroup.hadrian.jvmcompiler.PFAEngineBase
+import com.opendatagroup.hadrian.options.EngineOptions
 
 import com.opendatagroup.hadrian.ast.AstContext
 import com.opendatagroup.hadrian.ast.ExpressionContext
@@ -67,6 +68,7 @@ package object map {
   val orderNotGuaranteed = <detail>The order in which <p>fcn</p> is called on items in <p>m</p> is not guaranteed, though it will be called exactly once for each value.</detail>
 
   def box(x: Any): AnyRef = x match {
+    case null => null
     case y: Boolean => java.lang.Boolean.valueOf(y)
     case y: Int => java.lang.Integer.valueOf(y)
     case y: Long => java.lang.Long.valueOf(y)
@@ -76,6 +78,7 @@ package object map {
   }
 
   def unbox(x: AnyRef): Any = x match {
+    case null => null
     case y: java.lang.Boolean => y.booleanValue
     case y: java.lang.Integer => y.intValue
     case y: java.lang.Long => y.longValue
@@ -179,7 +182,7 @@ package object map {
         <detail>If <p>key</p> is in <p>m</p>, its value will be replaced.</detail>
         <detail>The serialization format for keys of sets is base64-encoded Avro.</detail>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       if (args.size == 3)
         JavaCode("%s.apply(%s)", javaRef(FcnType(argContext collect {case x: ExpressionContext => x.retType}, retType)).toString, wrapArgs(args, paramTypes, true))
       else
@@ -292,7 +295,7 @@ package object map {
         <desc>Convert an array of objects into a set of objects, where a set is represented as a map from serialized objects to objects.</desc>
         <detail>The serialization format is base64-encoded Avro.</detail>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("%s.MODULE$.apply(%s, thisEngineBase, %s)",
         this.getClass.getName,
         wrapArg(0, args, paramTypes, true),
@@ -327,7 +330,7 @@ package object map {
         <detail>The serialization format is base64-encoded Avro.</detail>
         <detail>This function does not verify that the serialized objects (keys) and objects (values) match: it considers only keys, not values.</detail>
       </doc>
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode =
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("%s.MODULE$.apply(%s, %s, thisEngineBase, %s)",
         this.getClass.getName,
         wrapArg(0, args, paramTypes, true),

@@ -1,0 +1,72 @@
+#!/usr/bin/env python
+
+# Copyright (C) 2014  Open Data ("Open Data" refers to
+# one or more of the following companies: Open Data Partners LLC,
+# Open Data Research LLC, or Open Data Capital LLC.)
+# 
+# This file is part of Hadrian.
+# 
+# Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import argparse
+import json
+import sys
+
+import titus.producer.chain
+
+if __name__ == "__main__":
+    # command-line arguments
+    argparser = argparse.ArgumentParser(description="Combine a linear sequence of PFA files into a single PFA file representing a chained scoring engine.")
+    argparser.add_argument("input", nargs="*", default="-", help="input PFA files (at least 2)")
+    argparser.add_argument("output", default="-", help="output PFA file, \"-\" for standard out")
+    argparser.add_argument("--no-check", action="store_true", help="if supplied, the output will not be checked for PFA-validity")
+    argparser.add_argument("--verbose", action="store_true", help="if supplied, print status to STDOUT")
+    argparser.add_argument("--name", default=None, help="name field for output PFA file (default is generated from the inputs)")
+    argparser.add_argument("--randseed", type=int, default=None, help="randseed field for output PFA file (must be an integer)")
+    argparser.add_argument("--doc", default=None, help="doc field for output PFA file")
+    argparser.add_argument("--version", type=int, default=None, help="version field for output PFA file (must be an integer)")
+    argparser.add_argument("--metadata", default="{}", help="metadata field for output PFA file (must be a JSON map of strings)")
+    argparser.add_argument("--options", default="{}", help="options field for output PFA file (must be a JSON map)")
+    arguments = argparser.parse_args()
+
+    # check for errors in the command-line arguments
+    if len(arguments.input) < 2:
+        argparser.error("At least two inputs are required.")
+
+    try:
+        arguments.metadata = json.loads(arguments.metadata)
+    except ValueError:
+        argparser.error("Metadata must be JSON formatted.")
+    if not isinstance(arguments.metadata, dict) or any(not isinstance(x, basestring) for x in arguments.metadata.values()):
+        argparser.error("Metadata must be a JSON object of strings.")
+
+    try:
+        arguments.options = json.loads(arguments.options)
+    except ValueError:
+        argparser.error("Options must be JSON formatted.")
+    if not isinstance(arguments.options, dict):
+        argparser.error("Options must be a JSON object.")
+
+    # load the input PFA files
+    pfas = []
+    for i, fileName in enumerate(arguments.input):
+        if arguments.verbose: sys.stderr.write("Loading {0} as step {1}\n".format(fileName, i + 1))
+        pfas.append(json.load(open(fileName)))
+
+    # chain them, getting the result as JSON
+    result = titus.producer.chain.json(pfas, False, not arguments.no_check, arguments.name, arguments.randseed, arguments.doc, arguments.version, arguments.metadata, arguments.options, False, arguments.verbose)
+
+    if arguments.output == "-":
+        print result
+    else:
+        open(arguments.output, "w").write(result)

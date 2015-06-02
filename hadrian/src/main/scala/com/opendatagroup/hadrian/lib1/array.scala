@@ -1167,7 +1167,7 @@ package object array {
   provide(Product)
 
   ////   lnsum (Lnsum)
-  object Lnsum extends LibFcn {
+  object Lnsum extends LibFcn with Function1[PFAArray[java.lang.Number], Double] {
     val name = prefix + "lnsum"
     val sig = Sig(List("a" -> P.Array(P.Double)), P.Double)
     val doc =
@@ -1175,12 +1175,12 @@ package object array {
         <desc>Return the sum of the natural logarithm of numbers in <p>a</p>.</desc>
         <detail>Returns zero if the array is empty and <c>NaN</c> if any value in the array is zero or negative.</detail>
       </doc>
-    def apply[X <: java.lang.Number](a: PFAArray[X]): Double = a.toVector map {x => java.lang.Math.log(x.doubleValue)} sum
+    def apply(a: PFAArray[java.lang.Number]): Double = a.toVector.map(x => java.lang.Math.log(x.doubleValue)).sum
   }
   provide(Lnsum)
 
   ////   mean (Mean)
-  object Mean extends LibFcn {
+  object Mean extends LibFcn with Function1[PFAArray[java.lang.Number], Double] {
     val name = prefix + "mean"
     val sig = Sig(List("a" -> P.Array(P.Double)), P.Double)
     val doc =
@@ -1188,8 +1188,8 @@ package object array {
         <desc>Return the arithmetic mean of numbers in <p>a</p>.</desc>
         <detail>Returns <c>NaN</c> if the array is empty.</detail>
       </doc>
-    def apply[X <: java.lang.Number](a: PFAArray[X]): Double = {
-      val numer = a.toVector map {x => x.doubleValue} sum
+    def apply(a: PFAArray[java.lang.Number]): Double = {
+      val numer = a.toVector.map(_.doubleValue).sum
       val denom = a.toVector.size.toDouble
       numer / denom
     }
@@ -1197,7 +1197,7 @@ package object array {
   provide(Mean)
 
   ////   geomean (GeoMean)
-  object GeoMean extends LibFcn {
+  object GeoMean extends LibFcn with Function1[PFAArray[java.lang.Number], Double] {
     val name = prefix + "geomean"
     val sig = Sig(List("a" -> P.Array(P.Double)), P.Double)
     val doc =
@@ -1205,8 +1205,8 @@ package object array {
         <desc>Return the geometric mean of numbers in <p>a</p>.</desc>
         <detail>Returns <c>NaN</c> if the array is empty.</detail>
       </doc>
-    def apply[X <: java.lang.Number](a: PFAArray[X]): Double =
-      Math.pow(a.toVector map {x => x.doubleValue} product, 1.0/a.toVector.size)
+    def apply(a: PFAArray[java.lang.Number]): Double =
+      Math.pow(a.toVector.map(_.doubleValue).product, 1.0/a.toVector.size)
   }
   provide(GeoMean)
 

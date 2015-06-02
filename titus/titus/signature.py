@@ -18,6 +18,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import OrderedDict
 import itertools
 
 import titus.P as P
@@ -260,8 +261,7 @@ class Sig(Signature):
 
             atypesPermutations_isEmpty = False
             while not found and not atypesPermutations_isEmpty:
-                available = dict((i, x) for i, x in enumerate(pat.types))
-
+                available = OrderedDict((i, x) for i, x in enumerate(pat.types))
                 try:
                     nextPermutation = atypesPermutations.next()
                 except StopIteration:

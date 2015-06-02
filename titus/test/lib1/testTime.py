@@ -231,6 +231,7 @@ action:
   - {time.isWeekend: input}
 """)
         self.assertEqual(engine.action(1425508527.52482), False)
+        self.assertEqual(engine.action(1427598240.0), True)
 
     def testIsWorkHours(self):
         engine, = PFAEngine.fromYaml("""
@@ -240,6 +241,7 @@ action:
   - {time.isWorkHours: input}
 """)
         self.assertEqual(engine.action(1425508527.52482), False)
+        self.assertEqual(engine.action(1427724421.0), True)
 
     def testIsNonWorkHours(self):
         engine, = PFAEngine.fromYaml("""
@@ -249,6 +251,7 @@ action:
   - {time.isNonWorkHours: input}
 """)
         self.assertEqual(engine.action(1425508527.52482), True)
+        self.assertEqual(engine.action(1427724421), False)
 
     def testFromUTCToLocal(self):
         engine, = PFAEngine.fromYaml("""

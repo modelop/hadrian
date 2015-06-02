@@ -7,7 +7,7 @@
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian-actors</artifactId>
-  <version>0.6.2</version>
+  <version>0.6.11</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -31,7 +31,7 @@
     <dependency>
       <groupId>com.opendatagroup</groupId>
       <artifactId>hadrian</artifactId>
-      <version>0.6.2</version>
+      <version>0.6.11</version>
     </dependency>
 
     <dependency>

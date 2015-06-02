@@ -25,6 +25,7 @@ import avro.schema
 
 import titus.errors
 import titus.util
+from titus.util import ts
 
 ######################################################### the most general types
 
@@ -68,6 +69,12 @@ class FcnType(Type):
         return {"type": "function", "params": [x.jsonNode(memo) for x in self.params], "ret": self.ret.jsonNode(memo)}
 
 ######################################################### Avro types
+
+def jsonToAvroType(x):
+    return schemaToAvroType(avro.schema.parse(x))
+
+def jsonNodeToAvroType(x):
+    return schemaToAvroType(avro.schema.parse(json.dumps(x)))
 
 def schemaToAvroType(schema):
     if schema.type == "null":
@@ -412,9 +419,9 @@ class AvroUnion(AvroType):
     def __init__(self, types):
         names = set([x.name for x in types])
         if len(types) != len(names):
-            raise titus.errors.AvroException("duplicate in union")
+            raise titus.errors.AvroException("duplicate in union: " + ", ".join(map(ts, types)))
         if "union" in names:
-            raise titus.errors.AvroException("nested union")
+            raise titus.errors.AvroException("nested union: " + ", ".join(map(ts, types)))
         self._schema = avro.schema.UnionSchema([], avro.schema.Names())
         self._schema._schemas = [x.schema for x in types]
     @property
@@ -633,6 +640,18 @@ class AvroTypeBuilder(object):
         self.forwardDeclarationParser = ForwardDeclarationParser()
         self.originals = []
 
+    def removeEmptyNamespaces(self, x):
+        if isinstance(x, dict):
+            if "namespace" in x and (x["namespace"] is None or x["namespace"] == ""):
+                del x["namespace"]
+            return dict((k, self.removeEmptyNamespaces(v)) for k, v in x.items())
+
+        elif isinstance(x, (list, tuple)):
+            return [self.removeEmptyNamespaces(v) for v in x]
+
+        else:
+            return x
+
     def removeDuplicateNames(self, x, memo):
         if isinstance(x, dict) and "name" in x and "type" in x and x["type"] in ("enum", "fixed", "record"):
             if "namespace" in x:
@@ -641,7 +660,7 @@ class AvroTypeBuilder(object):
                 name = x["name"]
             if name in memo:
                 if memo[name] != x:
-                    raise titus.errors.AvroException("type name \"{0}\" previously defined as\n{1}\nnow defined as\n{2}", name, memo[name], x)
+                    raise titus.errors.AvroException("type name \"{0}\" previously defined as\n{1}\nnow defined as\n{2}".format(name, ts(jsonNodeToAvroType(memo[name])), ts(jsonNodeToAvroType(x))))
                 return name
             else:
                 memo[name] = x
@@ -658,7 +677,7 @@ class AvroTypeBuilder(object):
 
     def makePlaceholder(self, avroJsonString, memo=None):
         if memo is not None:
-            avroJsonString = json.dumps(self.removeDuplicateNames(json.loads(avroJsonString), memo))
+            avroJsonString = json.dumps(self.removeDuplicateNames(self.removeEmptyNamespaces(json.loads(avroJsonString)), memo))
         self.originals.append(avroJsonString)
         return AvroPlaceholder(avroJsonString, self.forwardDeclarationParser)
 
@@ -729,7 +748,7 @@ def jsonDecoder(avroType, value):
                 elif isinstance(field.avroType, AvroNull):
                     out[field.name] = None
                 else:
-                    raise titus.errors.AvroException("{0} does not match schema {1}".format(json.dumps(value), avroType))
+                    raise titus.errors.AvroException("{0} does not match schema {1}".format(json.dumps(value), ts(avroType)))
             return out
     elif isinstance(avroType, AvroUnion):
         if isinstance(value, dict) and len(value) == 1:
@@ -742,7 +761,59 @@ def jsonDecoder(avroType, value):
             return None
     else:
         raise Exception
-    raise titus.errors.AvroException("{0} does not match schema {1}".format(json.dumps(value), avroType))
+    raise titus.errors.AvroException("{0} does not match schema {1}".format(json.dumps(value), ts(avroType)))
+
+def jsonEncoder(avroType, value):
+    if isinstance(avroType, AvroNull) and value is None:
+        return value
+    elif isinstance(avroType, AvroBoolean) and (value is True or value is False):
+        return value
+    elif isinstance(avroType, AvroInt) and isinstance(value, (int, long)) and value is not True and value is not False:
+        return value
+    elif isinstance(avroType, AvroLong) and isinstance(value, (int, long)) and value is not True and value is not False:
+        return value
+    elif isinstance(avroType, AvroFloat) and isinstance(value, (int, long, float)) and value is not True and value is not False:
+        return float(value)
+    elif isinstance(avroType, AvroDouble) and isinstance(value, (int, long, float)) and value is not True and value is not False:
+        return float(value)
+    elif isinstance(avroType, AvroBytes) and isinstance(value, basestring):
+        return value
+    elif isinstance(avroType, AvroFixed) and isinstance(value, basestring):
+        out = bytes(value)
+        if len(out) == avroType.size:
+            return out
+    elif isinstance(avroType, AvroString) and isinstance(value, basestring):
+        return value
+    elif isinstance(avroType, AvroEnum) and isinstance(value, basestring) and value in avroType.symbols:
+        return value
+    elif isinstance(avroType, AvroArray) and isinstance(value, (list, tuple)):
+        return [jsonEncoder(avroType.items, x) for x in value]
+    elif isinstance(avroType, AvroMap) and isinstance(value, dict):
+        return dict((k, jsonEncoder(avroType.values, v)) for k, v in value.items())
+    elif isinstance(avroType, AvroRecord) and isinstance(value, dict):
+        out = {}
+        for field in avroType.fields:
+            if field.name in value:
+                out[field.name] = jsonEncoder(field.avroType, value[field.name])
+            elif field.default is not None:
+                pass
+            elif isinstance(field.avroType, AvroNull):
+                raise titus.errors.AvroException("{0} does not match schema {1}".format(json.dumps(value), ts(avroType)))
+        return out
+    elif isinstance(avroType, AvroUnion):
+        if isinstance(value, dict) and len(value) == 1:
+            val, = value.values()
+            for t in avroType.types:
+                try:
+                    return {t.name: jsonEncoder(t, val)}
+                except titus.errors.AvroException:
+                    pass
+        for t in avroType.types:
+            try:
+                return {t.name: jsonEncoder(t, value)}
+            except titus.errors.AvroException:
+                pass
+    raise titus.errors.AvroException("{0} does not match schema {1}".format(json.dumps(value), ts(avroType)))
 
 ########################### check data value against type
 
@@ -776,7 +847,7 @@ def checkData(data, avroType):
         elif data is None:
             return data
         else:
-            raise TypeError("expecting {0}, found {1}".format(avroType, data))
+            raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroBoolean):
         if data == "true":
@@ -788,40 +859,40 @@ def checkData(data, avroType):
         elif data is True or data is False:
             return data
         else:
-            raise TypeError("expecting {0}, found {1}".format(avroType, data))
+            raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroInt):
         if isinstance(data, basestring):
             try:
                 data = int(data)
             except ValueError:
-                raise TypeError("expecting {0}, found {1}".format(avroType, data))
+                raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
         elif isinstance(data, integerTypes):
             data = int(data)
         elif isinstance(data, (int, long)):
             return data
         else:
-            raise TypeError("expecting {0}, found {1}".format(avroType, data))
+            raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroLong):
         if isinstance(data, basestring):
             try:
                 data = int(data)
             except ValueError:
-                raise TypeError("expecting {0}, found {1}".format(avroType, data))
+                raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
         elif isinstance(data, integerTypes):
             data = int(data)
         elif isinstance(data, (int, long)):
             return data
         else:
-            raise TypeError("expecting {0}, found {1}".format(avroType, data))
+            raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroFloat):
         if isinstance(data, basestring):
             try:
                 data = float(data)
             except ValueError:
-                raise TypeError("expecting {0}, found {1}".format(avroType, data))
+                raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
         elif isinstance(data, floatTypes):
             data = float(data)
         elif isinstance(data, (int, long)):
@@ -829,14 +900,14 @@ def checkData(data, avroType):
         elif isinstance(data, float):
             return data
         else:
-            raise TypeError("expecting {0}, found {1}".format(avroType, data))
+            raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroDouble):
         if isinstance(data, basestring):
             try:
                 data = float(data)
             except ValueError:
-                raise TypeError("expecting {0}, found {1}".format(avroType, data))
+                raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
         elif isinstance(data, floatTypes):
             return float(data)
         elif isinstance(data, (int, long)):
@@ -844,7 +915,7 @@ def checkData(data, avroType):
         elif isinstance(data, float):
             return data
         else:
-            raise TypeError("expecting {0}, found {1}".format(avroType, data))
+            raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, (AvroBytes, AvroFixed)):
         if isinstance(data, unicode):
@@ -852,7 +923,7 @@ def checkData(data, avroType):
         elif isinstance(data, str):
             return data
         else:
-            raise TypeError("expecting {0}, found {1}".format(avroType, data))
+            raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, (AvroString, AvroEnum)):
         if isinstance(data, str):
@@ -860,13 +931,13 @@ def checkData(data, avroType):
         elif isinstance(data, unicode):
             return data
         else:
-            raise TypeError("expecting {0}, found {1}".format(avroType, data))
+            raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroArray):
         if hasattr(data, "__iter__"):
             return [checkData(x, avroType.items) for x in data]
         else:
-            raise TypeError("expecting {0}, found {1}".format(avroType, data))
+            raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroMap):
         if hasattr(data, "__iter__") and hasattr(data, "__getitem__"):
@@ -878,10 +949,10 @@ def checkData(data, avroType):
                 elif isinstance(key, unicode):
                     newData[key] = value
                 else:
-                    raise TypeError("expecting {0}, found key {1}".format(avroType, key))
+                    raise TypeError("expecting {0}, found key {1}".format(ts(avroType), key))
             return newData
         else:
-            raise TypeError("expecting {0}, found {1}".format(avroType, data))
+            raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroRecord):
         if hasattr(data, "__iter__") and hasattr(data, "__getitem__"):
@@ -890,11 +961,11 @@ def checkData(data, avroType):
                 try:
                     value = data[field.name]
                 except KeyError:
-                    raise TypeError("expecting {0}, couldn't find key {1}".format(avroType, field.name))
+                    raise TypeError("expecting {0}, couldn't find key {1}".format(ts(avroType), field.name))
                 newData[field.name] = checkData(value, field.avroType)
             return newData
         else:
-            raise TypeError("expecting {0}, found {1}".format(avroType, data))
+            raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroUnion):
         if isinstance(data, dict) and len(data) == 1:
@@ -906,7 +977,7 @@ def checkData(data, avroType):
                         return checkData(value, tpe)
                     else:
                         return {tag: checkData(value, tpe)}
-            raise TypeError("expecting {0}, found {1}".format(avroType, data))
+            raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
         for tpe in avroType.types:
             try:
@@ -918,6 +989,6 @@ def checkData(data, avroType):
                     return newData
                 else:
                     return {tpe.name: newData}
-        raise TypeError("expecting {0}, found {1}".format(avroType, data))
+        raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     return data

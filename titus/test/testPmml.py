@@ -513,7 +513,6 @@ cells:
         - {name: pass, type: [TreeNode, string]}
         - {name: fail, type: [TreeNode, string]}
     init:
-      TreeNode:
         field: x
         operator: "<"
         value: {double: 1}
@@ -564,8 +563,6 @@ cells:
     </TreeModel>
 </PMML>
 ''', {"engine.name": "test"}))
-
-
 
 if __name__ == "__main__":
     unittest.main()

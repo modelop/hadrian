@@ -75,6 +75,37 @@ class RandomDouble(LibFcn):
         return state.rand.uniform(low, high)
 provide(RandomDouble())
 
+########################################################### items from arrays
+
+class RandomChoice(LibFcn):
+    name = prefix + "choice"
+    sig = Sig([{"population": P.Array(P.Wildcard("A"))}], P.Wildcard("A"))
+    def __call__(self, state, scope, paramTypes, population):
+        if len(population) == 0:
+            raise PFARuntimeException("population must not be empty")
+        return population[state.rand.randint(0, len(population) - 1)]
+provide(RandomChoice())
+
+class RandomChoices(LibFcn):
+    name = prefix + "choices"
+    sig = Sig([{"size": P.Int()}, {"population": P.Array(P.Wildcard("A"))}], P.Array(P.Wildcard("A")))
+    def __call__(self, state, scope, paramTypes, size, population):
+        if len(population) == 0:
+            raise PFARuntimeException("population must not be empty")
+        return [population[state.rand.randint(0, len(population) - 1)] for x in xrange(size)]
+provide(RandomChoices())
+
+class RandomSample(LibFcn):
+    name = prefix + "sample"
+    sig = Sig([{"size": P.Int()}, {"population": P.Array(P.Wildcard("A"))}], P.Array(P.Wildcard("A")))
+    def __call__(self, state, scope, paramTypes, size, population):
+        if len(population) == 0:
+            raise PFARuntimeException("population must not be empty")
+        if len(population) < size:
+            raise PFARuntimeException("population smaller than requested subsample")
+        return state.rand.sample(population, size)
+provide(RandomSample())
+        
 ########################################################### strings and byte arrays
 
 class RandomString(LibFcn):

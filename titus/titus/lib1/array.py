@@ -425,7 +425,7 @@ class Max(LibFcn):
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}], P.Wildcard("A"))
     def __call__(self, state, scope, paramTypes, a):
         if len(a) == 0:
-            return PFARuntimeException("empty array")
+            raise PFARuntimeException("empty array")
         else:
             return highestN(a, 1, lambda a, b: a < b)[0]
 provide(Max())
@@ -435,7 +435,7 @@ class Min(LibFcn):
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}], P.Wildcard("A"))
     def __call__(self, state, scope, paramTypes, a):
         if len(a) == 0:
-            return PFARuntimeException("empty array")
+            raise PFARuntimeException("empty array")
         else:
             return lowestN(a, 1, lambda a, b: a < b)[0]
 provide(Min())
@@ -445,7 +445,7 @@ class MaxLT(LibFcn):
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"lessThan": P.Fcn([P.Wildcard("A"), P.Wildcard("A")], P.Boolean())}], P.Wildcard("A"))
     def __call__(self, state, scope, paramTypes, a, lessThan):
         if len(a) == 0:
-            return PFARuntimeException("empty array")
+            raise PFARuntimeException("empty array")
         else:
             return highestN(a, 1, toLt(state, scope, lessThan))[0]
 provide(MaxLT())
@@ -455,7 +455,7 @@ class MinLT(LibFcn):
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"lessThan": P.Fcn([P.Wildcard("A"), P.Wildcard("A")], P.Boolean())}], P.Wildcard("A"))
     def __call__(self, state, scope, paramTypes, a, lessThan):
         if len(a) == 0:
-            return PFARuntimeException("empty array")
+            raise PFARuntimeException("empty array")
         else:
             return lowestN(a, 1, toLt(state, scope, lessThan))[0]
 provide(MinLT())
@@ -489,7 +489,7 @@ class MaxNLT(LibFcn):
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"n": P.Int()}, {"lessThan": P.Fcn([P.Wildcard("A"), P.Wildcard("A")], P.Boolean())}], P.Array(P.Wildcard("A")))
     def __call__(self, state, scope, paramTypes, a, n, lessThan):
         if len(a) == 0:
-            return PFARuntimeException("empty array")
+            raise PFARuntimeException("empty array")
         elif n < 0:
             raise PFARuntimeException("n < 0")
         else:
@@ -501,7 +501,7 @@ class MinNLT(LibFcn):
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"n": P.Int()}, {"lessThan": P.Fcn([P.Wildcard("A"), P.Wildcard("A")], P.Boolean())}], P.Array(P.Wildcard("A")))
     def __call__(self, state, scope, paramTypes, a, n, lessThan):
         if len(a) == 0:
-            return PFARuntimeException("empty array")
+            raise PFARuntimeException("empty array")
         elif n < 0:
             raise PFARuntimeException("n < 0")
         else:
@@ -513,7 +513,7 @@ class Argmax(LibFcn):
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}], P.Int())
     def __call__(self, state, scope, paramTypes, a):
         if len(a) == 0:
-            return PFARuntimeException("empty array")
+            raise PFARuntimeException("empty array")
         else:
             return argHighestN(a, 1, lambda a, b: a < b)[0]
 provide(Argmax())
@@ -523,7 +523,7 @@ class Argmin(LibFcn):
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}], P.Int())
     def __call__(self, state, scope, paramTypes, a):
         if len(a) == 0:
-            return PFARuntimeException("empty array")
+            raise PFARuntimeException("empty array")
         else:
             return argLowestN(a, 1, lambda a, b: a < b)[0]
 provide(Argmin())
@@ -533,7 +533,7 @@ class ArgmaxLT(LibFcn):
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"lessThan": P.Fcn([P.Wildcard("A"), P.Wildcard("A")], P.Boolean())}], P.Int())
     def __call__(self, state, scope, paramTypes, a, lessThan):
         if len(a) == 0:
-            return PFARuntimeException("empty array")
+            raise PFARuntimeException("empty array")
         else:
             return argHighestN(a, 1, toLt(state, scope, lessThan))[0]
 provide(ArgmaxLT())
@@ -543,7 +543,7 @@ class ArgminLT(LibFcn):
     sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"lessThan": P.Fcn([P.Wildcard("A"), P.Wildcard("A")], P.Boolean())}], P.Int())
     def __call__(self, state, scope, paramTypes, a, lessThan):
         if len(a) == 0:
-            return PFARuntimeException("empty array")
+            raise PFARuntimeException("empty array")
         else:
             return argLowestN(a, 1, toLt(state, scope, lessThan))[0]
 provide(ArgminLT())

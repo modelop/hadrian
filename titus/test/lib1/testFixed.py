@@ -33,3 +33,19 @@ action:
   fixed.toBytes: input
 ''')
         self.assertEqual(engine.action("0123456789"), "0123456789")
+
+    def testFromBytes(self):
+        engine, = PFAEngine.fromYaml('''
+input: bytes
+output: {type: fixed, name: Test, size: 10}
+action:
+  - let:
+      original:
+        type: Test
+        value: "0123456789"
+  - fixed.fromBytes: [original, input]
+''')
+        self.assertEqual(map(ord, engine.action("")), [48, 49, 50, 51, 52, 53, 54, 55, 56, 57])
+        self.assertEqual(map(ord, engine.action("".join(map(chr, [0, 1, 2, 3, 4, 5, 6, 7, 8])))), [0, 1, 2, 3, 4, 5, 6, 7, 8, 57])
+        self.assertEqual(map(ord, engine.action("".join(map(chr, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])))), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+        self.assertEqual(map(ord, engine.action("".join(map(chr, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])))), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])

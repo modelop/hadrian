@@ -25,6 +25,7 @@ from titus.fcn import LibFcn
 from titus.signature import Sig
 from titus.signature import Sigs
 from titus.datatype import *
+from titus.errors import PFARuntimeException
 from titus.util import callfcn, negativeIndex, checkRange, startEnd
 import titus.P as P
 
@@ -128,6 +129,35 @@ class Split(LibFcn):
         return s.split(sep)
 provide(Split())
 
+class Hex(LibFcn):
+    name = prefix + "hex"
+    sig = Sigs([Sig([{"x": P.Long()}], P.String()),
+                Sig([{"x": P.Long()}, {"width": P.Int()}, {"zeroPad": P.Boolean()}], P.String())])
+    def __call__(self, state, scope, paramTypes, *args):
+        if len(args) == 1:
+            x, = args
+            if x < 0:
+                raise PFARuntimeException("negative number")
+            else:
+                return "{0:x}".format(x)
+
+        else:
+            x, width, zeroPad = args
+            if x < 0:
+                raise PFARuntimeException("negative number")
+            if not zeroPad:
+                if width < 0:
+                    formatStr = "{0:<" + str(-width) + "x}"
+                else:
+                    formatStr = "{0:" + str(width) + "x}"
+            else:
+                if width < 0:
+                    raise PFARuntimeException("negative width cannot be used with zero-padding")
+                else:
+                    formatStr = "{0:0" + str(width) + "x}"
+            return formatStr.format(x)
+provide(Hex())
+        
 class Number(LibFcn):
     name = prefix + "number"
     sig = Sigs([Sig([{"x": P.Long()}], P.String()),

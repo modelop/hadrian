@@ -62,6 +62,38 @@ action:
     engine.action(PFAArray.fromVector(Vector(4.1, 4.1, 4.1, 4.1, 4.1))).asInstanceOf[PFAArray[PFAArray[Double]]].toVector.toSet map {x: PFAArray[Double] => x.toVector} should be (Set(Vector(4.0, 4.0, 4.0, 4.0, 4.0), Vector(5.0, 5.0, 5.0, 5.0, 5.0)))
   }
 
+  it must "find them with the KDTree algorithm" taggedAs(Lib1, Lib1ModelNeighbor) in {
+    val engine = PFAEngine.fromYaml("""
+input: {type: array, items: double}
+output: {type: array, items: {type: array, items: double}}
+cells:
+  codebook:
+    type:
+      type: array
+      items:
+        type: array
+        items: double
+    init:
+      - [1, 1, 1, 1, 1]
+      - [2, 2, 2, 2, 2]
+      - [3, 3, 3, 3, 3]
+      - [4, 4, 4, 4, 4]
+      - [5, 5, 5, 5, 5]
+action:
+  model.neighbor.nearestK:
+    - 2
+    - input
+    - cell: codebook
+options:
+  lib.model.neighbor.nearestK.kdtree: true
+""").head
+
+    0 until 100 foreach {i =>
+      engine.action(PFAArray.fromVector(Vector(1.2, 1.2, 1.2, 1.2, 1.2))).asInstanceOf[PFAArray[PFAArray[Double]]].toVector.toSet map {x: PFAArray[Double] => x.toVector} should be (Set(Vector(1.0, 1.0, 1.0, 1.0, 1.0), Vector(2.0, 2.0, 2.0, 2.0, 2.0)))
+      engine.action(PFAArray.fromVector(Vector(4.1, 4.1, 4.1, 4.1, 4.1))).asInstanceOf[PFAArray[PFAArray[Double]]].toVector.toSet map {x: PFAArray[Double] => x.toVector} should be (Set(Vector(4.0, 4.0, 4.0, 4.0, 4.0), Vector(5.0, 5.0, 5.0, 5.0, 5.0)))
+    }
+  }
+
   it must "find all neighbors within a ball" taggedAs(Lib1, Lib1ModelNeighbor) in {
     val engine = PFAEngine.fromYaml("""
 input: {type: array, items: double}

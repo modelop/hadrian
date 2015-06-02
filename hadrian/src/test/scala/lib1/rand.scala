@@ -101,7 +101,59 @@ action: {rand.double: [5, 10]}
     engine.action(null).asInstanceOf[java.lang.Number].doubleValue should be (9.165456744855119 +- 0.00001)
   }
 
-  "categorical rand engine" must "generate random strings" taggedAs(Lib1, Lib1Rand) in {
+  "categorical rand engine" must "make a random choice" taggedAs(Lib1, Lib1Rand) in {
+    val engine = PFAEngine.fromYaml("""
+input:
+  type: array
+  items: string
+output: string
+randseed: 12345
+action: {rand.choice: input}
+""").head
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))) should be ("two")
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))) should be ("one")
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))) should be ("two")
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))) should be ("four")
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))) should be ("one")
+  }
+
+  it must "make random choices with replacement" taggedAs(Lib1, Lib1Rand) in {
+    val engine = PFAEngine.fromYaml("""
+input:
+  type: array
+  items: string
+output:
+  type: array
+  items: string
+randseed: 12345
+action: {rand.choices: [3, input]}
+""").head
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))).asInstanceOf[PFAArray[String]].toVector should be (Vector("two", "one", "two"))
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))).asInstanceOf[PFAArray[String]].toVector should be (Vector("four", "one", "five"))
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))).asInstanceOf[PFAArray[String]].toVector should be (Vector("one", "three", "two"))
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))).asInstanceOf[PFAArray[String]].toVector should be (Vector("five", "three", "three"))
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))).asInstanceOf[PFAArray[String]].toVector should be (Vector("one", "two", "three"))
+  }
+
+  it must "make random samples without replacement" taggedAs(Lib1, Lib1Rand) in {
+    val engine = PFAEngine.fromYaml("""
+input:
+  type: array
+  items: string
+output:
+  type: array
+  items: string
+randseed: 12345
+action: {rand.sample: [3, input]}
+""").head
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))).asInstanceOf[PFAArray[String]].toVector should be (Vector("one", "two", "four"))
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))).asInstanceOf[PFAArray[String]].toVector should be (Vector("one", "three", "five"))
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))).asInstanceOf[PFAArray[String]].toVector should be (Vector("two", "three", "five"))
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))).asInstanceOf[PFAArray[String]].toVector should be (Vector("one", "two", "three"))
+    engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))).asInstanceOf[PFAArray[String]].toVector should be (Vector("three", "four", "five"))
+  }
+
+  it must "generate random strings" taggedAs(Lib1, Lib1Rand) in {
     val engine1 = PFAEngine.fromYaml("""
 input: "null"
 output: string

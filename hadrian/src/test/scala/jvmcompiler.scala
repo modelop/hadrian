@@ -1604,6 +1604,555 @@ action:
     engine6.action(null) should be ("whatever")
   }
 
+  "Pack binary" must "pack signed big-endian" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: "null"
+output: bytes
+action:
+  pack: [{pad: null}, {boolean: true}, {boolean: false}, {byte: 12}, {short: 12}, {int: 12}, {long: 12}, {float: 12}, {double: 12}]
+""").head
+    engine.action(null).asInstanceOf[Array[Byte]].toList should be (List[Byte](0, 1, 0, 12, 0, 12, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 12, 65, 64, 0, 0, 64, 40, 0, 0, 0, 0, 0, 0))
+  }
+
+  it must "pack unsigned big-endian" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: "null"
+output: bytes
+action:
+  pack: [{"pad": null}, {"boolean": true}, {"boolean": false}, {"unsigned byte": 12}, {"unsigned short": 12}, {"unsigned int": 12}, {"unsigned long": 12}, {"float": 12}, {"double": 12}]
+""").head
+    engine.action(null).asInstanceOf[Array[Byte]].toList should be (List[Byte](0, 1, 0, 12, 0, 12, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 12, 65, 64, 0, 0, 64, 40, 0, 0, 0, 0, 0, 0))
+
+    val engine2 = PFAEngine.fromYaml("""
+input: "null"
+output: bytes
+action:
+  pack: [{"pad": null}, {"boolean": true}, {"boolean": false}, {"unsigned byte": 255}, {"unsigned short": 65535}, {"unsigned int": 4294967295}, {"unsigned long": {double: 1000000000000000000}}, {"float": 12}, {"double": 12}]
+""").head
+    engine2.action(null).asInstanceOf[Array[Byte]].toList should be (List[Byte](0, 1, 0, -1, -1, -1, -1, -1, -1, -1, 13, -32, -74, -77, -89, 100, 0, 0, 65, 64, 0, 0, 64, 40, 0, 0, 0, 0, 0, 0))
+  }
+
+  it must "pack signed little-endian" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: "null"
+output: bytes
+action:
+  pack: [{pad: null}, {boolean: true}, {boolean: false}, {byte: 12}, {"little short": 12}, {"little int": 12}, {"little long": 12}, {"little float": 12}, {"little double": 12}]
+""").head
+    engine.action(null).asInstanceOf[Array[Byte]].toList should be (List[Byte](0, 1, 0, 12, 12, 0, 12, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 64, 65, 0, 0, 0, 0, 0, 0, 40, 64))
+  }
+
+  it must "pack unsigned little-endian" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: "null"
+output: bytes
+action:
+  pack: [{"pad": null}, {"boolean": true}, {"boolean": false}, {"unsigned byte": 12}, {"little unsigned short": 12}, {"little unsigned int": 12}, {"little unsigned long": 12}, {"little float": 12}, {"little double": 12}]
+""").head
+    engine.action(null).asInstanceOf[Array[Byte]].toList should be (List[Byte](0, 1, 0, 12, 12, 0, 12, 0, 0, 0, 12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 64, 65, 0, 0, 0, 0, 0, 0, 40, 64))
+
+    val engine2 = PFAEngine.fromYaml("""
+input: "null"
+output: bytes
+action:
+  pack: [{"pad": null}, {"boolean": true}, {"boolean": false}, {"unsigned byte": 255}, {"little unsigned short": 65535}, {"little unsigned int": 4294967295}, {"little unsigned long": {double: 1000000000000000000}}, {"little float": 12}, {"little double": 12}]
+""").head
+    engine2.action(null).asInstanceOf[Array[Byte]].toList should be (List[Byte](0, 1, 0, -1, -1, -1, -1, -1, -1, -1, 0, 0, 100, -89, -77, -74, -32, 13, 0, 0, 64, 65, 0, 0, 0, 0, 0, 0, 40, 64))
+  }
+
+  it must "pack byte arrays as raw" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: bytes
+method: fold
+zero: ""
+action:
+  pack: [{raw: tally}, {raw: input}]
+merge:
+  pack: [{raw: tallyOne}, {raw: tallyTwo}]
+""").head
+    engine.action(Array[Byte](1, 2, 3)).asInstanceOf[Array[Byte]].toList should be (List[Byte](1, 2, 3))
+    engine.action(Array[Byte](4, 5, 6)).asInstanceOf[Array[Byte]].toList should be (List[Byte](1, 2, 3, 4, 5, 6))
+    engine.action(Array[Byte](7, 8, 9)).asInstanceOf[Array[Byte]].toList should be (List[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9))
+  }
+
+  it must "pack byte arrays as raw3" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: bytes
+method: fold
+zero: ""
+action:
+  pack: [{raw: tally}, {raw3: input}]
+merge:
+  pack: [{raw: tallyOne}, {raw: tallyTwo}]
+""").head
+    engine.action(Array[Byte](1, 2, 3)).asInstanceOf[Array[Byte]].toList should be (List[Byte](1, 2, 3))
+    engine.action(Array[Byte](4, 5, 6)).asInstanceOf[Array[Byte]].toList should be (List[Byte](1, 2, 3, 4, 5, 6))
+    engine.action(Array[Byte](7, 8, 9)).asInstanceOf[Array[Byte]].toList should be (List[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9))
+    evaluating { engine.action(Array[Byte](0, 0)) } should produce [PFARuntimeException]
+  }
+
+  it must "pack byte arrays as nullterminated" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: bytes
+method: fold
+zero: ""
+action:
+  pack: [{"null terminated": tally}, {"null terminated": input}]
+merge:
+  pack: [{"null terminated": tallyOne}, {"null terminated": tallyTwo}]
+""").head
+    engine.action(Array[Byte](1, 2, 3)).asInstanceOf[Array[Byte]].toList should be (List[Byte](0, 1, 2, 3, 0))
+    engine.action(Array[Byte](4, 5, 6)).asInstanceOf[Array[Byte]].toList should be (List[Byte](0, 1, 2, 3, 0, 0, 4, 5, 6, 0))
+    engine.action(Array[Byte](7, 8, 9)).asInstanceOf[Array[Byte]].toList should be (List[Byte](0, 1, 2, 3, 0, 0, 4, 5, 6, 0, 0, 7, 8, 9, 0))
+  }
+
+  it must "pack byte arrays as lengthprefixed" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: bytes
+method: fold
+zero: ""
+action:
+  pack: [{"length prefixed": tally}, {"length prefixed": input}]
+merge:
+  pack: [{"length prefixed": tallyOne}, {"length prefixed": tallyTwo}]
+""").head
+    engine.action(Array[Byte](1, 2, 3)).asInstanceOf[Array[Byte]].toList should be (List[Byte](0, 3, 1, 2, 3))
+    engine.action(Array[Byte](4, 5, 6)).asInstanceOf[Array[Byte]].toList should be (List[Byte](5, 0, 3, 1, 2, 3, 3, 4, 5, 6))
+    engine.action(Array[Byte](7, 8, 9)).asInstanceOf[Array[Byte]].toList should be (List[Byte](10, 5, 0, 3, 1, 2, 3, 3, 4, 5, 6, 3, 7, 8, 9))
+  }
+
+  "Unpack binary" must "unpack null" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: "null"
+action:
+  unpack: input
+  format: [{x: pad}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](10)) should be (null)
+    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](1, 2)) } should produce [PFAUserException]
+  }
+
+  it must "unpack boolean" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: boolean
+action:
+  unpack: input
+  format: [{x: boolean}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](0)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    engine.action(Array[Byte](1)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    engine.action(Array[Byte](8)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](1, 2)) } should produce [PFAUserException]
+  }
+
+  it must "unpack byte" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: int
+action:
+  unpack: input
+  format: [{x: byte}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](10)).asInstanceOf[java.lang.Integer].intValue should be (10)
+    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](1, 2)) } should produce [PFAUserException]
+
+    val engineUnsigned = PFAEngine.fromYaml("""
+input: bytes
+output: int
+action:
+  unpack: input
+  format: [{x: "unsigned byte"}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engineUnsigned.action(Array[Byte](127)).asInstanceOf[java.lang.Integer].intValue should be (127)
+    engineUnsigned.action(Array[Byte](-128)).asInstanceOf[java.lang.Integer].intValue should be (128)
+    engineUnsigned.action(Array[Byte](-1)).asInstanceOf[java.lang.Integer].intValue should be (255)
+  }
+
+  it must "unpack short" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: int
+action:
+  unpack: input
+  format: [{x: short}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](0, 4)).asInstanceOf[java.lang.Integer].intValue should be (4)
+    evaluating { engine.action(Array[Byte](1)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](1, 2, 3)) } should produce [PFAUserException]
+
+    val engineLittleEndian = PFAEngine.fromYaml("""
+input: bytes
+output: int
+action:
+  unpack: input
+  format: [{x: "little short"}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engineLittleEndian.action(Array[Byte](4, 0)).asInstanceOf[java.lang.Integer].intValue should be (4)
+
+    val engineUnsigned = PFAEngine.fromYaml("""
+input: bytes
+output: int
+action:
+  unpack: input
+  format: [{x: "unsigned short"}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engineUnsigned.action(Array[Byte](127, -1)).asInstanceOf[java.lang.Integer].intValue should be (32767)
+    engineUnsigned.action(Array[Byte](-128, 0)).asInstanceOf[java.lang.Integer].intValue should be (32768)
+    engineUnsigned.action(Array[Byte](-1, -1)).asInstanceOf[java.lang.Integer].intValue should be (65535)
+
+    val engineUnsignedLittleEndian = PFAEngine.fromYaml("""
+input: bytes
+output: int
+action:
+  unpack: input
+  format: [{x: "little unsigned short"}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engineUnsignedLittleEndian.action(Array[Byte](-1, 127)).asInstanceOf[java.lang.Integer].intValue should be (32767)
+    engineUnsignedLittleEndian.action(Array[Byte](0, -128)).asInstanceOf[java.lang.Integer].intValue should be (32768)
+    engineUnsignedLittleEndian.action(Array[Byte](-1, -1)).asInstanceOf[java.lang.Integer].intValue should be (65535)
+  }
+
+  it must "unpack int" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: int
+action:
+  unpack: input
+  format: [{x: int}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](0, 0, 0, 4)).asInstanceOf[java.lang.Integer].intValue should be (4)
+    evaluating { engine.action(Array[Byte](1, 2, 3)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5)) } should produce [PFAUserException]
+
+    val engineLittleEndian = PFAEngine.fromYaml("""
+input: bytes
+output: int
+action:
+  unpack: input
+  format: [{x: "little int"}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engineLittleEndian.action(Array[Byte](4, 0, 0, 0)).asInstanceOf[java.lang.Integer].intValue should be (4)
+
+    val engineUnsigned = PFAEngine.fromYaml("""
+input: bytes
+output: long
+action:
+  unpack: input
+  format: [{x: "unsigned int"}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engineUnsigned.action(Array[Byte](127, -1, -1, -1)).asInstanceOf[java.lang.Long].longValue should be (2147483647L)
+    engineUnsigned.action(Array[Byte](-128, 0, 0, 0)).asInstanceOf[java.lang.Long].longValue should be (2147483648L)
+    engineUnsigned.action(Array[Byte](-1, -1, -1, -1)).asInstanceOf[java.lang.Long].longValue should be (4294967295L)
+
+    val engineUnsignedLittleEndian = PFAEngine.fromYaml("""
+input: bytes
+output: long
+action:
+  unpack: input
+  format: [{x: "little unsigned int"}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engineUnsignedLittleEndian.action(Array[Byte](-1, -1, -1, 127)).asInstanceOf[java.lang.Long].longValue should be (2147483647L)
+    engineUnsignedLittleEndian.action(Array[Byte](0, 0, 0, -128)).asInstanceOf[java.lang.Long].longValue should be (2147483648L)
+    engineUnsignedLittleEndian.action(Array[Byte](-1, -1, -1, -1)).asInstanceOf[java.lang.Long].longValue should be (4294967295L)
+  }
+
+  it must "unpack long" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: long
+action:
+  unpack: input
+  format: [{x: long}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](0, 0, 0, 0, 0, 0, 0, 4)).asInstanceOf[java.lang.Long].longValue should be (4)
+    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5, 6, 7)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9)) } should produce [PFAUserException]
+
+    val engineLittleEndian = PFAEngine.fromYaml("""
+input: bytes
+output: long
+action:
+  unpack: input
+  format: [{x: "little long"}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engineLittleEndian.action(Array[Byte](4, 0, 0, 0, 0, 0, 0, 0)).asInstanceOf[java.lang.Long].longValue should be (4)
+
+    val engineUnsigned = PFAEngine.fromYaml("""
+input: bytes
+output: double
+action:
+  unpack: input
+  format: [{x: "unsigned long"}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engineUnsigned.action(Array[Byte](0, 0, 0, 0, 0, 0, 0, 4)).asInstanceOf[java.lang.Double].doubleValue should be (4.0 +- 0.0001)
+
+    val engineUnsignedLittleEndian = PFAEngine.fromYaml("""
+input: bytes
+output: double
+action:
+  unpack: input
+  format: [{x: "little unsigned long"}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engineUnsignedLittleEndian.action(Array[Byte](4, 0, 0, 0, 0, 0, 0, 0)).asInstanceOf[java.lang.Double].doubleValue should be (4.0 +- 0.0001)
+  }
+
+  it must "unpack float" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: float
+action:
+  unpack: input
+  format: [{x: float}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](64, 72, -11, -61)).asInstanceOf[java.lang.Float].doubleValue should be (3.14 +- 0.000001)
+    evaluating { engine.action(Array[Byte](1, 2, 3)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5)) } should produce [PFAUserException]
+
+    val engineLittleEndian = PFAEngine.fromYaml("""
+input: bytes
+output: float
+action:
+  unpack: input
+  format: [{x: "little float"}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engineLittleEndian.action(Array[Byte](-61, -11, 72, 64)).asInstanceOf[java.lang.Float].doubleValue should be (3.14 +- 0.000001)
+  }
+
+  it must "unpack double" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: double
+action:
+  unpack: input
+  format: [{x: double}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](64, 9, 30, -72, 81, -21, -123, 31)).asInstanceOf[java.lang.Double].doubleValue should be (3.14 +- 0.000001)
+    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5, 6, 7)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9)) } should produce [PFAUserException]
+
+    val engineLittleEndian = PFAEngine.fromYaml("""
+input: bytes
+output: double
+action:
+  unpack: input
+  format: [{x: "little double"}]
+  then: x
+  else: {error: "Ack!"}
+""").head
+    engineLittleEndian.action(Array[Byte](31, -123, -21, 81, -72, 30, 9, 64)).asInstanceOf[java.lang.Double].doubleValue should be (3.14 +- 0.000001)
+  }
+
+  it must "unpack raw" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  unpack: input
+  format: [{x: raw5}]
+  then: {bytes.decodeAscii: x}
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](104, 101, 108, 108, 111)) should be ("hello")
+    evaluating { engine.action(Array[Byte](1, 2, 3, 4)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5, 6)) } should produce [PFAUserException]
+  }
+
+  it must "unpack tonull" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  unpack: input
+  format: [{x: nullterminated}]
+  then: {bytes.decodeAscii: x}
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](104, 101, 108, 108, 111, 0)) should be ("hello")
+    evaluating { engine.action(Array[Byte](104, 101, 108, 108, 111)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+  }
+
+  it must "unpack lengthprefixed" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  unpack: input
+  format: [{x: lengthprefixed}]
+  then: {bytes.decodeAscii: x}
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](5, 104, 101, 108, 108, 111)) should be ("hello")
+    evaluating { engine.action(Array[Byte](5, 104, 101, 108, 108, 111, 99)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](5, 104, 101, 108, 108)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+  }
+
+  it must "unpack multiple with raw" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  unpack: input
+  format: [{x: pad}, {y: raw5}, {z: int}]
+  then: {bytes.decodeAscii: y}
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 4)) should be ("hello")
+    evaluating { engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 4, 1)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+
+    val engineLittleEndian = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  unpack: input
+  format: [{x: "little int"}, {y: raw5}, {z: int}]
+  then: {bytes.decodeAscii: y}
+  else: {error: "Ack!"}
+""").head
+    engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 4)) should be ("hello")
+    evaluating { engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 4, 1)) } should produce [PFAUserException]
+    evaluating { engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0)) } should produce [PFAUserException]
+    evaluating { engineLittleEndian.action(Array[Byte]()) } should produce [PFAUserException]
+  }
+
+  it must "unpack multiple with tonull" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  unpack: input
+  format: [{x: pad}, {y: nullterminated}, {z: int}]
+  then: {bytes.decodeAscii: y}
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 0, 4)) should be ("hello")
+    evaluating { engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 0, 4, 1)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 0)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+
+    val engineLittleEndian = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  unpack: input
+  format: [{x: "little int"}, {y: nullterminated}, {z: int}]
+  then: {bytes.decodeAscii: y}
+  else: {error: "Ack!"}
+""").head
+    engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 0, 4)) should be ("hello")
+    evaluating { engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 0, 4, 1)) } should produce [PFAUserException]
+    evaluating { engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 0)) } should produce [PFAUserException]
+    evaluating { engineLittleEndian.action(Array[Byte]()) } should produce [PFAUserException]
+  }
+
+  it must "unpack multiple with lengthprefixed" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  unpack: input
+  format: [{x: pad}, {y: prefixed}, {z: int}]
+  then: {bytes.decodeAscii: y}
+  else: {error: "Ack!"}
+""").head
+    engine.action(Array[Byte](99, 5, 104, 101, 108, 108, 111, 0, 0, 0, 4)) should be ("hello")
+    evaluating { engine.action(Array[Byte](99, 5, 104, 101, 108, 108, 111, 0, 0, 0, 4, 1)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte](99, 5, 104, 101, 108, 108, 111, 0, 0, 0)) } should produce [PFAUserException]
+    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+
+    val engineLittleEndian = PFAEngine.fromYaml("""
+input: bytes
+output: string
+action:
+  unpack: input
+  format: [{x: "little int"}, {y: prefixed}, {z: int}]
+  then: {bytes.decodeAscii: y}
+  else: {error: "Ack!"}
+""").head
+    engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 5, 104, 101, 108, 108, 111, 0, 0, 0, 4)) should be ("hello")
+    evaluating { engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 5, 104, 101, 108, 108, 111, 0, 0, 0, 4, 1)) } should produce [PFAUserException]
+    evaluating { engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 5, 104, 101, 108, 108, 111, 0, 0, 0)) } should produce [PFAUserException]
+    evaluating { engineLittleEndian.action(Array[Byte]()) } should produce [PFAUserException]
+  }
+
+  it must "not break other variables" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: boolean
+action:
+  - let: {successful: false}
+  - unpack: input
+    format: [{x: pad}, {y: prefixed}, {z: int}]
+    then: {bytes.decodeAscii: y}
+    else: {error: "Ack!"}
+  - successful
+""").head
+    engine.action(Array[Byte](99, 5, 104, 101, 108, 108, 111, 0, 0, 0, 4)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+
+    val engine2 = PFAEngine.fromYaml("""
+input: bytes
+output: int
+action:
+  - let: {tmpInteger: 12}
+  - unpack: input
+    format: [{x: pad}, {y: prefixed}, {z: int}]
+    then: {bytes.decodeAscii: y}
+    else: {error: "Ack!"}
+  - tmpInteger
+""").head
+    engine2.action(Array[Byte](99, 5, 104, 101, 108, 108, 111, 0, 0, 0, 4)).asInstanceOf[java.lang.Integer].intValue should be (12)
+  }
+
   it must "do doc" taggedAs(JVMCompilation) in {
     compileExpression("""{doc: "This is very nice"}""", """"null"""").apply should be (null.asInstanceOf[java.lang.Void])
 
@@ -2194,7 +2743,7 @@ action:
   - {let: {x: [two]}}
   - {attr: input, path: [[one], 2, x]}
 """).head
-    engine.action(engine.fromJson("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""", engine.inputType)) should be (2)
+    engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""")) should be (2)
   }
 
   it must "extract from an on-the-fly generated object" taggedAs(JVMCompilation) in {
@@ -2220,7 +2769,7 @@ action:
   - {let: {x: [two]}}
   - {attr: input, path: [[one], 3, x]}
 """).head
-      engine.action(engine.fromJson("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""", engine.inputType))
+      engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}"""))
     } should produce [PFARuntimeException]
 
     evaluating {
@@ -2231,7 +2780,7 @@ action:
   - {let: {x: [TWO]}}
   - {attr: input, path: [[one], 2, x]}
 """).head
-      engine.action(engine.fromJson("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""", engine.inputType))
+      engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}"""))
     } should produce [PFARuntimeException]
   }
 
@@ -2244,7 +2793,7 @@ action:
   - {let: {x: [two]}}
   - {attr: input, path: [[ONE], 2, x]}
 """).head
-      engine.action(engine.fromJson("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""", engine.inputType)) should be (2)
+      engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""")) should be (2)
     } should produce [PFASemanticException]
 
     evaluating {
@@ -2255,7 +2804,7 @@ action:
   - {let: {x: [two]}}
   - {attr: input, path: [[one], x, x]}
 """).head
-      engine.action(engine.fromJson("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""", engine.inputType)) should be (2)
+      engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""")) should be (2)
     } should produce [PFASemanticException]
 
    evaluating {
@@ -2265,7 +2814,7 @@ output: int
 action:
   - {attr: input, path: [[one], 2, 2]}
 """).head
-      engine.action(engine.fromJson("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""", engine.inputType)) should be (2)
+      engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""")) should be (2)
    } should produce [PFASemanticException]
   }
 
@@ -2278,7 +2827,7 @@ action:
   - {let: {something: {attr: input, path: [[one], 2, x], to: 999}}}
   - {attr: something, path: [[one], 2, x]}
 """).head
-    engine.action(engine.fromJson("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""", engine.inputType)) should be (999)
+    engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""")) should be (999)
   }
 
   it must "change an on-the-fly generated object" taggedAs(JVMCompilation) in {
@@ -2308,7 +2857,7 @@ action:
   - {let: {something: {attr: input, path: [[one], 2, x], to: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}}}}
   - {attr: something, path: [[one], 2, x]}
 """).head
-    engine.action(engine.fromJson("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""", engine.inputType)) should be (3)
+    engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""")) should be (3)
   }
 
   it must "change a deep object with fcnref" taggedAs(JVMCompilation) in {
@@ -2322,7 +2871,7 @@ action:
 fcns:
   inc: {params: [{z: int}], ret: int, do: [{+: [z, 1]}]}
 """).head
-    engine.action(engine.fromJson("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""", engine.inputType)) should be (3)
+    engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""")) should be (3)
 
     val engine2 = PFAEngine.fromYaml("""
 input: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}
@@ -2334,7 +2883,7 @@ action:
 fcns:
   inc: {params: [{z: int}, {uno: int}], ret: int, do: [{+: [z, uno]}]}
 """).head
-    engine2.action(engine2.fromJson("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""", engine2.inputType)) should be (3)
+    engine2.action(engine2.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""")) should be (3)
   }
 
   "cell-get" must "extract private cells" taggedAs(JVMCompilation) in {
@@ -3964,9 +4513,9 @@ fcns:
     ret: double
     do: {+: [x, 0.3]}
 """).head
-    engine.action(engine.fromJson(""""one"""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (100.1 +- 0.01)
-    engine.action(engine.fromJson(""""two"""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (100.2 +- 0.01)
-    engine.action(engine.fromJson(""""three"""", engine.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (100.3 +- 0.01)
+    engine.action(engine.jsonInput(""""one"""")).asInstanceOf[java.lang.Double].doubleValue should be (100.1 +- 0.01)
+    engine.action(engine.jsonInput(""""two"""")).asInstanceOf[java.lang.Double].doubleValue should be (100.2 +- 0.01)
+    engine.action(engine.jsonInput(""""three"""")).asInstanceOf[java.lang.Double].doubleValue should be (100.3 +- 0.01)
 
     engine.callGraph("(action)") should be (Set("u.one", "u.two", "u.three"))
 
@@ -3993,9 +4542,9 @@ fcns:
     ret: string
     do: {string: hello}
 """).head
-    engine2.action(engine2.fromJson(""""one"""", engine2.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (100.1 +- 0.01)
-    engine2.action(engine2.fromJson(""""two"""", engine2.inputType)).asInstanceOf[java.lang.Double].doubleValue should be (100.2 +- 0.01)
-    engine2.action(engine2.fromJson(""""three"""", engine2.inputType)) should be ("hello")
+    engine2.action(engine2.jsonInput(""""one"""")).asInstanceOf[java.lang.Double].doubleValue should be (100.1 +- 0.01)
+    engine2.action(engine2.jsonInput(""""two"""")).asInstanceOf[java.lang.Double].doubleValue should be (100.2 +- 0.01)
+    engine2.action(engine2.jsonInput(""""three"""")) should be ("hello")
 
     evaluating { PFAEngine.fromYaml("""
 input:
@@ -4250,19 +4799,25 @@ action:
     val objectMapper = new ObjectMapper
 
     val datum = fromJson(jsonData, avroType)
-    if (debug)
-      println(toJson(datum, avroType))
+    if (debug  &&  datum == null)
+      println("null")
+    else if (debug)
+      println(datum, toJson(datum, avroType), datum.getClass.getName)
     objectMapper.readTree(toJson(datum, avroType)) should be (objectMapper.readTree(jsonData))
 
     val engine = PFAEngine.fromYaml(yamlEngine).head
     val translated = engine.fromPFAData(datum)
-    if (debug)
-      println(toJson(translated, avroType))
+    if (debug  &&  datum == null)
+      println("null")
+    else if (debug)
+      println(translated, toJson(translated, avroType), translated.getClass.getName)
     objectMapper.readTree(toJson(translated, avroType)) should be (objectMapper.readTree(jsonData))
 
     val result = engine.action(translated)
-    if (debug)
-      println(toJson(result, avroType))
+    if (debug  &&  datum == null)
+      println("null")
+    else if (debug)
+      println(result, toJson(result, avroType), result.getClass.getName)
     objectMapper.readTree(toJson(result, avroType)) should be (objectMapper.readTree(jsonData))
   }
 
@@ -4309,6 +4864,16 @@ output: bytes
 action: input
 """)
 
+    testGenericLoadAndConvert(AvroBytes(), """"hello"""", """
+input: bytes
+output: bytes
+cells:
+  tmp:
+    type: bytes
+    init: "hello"
+action: {cell: tmp}
+""")
+
     testGenericLoadAndConvert(AvroFixed(5, "MyType"), """"hello"""", """
 input:
   type: fixed
@@ -4316,6 +4881,19 @@ input:
   size: 5
 output: MyType
 action: input
+""")
+
+    testGenericLoadAndConvert(AvroFixed(5, "MyType"), """"hello"""", """
+input:
+  type: fixed
+  name: MyType
+  size: 5
+output: MyType
+cells:
+  tmp:
+    type: MyType
+    init: "hello"
+action: {cell: tmp}
 """)
 
     testGenericLoadAndConvert(AvroString(), """"hello"""", """
@@ -4330,6 +4908,30 @@ input:
   name: MyType
   symbols: [one, two, three]
 output: MyType
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroUnion(List(AvroNull(), AvroEnum(Seq("one", "two", "three"), "MyType"))), """{"MyType": "three"}""", """
+input:
+  - "null"
+  - type: enum
+    name: MyType
+    symbols: [one, two, three]
+output:
+  - "null"
+  - MyType
+action: input
+""")
+
+    testGenericLoadAndConvert(AvroUnion(List(AvroNull(), AvroEnum(Seq("one", "two", "three"), "MyType"))), "null", """
+input:
+  - "null"
+  - type: enum
+    name: MyType
+    symbols: [one, two, three]
+output:
+  - "null"
+  - MyType
 action: input
 """)
 

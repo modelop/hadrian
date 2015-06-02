@@ -28,6 +28,7 @@ import org.scalatest.Matchers
 
 import com.opendatagroup.hadrian.jvmcompiler._
 import com.opendatagroup.hadrian.errors._
+import com.opendatagroup.hadrian.data._
 import test.scala._
 
 @RunWith(classOf[JUnitRunner])
@@ -39,7 +40,24 @@ output: bytes
 action:
   fixed.toBytes: input
 """).head
-    new String(engine.action(engine.fromJson(""""0123456789"""", engine.inputType)).asInstanceOf[Array[Byte]], "utf-8") should be ("0123456789")
+    new String(engine.action(engine.jsonInput(""""0123456789"""")).asInstanceOf[Array[Byte]], "utf-8") should be ("0123456789")
+  }
+
+  it must "convert from bytes" taggedAs(Lib1, Lib1Fixed) in {
+    val engine = PFAEngine.fromYaml("""
+input: bytes
+output: {type: fixed, name: Test, size: 10}
+action:
+  - let:
+      original:
+        type: Test
+        value: "0123456789"
+  - fixed.fromBytes: [original, input]
+""").head
+    engine.action(Array[Byte]()).asInstanceOf[PFAFixed].bytes.toList should be (List[Byte](48, 49, 50, 51, 52, 53, 54, 55, 56, 57))
+    engine.action(Array[Byte](0, 1, 2, 3, 4, 5, 6, 7, 8)).asInstanceOf[PFAFixed].bytes.toList should be (List[Byte](0, 1, 2, 3, 4, 5, 6, 7, 8, 57))
+    engine.action(Array[Byte](0, 1, 2, 3, 4, 5, 6, 7, 8, 9)).asInstanceOf[PFAFixed].bytes.toList should be (List[Byte](0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
+    engine.action(Array[Byte](0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)).asInstanceOf[PFAFixed].bytes.toList should be (List[Byte](0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
   }
 
 }

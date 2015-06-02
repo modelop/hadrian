@@ -53,6 +53,10 @@ import com.opendatagroup.hadrian.ast.UserFcn
 import com.opendatagroup.hadrian.ast.Ast
 import com.opendatagroup.hadrian.ast.Method
 import com.opendatagroup.hadrian.ast.EngineConfig
+import com.opendatagroup.hadrian.ast.CellSource
+import com.opendatagroup.hadrian.ast.PoolSource
+import com.opendatagroup.hadrian.ast.EmbeddedJsonDomCellSource
+import com.opendatagroup.hadrian.ast.EmbeddedJsonDomPoolSource
 import com.opendatagroup.hadrian.ast.Cell
 import com.opendatagroup.hadrian.ast.Pool
 import com.opendatagroup.hadrian.ast.Argument
@@ -99,6 +103,9 @@ import com.opendatagroup.hadrian.ast.CastCase
 import com.opendatagroup.hadrian.ast.CastBlock
 import com.opendatagroup.hadrian.ast.Upcast
 import com.opendatagroup.hadrian.ast.IfNotNull
+import com.opendatagroup.hadrian.ast.BinaryFormatter
+import com.opendatagroup.hadrian.ast.Pack
+import com.opendatagroup.hadrian.ast.Unpack
 import com.opendatagroup.hadrian.ast.Doc
 import com.opendatagroup.hadrian.ast.Error
 import com.opendatagroup.hadrian.ast.Try
@@ -132,15 +139,16 @@ import com.opendatagroup.hadrian.datatype.AvroField
 import com.opendatagroup.hadrian.datatype.AvroUnion
 import com.opendatagroup.hadrian.datatype.ForwardDeclarationParser
 
+import com.opendatagroup.hadrian.data.AvroDataTranslator
 import com.opendatagroup.hadrian.data.AvroOutputDataStream
 import com.opendatagroup.hadrian.data.JsonOutputDataStream
 import com.opendatagroup.hadrian.data.OutputDataStream
-import com.opendatagroup.hadrian.data.AvroDataTranslator
 import com.opendatagroup.hadrian.data.PFADataTranslator
 import com.opendatagroup.hadrian.data.PFADatumReader
 import com.opendatagroup.hadrian.data.PFADatumWriter
 import com.opendatagroup.hadrian.data.PFAMap
 import com.opendatagroup.hadrian.data.PFASpecificData
+import com.opendatagroup.hadrian.data.toJsonDom
 import com.opendatagroup.hadrian.errors.PFAInitializationException
 import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.errors.PFASemanticException
@@ -637,7 +645,7 @@ package jvmcompiler {
         val field = thisClass.getDeclaredField(JVMNameMangle.c(cname))
         field.setAccessible(true)
 
-        val value = fromJson(cell.init, cell.avroType.schema)
+        val value = cell.init.value(specificData)
         cell.avroType match {
           case _: AvroBoolean => field.setBoolean(this, value.asInstanceOf[java.lang.Boolean].booleanValue)
           case _: AvroInt => field.setInt(this, value.asInstanceOf[java.lang.Integer].intValue)
@@ -661,7 +669,7 @@ package jvmcompiler {
       sharedCells.initialize(config.cells filter {_._2.shared} map {_._1} toSet,
         (name: String) => {
           val cell = config.cells(name)
-          fromJson(cell.init, cell.avroType.schema)
+          cell.init.value(specificData)
         })
       publicCells = sharedCells
 
@@ -670,11 +678,11 @@ package jvmcompiler {
         val field = thisClass.getDeclaredField(JVMNameMangle.p(pname))
         field.setAccessible(true)
 
-        val schema = pool.avroType.schema
         val hashMap = new java.util.HashMap[String, AnyRef]()
         field.set(this, hashMap)
-        for ((key, valueString) <- pool.init)
-          hashMap.put(key, fromJson(valueString, schema))
+        pool.init.initialize(specificData)
+        for (key <- pool.init.keys)
+          hashMap.put(key, pool.init.value(key))
 
         if (pool.rollback)
           poolsToRollback(pname) = field
@@ -683,8 +691,6 @@ package jvmcompiler {
 
       // fill the shared pools
       for ((pname, pool) <- config.pools if (pool.shared)) {
-        val schema = pool.avroType.schema
-
         val state = sharedState match {
           case Some(x) => x.pools.get(pname) match {
             case Some(y) => y
@@ -694,8 +700,8 @@ package jvmcompiler {
         }
 
         thisClass.getDeclaredField(JVMNameMangle.p(pname)).set(this, state)
-        state.initialize(pool.init.keys.toSet,
-          (name: String) => fromJson(pool.init(name), schema))
+        pool.init.initialize(specificData)
+        state.initialize(pool.init.keys, (name: String) => pool.init.value(name))
         publicPools(pname) = state
       }
 
@@ -784,15 +790,23 @@ package jvmcompiler {
       case y: AnyRef => y
     }
 
+    def analyzeCell[X](name: String, analysis: Any => X): X = getRunlock.synchronized {
+      analysis(cellState(name, config.cells(name).shared))
+    }
+
+    def analyzePool[X](name: String, analysis: Any => X): Map[String, X] = getRunlock.synchronized {
+      poolState(name, config.pools(name).shared) map {case (k, v) => (k, analysis(v))}
+    }
+
     def snapshot(): EngineConfig = getRunlock.synchronized {
       val newCells = config.cells map {
-        case (cname, Cell(avroPlaceholder, _, shared, rollback, _)) =>
-          (cname, Cell(avroPlaceholder, toJson(toBoxed(cellState(cname, shared)), avroPlaceholder.avroType.schema), shared, rollback))
+        case (cname, Cell(avroPlaceholder, _, shared, rollback, source, _)) =>
+          (cname, Cell(avroPlaceholder, EmbeddedJsonDomCellSource(toJsonDom(toBoxed(cellState(cname, shared)), avroPlaceholder.avroType), avroPlaceholder), shared, rollback, source))
       }
 
       val newPools = config.pools map {
-        case (pname, Pool(avroPlaceholder, _, shared, rollback, _)) =>
-          (pname, Pool(avroPlaceholder, poolState(pname, shared) map {case (k, v) => (k, toJson(toBoxed(v), avroPlaceholder.avroType.schema))}, shared, rollback))
+        case (pname, Pool(avroPlaceholder, _, shared, rollback, source, _)) =>
+          (pname, Pool(avroPlaceholder, EmbeddedJsonDomPoolSource(poolState(pname, shared) map {case (k, v) => (k, toJsonDom(toBoxed(v), avroPlaceholder.avroType))}, avroPlaceholder), shared, rollback, source))
       }
 
       EngineConfig(
@@ -816,24 +830,10 @@ package jvmcompiler {
         config.pos)
     }
 
-    def fromJsonHashMap(json: String, schema: Schema): AnyRef = {
-      val reader = new PFADatumReader[AnyRef](specificData, true)
-      reader.setSchema(schema)
-      val decoder = DecoderFactory.get.jsonDecoder(schema, json)
-      reader.read(null, decoder)
-    }
-
-    def fromJson(json: String, schema: Schema): AnyRef = {
+    def fromJson(json: Array[Byte], schema: Schema): AnyRef = {
       val reader = new PFADatumReader[AnyRef](specificData)
       reader.setSchema(schema)
-      val decoder = DecoderFactory.get.jsonDecoder(schema, json)
-      reader.read(null, decoder)
-    }
-
-    def fromAvro(avro: Array[Byte], schema: Schema): AnyRef = {
-      val reader = new PFADatumReader[AnyRef](specificData)
-      reader.setSchema(schema)
-      val decoder = DecoderFactory.get.validatingDecoder(schema, DecoderFactory.get.binaryDecoder(avro, null))
+      val decoder = DecoderFactory.get.jsonDecoder(schema, new ByteArrayInputStream(json))
       reader.read(null, decoder)
     }
 
@@ -846,6 +846,13 @@ package jvmcompiler {
       out.toString
     }
 
+    def fromAvro(avro: Array[Byte], schema: Schema): AnyRef = {
+      val reader = new PFADatumReader[AnyRef](specificData)
+      reader.setSchema(schema)
+      val decoder = DecoderFactory.get.validatingDecoder(schema, DecoderFactory.get.binaryDecoder(avro, null))
+      reader.read(null, decoder)
+    }
+
     def toAvro(obj: AnyRef, schema: Schema): Array[Byte] = {
       val out = new java.io.ByteArrayOutputStream
       val encoder = EncoderFactory.get.validatingEncoder(schema, EncoderFactory.get.binaryEncoder(out, null))
@@ -855,7 +862,7 @@ package jvmcompiler {
       out.toByteArray
     }
 
-    def fromJson(json: String, avroType: AvroType): AnyRef      = fromJson(json, avroType.schema)
+    def fromJson(json: Array[Byte], avroType: AvroType): AnyRef = fromJson(json, avroType.schema)
     def fromAvro(avro: Array[Byte], avroType: AvroType): AnyRef = fromAvro(avro, avroType.schema)
     def toJson(obj: AnyRef, avroType: AvroType): String         = toJson(obj, avroType.schema)
     def toAvro(obj: AnyRef, avroType: AvroType): Array[Byte]    = toAvro(obj, avroType.schema)
@@ -916,6 +923,9 @@ package jvmcompiler {
       }
     }
 
+    def jsonInput[INPUT <: AnyRef](json: Array[Byte]): INPUT = fromJson(json, inputType.schema).asInstanceOf[INPUT]
+    def jsonInput[INPUT <: AnyRef](json: String): INPUT = fromJson(json.getBytes, inputType.schema).asInstanceOf[INPUT]
+
     def avroOutputDataStream(outputStream: java.io.OutputStream): AvroOutputDataStream = {
       val writer = new PFADatumWriter[AnyRef](outputType.schema, specificData)
       val out = new AvroOutputDataStream(writer)
@@ -957,7 +967,7 @@ package jvmcompiler {
 
     def jsonOutputDataStream(fileName: String, writeSchema: Boolean): JsonOutputDataStream = jsonOutputDataStream(new java.io.File(fileName), writeSchema)
 
-    def jsonOutput(obj: AnyRef): String = toJson(obj, outputType.schema)
+    def jsonOutput[OUTPUT <: AnyRef](obj: OUTPUT): String = toJson(obj.asInstanceOf[AnyRef], outputType.schema)
 
     var _inputClass: java.lang.Class[AnyRef] = null
     var _outputClass: java.lang.Class[AnyRef] = null
@@ -995,25 +1005,25 @@ package jvmcompiler {
     def end(): Unit
 
     def snapshot: EngineConfig
+    def analyzeCell[X](name: String, analysis: Any => X): X
+    def analyzePool[X](name: String, analysis: Any => X): Map[String, X]
 
     val namedTypes: Map[String, AvroCompiled]
     val inputType: AvroType
     val outputType: AvroType
 
-    def fromJson(json: String, avroType: AvroType): AnyRef
-    def fromAvro(avro: Array[Byte], avroType: AvroType): AnyRef
-    def toJson(obj: AnyRef, avroType: AvroType): String
-    def toAvro(obj: AnyRef, avroType: AvroType): Array[Byte]
     def avroInputIterator[X](inputStream: InputStream): DataFileStream[X]    // DataFileStream is a java.util.Iterator
     def jsonInputIterator[X](inputStream: InputStream): java.util.Iterator[X]
     def jsonInputIterator[X](inputIterator: java.util.Iterator[String]): java.util.Iterator[X]
     def jsonInputIterator[X](inputIterator: scala.collection.Iterator[String]): scala.collection.Iterator[X]
+    def jsonInput(json: Array[Byte]): INPUT
+    def jsonInput(json: String): INPUT
     def avroOutputDataStream(outputStream: java.io.OutputStream): AvroOutputDataStream
     def avroOutputDataStream(file: java.io.File): AvroOutputDataStream
     def jsonOutputDataStream(outputStream: java.io.OutputStream, writeSchema: Boolean): JsonOutputDataStream
     def jsonOutputDataStream(file: java.io.File, writeSchema: Boolean): JsonOutputDataStream
     def jsonOutputDataStream(fileName: String, writeSchema: Boolean): JsonOutputDataStream
-    def jsonOutput(obj: AnyRef): String
+    def jsonOutput(obj: OUTPUT): String
 
     def fromPFAData(datum: AnyRef): AnyRef
     def fromGenericAvroData(datum: AnyRef): AnyRef
@@ -1381,11 +1391,21 @@ public class %s extends com.opendatagroup.hadrian.data.PFAFixed {
         super();
         bytes(that.bytes());
     }
+
+    public com.opendatagroup.hadrian.data.PFAFixed overlay(byte[] replacement) {
+        byte[] newbytes = (byte[])this.bytes().clone();
+        int length = replacement.length;
+        if (length > newbytes.length)
+            length = newbytes.length;
+        System.arraycopy(replacement, 0, newbytes, 0, length);
+        return new %s(newbytes);
+    }
 }
 """,          namespace map {"package " + _ + ";"} mkString(""),
               t(namespace, name, false),
               javaSchema(avroCompiled, true),
               size.toString,
+              t(namespace, name, false),
               t(namespace, name, false),
               t(namespace, name, false),
               t(namespace, name, false)))
@@ -1689,7 +1709,7 @@ return %s;
     public void initialize(com.opendatagroup.hadrian.ast.EngineConfig config, com.opendatagroup.hadrian.options.EngineOptions options, scala.Option<com.opendatagroup.hadrian.shared.SharedState> state, Class<%s> thisClass, com.opendatagroup.hadrian.ast.EngineConfig.Context context, int index) {
         super.initialize(config, options, state, thisClass, context, index);
         try {
-            %s = (%s)fromJson("%s", %s);
+            %s = (%s)fromJson("%s".getBytes(), %s);
         }
         catch (Exception err) {
             throw new com.opendatagroup.hadrian.errors.PFAInitializationException("zero does not conform to output type " + %s.toString());
@@ -1918,10 +1938,10 @@ public %s apply(%s) { return (%s).apply(%s); }
         )
       }
 
-      case CallUserFcn.Context(retType, _, name, nameToNum, nameToFcn, args, argContext, nameToParamTypes, nameToRetTypes) => {
+      case CallUserFcn.Context(retType, _, name, nameToNum, nameToFcn, args, argContext, nameToParamTypes, nameToRetTypes, engineOptions) => {
         val cases =
           for ((n, fcn) <- nameToFcn) yield
-            """        case %s: return %s;""".format(nameToNum(n), fcn.javaCode(args.collect({case x: JavaCode => x}), argContext, nameToParamTypes(n), nameToRetTypes(n)))
+            """        case %s: return %s;""".format(nameToNum(n), fcn.javaCode(args.collect({case x: JavaCode => x}), argContext, nameToParamTypes(n), nameToRetTypes(n), engineOptions))
 
         JavaCode("""(new Object() {
 public %s apply() {
@@ -1935,7 +1955,7 @@ public %s apply() {
               cases.mkString("\n"))
       }
 
-      case Call.Context(retType, _, fcn, args, argContext, paramTypes) => fcn.javaCode(args.collect({case x: JavaCode => x}), argContext, paramTypes, retType)
+      case Call.Context(retType, _, fcn, args, argContext, paramTypes, engineOptions) => fcn.javaCode(args.collect({case x: JavaCode => x}), argContext, paramTypes, retType, engineOptions)
 
       case Ref.Context(retType, _, name) => JavaCode(s(name))
 
@@ -1949,7 +1969,7 @@ public %s apply() {
       case LiteralBase64.Context(_, _, value) => JavaCode("new byte[]{" + value.mkString(",") + "}")
       case Literal.Context(retType, _, value) =>
         val escaped = StringEscapeUtils.escapeJava(value)
-        literals(escaped) = JavaCode("""    literals.put("%s", fromJson("%s", %s));""", escaped, escaped, javaSchema(retType, false))
+        literals(escaped) = JavaCode("""    literals.put("%s", fromJson("%s".getBytes(), %s));""", escaped, escaped, javaSchema(retType, false))
         JavaCode("""((%s)literals.get("%s"))""", javaType(retType, true, true, true), escaped)
 
       case NewObject.Context(retType, _, fields) =>
@@ -2485,6 +2505,241 @@ return null;
                        block(thenClause, ReturnMethod.NONE, retType)))
 
           case _ => throw new RuntimeException("inconsistent call to task(IfNotNull.Context)")
+        }
+      }
+
+      case Pack.Context(retType, calls, exprsDeclareRes) => {
+        var counter = 0
+        val evaluateAndCountBytes = exprsDeclareRes flatMap {_ match {
+          case BinaryFormatter.DeclarePad(value: JavaCode) =>
+            counter += 1
+            List("Object tmp" + counter.toString + " = " + value.toString + ";",
+                 "numBytes += 1;")
+          case BinaryFormatter.DeclareBoolean(value: JavaCode) =>
+            counter += 1
+            List("boolean tmp" + counter.toString + " = " + W.wrapExpr(value.toString, AvroBoolean(), false) + ";",
+                 "numBytes += 1;")
+          case BinaryFormatter.DeclareByte(value: JavaCode, unsigned) =>
+            counter += 1
+            List("int tmp" + counter.toString + " = " + W.wrapExpr(value.toString, AvroInt(), false) + ";",
+                 if (unsigned) "if (tmp" + counter.toString + " >= 256) tmp" + counter.toString + " -= 256;" else "",
+                 "numBytes += 1;")
+          case BinaryFormatter.DeclareShort(value: JavaCode, littleEndian, unsigned) =>
+            counter += 1
+            List("int tmp" + counter.toString + " = " + W.wrapExpr(value.toString, AvroInt(), false) + ";",
+                 if (unsigned) "if (tmp" + counter.toString + " >= 65536) tmp" + counter.toString + " -= 65536;" else "",
+                 "numBytes += 2;")
+          case BinaryFormatter.DeclareInt(value: JavaCode, littleEndian, unsigned) =>
+            counter += 1
+            if (unsigned)
+              List("long tmp" + counter.toString + " = " + W.wrapExpr(value.toString, AvroLong(), false) + ";",
+                   "if (tmp" + counter.toString + " >= 4294967296L) tmp" + counter.toString + " -= 4294967296L;",
+                   "numBytes += 4;")
+            else
+              List("int tmp" + counter.toString + " = " + W.wrapExpr(value.toString, AvroInt(), false) + ";",
+                   "numBytes += 4;")
+          case BinaryFormatter.DeclareLong(value: JavaCode, littleEndian, unsigned) =>
+            counter += 1
+            if (unsigned)
+              List("double tmp" + counter.toString + " = " + W.wrapExpr(value.toString, AvroDouble(), false) + ";",
+                   "if (tmp" + counter.toString + " >= 1.8446744073709552e+19) tmp" + counter.toString + " -= 1.8446744073709552e+19;",
+                   "numBytes += 8;")
+            else
+              List("long tmp" + counter.toString + " = " + W.wrapExpr(value.toString, AvroLong(), false) + ";",
+                   "numBytes += 8;")
+          case BinaryFormatter.DeclareFloat(value: JavaCode, littleEndian) =>
+            counter += 1
+            List("float tmp" + counter.toString + " = " + W.wrapExpr(value.toString, AvroFloat(), false) + ";",
+                 "numBytes += 4;")
+          case BinaryFormatter.DeclareDouble(value: JavaCode, littleEndian) =>
+            counter += 1
+            List("double tmp" + counter.toString + " = " + W.wrapExpr(value.toString, AvroDouble(), false) + ";",
+                 "numBytes += 8;")
+          case BinaryFormatter.DeclareRaw(value: JavaCode) =>
+            counter += 1
+            List("byte[] tmp" + counter.toString + " = " + value.toString + ";",
+                 "numBytes += tmp" + counter.toString + ".length;")
+          case BinaryFormatter.DeclareRawSize(value: JavaCode, size) =>
+            counter += 1
+            List("byte[] tmp" + counter.toString + " = " + value.toString + ";",
+                 "numBytes += tmp" + counter.toString + ".length;",
+                 "if (tmp" + counter.toString + ".length != " + size.toString + ") throw new com.opendatagroup.hadrian.errors.PFARuntimeException(\"raw bytes expression does not have size " + size.toString + "\", null);")
+          case BinaryFormatter.DeclareToNull(value: JavaCode) =>
+            counter += 1
+            List("byte[] tmp" + counter.toString + " = " + value.toString + ";",
+                 "numBytes += tmp" + counter.toString + ".length + 1;")
+          case BinaryFormatter.DeclarePrefixed(value: JavaCode) =>
+            counter += 1
+            List("byte[] tmp" + counter.toString + " = " + value.toString + ";",
+                 "numBytes += tmp" + counter.toString + ".length + 1;",
+                 "if (tmp" + counter.toString + ".length > 255) throw new com.opendatagroup.hadrian.errors.PFARuntimeException(\"length prefixed bytes expression is larger than 255 bytes\", null);")
+        }} mkString("\n")
+
+        counter = 0
+        val fillBuffer = exprsDeclareRes map {_ match {
+          case BinaryFormatter.DeclarePad(value: JavaCode) =>
+            counter += 1
+            "bytes.put((byte)0);"
+          case BinaryFormatter.DeclareBoolean(value: JavaCode) =>
+            counter += 1
+            "if (tmp" + counter.toString + ") { bytes.put((byte)1); } else { bytes.put((byte)0); }"
+          case BinaryFormatter.DeclareByte(value: JavaCode, unsigned) =>
+            counter += 1
+            "bytes.put((byte)tmp" + counter.toString + ");"
+          case BinaryFormatter.DeclareShort(value: JavaCode, littleEndian, unsigned) =>
+            counter += 1
+            (if (littleEndian) "bytes.order(java.nio.ByteOrder.LITTLE_ENDIAN);" else "bytes.order(java.nio.ByteOrder.BIG_ENDIAN);") + "\nbytes.putShort((short)tmp" + counter.toString + ");"
+          case BinaryFormatter.DeclareInt(value: JavaCode, littleEndian, unsigned) =>
+            counter += 1
+            (if (littleEndian) "bytes.order(java.nio.ByteOrder.LITTLE_ENDIAN);" else "bytes.order(java.nio.ByteOrder.BIG_ENDIAN);") + "\nbytes.putInt((int)tmp" + counter.toString + ");"
+          case BinaryFormatter.DeclareLong(value: JavaCode, littleEndian, unsigned) =>
+            counter += 1
+            (if (littleEndian) "bytes.order(java.nio.ByteOrder.LITTLE_ENDIAN);" else "bytes.order(java.nio.ByteOrder.BIG_ENDIAN);") + "\nbytes.putLong((long)tmp" + counter.toString + ");"
+          case BinaryFormatter.DeclareFloat(value: JavaCode, littleEndian) =>
+            counter += 1
+            (if (littleEndian) "bytes.order(java.nio.ByteOrder.LITTLE_ENDIAN);" else "bytes.order(java.nio.ByteOrder.BIG_ENDIAN);") + "\nbytes.putFloat((float)tmp" + counter.toString + ");"
+          case BinaryFormatter.DeclareDouble(value: JavaCode, littleEndian) =>
+            counter += 1
+            (if (littleEndian) "bytes.order(java.nio.ByteOrder.LITTLE_ENDIAN);" else "bytes.order(java.nio.ByteOrder.BIG_ENDIAN);") + "\nbytes.putDouble((double)tmp" + counter.toString + ");"
+          case BinaryFormatter.DeclareRaw(value: JavaCode) =>
+            counter += 1
+            "bytes.put(tmp" + counter.toString + ");"
+          case BinaryFormatter.DeclareRawSize(value: JavaCode, size) =>
+            counter += 1
+            "bytes.put(tmp" + counter.toString + ");"
+          case BinaryFormatter.DeclareToNull(value: JavaCode) =>
+            counter += 1
+            "bytes.put(tmp" + counter.toString + ");\nbytes.put((byte)0);"
+          case BinaryFormatter.DeclarePrefixed(value: JavaCode) =>
+            counter += 1
+            "bytes.put((byte)tmp" + counter.toString + ".length);\nbytes.put(tmp" + counter.toString + ");"
+        }} mkString("\n")
+
+        JavaCode("""(new Object() {
+public byte[] apply() {
+int numBytes = 0;
+%s
+java.nio.ByteBuffer bytes = java.nio.ByteBuffer.allocate(numBytes);
+%s
+return bytes.array();
+} }).apply()""".format(evaluateAndCountBytes, fillBuffer))
+      }
+
+      case Unpack.Context(retType, calls, bytes, formatter, thenSymbols, thenClause, elseSymbols, elseClause) => {
+        val formatSymbols = formatter map {f => "%s %s;".format(javaType(f.avroType, false, true, true), s(f.value))} mkString("\n")
+        val tryToUnpack = formatter flatMap {_ match {
+          case BinaryFormatter.DeclarePad(value: String) =>
+            List("wrappedBytes.get();",
+                 s(value) + " = null;")
+          case BinaryFormatter.DeclareBoolean(value: String) =>
+            List(s(value) + " = (wrappedBytes.get() != 0);")
+          case BinaryFormatter.DeclareByte(value: String, unsigned) =>
+            List(s(value) + " = wrappedBytes.get();",
+                 if (unsigned) "if (" + s(value) + " < 0) " + s(value) + " += 256;" else "")
+          case BinaryFormatter.DeclareShort(value: String, littleEndian, unsigned) =>
+            List(if (littleEndian) "wrappedBytes.order(java.nio.ByteOrder.LITTLE_ENDIAN);" else "wrappedBytes.order(java.nio.ByteOrder.BIG_ENDIAN);",
+                 s(value) + " = wrappedBytes.getShort();",
+                 if (unsigned) "if (" + s(value) + " < 0) " + s(value) + " += 65536;" else "")
+          case BinaryFormatter.DeclareInt(value: String, littleEndian, unsigned) =>
+            List(if (littleEndian) "wrappedBytes.order(java.nio.ByteOrder.LITTLE_ENDIAN);" else "wrappedBytes.order(java.nio.ByteOrder.BIG_ENDIAN);",
+                 s(value) + " = wrappedBytes.getInt();",
+                 if (unsigned) "if (" + s(value) + " < 0) " + s(value) + " += 4294967296L;" else "")
+          case BinaryFormatter.DeclareLong(value: String, littleEndian, unsigned) =>
+            List(if (littleEndian) "wrappedBytes.order(java.nio.ByteOrder.LITTLE_ENDIAN);" else "wrappedBytes.order(java.nio.ByteOrder.BIG_ENDIAN);",
+                 s(value) + " = wrappedBytes.getLong();",
+                 if (unsigned) "if (" + s(value) + " < 0) " + s(value) + " += 1.8446744073709552e+19;" else "")
+          case BinaryFormatter.DeclareFloat(value: String, littleEndian) =>
+            List(if (littleEndian) "wrappedBytes.order(java.nio.ByteOrder.LITTLE_ENDIAN);" else "wrappedBytes.order(java.nio.ByteOrder.BIG_ENDIAN);",
+                 s(value) + " = wrappedBytes.getFloat();")
+          case BinaryFormatter.DeclareDouble(value: String, littleEndian) =>
+            List(if (littleEndian) "wrappedBytes.order(java.nio.ByteOrder.LITTLE_ENDIAN);" else "wrappedBytes.order(java.nio.ByteOrder.BIG_ENDIAN);",
+                 s(value) + " = wrappedBytes.getDouble();")
+          case BinaryFormatter.DeclareRawSize(value: String, size) =>
+            List("if (wrappedBytes.position() + " + size.toString + " > bytes.length) throw new IllegalArgumentException();",
+                 s(value) + " = java.util.Arrays.copyOfRange(bytes, wrappedBytes.position(), wrappedBytes.position() + " + size.toString + ");",
+                 "wrappedBytes.position(wrappedBytes.position() + " + size.toString + ");")
+          case BinaryFormatter.DeclareToNull(value: String) =>
+            List("tmpInteger = wrappedBytes.position();",
+                 "while (wrappedBytes.get() != 0);",
+                 s(value) + " = java.util.Arrays.copyOfRange(bytes, tmpInteger, wrappedBytes.position() - 1);")
+          case BinaryFormatter.DeclarePrefixed(value: String) =>
+            List("tmpInteger = wrappedBytes.get();",
+                 s(value) + " = java.util.Arrays.copyOfRange(bytes, wrappedBytes.position(), wrappedBytes.position() + tmpInteger);",
+                 "wrappedBytes.position(wrappedBytes.position() + tmpInteger);")
+        }} mkString("\n")
+
+        (elseSymbols, elseClause) match {
+          case (Some(symbols), Some(clause)) =>
+            JavaCode("""(new Object() {
+%s
+public %s apply(byte[] bytes) {
+boolean successful = true;
+int tmpInteger = 0;
+java.nio.ByteBuffer wrappedBytes = java.nio.ByteBuffer.wrap(bytes);
+try {
+%s
+  successful = !wrappedBytes.hasRemaining();
+}
+catch (java.nio.BufferUnderflowException err) {
+  successful = false;
+}
+catch (IllegalArgumentException err) {
+  successful = false;
+}
+if (successful) {
+return (new Object() {
+%s
+public %s apply() {
+%s
+} }).apply();
+}
+else {
+return (new Object() {
+%s
+public %s apply() {
+%s
+} }).apply();
+}
+} }).apply(%s)""".format(formatSymbols,
+                         javaType(retType, false, true, true),
+                         tryToUnpack,
+                         symbolFields(thenSymbols),
+                         javaType(retType, false, true, true),
+                         block(thenClause, ReturnMethod.RETURN, retType),
+                         symbolFields(symbols),
+                         javaType(retType, false, true, true),
+                         block(clause, ReturnMethod.RETURN, retType),
+                         bytes))
+
+          case (None, None) =>
+            JavaCode("""(new Object() {
+%s
+%s
+public Void apply(byte[] bytes) {
+boolean successful = true;
+int tmpInteger = 0;
+java.nio.ByteBuffer wrappedBytes = java.nio.ByteBuffer.wrap(bytes);
+try {
+%s
+  successful = !wrappedBytes.hasRemaining();
+}
+catch (java.nio.BufferUnderflowException err) {
+  successful = false;
+}
+catch (IllegalArgumentException err) {
+  successful = false;
+}
+if (successful) {
+%s
+}
+return null;
+} }).apply(%s)""".format(formatSymbols,
+                         symbolFields(thenSymbols),
+                         tryToUnpack,
+                         block(thenClause, ReturnMethod.NONE, retType),
+                         bytes))
+
+          case _ => throw new RuntimeException("inconsistent call to task(Unpack.Context)")
         }
       }
 

@@ -323,6 +323,7 @@ action:
         self.assertEqual(engine.action(-3.2), -1)
         self.assertEqual(engine.action(0), 0)
         self.assertEqual(engine.action(3.2), 1)
+        self.assertEqual(engine.action(1.0), 1)
 
     def testSin(self):
         engine, = PFAEngine.fromYaml('''

@@ -40,7 +40,7 @@ output: int
 action:
   - {map.len: [input]}
 """).head
-    engine.action(engine.fromJson("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""", engine.inputType)) should be (5)
+    engine.action(engine.jsonInput("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""")) should be (5)
 
     val engine2 = PFAEngine.fromYaml("""
 input: {type: map, values: int}
@@ -48,7 +48,7 @@ output: int
 action:
   - {map.len: [input]}
 """).head
-    engine2.action(engine.fromJson("""{}""", engine2.inputType)) should be (0)
+    engine2.action(engine.jsonInput("""{}""")) should be (0)
   }
 
   it must "get keys" taggedAs(Lib1, Lib1Map) in {
@@ -58,7 +58,7 @@ output: {type: array, items: string}
 action:
   - {map.keys: [input]}
 """).head
-    engine.action(engine.fromJson("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""", engine.inputType)).asInstanceOf[PFAArray[String]].toVector.toSet should be (Set("a", "b", "c", "d", "e"))
+    engine.action(engine.jsonInput("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""")).asInstanceOf[PFAArray[String]].toVector.toSet should be (Set("a", "b", "c", "d", "e"))
 
     val engine2 = PFAEngine.fromYaml("""
 input: {type: map, values: int}
@@ -66,7 +66,7 @@ output: {type: array, items: string}
 action:
   - {map.keys: [input]}
 """).head
-    engine2.action(engine2.fromJson("""{}""", engine2.inputType)).asInstanceOf[PFAArray[String]].toVector should be (Vector[String]())
+    engine2.action(engine2.jsonInput("""{}""")).asInstanceOf[PFAArray[String]].toVector should be (Vector[String]())
   }
 
   it must "get values" taggedAs(Lib1, Lib1Map) in {
@@ -76,7 +76,7 @@ output: {type: array, items: int}
 action:
   - {map.values: [input]}
 """).head
-    engine.action(engine.fromJson("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""", engine.inputType)).asInstanceOf[PFAArray[String]].toVector.toSet should be (Set(1, 2, 3, 4, 5))
+    engine.action(engine.jsonInput("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""")).asInstanceOf[PFAArray[String]].toVector.toSet should be (Set(1, 2, 3, 4, 5))
 
     val engine2 = PFAEngine.fromYaml("""
 input: {type: map, values: int}
@@ -84,7 +84,7 @@ output: {type: array, items: int}
 action:
   - {map.values: [input]}
 """).head
-    engine2.action(engine2.fromJson("""{}""", engine2.inputType)).asInstanceOf[PFAArray[Int]].toVector should be (Vector[Int]())
+    engine2.action(engine2.jsonInput("""{}""")).asInstanceOf[PFAArray[Int]].toVector should be (Vector[Int]())
   }
 
   "searching" must "check contains key" taggedAs(Lib1, Lib1Map) in {
@@ -186,9 +186,9 @@ action:
     - {value: {"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}, type: {type: map, values: int}}
     - input
 """).head
-    engine.action(engine.fromJson("""["b", "c", "e"]""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("b" -> 2, "c" -> 3, "e" -> 5))
-    engine.action(engine.fromJson("""["b", "c", "e", "z"]""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("b" -> 2, "c" -> 3, "e" -> 5))
-    engine.action(engine.fromJson("""[]""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map[String, java.lang.Integer]())
+    engine.action(engine.jsonInput("""["b", "c", "e"]""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("b" -> 2, "c" -> 3, "e" -> 5))
+    engine.action(engine.jsonInput("""["b", "c", "e", "z"]""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("b" -> 2, "c" -> 3, "e" -> 5))
+    engine.action(engine.jsonInput("""[]""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map[String, java.lang.Integer]())
 
     val engine2 = PFAEngine.fromYaml("""
 input: {type: array, items: string}
@@ -198,8 +198,8 @@ action:
     - {value: {}, type: {type: map, values: int}}
     - input
 """).head
-    engine2.action(engine2.fromJson("""["b", "c", "e"]""", engine2.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map[String, java.lang.Integer]())
-    engine2.action(engine2.fromJson("""[]""", engine2.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map[String, java.lang.Integer]())
+    engine2.action(engine2.jsonInput("""["b", "c", "e"]""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map[String, java.lang.Integer]())
+    engine2.action(engine2.jsonInput("""[]""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map[String, java.lang.Integer]())
   }
 
   it must "eliminate only certain keys" taggedAs(Lib1, Lib1Map) in {
@@ -211,9 +211,9 @@ action:
     - {value: {"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}, type: {type: map, values: int}}
     - input
 """).head
-    engine.action(engine.fromJson("""["b", "c", "e"]""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("a" -> 1, "d" -> 4))
-    engine.action(engine.fromJson("""["b", "c", "e", "z"]""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("a" -> 1, "d" -> 4))
-    engine.action(engine.fromJson("""[]""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4, "e" -> 5))
+    engine.action(engine.jsonInput("""["b", "c", "e"]""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("a" -> 1, "d" -> 4))
+    engine.action(engine.jsonInput("""["b", "c", "e", "z"]""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("a" -> 1, "d" -> 4))
+    engine.action(engine.jsonInput("""[]""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4, "e" -> 5))
 
     val engine2 = PFAEngine.fromYaml("""
 input: {type: array, items: string}
@@ -223,8 +223,8 @@ action:
     - {value: {}, type: {type: map, values: int}}
     - input
 """).head
-    engine2.action(engine2.fromJson("""["b", "c", "e"]""", engine2.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map[String, java.lang.Integer]())
-    engine2.action(engine2.fromJson("""[]""", engine2.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map[String, java.lang.Integer]())
+    engine2.action(engine2.jsonInput("""["b", "c", "e"]""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map[String, java.lang.Integer]())
+    engine2.action(engine2.jsonInput("""[]""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map[String, java.lang.Integer]())
   }
 
   it must "update with an overlay" taggedAs(Lib1, Lib1Map) in {
@@ -236,7 +236,7 @@ action:
     - {value: {"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}, type: {type: map, values: int}}
     - input
 """).head
-    engine.action(engine.fromJson("""{"b": 102, "c": 103, "z": 999}""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("a" -> 1, "b" -> 102, "c" -> 103, "d" -> 4, "e" -> 5, "z" -> 999))
+    engine.action(engine.jsonInput("""{"b": 102, "c": 103, "z": 999}""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("a" -> 1, "b" -> 102, "c" -> 103, "d" -> 4, "e" -> 5, "z" -> 999))
   }
 
   it must "do split" taggedAs(Lib1, Lib1Map) in {
@@ -246,7 +246,7 @@ output: {type: array, items: {type: map, values: int}}
 action:
   map.split: input
 """).head
-    engine.action(engine.fromJson("""{"a": 1, "b": 2, "c": 3}""", engine.inputType)).asInstanceOf[PFAArray[PFAMap[java.lang.Integer]]].toVector map {_.toMap} should be (Vector(Map("a" -> java.lang.Integer.valueOf(1)), Map("b" -> java.lang.Integer.valueOf(2)), Map("c" -> java.lang.Integer.valueOf(3))))
+    engine.action(engine.jsonInput("""{"a": 1, "b": 2, "c": 3}""")).asInstanceOf[PFAArray[PFAMap[java.lang.Integer]]].toVector map {_.toMap} should be (Vector(Map("a" -> java.lang.Integer.valueOf(1)), Map("b" -> java.lang.Integer.valueOf(2)), Map("c" -> java.lang.Integer.valueOf(3))))
   }
 
   it must "do join" taggedAs(Lib1, Lib1Map) in {
@@ -256,7 +256,7 @@ output: {type: map, values: int}
 action:
   map.join: input
 """).head
-    engine.action(engine.fromJson("""[{"a": 1}, {"b": 2}, {"c": 3}]""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("a" -> java.lang.Integer.valueOf(1), "b" -> java.lang.Integer.valueOf(2), "c" -> java.lang.Integer.valueOf(3)))
+    engine.action(engine.jsonInput("""[{"a": 1}, {"b": 2}, {"c": 3}]""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap should be (Map("a" -> java.lang.Integer.valueOf(1), "b" -> java.lang.Integer.valueOf(2), "c" -> java.lang.Integer.valueOf(3)))
   }
 
   "set functions" must "do toset" taggedAs(Lib1, Lib1Map) in {
@@ -266,7 +266,7 @@ output: {type: map, values: int}
 action:
   - {map.toset: [input]}
 """).head
-    engine.action(engine.fromJson("""[1, 2, 3, 4, 5]""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Void]].toMap should be (Map("BA==" -> 2, "Ag==" -> 1, "Bg==" -> 3, "Cg==" -> 5, "CA==" -> 4))
+    engine.action(engine.jsonInput("""[1, 2, 3, 4, 5]""")).asInstanceOf[PFAMap[java.lang.Void]].toMap should be (Map("BA==" -> 2, "Ag==" -> 1, "Bg==" -> 3, "Cg==" -> 5, "CA==" -> 4))
   }
 
   it must "do fromset" taggedAs(Lib1, Lib1Map) in {
@@ -276,7 +276,7 @@ output: {type: array, items: int}
 action:
   - {map.fromset: [input]}
 """).head
-    engine.action(engine.fromJson("""{"BA==": 2, "Ag==": 1, "Bg==": 3, "Cg==": 5, "CA==": 4}""", engine.inputType)).asInstanceOf[PFAArray[Int]].toVector.toSet should be (Set(1, 2, 3, 4, 5))
+    engine.action(engine.jsonInput("""{"BA==": 2, "Ag==": 1, "Bg==": 3, "Cg==": 5, "CA==": 4}""")).asInstanceOf[PFAArray[Int]].toVector.toSet should be (Set(1, 2, 3, 4, 5))
 
     val engine2 = PFAEngine.fromYaml("""
 input: {type: map, values: string}
@@ -284,7 +284,7 @@ output: {type: array, items: string}
 action:
   - {map.fromset: [input]}
 """).head
-    engine2.action(engine2.fromJson("""{"BA==": "two", "Ag==": "one", "Bg==": "three", "Cg==": "five", "CA==": "four"}""", engine2.inputType)).asInstanceOf[PFAArray[String]].toVector.toSet should be (Set("one", "two", "three", "four", "five"))
+    engine2.action(engine2.jsonInput("""{"BA==": "two", "Ag==": "one", "Bg==": "three", "Cg==": "five", "CA==": "four"}""")).asInstanceOf[PFAArray[String]].toVector.toSet should be (Set("one", "two", "three", "four", "five"))
   }
 
   it must "do in" taggedAs(Lib1, Lib1Map) in {
@@ -361,9 +361,9 @@ action:
     - {map.toset: input}
     - {map.toset: {value: [1, 2, 3, 4, 5], type: {type: array, items: int}}}
 """).head
-    engine.action(engine.fromJson("""[1, 2, 3]""", engine.inputType)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
-    engine.action(engine.fromJson("""[1, 2, 3, 999]""", engine.inputType)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
-    engine.action(engine.fromJson("""[888, 999]""", engine.inputType)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    engine.action(engine.jsonInput("""[1, 2, 3]""")).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    engine.action(engine.jsonInput("""[1, 2, 3, 999]""")).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    engine.action(engine.jsonInput("""[888, 999]""")).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
   }
 
   it must "do disjoint" taggedAs(Lib1, Lib1Map) in {
@@ -375,9 +375,9 @@ action:
     - {map.toset: input}
     - {map.toset: {value: [1, 2, 3, 4, 5], type: {type: array, items: int}}}
 """).head
-    engine.action(engine.fromJson("""[1, 2, 3]""", engine.inputType)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
-    engine.action(engine.fromJson("""[1, 2, 3, 999]""", engine.inputType)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
-    engine.action(engine.fromJson("""[888, 999]""", engine.inputType)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    engine.action(engine.jsonInput("""[1, 2, 3]""")).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    engine.action(engine.jsonInput("""[1, 2, 3, 999]""")).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    engine.action(engine.jsonInput("""[888, 999]""")).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
   }
 
   "functional programming" must "do map" taggedAs(Lib1, Lib1Map) in {
@@ -391,7 +391,7 @@ action:
       ret: int
       do: {parse.int: [x, 10]}
 """).head
-    engine.action(engine.fromJson("""{"a": "1", "b": "2", "c": "3", "d": "4", "e": "5"}""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4, "e" -> 5))
+    engine.action(engine.jsonInput("""{"a": "1", "b": "2", "c": "3", "d": "4", "e": "5"}""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4, "e" -> 5))
   }
 
   it must "do mapWithKey" taggedAs(Lib1, Lib1Map) in {
@@ -408,7 +408,7 @@ action:
         then: {+: [{parse.int: [value, 10]}, 1000]}
         else: {parse.int: [value, 10]}
 """).head
-    engine.action(engine.fromJson("""{"a": "1", "b": "2", "c": "3", "d": "4", "e": "5"}""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("a" -> 1, "b" -> 2, "c" -> 3, "d" -> 1004, "e" -> 1005))
+    engine.action(engine.jsonInput("""{"a": "1", "b": "2", "c": "3", "d": "4", "e": "5"}""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("a" -> 1, "b" -> 2, "c" -> 3, "d" -> 1004, "e" -> 1005))
   }
 
   it must "do filter" taggedAs(Lib1, Lib1Map) in {
@@ -422,7 +422,7 @@ action:
       ret: boolean
       do: {"<": [x, 3]}
 """).head
-    engine.action(engine.fromJson("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("a" -> 1, "b" -> 2))
+    engine.action(engine.jsonInput("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("a" -> 1, "b" -> 2))
   }
 
   it must "do filterWithKey" taggedAs(Lib1, Lib1Map) in {
@@ -436,7 +436,7 @@ action:
       ret: boolean
       do: {"&&": [{"<": [value, 3]}, {"==": [key, {string: "a"}]}]}
 """).head
-    engine.action(engine.fromJson("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("a" -> 1))
+    engine.action(engine.jsonInput("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("a" -> 1))
   }
 
   it must "do filterMap" taggedAs(Lib1, Lib1Map) in {
@@ -453,7 +453,7 @@ action:
         then: {"+": [value, 1000]}
         else: null
 """).head
-    engine.action(engine.fromJson("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("b" -> 1002, "d" -> 1004))
+    engine.action(engine.jsonInput("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("b" -> 1002, "d" -> 1004))
   }
 
   it must "do filterMapWithKey" taggedAs(Lib1, Lib1Map) in {
@@ -470,7 +470,7 @@ action:
         then: {"+": [value, 1000]}
         else: null
 """).head
-    engine.action(engine.fromJson("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("b" -> 1002))
+    engine.action(engine.jsonInput("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("b" -> 1002))
   }
 
   it must "do flatMapWithKey" taggedAs(Lib1, Lib1Map) in {
@@ -491,7 +491,7 @@ action:
           - {s.concat: [key, key]}
           - {+: [100, value]}
 """).head
-    engine.action(engine.fromJson("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""", engine.inputType)).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4, "e" -> 5, "aa" -> 101, "bb" -> 102, "cc" -> 103, "dd" -> 104, "ee" -> 105))
+    engine.action(engine.jsonInput("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""")).asInstanceOf[PFAMap[java.lang.Integer]].toMap map {case (k, v) => (k, v.intValue)} should be (Map("a" -> 1, "b" -> 2, "c" -> 3, "d" -> 4, "e" -> 5, "aa" -> 101, "bb" -> 102, "cc" -> 103, "dd" -> 104, "ee" -> 105))
   }
 
   it must "do corresponds" taggedAs(Lib1, Lib1Map) in {
@@ -506,8 +506,8 @@ action:
       ret: boolean
       do: {"==": [x, {parse.int: [y, 10]}]}
 """).head
-    engine.action(engine.fromJson("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""", engine.inputType)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
-    engine.action(engine.fromJson("""{"a": 111, "b": 2, "c": 3, "d": 4, "e": 5}""", engine.inputType)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    engine.action(engine.jsonInput("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""")).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    engine.action(engine.jsonInput("""{"a": 111, "b": 2, "c": 3, "d": 4, "e": 5}""")).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
   }
 
   it must "do correspondsWithKey" taggedAs(Lib1, Lib1Map) in {
@@ -525,9 +525,9 @@ action:
         then: true
         else: {"==": [x, {parse.int: [y, 10]}]}
 """).head
-    engine.action(engine.fromJson("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""", engine.inputType)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
-    engine.action(engine.fromJson("""{"a": 111, "b": 2, "c": 3, "d": 4, "e": 5}""", engine.inputType)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
-    engine.action(engine.fromJson("""{"a": 1, "b": 222, "c": 3, "d": 4, "e": 5}""", engine.inputType)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
+    engine.action(engine.jsonInput("""{"a": 1, "b": 2, "c": 3, "d": 4, "e": 5}""")).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    engine.action(engine.jsonInput("""{"a": 111, "b": 2, "c": 3, "d": 4, "e": 5}""")).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
+    engine.action(engine.jsonInput("""{"a": 1, "b": 222, "c": 3, "d": 4, "e": 5}""")).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
   }
 
 }

@@ -443,6 +443,56 @@ action:
         self.assertEqual(engine.action({"one": 15, "two": 7, "three": "TEST"}), "no-yes")
         self.assertEqual(engine.action({"one": 15, "two": 7, "three": "ZEST"}), "no-no")
 
+    def testWorkForSameExampleUnionOrderSwitched(self):
+        engine, = PFAEngine.fromYaml('''
+input: {type: record, name: Datum, fields: [{name: one, type: int}, {name: two, type: double}, {name: three, type: string}]}
+output: string
+cells:
+  tree:
+    type:
+      type: record
+      name: TreeNode
+      fields:
+        - name: field
+          type:
+            type: enum
+            name: Fields
+            symbols: [one, two, three]
+        - {name: operator, type: string}
+        - {name: value, type: [int, double, string]}
+        - {name: pass, type: [TreeNode, string]}
+        - {name: fail, type: [TreeNode, string]}
+    init:
+      field: one
+      operator: "<"
+      value: {double: 12}
+      pass:
+        TreeNode:
+          field: two
+          operator: ">"
+          value: {double: 3.5}
+          pass: {string: yes-yes}
+          fail: {string: yes-no}
+      fail:
+        TreeNode:
+          field: three
+          operator: ==
+          value: {string: TEST}
+          pass: {string: no-yes}
+          fail: {string: no-no}
+action:
+  - model.tree.simpleWalk:
+      - input
+      - cell: tree
+      - params: [{d: Datum}, {t: TreeNode}]
+        ret: boolean
+        do: {model.tree.simpleTest: [d, t]}
+''')
+        self.assertEqual(engine.action({"one": 1, "two": 7, "three": "whatever"}), "yes-yes")
+        self.assertEqual(engine.action({"one": 1, "two": 0, "three": "whatever"}), "yes-no")
+        self.assertEqual(engine.action({"one": 15, "two": 7, "three": "TEST"}), "no-yes")
+        self.assertEqual(engine.action({"one": 15, "two": 7, "three": "ZEST"}), "no-no")
+
     def testWorkWithACompletelyUserDefinedPredicate(self):
         engine, = PFAEngine.fromYaml('''
 input: {type: record, name: Datum, fields: [{name: one, type: int}, {name: two, type: double}, {name: three, type: string}]}

@@ -30,6 +30,7 @@ import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.jvmcompiler.JavaCode
 import com.opendatagroup.hadrian.jvmcompiler.javaSchema
 import com.opendatagroup.hadrian.jvmcompiler.PFAEngineBase
+import com.opendatagroup.hadrian.options.EngineOptions
 
 import com.opendatagroup.hadrian.ast.AstContext
 import com.opendatagroup.hadrian.ast.ExpressionContext
@@ -91,7 +92,7 @@ package object sample {
         <ret>Returns an updated version of <p>state</p> with <pf>count</pf> incremented by <p>w</p>, <pf>mean</pf> updated to the current mean of all <p>x</p>, and <pf>variance</pf> updated to the current variance of all <p>x</p>.  If the <p>state</p> has fields other than <pf>count</pf>, <pf>mean</pf>, and <pf>variance</pf>, they are copied unaltered to the output state.</ret>
     </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode = {
       val record = retType.asInstanceOf[AvroRecord]
 
       val hasMean = record.fieldOption("mean") match {
@@ -280,7 +281,7 @@ package object sample {
         <error>If <p>state</p> is empty and the record type has fields other than <pf>count</pf>, <pf>mean</pf>, and <pf>variance</pf>, then a "cannot initialize unrecognized fields" error is raised.  Unrecognized fields are only allowed if an initial record is provided.</error>
     </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode = {
       val record = retType.asInstanceOf[AvroArray].items.asInstanceOf[AvroRecord]
 
       val hasMean = record.fieldOption("mean") match {
@@ -331,9 +332,9 @@ package object sample {
         if (hasOthers)
           throw new PFARuntimeException("cannot initialize unrecognized fields")
         level match {
-          case 0 => pfaEngineBase.fromJson("""[{"x": %s, "w": %s, "count": %s}]""".format(x, w, w), schema).asInstanceOf[PFAArray[PFARecord]]
-          case 1 => pfaEngineBase.fromJson("""[{"x": %s, "w": %s, "count": %s, "mean": %s}]""".format(x, w, w, x), schema).asInstanceOf[PFAArray[PFARecord]]
-          case 2 => pfaEngineBase.fromJson("""[{"x": %s, "w": %s, "count": %s, "mean": %s, "variance": 0.0}]""".format(x, w, w, x), schema).asInstanceOf[PFAArray[PFARecord]]
+          case 0 => pfaEngineBase.fromJson("""[{"x": %s, "w": %s, "count": %s}]""".format(x, w, w).getBytes, schema).asInstanceOf[PFAArray[PFARecord]]
+          case 1 => pfaEngineBase.fromJson("""[{"x": %s, "w": %s, "count": %s, "mean": %s}]""".format(x, w, w, x).getBytes, schema).asInstanceOf[PFAArray[PFARecord]]
+          case 2 => pfaEngineBase.fromJson("""[{"x": %s, "w": %s, "count": %s, "mean": %s, "variance": 0.0}]""".format(x, w, w, x).getBytes, schema).asInstanceOf[PFAArray[PFARecord]]
         }
       }
 
@@ -432,7 +433,7 @@ package object sample {
         <error>If <p>alpha</p> is less than 0 or greater than 1, an "alpha out of range" error is raised.</error>
       </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode = {
       val record = retType.asInstanceOf[AvroRecord]
 
       val hasVariance = record.fieldOption("variance") match {
@@ -586,7 +587,7 @@ package object sample {
         <error>If <pf>cycle</pf> is empty, an "empty cycle" error is raised.</error>
       </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode = {
       val record = paramTypes(0).asInstanceOf[AvroRecord]
 
       val hasCycle = record.fieldOption("cycle") match {
@@ -654,7 +655,7 @@ package object sample {
         <error>If <pf>cycle</pf> is empty, an "empty cycle" error is raised.</error>
       </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode = {
       val record = paramTypes(1).asInstanceOf[AvroRecord]
 
       val hasCycle = record.fieldOption("cycle") match {
@@ -738,7 +739,7 @@ package object sample {
       <error>If <pf>ranges</pf> contains an array of doubles with length not equal to 2 or if the first element is greater than the second element, then a "bad histogram ranges" error is raised.</error>
     </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode = {
       val record = retType.asInstanceOf[AvroRecord]
 
       def has(name: String, avroType: AvroType): Boolean =
@@ -956,7 +957,7 @@ package object sample {
       <error>If <pf>xlow</pf> is greater than or equal to <pf>xhigh</pf> or if <pf>ylow</pf> is greater than or equal to <pf>yhigh</pf>, then a "bad histogram range" error is raised.</error>
     </doc>
 
-    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType): JavaCode = {
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode = {
       val record = retType.asInstanceOf[AvroRecord]
 
       def has(name: String): Boolean =

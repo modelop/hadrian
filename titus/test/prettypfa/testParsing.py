@@ -590,6 +590,36 @@ action: upcast(array(int), input)
 ''', lineNumbers=False, check=False)["action"][0], {"upcast": "input", "as": {"type": "array", "items": "int"}})
 
         self.assertEqual(titus.prettypfa.jsonNode('''
+input: int
+output: bytes
+action: pack("little int": input, double: input)
+''', lineNumbers=False, check=False)["action"][0], {"pack": [{"little int": "input"}, {"double": "input"}]})
+
+        self.assertEqual(titus.prettypfa.jsonNode('''
+input: bytes
+output: null
+action: unpack(input, x: "little int", y: double) { log(x, y) }
+''', lineNumbers=False, check=False)["action"][0], {"unpack": "input", "format": [{"x": "little int"}, {"y": "double"}], "then": [{"log": ["x", "y"]}]})
+
+        self.assertEqual(titus.prettypfa.jsonNode('''
+input: bytes
+output: null
+action: unpack(input, x: "little int", y: double) log(x, y)
+''', lineNumbers=False, check=False)["action"][0], {"unpack": "input", "format": [{"x": "little int"}, {"y": "double"}], "then": [{"log": ["x", "y"]}]})
+
+        self.assertEqual(titus.prettypfa.jsonNode('''
+input: bytes
+output: int
+action: unpack(input, x: "little int", y: double) { x } else { -999 }
+''', lineNumbers=False, check=False)["action"][0], {"unpack": "input", "format": [{"x": "little int"}, {"y": "double"}], "then": ["x"], "else": [-999]})
+
+        self.assertEqual(titus.prettypfa.jsonNode('''
+input: bytes
+output: int
+action: unpack(input, x: "little int", y: double) x else -999
+''', lineNumbers=False, check=False)["action"][0], {"unpack": "input", "format": [{"x": "little int"}, {"y": "double"}], "then": ["x"], "else": [-999]})
+
+        self.assertEqual(titus.prettypfa.jsonNode('''
 input: double
 output: double
 action: doc("this is important")

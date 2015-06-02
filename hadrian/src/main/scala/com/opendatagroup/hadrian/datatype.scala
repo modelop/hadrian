@@ -93,6 +93,8 @@ package datatype {
   }
 
   abstract class AvroType extends Type {
+    def name: String
+    def fullName: String = name
     def schema: Schema
     override def equals(that: Any): Boolean = that match {
       case x: AvroType => schema == x.schema
@@ -185,9 +187,7 @@ package datatype {
   }
 
   trait AvroCompiled extends AvroType {
-    def name: String
     def namespace: Option[String]
-    def fullName: String
     def aliases: Set[String]
     def doc: String
   }
@@ -209,6 +209,7 @@ package datatype {
   // exception types are not part of Avro; this is a placeholder used by exceptions
   // (which must return a bottom type, a type that can have no value)
   private[hadrian] case class ExceptionType() extends AvroType {
+    val name = "exception"
     override def accepts(that: Type): Boolean = that.isInstanceOf[ExceptionType]
     override def toString() = """{"type":"exception"}"""
     def schema: Schema = AvroNull().schema
@@ -220,30 +221,37 @@ package datatype {
   // start classes
 
   class AvroNull(val schema: Schema) extends AvroType {
+    val name = "null"
     def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("null")
   }
 
   class AvroBoolean(val schema: Schema) extends AvroType {
+    val name = "boolean"
     def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("boolean")
   }
 
   class AvroInt(val schema: Schema) extends AvroType with AvroNumber {
+    val name = "int"
     def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("int")
   }
 
   class AvroLong(val schema: Schema) extends AvroType with AvroNumber {
+    val name = "long"
     def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("long")
   }
 
   class AvroFloat(val schema: Schema) extends AvroType with AvroNumber {
+    val name = "float"
     def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("float")
   }
 
   class AvroDouble(val schema: Schema) extends AvroType with AvroNumber {
+    val name = "double"
     def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("double")
   }
 
   class AvroBytes(val schema: Schema) extends AvroType with AvroRaw {
+    val name = "bytes"
     def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("bytes")
   }
 
@@ -279,6 +287,7 @@ package datatype {
   }
 
   class AvroString(val schema: Schema) extends AvroType with AvroIdentifier {
+    val name = "string"
     def jsonNode(memo: mutable.Set[String]): JsonNode = new TextNode("string")
   }
 
@@ -316,6 +325,7 @@ package datatype {
   }
 
   class AvroArray(val schema: Schema) extends AvroType with AvroContainer {
+    val name = "array"
     def items: AvroType = AvroConversions.schemaToAvroType(schema.getElementType)
     def jsonNode(memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
@@ -327,6 +337,7 @@ package datatype {
   }
 
   class AvroMap(val schema: Schema) extends AvroType with AvroContainer with AvroMapping {
+    val name = "map"
     def values: AvroType = AvroConversions.schemaToAvroType(schema.getValueType)
     def jsonNode(memo: mutable.Set[String]): JsonNode = {
       val factory = JsonNodeFactory.instance
@@ -404,6 +415,7 @@ package datatype {
   }
 
   class AvroUnion(val schema: Schema) extends AvroType {
+    val name = "union"
     def types: Seq[AvroType] = schema.getTypes.map(AvroConversions.schemaToAvroType(_)).toList
 
     def jsonNode(memo: mutable.Set[String]): JsonNode = {

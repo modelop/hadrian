@@ -255,3 +255,81 @@
   * Fixed bug in PrettyPFA in which JSON null, true, and false were converted into strings (Titus).
 
   * Fixed bug in type patterns in Titus: empty namespaces can sometimes be "" rather than None (Titus).
+
+**After tag v0.6.2:**
+
+  * Fixed bug in implementations of time.isWeekend and expanded coverage of tests (Titus and Hadrian).
+
+  * Added a --printTime option to Hadrian-Standalone.
+
+  * Added pass-through begin and end routines to engines when none are defined (Titus).
+
+  * Implemented kd-tree optimization for model.neighbor.nearestK with option lib.model.neighbor.nearestK.kdtree to toggle between them (Hadrian).
+
+  * Fixed a bug in map.mapWithKey that prevented side-effect use, e.g. for logging (Hadrian).
+
+  * Added a memory usage calculator for logging (Hadrian).
+
+  * Added memory-calculation routines to Hadrian and optional reporting to Hadrian-Actors.
+
+  * Added "unpack" special form to unpack binary data with corresponding syntax in PrettyPFA (Hadrian, Titus, and PFA).
+
+  * Added "pack" special form to pack binary data with corresponding syntax in PrettyPFA (Hadrian, Titus, and PFA).
+
+  * Added "bytes.len", "bytes.subseq", and "bytes.subseqto" basic access for byte arrays (Hadrian, Titus, and PFA).
+
+**After tag v0.6.3:**
+
+  * Added "s.hex" for hexidecimal numbers (Hadrian, Titus, and PFA).
+
+  * Added "cast.signed" and "cast.unsigned" to make numbers of the appropriate widths (Hadrian, Titus, and PFA).
+
+  * Fixed a bug in core min/max functions; they returned PFARuntimeException objects, rather than raising them (Titus).
+
+  * Changed names of re.* function names for conformance with s.* (Hadrian, Titus, and PFA).
+
+**After tag v0.6.4:**
+
+  * Added "fixed.fromBytes" basic access for fixed-length byte arrays (Hadrian, Titus, and PFA).
+
+**After tag v0.6.5:**
+
+  * Fixed a bug in Hadrian that prevented simple library functions from being passed as arguments to functors (Hadrian).
+
+**After tag v0.6.6:**
+
+  * Fixed a bug in model.reg.linear that made it sensitive to the order of fields in the record definition (Titus).
+
+  * Fixed a bug in signature resolution that made matching of unions unstable by depending on the order of a map/dict (Hadrian and Titus).
+
+**After tag v0.6.7:**
+
+  * Added titus.producer.chain to merge linear sequences of scoring engines (Titus).
+
+  * Renamed inspector to pfainspector and added pfachain script (Titus).
+
+  * Fixed a bug in PFADataTranslator for unions of enums, fixed, and/or null (Hadrian).
+
+**After tag v0.6.8:**
+
+  * Added rand.choice, rand.choices, rand.sample for picking elements from a bag (Hadrian, Titus, and PFA).
+
+  * Added interp.nearest, interp.linear, interp.linearFlat, interp.linearMissing (Hadrian, Titus, and PFA).
+
+**After tag v0.6.9:**
+
+  * Fixed bug in signum (Titus only), added test coverage in Hadrian and Titus.
+
+  * Added "source" field to cells and pools so that they can be directed to load model parameters from an external JSON or Avro file (Hadrian, Titus, and PFA).
+
+  * Corrected interp.linear, interp.linearFlat, and interp.linearMissing algorithms (Hadrian, Titus, and PFA).
+
+  * Fixed jsonEncoder implementation in Titus, which caused erroneous type tags in pfachain for boolean union types (Titus).
+
+**After tag v0.6.10:**
+
+  * Fixed compilation error in hadrian-gae.
+
+  * Fixed ImportError on initialization if clib is not found (Titus).
+
+**Future:**

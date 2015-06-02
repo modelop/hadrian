@@ -30,6 +30,7 @@ import titus.lib1.core
 import titus.lib1.enum
 import titus.lib1.fixed
 import titus.lib1.impute
+import titus.lib1.interp
 import titus.lib1.la
 import titus.lib1.map
 import titus.lib1.metric
@@ -58,19 +59,9 @@ from titus.signature import LabelData
 from titus.signature import Sig
 from titus.datatype import *
 import titus.options
-from titus.util import avscToPretty
+from titus.util import ts
 
 ############################################################ utils
-
-TYPE_ERRORS_IN_PRETTYPFA = True
-def ts(avroType):
-    if TYPE_ERRORS_IN_PRETTYPFA:
-        pretty = avscToPretty(avroType.jsonNode(set()))
-        if pretty.count("\n") > 0:
-            pretty = "\n    " + pretty.replace("\n", "\n    ") + "\n"
-        return pretty
-    else:
-        return repr(avroType)
 
 def inferType(expr, symbols=None, cells=None, pools=None, fcns=None):
     if symbols is None:
@@ -200,7 +191,7 @@ class UserFcn(Fcn):
 
     @staticmethod
     def fromFcnDef(n, fcnDef):
-        return UserFcn(n, Sig([{k: P.fromType(fcnDef.params[k])} for k in fcnDef.paramNames], P.fromType(fcnDef.ret)))
+        return UserFcn(n, Sig([{t.keys()[0]: P.fromType(t.values()[0])} for t in fcnDef.params], P.fromType(fcnDef.ret)))
 
 class EmitFcn(Fcn):
     def __init__(self, outputType):
@@ -223,6 +214,7 @@ class FunctionTable(object):
         functions.update(titus.lib1.enum.provides)
         functions.update(titus.lib1.fixed.provides)
         functions.update(titus.lib1.impute.provides)
+        functions.update(titus.lib1.interp.provides)
         functions.update(titus.lib1.la.provides)
         functions.update(titus.lib1.map.provides)
         functions.update(titus.lib1.metric.provides)
@@ -651,20 +643,25 @@ class EngineConfig(Ast):
                      options,
                      parser): pass
 
+class CellPoolSource(object):
+    EMBEDDED = "embedded"
+    JSON = "json"
+    AVRO = "avro"
+
 @titus.util.case
 class Cell(Ast):
-    def __init__(self, avroPlaceholder, init, shared, rollback, pos=None):
+    def __init__(self, avroPlaceholder, init, shared, rollback, source, pos=None):
         if shared and rollback:
             raise PFASyntaxException("shared and rollback are mutually incompatible flags for a Cell", self.pos)
 
     def equals(self, other):
         if isinstance(other, Cell):
-            return self.avroPlaceholder == other.avroPlaceholder and json.loads(self.init) == json.loads(other.init) and self.shared == other.shared and self.rollback == other.rollback
+            return self.avroPlaceholder == other.avroPlaceholder and self.initJsonNode == other.initJsonNode and self.shared == other.shared and self.rollback == other.rollback and self.source == other.source
         else:
             return False
 
     def __hash__(self):
-        return hash((self.avroPlaceholder, json.loads(self.init), self.shared, self.rollback))
+        return hash((self.avroPlaceholder, json.loads(self.init), self.shared, self.rollback, self.source))
 
     @property
     def avroType(self):
@@ -674,12 +671,21 @@ class Cell(Ast):
         context = self.Context()
         return context, task(context, engineOptions)
 
+    @property
+    def initJsonNode(self):
+        if callable(self.init):
+            return jsonEncoder(self.avroType, self.init(self.avroType))
+        else:
+            return json.loads(self.init)
+        
     def jsonNode(self, lineNumbers, memo):
         out = self.startDict(lineNumbers)
         out["type"] = self.avroPlaceholder.jsonNode(memo)
-        out["init"] = json.loads(self.init)
+        out["init"] = self.initJsonNode
         out["shared"] = self.shared
         out["rollback"] = self.rollback
+        if self.source != CellPoolSource.EMBEDDED:
+            out["source"] = self.source
         return out
 
     @titus.util.case
@@ -688,18 +694,18 @@ class Cell(Ast):
 
 @titus.util.case
 class Pool(Ast):
-    def __init__(self, avroPlaceholder, init, shared, rollback, pos=None):
+    def __init__(self, avroPlaceholder, init, shared, rollback, source, pos=None):
         if shared and rollback:
             raise PFASyntaxException("shared and rollback are mutually incompatible flags for a Pool", self.pos)
 
     def equals(self, other):
         if isinstance(other, Pool):
-            return self.avroPlaceholder == other.avroPlaceholder and self.init.keys() == other.init.keys() and all(json.loads(self.init[k]) == json.loads(other.init[k]) for k in self.init.keys()) and self.shared == other.shared and self.rollback == other.rollback
+            return self.avroPlaceholder == other.avroPlaceholder and self.initJsonNode == other.initJsonNode and self.shared == other.shared and self.rollback == other.rollback and self.source == other.source
         else:
             return False
 
     def __hash__(self):
-        return hash((self.avroPlaceholder, dict((k, json.loads(v)) for k, v in self.init.items()), self.shared, self.rollback))
+        return hash((self.avroPlaceholder, dict((k, json.loads(v)) for k, v in self.init.items()), self.shared, self.rollback, self.source))
 
     @property
     def avroType(self):
@@ -709,12 +715,21 @@ class Pool(Ast):
         context = self.Context()
         return context, task(context, engineOptions)
 
+    @property
+    def initJsonNode(self):
+        if callable(self.init):
+            return jsonEncoder(AvroMap(self.avroType), self.init(AvroMap(self.avroType)))
+        else:
+            return OrderedDict((k, json.loads(v)) for k, v in self.init.items())
+
     def jsonNode(self, lineNumbers, memo):
         out = self.startDict(lineNumbers)
         out["type"] = self.avroPlaceholder.jsonNode(memo)
-        out["init"] = OrderedDict((k, json.loads(v)) for k, v in self.init.items())
+        out["init"] = self.initJsonNode
         out["shared"] = self.shared
         out["rollback"] = self.rollback
+        if self.source != CellPoolSource.EMBEDDED:
+            out["source"] = self.source
         return out
             
     @titus.util.case
@@ -796,6 +811,10 @@ class FcnDef(Argument):
 
     @property
     def params(self):
+        return [{t.keys()[0]: t.values()[0].avroType} for t in self.paramsPlaceholder]
+
+    @property
+    def paramsDict(self):
         return dict((t.keys()[0], t.values()[0].avroType) for t in self.paramsPlaceholder)
 
     @property
@@ -820,7 +839,7 @@ class FcnDef(Argument):
             raise PFASemanticException("function can have at most 22 parameters", self.pos)
 
         scope = symbolTable.newScope(True, False)
-        for name, avroType in self.params.items():
+        for name, avroType in self.paramsDict.items():
             if not validSymbolName(name):
                 raise PFASemanticException("\"{0}\" is not a valid parameter name".format(name), self.pos)
             scope.put(name, avroType)
@@ -831,7 +850,7 @@ class FcnDef(Argument):
         if not isinstance(inferredRetType, ExceptionType) and not self.ret.accepts(inferredRetType):
             raise PFASemanticException("function's inferred return type is {0} but its declared return type is {1}".format(ts(results[-1][0].retType), ts(self.ret)), self.pos)
 
-        context = self.Context(FcnType([self.params[k] for k in self.paramNames], self.ret), set(titus.util.flatten([x[0].calls for x in results])), self.paramNames, self.params, self.ret, scope.inThisScope, [x[1] for x in results])
+        context = self.Context(FcnType([t.values()[0] for t in self.params], self.ret), set(titus.util.flatten([x[0].calls for x in results])), self.paramNames, self.paramsDict, self.ret, scope.inThisScope, [x[1] for x in results])
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
@@ -956,7 +975,7 @@ class CallUserFcn(Expression):
         if pf.isDefinedAt(self):
             return pf(self)
         else:
-            return CallUserFcn(self.name,
+            return CallUserFcn(self.name.replace(pf),
                                [x.replace(pf) for x in self.args],
                                self.pos)
 
@@ -1283,7 +1302,7 @@ class Literal(LiteralValue):
 
 @titus.util.case
 class NewObject(Expression):
-    def __init__(self, fields, avroPlaceholder, avroTypeBuilder, pos=None): pass
+    def __init__(self, fields, avroPlaceholder, pos=None): pass
 
     def equals(self, other):
         if isinstance(other, NewObject):
@@ -1308,7 +1327,6 @@ class NewObject(Expression):
         else:
             return NewObject(dict((k, v.replace(pf)) for k, v in self.fields.items()),
                              self.avroPlaceholder,
-                             self.avroTypeBuilder,
                              self.pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
@@ -1357,7 +1375,7 @@ class NewObject(Expression):
 
 @titus.util.case
 class NewArray(Expression):
-    def __init__(self, items, avroPlaceholder, avroTypeBuilder, pos=None): pass
+    def __init__(self, items, avroPlaceholder, pos=None): pass
 
     def equals(self, other):
         if isinstance(other, NewArray):
@@ -1382,7 +1400,6 @@ class NewArray(Expression):
         else:
             return NewArray([x.replace(pf) for x in self.items],
                             self.avroPlaceholder,
-                            self.avroTypeBuilder,
                             self.pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
@@ -2637,6 +2654,321 @@ class IfNotNull(Expression):
     class Context(ExpressionContext):
         def __init__(self, retType, calls, symbolTypeResult, thenSymbols, thenClause, elseSymbols, elseClause): pass
 
+class BinaryFormatter(object):
+    formatPad = re.compile("""\s*(pad)\s*""")
+    formatBoolean = re.compile("""\s*(boolean)\s*""")
+    formatByte = re.compile("""\s*(byte|int8)\s*""")
+    formatUnsignedByte = re.compile("""\s*unsigned\s*(byte|int8)\s*""")
+    formatShort = re.compile("""\s*(<|>|!|little|big|network)?\s*(short|int16)\s*""")
+    formatUnsignedShort = re.compile("""\s*(<|>|!|little|big|network)?\s*(unsigned\s*short|unsigned\s*int16)\s*""")
+    formatInt = re.compile("""\s*(<|>|!|little|big|network)?\s*(int|int32)\s*""")
+    formatUnsignedInt = re.compile("""\s*(<|>|!|little|big|network)?\s*(unsigned\s*int|unsigned\s*int32)\s*""")
+    formatLong = re.compile("""\s*(<|>|!|little|big|network)?\s*(long|long\s+long|int64)\s*""")
+    formatUnsignedLong = re.compile("""\s*(<|>|!|little|big|network)?\s*(unsigned\s*long|unsigned\s*long\s+long|unsigned\s*int64)\s*""")
+    formatFloat = re.compile("""\s*(<|>|!|little|big|network)?\s*(float|float32)\s*""")
+    formatDouble = re.compile("""\s*(<|>|!|little|big|network)?\s*(double|float64)\s*""")
+    formatRaw = re.compile("""\s*raw\s*""")
+    formatRawSize = re.compile("""\s*raw\s*([0-9]+)\s*""")
+    formatToNull = re.compile("""\s*(null\s*)?terminated\s*""")
+    formatPrefixed = re.compile("""\s*(length\s*)?prefixed\s*""")
+    
+    class Declare(object): pass
+
+    @titus.util.case
+    class DeclarePad(Declare):
+        def __init__(self, value): pass
+        avroType = AvroNull()
+        def __str__(self):
+            return "(" + repr(self.value) + ", \"x\", 1)"
+
+    @titus.util.case
+    class DeclareBoolean(Declare):
+        def __init__(self, value): pass
+        avroType = AvroBoolean()
+        def __str__(self):
+            return "(" + repr(self.value) + ", \"?\", 1)"
+
+    @titus.util.case
+    class DeclareByte(Declare):
+        def __init__(self, value, unsigned): pass
+        avroType = AvroInt()
+        def __str__(self):
+            if self.unsigned:
+                return "(" + repr(self.value) + ", \"B\", 1)"
+            else:
+                return "(" + repr(self.value) + ", \"b\", 1)"
+
+    @titus.util.case
+    class DeclareShort(Declare):
+        def __init__(self, value, littleEndian, unsigned): pass
+        avroType = AvroInt()
+        def __str__(self):
+            if self.unsigned:
+                if self.littleEndian:
+                    return "(" + repr(self.value) + ", \"<H\", 2)"
+                else:
+                    return "(" + repr(self.value) + ", \">H\", 2)"
+            else:
+                if self.littleEndian:
+                    return "(" + repr(self.value) + ", \"<h\", 2)"
+                else:
+                    return "(" + repr(self.value) + ", \">h\", 2)"
+
+    @titus.util.case
+    class DeclareInt(Declare):
+        def __init__(self, value, littleEndian, unsigned): pass
+        @property
+        def avroType(self):
+            if self.unsigned:
+                return AvroLong()
+            else:
+                return AvroInt()
+        def __str__(self):
+            if self.unsigned:
+                if self.littleEndian:
+                    return "(" + repr(self.value) + ", \"<I\", 4)"
+                else:
+                    return "(" + repr(self.value) + ", \">I\", 4)"
+            else:
+                if self.littleEndian:
+                    return "(" + repr(self.value) + ", \"<i\", 4)"
+                else:
+                    return "(" + repr(self.value) + ", \">i\", 4)"
+
+    @titus.util.case
+    class DeclareLong(Declare):
+        def __init__(self, value, littleEndian, unsigned): pass
+        @property
+        def avroType(self):
+            if self.unsigned:
+                return AvroDouble()
+            else:
+                return AvroLong()
+        def __str__(self):
+            if self.unsigned:
+                if self.littleEndian:
+                    return "(" + repr(self.value) + ", \"<Q\", 8)"
+                else:
+                    return "(" + repr(self.value) + ", \">Q\", 8)"
+            else:
+                if self.littleEndian:
+                    return "(" + repr(self.value) + ", \"<q\", 8)"
+                else:
+                    return "(" + repr(self.value) + ", \">q\", 8)"
+
+    @titus.util.case
+    class DeclareFloat(Declare):
+        def __init__(self, value, littleEndian): pass
+        avroType = AvroFloat()
+        def __str__(self):
+            if self.littleEndian:
+                return "(" + repr(self.value) + ", \"<f\", 4)"
+            else:
+                return "(" + repr(self.value) + ", \">f\", 4)"
+
+    @titus.util.case
+    class DeclareDouble(Declare):
+        def __init__(self, value, littleEndian): pass
+        avroType = AvroDouble()
+        def __str__(self):
+            if self.littleEndian:
+                return "(" + repr(self.value) + ", \"<d\", 8)"
+            else:
+                return "(" + repr(self.value) + ", \">d\", 8)"
+
+    @titus.util.case
+    class DeclareRaw(Declare):
+        def __init__(self, value): pass
+        avroType = AvroBytes()
+        def __str__(self):
+            return "(" + repr(self.value) + ", \"raw\", None)"
+
+    @titus.util.case
+    class DeclareRawSize(Declare):
+        def __init__(self, value, size): pass
+        avroType = AvroBytes()
+        def __str__(self):
+            return "(" + repr(self.value) + ", \"raw\", " + str(self.size) + ")"
+
+    @titus.util.case
+    class DeclareToNull(Declare):
+        def __init__(self, value): pass
+        avroType = AvroBytes()
+        def __str__(self):
+            return "(" + repr(self.value) + ", \"tonull\", None)"
+
+    @titus.util.case
+    class DeclarePrefixed(Declare):
+        def __init__(self, value): pass
+        avroType = AvroBytes()
+        def __str__(self):
+            return "(" + repr(self.value) + ", \"prefixed\", None)"
+
+    @staticmethod
+    def formatToDeclare(value, f, pos, output):
+        if re.match(BinaryFormatter.formatPad, f):             return BinaryFormatter.DeclarePad(value)
+        elif re.match(BinaryFormatter.formatBoolean, f):       return BinaryFormatter.DeclareBoolean(value)
+        elif re.match(BinaryFormatter.formatByte, f):          return BinaryFormatter.DeclareByte(value, False)
+        elif re.match(BinaryFormatter.formatUnsignedByte, f):  return BinaryFormatter.DeclareByte(value, True)
+        elif re.match(BinaryFormatter.formatShort, f):         return BinaryFormatter.DeclareShort(value, "<" in f or "little" in f, False)
+        elif re.match(BinaryFormatter.formatUnsignedShort, f): return BinaryFormatter.DeclareShort(value, "<" in f or "little" in f, True)
+        elif re.match(BinaryFormatter.formatInt, f):           return BinaryFormatter.DeclareInt(value, "<" in f or "little" in f, False)
+        elif re.match(BinaryFormatter.formatUnsignedInt, f):   return BinaryFormatter.DeclareInt(value, "<" in f or "little" in f, True)
+        elif re.match(BinaryFormatter.formatLong, f):          return BinaryFormatter.DeclareLong(value, "<" in f or "little" in f, False)
+        elif re.match(BinaryFormatter.formatUnsignedLong, f):  return BinaryFormatter.DeclareLong(value, "<" in f or "little" in f, True)
+        elif re.match(BinaryFormatter.formatFloat, f):         return BinaryFormatter.DeclareFloat(value, "<" in f or "little" in f)
+        elif re.match(BinaryFormatter.formatDouble, f):        return BinaryFormatter.DeclareDouble(value, "<" in f or "little" in f)
+        elif re.match(BinaryFormatter.formatRawSize, f):       return BinaryFormatter.DeclareRawSize(value, int(re.match(BinaryFormatter.formatRawSize, f).group(1)))
+        elif re.match(BinaryFormatter.formatToNull, f):        return BinaryFormatter.DeclareToNull(value)
+        elif re.match(BinaryFormatter.formatPrefixed, f):      return BinaryFormatter.DeclarePrefixed(value)
+        elif re.match(BinaryFormatter.formatRaw, f):
+            if output:
+                return BinaryFormatter.DeclareRaw(value)
+            else:
+                raise PFASemanticException("cannot read from unsized \"raw\" in binary formatter", self.pos)
+        else:
+            raise PFASemanticException("unrecognized formatter \"{0}\" found in unpack's \"format\"".format(f), self.pos)
+
+@titus.util.case
+class Pack(Expression):
+    def __init__(self, exprs, pos=None):
+        if len(self.exprs) < 1:
+            raise PFASyntaxException("\"pack\" must contain at least one format-expression mapping", self.pos)
+
+    def collect(self, pf):
+        return super(Pack, self).collect(pf) + \
+               titus.util.flatten(v.collect(pf) for k, v in self.exprs)
+
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return Pack([(k, v.replace(pf)) for k, v in self.exprs], self.pos)
+
+    def walk(self, task, symbolTable, functionTable, engineOptions):
+        calls = set()
+
+        exprsDeclareRes = []
+        for f, expr in self.exprs:
+            exprCtx, exprRes = expr.walk(task, symbolTable.newScope(True, True), functionTable, engineOptions)
+
+            declare = BinaryFormatter.formatToDeclare(exprRes, f, self.pos, True)
+
+            if not declare.avroType.accepts(exprCtx.retType):
+                raise PFASemanticException("\"pack\" expression with type {0} cannot be cast to {1}".format(exprCtx.retType, f), self.pos)
+            calls = calls.union(exprCtx.calls)
+
+            exprsDeclareRes.append(declare)
+
+        context = self.Context(AvroBytes(), calls.union(set([self.desc])), exprsDeclareRes)
+        return (context, task(context, engineOptions))
+
+    def jsonNode(self, lineNumbers, memo):
+        out = self.startDict(lineNumbers)
+        out["pack"] = []
+        for f, expr in self.exprs:
+            out["pack"].append({f: expr.jsonNode(lineNumbers, memo)})
+        return out
+
+    desc = "pack"
+
+    @titus.util.case
+    class Context(ExpressionContext):
+        def __init__(self, retType, calls, exprsDeclareRes): pass
+
+@titus.util.case
+class Unpack(Expression):
+    def __init__(self, bytes, format, thenClause, elseClause, pos=None):
+        if len(format) < 1:
+            raise PFASyntaxException("unpack's \"format\" must contain at least one symbol-format mapping", self.pos)
+
+        if len(thenClause) < 1:
+            raise PFASyntaxException("\"then\" clause must contain at least one expression", self.pos)
+
+        if elseClause is not None and len(elseClause) < 1:
+            raise PFASyntaxException("\"else\" clause must contain at least one expression", self.pos)
+
+    def collect(self, pf):
+        return super(Unpack, self).collect(pf) + \
+               self.bytes.collect(pf) + \
+               titus.util.flatten(x.collect(pf) for x in self.thenClause) + \
+               (titus.util.flatten(x.collect(pf) for x in self.elseClause) if self.elseClause is not None else [])
+
+    def replace(self, pf):
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return Unpack(self.bytes.replace(pf),
+                          self.format,
+                          [x.replace(pf) for x in self.thenClause],
+                          [x.replace(pf) for x in self.elseClause] if self.elseClause is not None else None,
+                          self.pos)
+
+    def walk(self, task, symbolTable, functionTable, engineOptions):
+        calls = set()
+        
+        bytesScope = symbolTable.newScope(True, True)
+        assignmentScope = symbolTable.newScope(False, False)
+
+        bytesCtx, bytesRes = self.bytes.walk(task, bytesScope, functionTable, engineOptions)
+        if not isinstance(bytesCtx.retType, AvroBytes):
+            raise PFASemanticException("\"unpack\" expression must be a bytes object", self.pos)
+        calls = calls.union(bytesCtx.calls)
+
+        formatter = []
+        for s, f in self.format:
+            if assignmentScope.get(s) is not None:
+                raise PFASemanticException("symbol \"{0}\" may not be redeclared or shadowed".format(s), self.pos)
+
+            if not validSymbolName(s):
+                raise PFASemanticException("\"{0}\" is not a valid symbol name", self.pos)
+
+            formatter.append(BinaryFormatter.formatToDeclare(s, f, self.pos, False))
+            assignmentScope.put(s, formatter[-1].avroType)
+
+        thenScope = assignmentScope.newScope(False, False)
+        thenResults = [x.walk(task, thenScope, functionTable, engineOptions) for x in self.thenClause]
+        for exprCtx, exprRes in thenResults:
+            calls = calls.union(exprCtx.calls)
+
+        if self.elseClause is not None:
+            elseScope = symbolTable.newScope(False, False)
+
+            elseResults = [x.walk(task, elseScope, functionTable, engineOptions) for x in self.elseClause]
+            for exprCtx, exprRes in elseResults:
+                calls = calls.union(exprCtx.calls)
+
+            thenType = thenResults[-1][0].retType
+            elseType = elseResults[-1][0].retType
+            try:
+                retType = LabelData.broadestType([thenType, elseType])
+            except IncompatibleTypes as err:
+                raise PFASemanticException(str(err))
+
+            retType, elseTaskResults, elseSymbols = retType, [x[1] for x in elseResults], elseScope.inThisScope
+        else:
+            retType, elseTaskResults, elseSymbols = AvroNull(), None, None
+
+        context = self.Context(retType, calls.union(set([self.desc])), bytesRes, formatter, thenScope.inThisScope, [x[1] for x in thenResults], elseSymbols, elseTaskResults)
+        return context, task(context, engineOptions)
+
+    def jsonNode(self, lineNumbers, memo):
+        out = self.startDict(lineNumbers)
+        out["unpack"] = self.bytes.jsonNode(lineNumbers, memo)
+        out["format"] = []
+        for s, f in self.format:
+            out["format"].append({s: f})
+        out["then"] = [x.jsonNode(lineNumbers, memo) for x in self.thenClause]
+        if self.elseClause is not None:
+            out["else"] = [x.jsonNode(lineNumbers, memo) for x in self.elseClause]
+        return out
+
+    desc = "unpack"
+
+    @titus.util.case
+    class Context(ExpressionContext):
+        def __init__(self, retType, calls, bytes, formatter, thenSymbols, thenClause, elseSymbols, elseClause): pass
+        
 @titus.util.case
 class Doc(Expression):
     def __init__(self, comment, pos=None): pass

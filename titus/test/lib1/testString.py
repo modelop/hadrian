@@ -47,7 +47,7 @@ action:
         self.assertEqual(engine.action(1), "")
         self.assertEqual(engine.action(100), "FGHIJKLMNOPQRSTUVWXYZ")
 
-    def testGetSubstring(self):
+    def testGetSubstringTo(self):
         engine, = PFAEngine.fromYaml('''
 input: int
 output: string
@@ -147,6 +147,75 @@ action:
   - {s.split: [input, [", "]]}
 ''')
         self.assertEqual(engine.action("one, two, three"), ["one", "two", "three"])
+
+    def testDoHex(self):
+        engine1, = PFAEngine.fromYaml('''
+input: int
+output: string
+action:
+  s.concat: [{s.hex: [input]}, {string: "|"}]
+''')
+
+        self.assertEqual(engine1.action(0), "0|")
+        self.assertEqual(engine1.action(1), "1|")
+        self.assertEqual(engine1.action(15), "f|")
+        self.assertEqual(engine1.action(16), "10|")
+        self.assertEqual(engine1.action(255), "ff|")
+        self.assertEqual(engine1.action(256), "100|")
+        self.assertEqual(engine1.action(65535), "ffff|")
+        self.assertEqual(engine1.action(65536), "10000|")
+        self.assertRaises(PFARuntimeException, lambda: engine1.action(-1))
+
+        engine2, = PFAEngine.fromYaml('''
+input: int
+output: string
+action:
+  s.concat: [{s.hex: [input, 8, false]}, {string: "|"}]
+''')
+
+        self.assertEqual(engine2.action(0), "       0|")
+        self.assertEqual(engine2.action(1), "       1|")
+        self.assertEqual(engine2.action(15), "       f|")
+        self.assertEqual(engine2.action(16), "      10|")
+        self.assertEqual(engine2.action(255), "      ff|")
+        self.assertEqual(engine2.action(256), "     100|")
+        self.assertEqual(engine2.action(65535), "    ffff|")
+        self.assertEqual(engine2.action(65536), "   10000|")
+        self.assertRaises(PFARuntimeException, lambda: engine2.action(-1))
+
+        engine2a, = PFAEngine.fromYaml('''
+input: int
+output: string
+action:
+  s.concat: [{s.hex: [input, 8, true]}, {string: "|"}]
+''')
+
+        self.assertEqual(engine2a.action(0), "00000000|")
+        self.assertEqual(engine2a.action(1), "00000001|")
+        self.assertEqual(engine2a.action(15), "0000000f|")
+        self.assertEqual(engine2a.action(16), "00000010|")
+        self.assertEqual(engine2a.action(255), "000000ff|")
+        self.assertEqual(engine2a.action(256), "00000100|")
+        self.assertEqual(engine2a.action(65535), "0000ffff|")
+        self.assertEqual(engine2a.action(65536), "00010000|")
+        self.assertRaises(PFARuntimeException, lambda: engine2a.action(-1))
+
+        engine3, = PFAEngine.fromYaml('''
+input: int
+output: string
+action:
+  s.concat: [{s.hex: [input, -8, false]}, {string: "|"}]
+''')
+
+        self.assertEqual(engine3.action(0), "0       |")
+        self.assertEqual(engine3.action(1), "1       |")
+        self.assertEqual(engine3.action(15), "f       |")
+        self.assertEqual(engine3.action(16), "10      |")
+        self.assertEqual(engine3.action(255), "ff      |")
+        self.assertEqual(engine3.action(256), "100     |")
+        self.assertEqual(engine3.action(65535), "ffff    |")
+        self.assertEqual(engine3.action(65536), "10000   |")
+        self.assertRaises(PFARuntimeException, lambda: engine3.action(-1))
 
     def testDoNumber(self):
         engine1, = PFAEngine.fromYaml('''

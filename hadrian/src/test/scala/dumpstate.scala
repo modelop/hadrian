@@ -29,6 +29,8 @@ import org.scalatest.Matchers
 
 import com.opendatagroup.hadrian.ast._
 import com.opendatagroup.hadrian.data._
+import com.opendatagroup.hadrian.datatype._
+import com.opendatagroup.hadrian.datatype.AvroConversions._
 import com.opendatagroup.hadrian.errors._
 import com.opendatagroup.hadrian.jvmcompiler._
 import com.opendatagroup.hadrian.reader._
@@ -55,11 +57,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.cells("test").init should be ("0")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("0")
     engine.action(java.lang.Integer.valueOf(3))
-    engine.snapshot.cells("test").init should be ("3")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("3")
     engine.action(java.lang.Integer.valueOf(2))
-    engine.snapshot.cells("test").init should be ("5")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("5")
   }
 
   it must "string" taggedAs(DumpState) in {
@@ -79,11 +81,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.cells("test").init should be ("\"\"")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("\"\"")
     engine.action("hey")
-    engine.snapshot.cells("test").init should be ("\"hey\"")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("\"hey\"")
     engine.action("there")
-    engine.snapshot.cells("test").init should be ("\"heythere\"")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("\"heythere\"")
   }
 
   it must "array" taggedAs(DumpState) in {
@@ -103,11 +105,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.cells("test").init should be ("[]")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("[]")
     engine.action(java.lang.Integer.valueOf(3))
-    engine.snapshot.cells("test").init should be ("[3]")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("[3]")
     engine.action(java.lang.Integer.valueOf(2))
-    engine.snapshot.cells("test").init should be ("[3,2]")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("[3,2]")
   }
 
   it must "map" taggedAs(DumpState) in {
@@ -128,11 +130,11 @@ action:
   - null
 """).head
 
-    convertFromJson(engine.snapshot.cells("test").init).get("b").getIntValue should be (0)
+    engine.snapshot.cells("test").init.jsonNode.get("b").getIntValue should be (0)
     engine.action(java.lang.Integer.valueOf(3))
-    convertFromJson(engine.snapshot.cells("test").init).get("b").getIntValue should be (3)
+    engine.snapshot.cells("test").init.jsonNode.get("b").getIntValue should be (3)
     engine.action(java.lang.Integer.valueOf(2))
-    convertFromJson(engine.snapshot.cells("test").init).get("b").getIntValue should be (5)
+    engine.snapshot.cells("test").init.jsonNode.get("b").getIntValue should be (5)
   }
 
   it must "record" taggedAs(DumpState) in {
@@ -158,11 +160,11 @@ action:
   - null
 """).head
 
-    convertFromJson(engine.snapshot.cells("test").init).get("a").getIntValue should be (0)
+    engine.snapshot.cells("test").init.jsonNode.get("a").getIntValue should be (0)
     engine.action(java.lang.Integer.valueOf(3))
-    convertFromJson(engine.snapshot.cells("test").init).get("a").getIntValue should be (3)
+    engine.snapshot.cells("test").init.jsonNode.get("a").getIntValue should be (3)
     engine.action(java.lang.Integer.valueOf(2))
-    convertFromJson(engine.snapshot.cells("test").init).get("a").getIntValue should be (5)
+    engine.snapshot.cells("test").init.jsonNode.get("a").getIntValue should be (5)
   }
 
   it must "union" taggedAs(DumpState) in {
@@ -190,11 +192,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.cells("test").init should be ("{\"int\":0}")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("{\"int\":0}")
     engine.action(java.lang.Integer.valueOf(3))
-    engine.snapshot.cells("test").init should be ("{\"int\":3}")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("{\"int\":3}")
     engine.action(java.lang.Integer.valueOf(2))
-    engine.snapshot.cells("test").init should be ("{\"int\":5}")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("{\"int\":5}")
   }
 
   "Dump public cells" must "int" taggedAs(DumpState) in {
@@ -215,11 +217,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.cells("test").init should be ("0")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("0")
     engine.action(java.lang.Integer.valueOf(3))
-    engine.snapshot.cells("test").init should be ("3")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("3")
     engine.action(java.lang.Integer.valueOf(2))
-    engine.snapshot.cells("test").init should be ("5")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("5")
   }
 
   it must "string" taggedAs(DumpState) in {
@@ -240,11 +242,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.cells("test").init should be ("\"\"")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("\"\"")
     engine.action("hey")
-    engine.snapshot.cells("test").init should be ("\"hey\"")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("\"hey\"")
     engine.action("there")
-    engine.snapshot.cells("test").init should be ("\"heythere\"")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("\"heythere\"")
   }
 
   it must "array" taggedAs(DumpState) in {
@@ -265,11 +267,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.cells("test").init should be ("[]")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("[]")
     engine.action(java.lang.Integer.valueOf(3))
-    engine.snapshot.cells("test").init should be ("[3]")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("[3]")
     engine.action(java.lang.Integer.valueOf(2))
-    engine.snapshot.cells("test").init should be ("[3,2]")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("[3,2]")
   }
 
   it must "map" taggedAs(DumpState) in {
@@ -291,11 +293,11 @@ action:
   - null
 """).head
 
-    convertFromJson(engine.snapshot.cells("test").init).get("b").getIntValue should be (0)
+    engine.snapshot.cells("test").init.jsonNode.get("b").getIntValue should be (0)
     engine.action(java.lang.Integer.valueOf(3))
-    convertFromJson(engine.snapshot.cells("test").init).get("b").getIntValue should be (3)
+    engine.snapshot.cells("test").init.jsonNode.get("b").getIntValue should be (3)
     engine.action(java.lang.Integer.valueOf(2))
-    convertFromJson(engine.snapshot.cells("test").init).get("b").getIntValue should be (5)
+    engine.snapshot.cells("test").init.jsonNode.get("b").getIntValue should be (5)
   }
 
   it must "record" taggedAs(DumpState) in {
@@ -322,11 +324,11 @@ action:
   - null
 """).head
 
-    convertFromJson(engine.snapshot.cells("test").init).get("a").getIntValue should be (0)
+    engine.snapshot.cells("test").init.jsonNode.get("a").getIntValue should be (0)
     engine.action(java.lang.Integer.valueOf(3))
-    convertFromJson(engine.snapshot.cells("test").init).get("a").getIntValue should be (3)
+    engine.snapshot.cells("test").init.jsonNode.get("a").getIntValue should be (3)
     engine.action(java.lang.Integer.valueOf(2))
-    convertFromJson(engine.snapshot.cells("test").init).get("a").getIntValue should be (5)
+    engine.snapshot.cells("test").init.jsonNode.get("a").getIntValue should be (5)
   }
 
   it must "union" taggedAs(DumpState) in {
@@ -355,11 +357,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.cells("test").init should be ("{\"int\":0}")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("{\"int\":0}")
     engine.action(java.lang.Integer.valueOf(3))
-    engine.snapshot.cells("test").init should be ("{\"int\":3}")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("{\"int\":3}")
     engine.action(java.lang.Integer.valueOf(2))
-    engine.snapshot.cells("test").init should be ("{\"int\":5}")
+    engine.snapshot.cells("test").init.asInstanceOf[EmbeddedJsonDomCellSource].jsonDom.json should be ("{\"int\":5}")
   }
 
   "Dump private pools" must "int" taggedAs(DumpState) in {
@@ -380,11 +382,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.pools("test").init should be (Map[String, AnyRef]())
+    engine.snapshot.pools("test").init should be (EmbeddedJsonDomPoolSource(Map(), AvroInt()))
     engine.action(java.lang.Integer.valueOf(3))
-    engine.snapshot.pools("test").init("zzz") should be ("3")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("3")
     engine.action(java.lang.Integer.valueOf(2))
-    engine.snapshot.pools("test").init("zzz") should be ("5")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("5")
   }
 
   it must "string" taggedAs(DumpState) in {
@@ -405,11 +407,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.pools("test").init should be (Map[String, AnyRef]())
+    engine.snapshot.pools("test").init should be (EmbeddedJsonDomPoolSource(Map(), AvroString()))
     engine.action("hey")
-    engine.snapshot.pools("test").init("zzz") should be ("\"hey\"")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("\"hey\"")
     engine.action("there")
-    engine.snapshot.pools("test").init("zzz") should be ("\"heythere\"")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("\"heythere\"")
   }
 
   it must "array" taggedAs(DumpState) in {
@@ -430,11 +432,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.pools("test").init should be (Map[String, AnyRef]())
+    engine.snapshot.pools("test").init should be (EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())))
     engine.action(java.lang.Integer.valueOf(3))
-    engine.snapshot.pools("test").init("zzz") should be ("[3]")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("[3]")
     engine.action(java.lang.Integer.valueOf(2))
-    engine.snapshot.pools("test").init("zzz") should be ("[3,2]")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("[3,2]")
   }
 
   it must "map" taggedAs(DumpState) in {
@@ -456,11 +458,11 @@ action:
   - null
 """).head
 
-    convertFromJson(engine.snapshot.pools("test").init("zzz")).get("b").getIntValue should be (0)
+    engine.snapshot.pools("test").init.jsonNode.get("zzz").get("b").getIntValue should be (0)
     engine.action(java.lang.Integer.valueOf(3))
-    convertFromJson(engine.snapshot.pools("test").init("zzz")).get("b").getIntValue should be (3)
+    engine.snapshot.pools("test").init.jsonNode.get("zzz").get("b").getIntValue should be (3)
     engine.action(java.lang.Integer.valueOf(2))
-    convertFromJson(engine.snapshot.pools("test").init("zzz")).get("b").getIntValue should be (5)
+    engine.snapshot.pools("test").init.jsonNode.get("zzz").get("b").getIntValue should be (5)
   }
 
   it must "record" taggedAs(DumpState) in {
@@ -486,11 +488,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.pools("test").init should be (Map[String, AnyRef]())
+    engine.snapshot.pools("test").init should be (EmbeddedJsonDomPoolSource(Map(), AvroRecord(List(AvroField("a", AvroInt()), AvroField("b", AvroString())), "MyRecord")))
     engine.action(java.lang.Integer.valueOf(3))
-    convertFromJson(engine.snapshot.pools("test").init("zzz")).get("a").getIntValue should be (3)
+    engine.snapshot.pools("test").init.jsonNode.get("zzz").get("a").getIntValue should be (3)
     engine.action(java.lang.Integer.valueOf(2))
-    convertFromJson(engine.snapshot.pools("test").init("zzz")).get("a").getIntValue should be (5)
+    engine.snapshot.pools("test").init.jsonNode.get("zzz").get("a").getIntValue should be (5)
   }
 
   it must "union" taggedAs(DumpState) in {
@@ -519,11 +521,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.pools("test").init should be (Map[String, AnyRef]())
+    engine.snapshot.pools("test").init should be (EmbeddedJsonDomPoolSource(Map(), AvroUnion(List(AvroInt(), AvroString()))))
     engine.action(java.lang.Integer.valueOf(3))
-    engine.snapshot.pools("test").init("zzz") should be ("{\"int\":3}")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("{\"int\":3}")
     engine.action(java.lang.Integer.valueOf(2))
-    engine.snapshot.pools("test").init("zzz") should be ("{\"int\":5}")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("{\"int\":5}")
   }
 
   "Dump public pools" must "int" taggedAs(DumpState) in {
@@ -545,11 +547,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.pools("test").init should be (Map[String, AnyRef]())
+    engine.snapshot.pools("test").init should be (EmbeddedJsonDomPoolSource(Map(), AvroInt()))
     engine.action(java.lang.Integer.valueOf(3))
-    engine.snapshot.pools("test").init("zzz") should be ("3")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("3")
     engine.action(java.lang.Integer.valueOf(2))
-    engine.snapshot.pools("test").init("zzz") should be ("5")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("5")
   }
 
   it must "string" taggedAs(DumpState) in {
@@ -571,11 +573,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.pools("test").init should be (Map[String, AnyRef]())
+    engine.snapshot.pools("test").init should be (EmbeddedJsonDomPoolSource(Map(), AvroString()))
     engine.action("hey")
-    engine.snapshot.pools("test").init("zzz") should be ("\"hey\"")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("\"hey\"")
     engine.action("there")
-    engine.snapshot.pools("test").init("zzz") should be ("\"heythere\"")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("\"heythere\"")
   }
 
   it must "array" taggedAs(DumpState) in {
@@ -597,11 +599,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.pools("test").init should be (Map[String, AnyRef]())
+    engine.snapshot.pools("test").init should be (EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())))
     engine.action(java.lang.Integer.valueOf(3))
-    engine.snapshot.pools("test").init("zzz") should be ("[3]")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("[3]")
     engine.action(java.lang.Integer.valueOf(2))
-    engine.snapshot.pools("test").init("zzz") should be ("[3,2]")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("[3,2]")
   }
 
   it must "map" taggedAs(DumpState) in {
@@ -624,11 +626,11 @@ action:
   - null
 """).head
 
-    convertFromJson(engine.snapshot.pools("test").init("zzz")).get("b").getIntValue should be (0)
+    engine.snapshot.pools("test").init.jsonNode.get("zzz").get("b").getIntValue should be (0)
     engine.action(java.lang.Integer.valueOf(3))
-    convertFromJson(engine.snapshot.pools("test").init("zzz")).get("b").getIntValue should be (3)
+    engine.snapshot.pools("test").init.jsonNode.get("zzz").get("b").getIntValue should be (3)
     engine.action(java.lang.Integer.valueOf(2))
-    convertFromJson(engine.snapshot.pools("test").init("zzz")).get("b").getIntValue should be (5)
+    engine.snapshot.pools("test").init.jsonNode.get("zzz").get("b").getIntValue should be (5)
   }
 
   it must "record" taggedAs(DumpState) in {
@@ -655,11 +657,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.pools("test").init should be (Map[String, AnyRef]())
+    engine.snapshot.pools("test").init should be (EmbeddedJsonDomPoolSource(Map(), AvroRecord(List(AvroField("a", AvroInt()), AvroField("b", AvroString())), "MyRecord")))
     engine.action(java.lang.Integer.valueOf(3))
-    convertFromJson(engine.snapshot.pools("test").init("zzz")).get("a").getIntValue should be (3)
+    engine.snapshot.pools("test").init.jsonNode.get("zzz").get("a").getIntValue should be (3)
     engine.action(java.lang.Integer.valueOf(2))
-    convertFromJson(engine.snapshot.pools("test").init("zzz")).get("a").getIntValue should be (5)
+    engine.snapshot.pools("test").init.jsonNode.get("zzz").get("a").getIntValue should be (5)
   }
 
   it must "union" taggedAs(DumpState) in {
@@ -689,11 +691,11 @@ action:
   - null
 """).head
 
-    engine.snapshot.pools("test").init should be (Map[String, AnyRef]())
+    engine.snapshot.pools("test").init should be (EmbeddedJsonDomPoolSource(Map(), AvroUnion(List(AvroInt(), AvroString()))))
     engine.action(java.lang.Integer.valueOf(3))
-    engine.snapshot.pools("test").init("zzz") should be ("{\"int\":3}")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("{\"int\":3}")
     engine.action(java.lang.Integer.valueOf(2))
-    engine.snapshot.pools("test").init("zzz") should be ("{\"int\":5}")
+    engine.snapshot.pools("test").init.asInstanceOf[EmbeddedJsonDomPoolSource].jsonDoms("zzz").json should be ("{\"int\":5}")
   }
 
 }

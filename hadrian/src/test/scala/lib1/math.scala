@@ -347,6 +347,7 @@ action:
     engine.action(java.lang.Double.valueOf(-3.2)) should be (-1)
     engine.action(java.lang.Double.valueOf(0)) should be (0)
     engine.action(java.lang.Double.valueOf(3.2)) should be (1)
+    engine.action(java.lang.Double.valueOf(1.0)) should be (1)
   }
 
   it must "do sin" taggedAs(Lib1, Lib1Math) in {

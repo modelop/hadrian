@@ -207,7 +207,7 @@ package object regex {
 
   ////   rIndex (rIndex)
   object RIndex extends LibFcn {
-    val name = prefix + "rIndex"
+    val name = prefix + "rindex"
     val sig = Sigs(List(Sig(List("haystack" -> P.String, "pattern" -> P.String), P.Array(P.Int)),
                         Sig(List("haystack" -> P.Bytes, "pattern" -> P.Bytes), P.Array(P.Int))))
     val doc =
@@ -275,7 +275,7 @@ package object regex {
 
   ////   indexAll (IndexAll)
   object IndexAll extends LibFcn {
-    val name = prefix + "indexAll"
+    val name = prefix + "indexall"
     val sig = Sigs(List(Sig(List("haystack" -> P.String, "pattern" -> P.String), P.Array(P.Array(P.Int))),
                         Sig(List("haystack" -> P.Bytes, "pattern" -> P.Bytes), P.Array(P.Array(P.Int)))))
     val doc =
@@ -313,7 +313,7 @@ package object regex {
 
   ////   findAll (FindAll)
   object FindAll extends LibFcn {
-    val name = prefix + "findAll"
+    val name = prefix + "findall"
     val sig = Sigs(List(Sig(List("pattern" -> P.String, "haystack" -> P.String), P.Array(P.String)),
                         Sig(List("pattern" -> P.Bytes, "haystack" -> P.Bytes),   P.Array(P.Bytes))))
     val doc =
@@ -349,7 +349,7 @@ package object regex {
 
   ////   findFirst (findFirst)
   object FindFirst extends LibFcn {
-    val name = prefix + "findFirst"
+    val name = prefix + "findfirst"
     val sig = Sigs(List(Sig(List("pattern" -> P.String, "haystack" -> P.String), P.Union(List(P.String, P.Null))),
                         Sig(List("pattern" -> P.Bytes,  "haystack" -> P.Bytes ), P.Union(List(P.Bytes,  P.Null)))))
     val doc =
@@ -383,7 +383,7 @@ package object regex {
 
   ////   findGroupsFirst (FindGroupsFirst)
   object FindGroupsFirst extends LibFcn {
-    val name = prefix + "findGroupsFirst"
+    val name = prefix + "findgroupsfirst"
     val sig = Sigs(List(Sig(List("pattern" -> P.String, "haystack" -> P.String), P.Array(P.String)),
                         Sig(List("pattern" -> P.Bytes,  "haystack" -> P.Bytes),  P.Array(P.Bytes))))
     val doc =
@@ -420,7 +420,7 @@ package object regex {
 
   ////   findGroupsAll (FindGroupsAll)
   object FindGroupsAll extends LibFcn {
-    val name = prefix + "findGroupsAll"
+    val name = prefix + "findgroupsall"
     val sig = Sigs(List(Sig(List("pattern" -> P.String, "haystack" -> P.String), P.Array(P.Array(P.String))),
                         Sig(List("pattern" -> P.Bytes,  "haystack" -> P.Bytes),  P.Array(P.Array(P.Bytes)))))
     val doc =
@@ -459,7 +459,7 @@ package object regex {
 
   ////   groupsAll (GroupsAll)
   object GroupsAll extends LibFcn {
-    val name = prefix + "groupsAll"
+    val name = prefix + "groupsall"
 
     val sig = Sigs(List(Sig(List("haystack" -> P.String, "pattern" -> P.String), P.Array(P.Array(P.Array(P.Int)))),
                         Sig(List("haystack" -> P.Bytes, "pattern" -> P.Bytes), P.Array(P.Array(P.Array(P.Int))))))
@@ -502,7 +502,7 @@ package object regex {
 
   ////   replaceFirst (ReplaceFirst)
   object ReplaceFirst extends LibFcn {
-    val name = prefix + "replaceFirst"
+    val name = prefix + "replacefirst"
     val sig = Sigs(List(Sig(List("pattern" -> P.String, "haystack" -> P.String, "replacement" -> P.String), P.String), 
                         Sig(List("pattern" -> P.Bytes,  "haystack" -> P.Bytes,  "replacement" -> P.Bytes), P.Bytes))) 
     val doc =
@@ -532,7 +532,7 @@ package object regex {
 
   ////   replaceLast (replaceLast)
   object ReplaceLast extends LibFcn {
-    val name = prefix + "replaceLast"
+    val name = prefix + "replacelast"
     val sig = Sigs(List(Sig(List("pattern" -> P.String, "haystack" -> P.String, "replacement" -> P.String), P.String), 
                         Sig(List("pattern" -> P.Bytes,  "haystack" -> P.Bytes,  "replacement" -> P.Bytes), P.Bytes))) 
     val doc =
@@ -625,7 +625,7 @@ package object regex {
 
   ////   replaceAll (ReplaceAll)
   object ReplaceAll extends LibFcn {
-    val name = prefix + "replaceAll"
+    val name = prefix + "replaceall"
     val sig = Sigs(List(Sig(List("pattern" -> P.String, "haystack" -> P.String, "replacement" -> P.String), P.String), 
                         Sig(List("pattern" -> P.Bytes,  "haystack" -> P.Bytes,  "replacement" -> P.Bytes), P.Bytes))) 
     val doc =

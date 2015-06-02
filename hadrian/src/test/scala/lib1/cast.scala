@@ -33,7 +33,141 @@ import test.scala._
 
 @RunWith(classOf[JUnitRunner])
 class Lib1CastSuite extends FlatSpec with Matchers {
-  "cast" must "do toInt" taggedAs(Lib1, Lib1Cast) in {
+  "cast" must "do toSigned" taggedAs(Lib1, Lib1Cast) in {
+    val engine2 = PFAEngine.fromYaml("""
+input: long
+output: long
+action: {cast.signed: [input, 2]}
+""").head
+    engine2.action(java.lang.Long.valueOf(-2)).asInstanceOf[java.lang.Long].longValue should be (-2L)
+    engine2.action(java.lang.Long.valueOf(-1)).asInstanceOf[java.lang.Long].longValue should be (-1L)
+    engine2.action(java.lang.Long.valueOf(0)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine2.action(java.lang.Long.valueOf(1)).asInstanceOf[java.lang.Long].longValue should be (1L)
+    engine2.action(java.lang.Long.valueOf(2)).asInstanceOf[java.lang.Long].longValue should be (-2L)
+
+    val engine8 = PFAEngine.fromYaml("""
+input: long
+output: long
+action: {cast.signed: [input, 8]}
+""").head
+
+    engine8.action(java.lang.Long.valueOf(-2 - 256)).asInstanceOf[java.lang.Long].longValue should be (-2L)
+    engine8.action(java.lang.Long.valueOf(-1 - 256)).asInstanceOf[java.lang.Long].longValue should be (-1L)
+    engine8.action(java.lang.Long.valueOf(0 - 256)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine8.action(java.lang.Long.valueOf(1 - 256)).asInstanceOf[java.lang.Long].longValue should be (1L)
+    engine8.action(java.lang.Long.valueOf(2 - 256)).asInstanceOf[java.lang.Long].longValue should be (2L)
+
+    engine8.action(java.lang.Long.valueOf(-2 - 128)).asInstanceOf[java.lang.Long].longValue should be (126L)
+    engine8.action(java.lang.Long.valueOf(-1 - 128)).asInstanceOf[java.lang.Long].longValue should be (127L)
+    engine8.action(java.lang.Long.valueOf(0 - 128)).asInstanceOf[java.lang.Long].longValue should be (-128L)
+    engine8.action(java.lang.Long.valueOf(1 - 128)).asInstanceOf[java.lang.Long].longValue should be (-127L)
+    engine8.action(java.lang.Long.valueOf(2 - 128)).asInstanceOf[java.lang.Long].longValue should be (-126L)
+
+    engine8.action(java.lang.Long.valueOf(-2)).asInstanceOf[java.lang.Long].longValue should be (-2L)
+    engine8.action(java.lang.Long.valueOf(-1)).asInstanceOf[java.lang.Long].longValue should be (-1L)
+    engine8.action(java.lang.Long.valueOf(0)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine8.action(java.lang.Long.valueOf(1)).asInstanceOf[java.lang.Long].longValue should be (1L)
+    engine8.action(java.lang.Long.valueOf(2)).asInstanceOf[java.lang.Long].longValue should be (2L)
+
+    engine8.action(java.lang.Long.valueOf(-2 + 128)).asInstanceOf[java.lang.Long].longValue should be (126L)
+    engine8.action(java.lang.Long.valueOf(-1 + 128)).asInstanceOf[java.lang.Long].longValue should be (127L)
+    engine8.action(java.lang.Long.valueOf(0 + 128)).asInstanceOf[java.lang.Long].longValue should be (-128L)
+    engine8.action(java.lang.Long.valueOf(1 + 128)).asInstanceOf[java.lang.Long].longValue should be (-127L)
+    engine8.action(java.lang.Long.valueOf(2 + 128)).asInstanceOf[java.lang.Long].longValue should be (-126L)
+
+    engine8.action(java.lang.Long.valueOf(-2 + 256)).asInstanceOf[java.lang.Long].longValue should be (-2L)
+    engine8.action(java.lang.Long.valueOf(-1 + 256)).asInstanceOf[java.lang.Long].longValue should be (-1L)
+    engine8.action(java.lang.Long.valueOf(0 + 256)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine8.action(java.lang.Long.valueOf(1 + 256)).asInstanceOf[java.lang.Long].longValue should be (1L)
+    engine8.action(java.lang.Long.valueOf(2 + 256)).asInstanceOf[java.lang.Long].longValue should be (2L)
+
+    val engine64 = PFAEngine.fromYaml("""
+input: long
+output: long
+action: {cast.signed: [input, 64]}
+""").head
+
+    engine64.action(java.lang.Long.valueOf(java.lang.Long.MIN_VALUE)).asInstanceOf[java.lang.Long].longValue should be (java.lang.Long.MIN_VALUE)
+    engine64.action(java.lang.Long.valueOf(java.lang.Long.MIN_VALUE + 1L)).asInstanceOf[java.lang.Long].longValue should be (java.lang.Long.MIN_VALUE + 1L)
+    engine64.action(java.lang.Long.valueOf(java.lang.Long.MIN_VALUE + 2L)).asInstanceOf[java.lang.Long].longValue should be (java.lang.Long.MIN_VALUE + 2L)
+
+    engine64.action(java.lang.Long.valueOf(-1)).asInstanceOf[java.lang.Long].longValue should be (-1L)
+    engine64.action(java.lang.Long.valueOf(0)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine64.action(java.lang.Long.valueOf(1)).asInstanceOf[java.lang.Long].longValue should be (1L)
+
+    engine64.action(java.lang.Long.valueOf(java.lang.Long.MAX_VALUE - 2L)).asInstanceOf[java.lang.Long].longValue should be (java.lang.Long.MAX_VALUE - 2L)
+    engine64.action(java.lang.Long.valueOf(java.lang.Long.MAX_VALUE - 1L)).asInstanceOf[java.lang.Long].longValue should be (java.lang.Long.MAX_VALUE - 1L)
+    engine64.action(java.lang.Long.valueOf(java.lang.Long.MAX_VALUE)).asInstanceOf[java.lang.Long].longValue should be (java.lang.Long.MAX_VALUE)
+  }
+
+  it must "do toUnsigned" taggedAs(Lib1, Lib1Cast) in {
+    val engine1 = PFAEngine.fromYaml("""
+input: long
+output: long
+action: {cast.unsigned: [input, 1]}
+""").head
+    engine1.action(java.lang.Long.valueOf(-2)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine1.action(java.lang.Long.valueOf(-1)).asInstanceOf[java.lang.Long].longValue should be (1L)
+    engine1.action(java.lang.Long.valueOf(0)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine1.action(java.lang.Long.valueOf(1)).asInstanceOf[java.lang.Long].longValue should be (1L)
+    engine1.action(java.lang.Long.valueOf(2)).asInstanceOf[java.lang.Long].longValue should be (0L)
+
+    val engine8 = PFAEngine.fromYaml("""
+input: long
+output: long
+action: {cast.unsigned: [input, 8]}
+""").head
+
+    engine8.action(java.lang.Long.valueOf(-2 - 2*256)).asInstanceOf[java.lang.Long].longValue should be (254L)
+    engine8.action(java.lang.Long.valueOf(-1 - 2*256)).asInstanceOf[java.lang.Long].longValue should be (255L)
+    engine8.action(java.lang.Long.valueOf(0 - 2*256)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine8.action(java.lang.Long.valueOf(1 - 2*256)).asInstanceOf[java.lang.Long].longValue should be (1L)
+    engine8.action(java.lang.Long.valueOf(2 - 2*256)).asInstanceOf[java.lang.Long].longValue should be (2L)
+
+    engine8.action(java.lang.Long.valueOf(-2 - 256)).asInstanceOf[java.lang.Long].longValue should be (254L)
+    engine8.action(java.lang.Long.valueOf(-1 - 256)).asInstanceOf[java.lang.Long].longValue should be (255L)
+    engine8.action(java.lang.Long.valueOf(0 - 256)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine8.action(java.lang.Long.valueOf(1 - 256)).asInstanceOf[java.lang.Long].longValue should be (1L)
+    engine8.action(java.lang.Long.valueOf(2 - 256)).asInstanceOf[java.lang.Long].longValue should be (2L)
+
+    engine8.action(java.lang.Long.valueOf(-2)).asInstanceOf[java.lang.Long].longValue should be (254L)
+    engine8.action(java.lang.Long.valueOf(-1)).asInstanceOf[java.lang.Long].longValue should be (255L)
+    engine8.action(java.lang.Long.valueOf(0)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine8.action(java.lang.Long.valueOf(1)).asInstanceOf[java.lang.Long].longValue should be (1L)
+    engine8.action(java.lang.Long.valueOf(2)).asInstanceOf[java.lang.Long].longValue should be (2L)
+
+    engine8.action(java.lang.Long.valueOf(-2 + 256)).asInstanceOf[java.lang.Long].longValue should be (254L)
+    engine8.action(java.lang.Long.valueOf(-1 + 256)).asInstanceOf[java.lang.Long].longValue should be (255L)
+    engine8.action(java.lang.Long.valueOf(0 + 256)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine8.action(java.lang.Long.valueOf(1 + 256)).asInstanceOf[java.lang.Long].longValue should be (1L)
+    engine8.action(java.lang.Long.valueOf(2 + 256)).asInstanceOf[java.lang.Long].longValue should be (2L)
+
+    engine8.action(java.lang.Long.valueOf(-2 + 2*256)).asInstanceOf[java.lang.Long].longValue should be (254L)
+    engine8.action(java.lang.Long.valueOf(-1 + 2*256)).asInstanceOf[java.lang.Long].longValue should be (255L)
+    engine8.action(java.lang.Long.valueOf(0 + 2*256)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine8.action(java.lang.Long.valueOf(1 + 2*256)).asInstanceOf[java.lang.Long].longValue should be (1L)
+    engine8.action(java.lang.Long.valueOf(2 + 2*256)).asInstanceOf[java.lang.Long].longValue should be (2L)
+
+    val engine63 = PFAEngine.fromYaml("""
+input: long
+output: long
+action: {cast.unsigned: [input, 63]}
+""").head
+
+    engine63.action(java.lang.Long.valueOf(java.lang.Long.MIN_VALUE)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine63.action(java.lang.Long.valueOf(java.lang.Long.MIN_VALUE + 1L)).asInstanceOf[java.lang.Long].longValue should be (1L)
+    engine63.action(java.lang.Long.valueOf(java.lang.Long.MIN_VALUE + 2L)).asInstanceOf[java.lang.Long].longValue should be (2L)
+
+    engine63.action(java.lang.Long.valueOf(-1)).asInstanceOf[java.lang.Long].longValue should be (java.lang.Long.MAX_VALUE)
+    engine63.action(java.lang.Long.valueOf(0)).asInstanceOf[java.lang.Long].longValue should be (0L)
+    engine63.action(java.lang.Long.valueOf(1)).asInstanceOf[java.lang.Long].longValue should be (1L)
+
+    engine63.action(java.lang.Long.valueOf(java.lang.Long.MAX_VALUE - 2L)).asInstanceOf[java.lang.Long].longValue should be (java.lang.Long.MAX_VALUE - 2L)
+    engine63.action(java.lang.Long.valueOf(java.lang.Long.MAX_VALUE - 1L)).asInstanceOf[java.lang.Long].longValue should be (java.lang.Long.MAX_VALUE - 1L)
+    engine63.action(java.lang.Long.valueOf(java.lang.Long.MAX_VALUE)).asInstanceOf[java.lang.Long].longValue should be (java.lang.Long.MAX_VALUE)
+  }
+
+  it must "do toInt" taggedAs(Lib1, Lib1Cast) in {
     PFAEngine.fromYaml("""
 input: int
 output: int
@@ -149,7 +283,7 @@ output:
 action:
   cast.fanoutBoolean: input
 """).head
-    engine1.action(engine1.fromJson(""""three"""", engine1.inputType)).asInstanceOf[PFAArray[Boolean]].toVector should be (Vector(false, false, false, true, false, false, false, false, false, false))
+    engine1.action(engine1.jsonInput(""""three"""")).asInstanceOf[PFAArray[Boolean]].toVector should be (Vector(false, false, false, true, false, false, false, false, false, false))
 
     val engine2 = PFAEngine.fromYaml("""
 input: string
@@ -216,7 +350,7 @@ output:
 action:
   cast.fanoutInt: input
 """).head
-    engine1.action(engine1.fromJson(""""three"""", engine1.inputType)).asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 0, 0, 1, 0, 0, 0, 0, 0, 0))
+    engine1.action(engine1.jsonInput(""""three"""")).asInstanceOf[PFAArray[Int]].toVector should be (Vector(0, 0, 0, 1, 0, 0, 0, 0, 0, 0))
 
     val engine2 = PFAEngine.fromYaml("""
 input: string
@@ -283,7 +417,7 @@ output:
 action:
   cast.fanoutLong: input
 """).head
-    engine1.action(engine1.fromJson(""""three"""", engine1.inputType)).asInstanceOf[PFAArray[Long]].toVector should be (Vector(0L, 0L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 0L))
+    engine1.action(engine1.jsonInput(""""three"""")).asInstanceOf[PFAArray[Long]].toVector should be (Vector(0L, 0L, 0L, 1L, 0L, 0L, 0L, 0L, 0L, 0L))
 
     val engine2 = PFAEngine.fromYaml("""
 input: string
@@ -350,7 +484,7 @@ output:
 action:
   cast.fanoutFloat: input
 """).head
-    engine1.action(engine1.fromJson(""""three"""", engine1.inputType)).asInstanceOf[PFAArray[Float]].toVector should be (Vector(0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F))
+    engine1.action(engine1.jsonInput(""""three"""")).asInstanceOf[PFAArray[Float]].toVector should be (Vector(0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F, 0.0F))
 
     val engine2 = PFAEngine.fromYaml("""
 input: string
@@ -417,7 +551,7 @@ output:
 action:
   cast.fanoutDouble: input
 """).head
-    engine1.action(engine1.fromJson(""""three"""", engine1.inputType)).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    engine1.action(engine1.jsonInput(""""three"""")).asInstanceOf[PFAArray[Double]].toVector should be (Vector(0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
 
     val engine2 = PFAEngine.fromYaml("""
 input: string

@@ -30,9 +30,17 @@ import com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine
 import com.opendatagroup.hadrian.jvmcompiler.PFAEngine
 
 package object hadoop {
+  var conf: Configuration = null
+
   def loadEngine(location: String, configuration: Configuration): PFAEngine[AnyRef, AnyRef] = {
     val fs = org.apache.hadoop.fs.FileSystem.get(configuration)
+
+    System.err.println(s"Loading engine file -> "+location)
+    
     val inputStream = fs.open(new Path(location))
+
+    System.err.println(s"Found engine.")
+
     if (location.endsWith(".yaml"))
       PFAEngine.fromYaml(new java.util.Scanner(inputStream).useDelimiter("\\Z").next()).head
     else
@@ -53,11 +61,13 @@ package object hadoop {
     _reducerEngine
   }
 
+
   def inputPaths(inputData: String, fs: FileSystem): String =
     if (inputData.contains(","))
       inputData
     else
       recursiveFiles(new Path(inputData), fs, {path: Path => path.getName.endsWith(".avro")}).mkString(",")
+
 
   def recursiveFiles(path: Path, fileSystem: FileSystem, filter: Path => Boolean): Seq[Path] = {
     val pathFilter = new PathFilter {
