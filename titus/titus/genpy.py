@@ -953,21 +953,12 @@ class PFAEngine(object):
 
         for cellName, cellConfig in engineConfig.cells.items():
             if cellConfig.shared and cellName not in sharedState.cells:
-                if callable(cellConfig.init):
-                    value = cellConfig.init(cellConfig.avroType)
-                else:
-                    value = titus.datatype.jsonDecoder(cellConfig.avroType, json.loads(cellConfig.init))
+                value = titus.datatype.jsonDecoder(cellConfig.avroType, cellConfig.initJsonNode)
                 sharedState.cells[cellName] = Cell(value, cellConfig.shared, cellConfig.rollback, cellConfig.source)
 
         for poolName, poolConfig in engineConfig.pools.items():
             if poolConfig.shared and poolName not in sharedState.pools:
-                if callable(poolConfig.init):
-                    value = poolConfig.init(titus.datatype.AvroMap(poolConfig.avroType))
-                else:
-                    init = {}
-                    for k, v in poolConfig.init.items():
-                        init[k] = json.loads(v)
-                    value = titus.datatype.jsonDecoder(titus.datatype.AvroMap(poolConfig.avroType), init)
+                value = titus.datatype.jsonDecoder(titus.datatype.AvroMap(poolConfig.avroType), poolConfig.initJsonNode)
                 sharedState.pools[poolName] = Pool(value, poolConfig.shared, poolConfig.rollback, poolConfig.source)
 
         out = []
@@ -977,21 +968,12 @@ class PFAEngine(object):
 
             for cellName, cellConfig in engineConfig.cells.items():
                 if not cellConfig.shared:
-                    if callable(cellConfig.init):
-                        value = cellConfig.init(cellConfig.avroType)
-                    else:
-                        value = titus.datatype.jsonDecoder(cellConfig.avroType, json.loads(cellConfig.init))
+                    value = titus.datatype.jsonDecoder(cellConfig.avroType, cellConfig.initJsonNode)
                     cells[cellName] = Cell(value, cellConfig.shared, cellConfig.rollback, cellConfig.source)
 
             for poolName, poolConfig in engineConfig.pools.items():
                 if not poolConfig.shared:
-                    if callable(poolConfig.init):
-                        value = poolConfig.init(titus.datatype.AvroMap(poolConfig.avroType))
-                    else:
-                        init = {}
-                        for k, v in poolConfig.init.items():
-                            init[k] = json.loads(v)
-                        value = titus.datatype.jsonDecoder(titus.datatype.AvroMap(poolConfig.avroType), init)
+                    value = titus.datatype.jsonDecoder(titus.datatype.AvroMap(poolConfig.avroType), poolConfig.initJsonNode)
                     pools[poolName] = Pool(value, poolConfig.shared, poolConfig.rollback, poolConfig.source)
 
             if engineConfig.method == Method.FOLD:

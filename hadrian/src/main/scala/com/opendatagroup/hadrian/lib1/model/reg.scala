@@ -88,13 +88,13 @@ package object reg {
 
     val doc =
       <doc>
-        <desc>Apply matrix <p>model</p> to independent variables <p>datum</p> to predict the dependent variables.</desc>
+        <desc>Apply matrix <p>model</p> to independent variables <p>datum</p> to predict the dependent, predicted variables.</desc>
         <param name="datum">Vector of independent variables with <m>d</m> dimensions.</param>
         <param name="model">Parameters of the linear model.
-          <paramField name="coeff">Matrix of coefficients that multiply the input variables, which has <m>p</m> rows and <m>d</m> columns.</paramField>
-          <paramField name="const">Vector of constant offsets, which has <m>p</m> dimensions.</paramField>
+          <paramField name="coeff">Vector or matrix of coefficients that multiply the input variables, which has <m>p</m> rows and <m>d</m> columns.</paramField>
+          <paramField name="const">Scalar or vector of constant offsets, which has <m>p</m> dimensions.</paramField>
         </param>
-        <ret>Returns a <m>p</m> dimensional vector of dependent variables.</ret>
+        <ret>Returns a <m>p</m> dimensional vector of dependent, predicted variables.</ret>
         <detail>The vectors and matrix may be expressed as arrays (indexed by integers) or maps (indexed by strings).</detail>
         <detail>The simpler signature is may be used in the <m>p = 1</m>case.</detail>
         <error>Raises a "misaligned coeff" error if any row of <pf>coeff</pf> does not have the same indexes as <p>datum</p>.</error>
@@ -202,125 +202,104 @@ package object reg {
   }
   provide(Linear)
 
-  //////////////////////////////////////////////////////////////////// postprocessing
-
-  ////   softmax (SoftMax)
-  object SoftMax extends LibFcn {
-    val name = prefix + "norm.softmax"
-    val sig = Sigs(List(Sig(List("x" -> P.Array(P.Double)), P.Array(P.Double)),
-                        Sig(List("x" -> P.Map(P.Double)), P.Map(P.Double))))
+  ////   linearVariance (LinearVariance)
+  object LinearVariance extends LibFcn with com.opendatagroup.hadrian.lib1.la.EJMLInterface {
+    val name = prefix + "linearVariance"
+    val sig = Sigs(List(Sig(List("datum" -> P.Array(P.Double), "model" -> P.WildRecord("M", ListMap("covar" -> P.Array(P.Array(P.Double))))), P.Double),
+                        Sig(List("datum" -> P.Array(P.Double), "model" -> P.WildRecord("M", ListMap("covar" -> P.Array(P.Array(P.Array(P.Double)))))), P.Array(P.Double)),
+                        Sig(List("datum" -> P.Map(P.Double), "model" -> P.WildRecord("M", ListMap("covar" -> P.Map(P.Map(P.Double))))), P.Double),
+                        Sig(List("datum" -> P.Map(P.Double), "model" -> P.WildRecord("M", ListMap("covar" -> P.Map(P.Map(P.Map(P.Double)))))), P.Map(P.Double))))
     val doc =
       <doc>
-        <desc>Normalize a prediction with the softmax function.</desc>
-        <ret>Each element <m>x_i</m> is mapped to <m>\exp(x_i)/\sum_j \exp(x_j)</m>.</ret>
+        <desc>Propagate variances from <p>model</p> <pf>covar</pf> (covariance matrix) to the dependent, predicted variable(s).</desc>
+        <param name="datum">Vector of independent variables <m>{"""\vec{o}"""}</m> with <m>d</m> dimensions.</param>
+        <param name="model">Parameters of the linear model.
+          <paramField name="covar">Covariance matrix <m>{"""C"""}</m> or array/map of covariance matrices, one for each dependent, predicted variable.  Each matrix has <m>d + 1</m> rows and <m>d + 1</m> columns: the last or empty string-key row and column corresponds to the model's constant term.  If there are <m>p</m> dependent, predicted variables, the outermost array/map has <m>p</m> items.</paramField>
+        </param>
+        <ret>Propagated variance(s) <m>{"""\vec{o}^T C \vec{o}"""}</m> for each dependent, predicted variable.</ret>
+        <detail>The "error" or "uncertainty" in the predicted variable(s) is the square root of this value/these values.</detail>
+        <error>Raises a "misaligned covariance" error if any covariance matrix does not have the same indexes as <p>datum</p> plus the implicit index for a constant (last in array signature, empty string-key in map signature).</error>
       </doc>
-    def apply(x: PFAArray[Double]): PFAArray[Double] = {
-      var xx = x.toVector
-      if (Math.abs(xx.max) >= Math.abs(xx.min)) {
-        xx = xx.map(y => y - xx.max) 
-      } else {
-        xx = xx.map(y => y - xx.min) 
-      }
-      val denom = xx.fold(0.0) {_ + Math.exp((_))}
-      PFAArray.fromVector(xx map {Math.exp(_) / denom})
+
+    override def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
+      JavaCode("%s.apply%s(%s, %s)",
+        javaRef(FcnType(argContext collect {case x: ExpressionContext => x.retType}, retType)).toString,
+        (paramTypes(0), retType) match {
+          case (AvroArray(_), AvroDouble()) => "1"
+          case (AvroArray(_), AvroArray(AvroDouble())) => "2"
+          case (AvroMap(_), AvroDouble()) => "3"
+          case (AvroMap(_), AvroMap(AvroDouble())) => "4"
+        },
+        args(0).toString,
+        args(1).toString)
+
+    def apply1(datum: PFAArray[Double], model: PFARecord): Double = {
+      val covar = model.get("covar").asInstanceOf[PFAArray[PFAArray[Double]]]
+      val datumVector = datum.toVector :+ 1.0
+      if (covar.size != datumVector.size  ||  covar.toVector.exists(_.size != datumVector.size))
+        throw new PFARuntimeException("misaligned covariance")
+      val x = toDenseVector(datumVector)
+      val C = toDense(covar)
+      x.transpose.mult(C.mult(x)).get(0, 0)
     }
-    def apply(x: PFAMap[java.lang.Double]): PFAMap[java.lang.Double] = {
-      var xx = x.toMap map {case (k, v) => (k, v.doubleValue)}
-      if (Math.abs(xx.values.max) >= Math.abs(xx.values.min)) {
-        xx = xx.map { case (k,v)  => (k, v.doubleValue - xx.values.max) }
-      } else {
-        xx = xx.map { case (k,v)  => (k, v.doubleValue - xx.values.min) }
+
+    def apply2(datum: PFAArray[Double], model: PFARecord): PFAArray[Double] = {
+      val covars = model.get("covar").asInstanceOf[PFAArray[PFAArray[PFAArray[Double]]]]
+      val datumVector = datum.toVector :+ 1.0
+      val x = toDenseVector(datumVector)
+      val results = covars.toVector map {covar =>
+        if (covar.size != datumVector.size  ||  covar.toVector.exists(_.size != datumVector.size))
+          throw new PFARuntimeException("misaligned covariance")
+        val C = toDense(covar)
+        x.transpose.mult(C.mult(x)).get(0, 0)
       }
-      val denom = xx.values.fold(0.0) {_ + Math.exp(_)}
-      PFAMap.fromMap(xx map {case (k, v) => (k, java.lang.Double.valueOf(Math.exp(v) / denom))})
+      PFAArray.fromVector(results)
+    }
+
+    def apply3(datum: PFAMap[java.lang.Double], model: PFARecord): Double = {
+      val covar = model.get("covar").asInstanceOf[PFAMap[PFAMap[java.lang.Double]]]
+      val datumMap = datum.toMap.updated("", java.lang.Double.valueOf(1.0))
+      val keys = datumMap.keySet.toVector
+      val x = toDenseVector(PFAArray.fromVector(keys map {k => datumMap(k).doubleValue}))
+      val C =
+        try {
+          new SimpleMatrix(keys map {k =>
+            val row = covar.toMap.apply(k).toMap
+            if (keys.size != row.size)
+              throw new PFARuntimeException("misaligned covariance")
+            keys map {kk => row(kk).doubleValue} toArray
+          } toArray)
+        }
+        catch {
+          case err: java.util.NoSuchElementException => throw new PFARuntimeException("misaligned covariance")
+        }
+      x.transpose.mult(C.mult(x)).get(0, 0)
+    }
+
+    def apply4(datum: PFAMap[java.lang.Double], model: PFARecord): PFAMap[java.lang.Double] = {
+      val covars = model.get("covar").asInstanceOf[PFAMap[PFAMap[PFAMap[java.lang.Double]]]]
+      val datumMap = datum.toMap.updated("", java.lang.Double.valueOf(1.0))
+      val keys = datumMap.keySet.toVector
+      val x = toDenseVector(PFAArray.fromVector(keys map {k => datumMap(k).doubleValue}))
+      PFAMap.fromMap(covars.toMap map {case (depkey, covar) =>
+        val C =
+          try {
+            new SimpleMatrix(keys map {k =>
+              val row = covar.toMap.apply(k).toMap
+              if (keys.size != row.size)
+                throw new PFARuntimeException("misaligned covariance")
+              keys map {kk => row(kk).doubleValue} toArray
+            } toArray)
+          }
+          catch {
+            case err: java.util.NoSuchElementException => throw new PFARuntimeException("misaligned covariance")
+          }
+        (depkey, java.lang.Double.valueOf(x.transpose.mult(C.mult(x)).get(0, 0)))
+      })
     }
   }
-  provide(SoftMax)
+  provide(LinearVariance)
 
-  trait UnwrapForNorm {
-    def apply(x: Double): Double
-
-    def apply(x: PFAArray[Double]): PFAArray[Double] =
-      PFAArray.fromVector(x.toVector.map(apply(_)))
-
-    def apply(x: PFAMap[java.lang.Double]): PFAMap[java.lang.Double] =
-      PFAMap.fromMap(x.toMap map {case (k, v) => (k, java.lang.Double.valueOf(apply(v.doubleValue)))})
-  }
-
-  ////   logit (Logit)
-  object Logit extends LibFcn with UnwrapForNorm {
-    val name = prefix + "norm.logit"
-    val sig = Sigs(List(Sig(List("x" -> P.Double), P.Double),
-                        Sig(List("x" -> P.Array(P.Double)), P.Array(P.Double)),
-                        Sig(List("x" -> P.Map(P.Double)), P.Map(P.Double))))
-    val doc =
-      <doc>
-        <desc>Normalize a prediction with the logit function.</desc>
-        <ret>Each element <m>x_i</m> is mapped to <m>1 / (1 + \exp(-x_i))</m>.</ret>
-      </doc>
-    def apply(x: Double): Double = 1.0 / (1.0 + Math.exp(-x))
-  }
-  provide(Logit)
-
-  ////   probit (Probit)
-  object Probit extends LibFcn with UnwrapForNorm {
-    val name = prefix + "norm.probit"
-    val sig = Sigs(List(Sig(List("x" -> P.Double), P.Double),
-                        Sig(List("x" -> P.Array(P.Double)), P.Array(P.Double)),
-                        Sig(List("x" -> P.Map(P.Double)), P.Map(P.Double))))
-    val doc =
-      <doc>
-        <desc>Normalize a prediction with the probit function.</desc>
-        <ret>Each element <m>x_i</m> is mapped to <m>{"""(\mbox{erf}(x_i/\sqrt{2}) + 1)/2"""}</m>.</ret>
-      </doc>
-    def apply(x: Double): Double = (special.Erf.erf(x/Math.sqrt(2.0)) + 1.0)/2.0
-  }
-  provide(Probit)
-
-  ////   cloglog (CLogLog)
-  object CLogLog extends LibFcn with UnwrapForNorm {
-    val name = prefix + "norm.cloglog"
-    val sig = Sigs(List(Sig(List("x" -> P.Double), P.Double),
-                        Sig(List("x" -> P.Array(P.Double)), P.Array(P.Double)),
-                        Sig(List("x" -> P.Map(P.Double)), P.Map(P.Double))))
-    val doc =
-      <doc>
-        <desc>Normalize a prediction with the cloglog function.</desc>
-        <ret>Each element <m>x_i</m> is mapped to <m>1 - \exp(-\exp(x_i))</m>.</ret>
-      </doc>
-    def apply(x: Double): Double = 1.0 - Math.exp(-Math.exp(x))
-  }
-  provide(CLogLog)
-
-  ////   loglog (LogLog)
-  object LogLog extends LibFcn with UnwrapForNorm {
-    val name = prefix + "norm.loglog"
-    val sig = Sigs(List(Sig(List("x" -> P.Double), P.Double),
-                        Sig(List("x" -> P.Array(P.Double)), P.Array(P.Double)),
-                        Sig(List("x" -> P.Map(P.Double)), P.Map(P.Double))))
-    val doc =
-      <doc>
-        <desc>Normalize a prediction with the loglog function.</desc>
-        <ret>Each element <m>x_i</m> is mapped to <m>\exp(-\exp(x_i))</m>.</ret>
-      </doc>
-    def apply(x: Double): Double = Math.exp(-Math.exp(x))
-  }
-  provide(LogLog)
-
-  ////   cauchit (Cauchit)
-  object Cauchit extends LibFcn with UnwrapForNorm {
-    val name = prefix + "norm.cauchit"
-    val sig = Sigs(List(Sig(List("x" -> P.Double), P.Double),
-                        Sig(List("x" -> P.Array(P.Double)), P.Array(P.Double)),
-                        Sig(List("x" -> P.Map(P.Double)), P.Map(P.Double))))
-    val doc =
-      <doc>
-        <desc>Normalize a prediction with the cauchit function.</desc>
-        <ret>Each element <m>x_i</m> is mapped to <m>{"""0.5 + (1/\pi) \tan^{-1}(x_i)"""}</m>.</ret>
-      </doc>
-    def apply(x: Double): Double = 0.5 + (1.0/Math.PI) * Math.atan(x)
-  }
-  provide(Cauchit)
 
   //////////////////////////////////////////////////////////////////// quality
 
@@ -435,7 +414,7 @@ package object reg {
         <param name="covariance">Matrix of covariance <m>{"""C"""}</m>.</param>
         <ret>Scalar result of a similarity transformation: <m>{"""\sqrt{(\vec{o} - \vec{p})^T C^{-1} (\vec{o} - \vec{p})}"""}</m>.</ret>
         <error>Raises a "too few rows/cols" error if <p>observation</p> has fewer than one element.</error>
-        <error>Raises a "misaligned prediciotn" error if <p>prediction</p> does not have the same indexes as <p>observation</p>.</error>
+        <error>Raises a "misaligned prediction" error if <p>prediction</p> does not have the same indexes as <p>observation</p>.</error>
         <error>Raises a "misaligned covariance" error if <p>covariance</p> does not have the same indexes as <p>observation</p>.</error>
       </doc>
 

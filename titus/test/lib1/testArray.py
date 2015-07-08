@@ -1093,6 +1093,120 @@ action:
 """)
         self.assertEqual(str(engine.action(None)), "nan")
 
+    def testMedian(self):
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: int
+action:
+  - a.median: {value: [1,2,3,4], type: {type: array, items: int}}
+""")
+        self.assertEqual(engine.action(None), 2)
+
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: double
+action:
+  - a.median: {value: [1,2,3,4,5], type: {type: array, items: double}}
+""")
+        self.assertEqual(engine.action(None), 3.0)
+
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  - a.median: {value: ["a","c","b","d"], type: {type: array, items: string}}
+""")
+        self.assertEqual(engine.action(None), "b")
+
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  - a.median: {value: ["e","c","d","b","a"], type: {type: array, items: string}}
+""")
+        self.assertEqual(engine.action(None), "c")
+
+    def testNTile(self):
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: double
+action:
+  - a.ntile:
+     - {value: [1,2,3,4], type: {type: array, items: double}}
+     - 0.5
+""")
+        self.assertEqual(engine.action(None), 2.5)
+
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: double
+action:
+  - a.ntile:
+     - {value: [1,2,3,4,5], type: {type: array, items: double}}
+     - 0.5
+""")
+        self.assertEqual(engine.action(None), 3.0)
+
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: double
+action:
+  - a.ntile:
+     - {value: [0,1,2,3,4,5,6,7,8,9,10], type: {type: array, items: double}}
+     - 0.1
+""")
+        self.assertEqual(engine.action(None), 1.0)
+
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: double
+action:
+  - a.ntile:
+     - {value: [4,5,6,7,8,9,10], type: {type: array, items: double}}
+     - -100
+""")
+        self.assertEqual(engine.action(None), 4)
+
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  - a.ntile:
+      - {value: ["a","c","b","d"], type: {type: array, items: string}}
+      - 0.5
+""")
+        self.assertEqual(engine.action(None), "b")
+
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  - a.ntile:
+      - {value: ["a","c","b","d","e"], type: {type: array, items: string}}
+      - 0.5
+""")
+        self.assertEqual(engine.action(None), "c")
+
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  - a.ntile:
+     - {value: ["a","c","b","d","e","f","g","h","i","j","k"], type: {type: array, items: string}}
+     - 0.1
+""")
+        self.assertEqual(engine.action(None), "b")
+
+        engine, = PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  - a.ntile:
+     - {value: ["a","c","b","d","e","f","g","h","i","j","k"], type: {type: array, items: string}}
+     - 1000
+""")
+        self.assertEqual(engine.action(None), "k")
+
    #################################################################### set or set-like functions
 
     def testDistinct(self):

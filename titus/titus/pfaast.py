@@ -32,11 +32,13 @@ import titus.lib1.fixed
 import titus.lib1.impute
 import titus.lib1.interp
 import titus.lib1.la
+import titus.lib1.link
 import titus.lib1.map
 import titus.lib1.metric
 import titus.lib1.pfamath
 import titus.lib1.parse
 import titus.lib1.pfastring
+import titus.lib1.pfatest
 import titus.lib1.pfatime
 import titus.lib1.prob.dist
 import titus.lib1.regex
@@ -45,7 +47,9 @@ import titus.lib1.spec
 import titus.lib1.stat.change
 import titus.lib1.stat.sample
 import titus.lib1.model.cluster
+import titus.lib1.model.naive
 import titus.lib1.model.neighbor
+import titus.lib1.model.neural
 import titus.lib1.model.tree
 import titus.lib1.model.reg
 
@@ -216,6 +220,7 @@ class FunctionTable(object):
         functions.update(titus.lib1.impute.provides)
         functions.update(titus.lib1.interp.provides)
         functions.update(titus.lib1.la.provides)
+        functions.update(titus.lib1.link.provides)
         functions.update(titus.lib1.map.provides)
         functions.update(titus.lib1.metric.provides)
         functions.update(titus.lib1.pfamath.provides)
@@ -227,10 +232,13 @@ class FunctionTable(object):
         functions.update(titus.lib1.spec.provides)
         functions.update(titus.lib1.stat.change.provides)
         functions.update(titus.lib1.stat.sample.provides)
+        functions.update(titus.lib1.pfatest.provides)
         functions.update(titus.lib1.pfatime.provides)
         functions.update(titus.lib1.model.tree.provides)
         functions.update(titus.lib1.model.cluster.provides)
+        functions.update(titus.lib1.model.naive.provides)
         functions.update(titus.lib1.model.neighbor.provides)
+        functions.update(titus.lib1.model.neural.provides)
         functions.update(titus.lib1.model.reg.provides)
 
         # TODO: functions.update(titus.lib1.other.provides)...
@@ -363,8 +371,62 @@ class EngineConfig(Ast):
                  options,
                  pos=None):
 
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(name, basestring):
+            raise PFASyntaxException("\"name\" must be a string", pos)
+
+        if method not in (Method.MAP, Method.EMIT, Method.FOLD):
+            raise PFASyntaxException("\"method\" must be \"map\", \"emit\", or \"fold\"", pos)
+
+        if not isinstance(inputPlaceholder, (AvroPlaceholder, AvroType)):
+            raise PFASyntaxException("\"inputPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
+
+        if not isinstance(outputPlaceholder, (AvroPlaceholder, AvroType)):
+            raise PFASyntaxException("\"outputPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
+
+        if not isinstance(begin, (list, tuple)) or not all(isinstance(x, Expression) for x in begin):
+            raise PFASyntaxException("\"begin\" must be a list of Expressions", pos)
+
+        if not isinstance(action, (list, tuple)) or not all(isinstance(x, Expression) for x in action):
+            raise PFASyntaxException("\"action\" must be a list of Expressions", pos)
+
+        if not isinstance(end, (list, tuple)) or not all(isinstance(x, Expression) for x in end):
+            raise PFASyntaxException("\"end\" must be a list of Expressions", pos)
+
+        if not isinstance(fcns, dict) or not all(isinstance(x, FcnDef) for x in fcns.values()):
+            raise PFASyntaxException("\"fcns\" must be a dictionary of FcnDefs", pos)
+
+        if not isinstance(zero, basestring) and not zero is None:
+            raise PFASyntaxException("\"zero\" must be a string or None", pos)
+
+        if (not isinstance(merge, (list, tuple)) or not all(isinstance(x, Expression) for x in merge)) and not merge is None:
+            raise PFASyntaxException("\"merge\" must be list of Expressions or None", pos)
+
+        if not isinstance(cells, dict) or not all(isinstance(x, Cell) for x in cells.values()):
+            raise PFASyntaxException("\"cells\" must be a dictionary of Cells", pos)
+
+        if not isinstance(pools, dict) or not all(isinstance(x, Pool) for x in pools.values()):
+            raise PFASyntaxException("\"pools\" must be a dictionary of Pools", pos)
+
+        if not isinstance(randseed, (int, long)) and not randseed is None:
+            raise PFASyntaxException("\"randseed\" must be an int or None", pos)
+
+        if not isinstance(doc, basestring) and not doc is None:
+            raise PFASyntaxException("\"doc\" must be a string or None", pos)
+
+        if not isinstance(version, (int, long)) and not version is None:
+            raise PFASyntaxException("\"version\" must be an int or None", pos)
+
+        if not isinstance(metadata, dict) or not all(isinstance(x, basestring) for x in metadata.values()):
+            raise PFASyntaxException("\"metadata\" must be a dictionary of strings", pos)
+
+        if not isinstance(options, dict):
+            raise PFASyntaxException("\"options\" must be a dictionary", pos)
+
         if len(self.action) < 1:
-            raise PFASyntaxException("\"action\" must contain least one expression", self.pos)
+            raise PFASyntaxException("\"action\" must contain least one expression", pos)
 
         if method == Method.FOLD and (zero is None or merge is None):
             raise PFASyntaxException("folding engines must include \"zero\" and \"merge\" top-level fields", pos)
@@ -373,7 +435,7 @@ class EngineConfig(Ast):
             raise PFASyntaxException("non-folding engines must not include \"zero\" and \"merge\" top-level fields", pos)
 
         if merge is not None and len(merge) < 1:
-            raise PFASyntaxException("\"merge\" must contain least one expression", self.pos)
+            raise PFASyntaxException("\"merge\" must contain least one expression", pos)
 
     def toString(self):
         return '''EngineConfig(name={name},
@@ -651,17 +713,32 @@ class CellPoolSource(object):
 @titus.util.case
 class Cell(Ast):
     def __init__(self, avroPlaceholder, init, shared, rollback, source, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(avroPlaceholder, (AvroPlaceholder, AvroType)):
+            raise PFASyntaxException("\"avroPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
+
+        if not isinstance(init, basestring) and not callable(init):
+            raise PFASyntaxException("\"init\" must be a string or callable", pos)
+
+        if not isinstance(shared, bool):
+            raise PFASyntaxException("\"shared\" must be boolean", pos)
+
+        if not isinstance(rollback, bool):
+            raise PFASyntaxException("\"rollback\" must be boolean", pos)
+
+        if not isinstance(source, basestring) and not source is None:
+            raise PFASyntaxException("\"source\" must be a string or None", pos)
+        
         if shared and rollback:
-            raise PFASyntaxException("shared and rollback are mutually incompatible flags for a Cell", self.pos)
+            raise PFASyntaxException("shared and rollback are mutually incompatible flags for a Cell", pos)
 
     def equals(self, other):
         if isinstance(other, Cell):
             return self.avroPlaceholder == other.avroPlaceholder and self.initJsonNode == other.initJsonNode and self.shared == other.shared and self.rollback == other.rollback and self.source == other.source
         else:
             return False
-
-    def __hash__(self):
-        return hash((self.avroPlaceholder, json.loads(self.init), self.shared, self.rollback, self.source))
 
     @property
     def avroType(self):
@@ -674,7 +751,7 @@ class Cell(Ast):
     @property
     def initJsonNode(self):
         if callable(self.init):
-            return jsonEncoder(self.avroType, self.init(self.avroType))
+            return json.loads(self.init(self.avroType))
         else:
             return json.loads(self.init)
         
@@ -695,17 +772,32 @@ class Cell(Ast):
 @titus.util.case
 class Pool(Ast):
     def __init__(self, avroPlaceholder, init, shared, rollback, source, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(avroPlaceholder, (AvroPlaceholder, AvroType)):
+            raise PFASyntaxException("\"avroPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
+
+        if not isinstance(init, dict) or not all(isinstance(x, basestring) or x is None for x in init.values()):
+            raise PFASyntaxException("\"init\" must be a string or callable", pos)
+
+        if not isinstance(shared, bool):
+            raise PFASyntaxException("\"shared\" must be boolean", pos)
+
+        if not isinstance(rollback, bool):
+            raise PFASyntaxException("\"rollback\" must be boolean", pos)
+
+        if not isinstance(source, basestring) and not source is None:
+            raise PFASyntaxException("\"source\" must be a string or None", pos)
+
         if shared and rollback:
-            raise PFASyntaxException("shared and rollback are mutually incompatible flags for a Pool", self.pos)
+            raise PFASyntaxException("shared and rollback are mutually incompatible flags for a Pool", pos)
 
     def equals(self, other):
         if isinstance(other, Pool):
             return self.avroPlaceholder == other.avroPlaceholder and self.initJsonNode == other.initJsonNode and self.shared == other.shared and self.rollback == other.rollback and self.source == other.source
         else:
             return False
-
-    def __hash__(self):
-        return hash((self.avroPlaceholder, dict((k, json.loads(v)) for k, v in self.init.items()), self.shared, self.rollback, self.source))
 
     @property
     def avroType(self):
@@ -718,7 +810,7 @@ class Pool(Ast):
     @property
     def initJsonNode(self):
         if callable(self.init):
-            return jsonEncoder(AvroMap(self.avroType), self.init(AvroMap(self.avroType)))
+            return json.loads(self.init(AvroMap(self.avroType)))
         else:
             return OrderedDict((k, json.loads(v)) for k, v in self.init.items())
 
@@ -802,8 +894,20 @@ class HasPath(object):
 @titus.util.case
 class FcnDef(Argument):
     def __init__(self, paramsPlaceholder, retPlaceholder, body, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(paramsPlaceholder, (list, tuple)) or not all(isinstance(x, dict) and len(x) == 1 and isinstance(x.values()[0], (AvroPlaceholder, AvroType)) for x in paramsPlaceholder):
+            raise PFASyntaxException("\"paramsPlaceholder\" must be a list of single-key dictionaries of AvroPlaceholders or AvroTypes", pos)
+
+        if not isinstance(retPlaceholder, (AvroPlaceholder, AvroType)):
+            raise PFASyntaxException("\"retPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
+
+        if not isinstance(body, (list, tuple)) or not all(isinstance(x, Expression) for x in body):
+            raise PFASyntaxException("\"body\" must be a list of Expressions", pos)
+
         if len(self.body) < 1:
-            raise PFASyntaxException("function's \"do\" list must contain least one expression", self.pos)
+            raise PFASyntaxException("function's \"do\" list must contain least one expression", pos)
 
     @property
     def paramNames(self):
@@ -866,7 +970,12 @@ class FcnDef(Argument):
 
 @titus.util.case
 class FcnRef(Argument):
-    def __init__(self, name, pos=None): pass
+    def __init__(self, name, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(name, basestring):
+            raise PFASyntaxException("\"name\" must be a string", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         fcn = functionTable.functions.get(self.name, None)
@@ -897,8 +1006,17 @@ class FcnRef(Argument):
 @titus.util.case
 class FcnRefFill(Argument):
     def __init__(self, name, fill, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(name, basestring):
+            raise PFASyntaxException("\"name\" must be a string", pos)
+
+        if not isinstance(fill, dict) or not all(isinstance(x, Argument) for x in fill.values()):
+            raise PFASyntaxException("\"fill\" must be a dictionary of Arguments", pos)
+
         if len(self.fill) < 1:
-            raise PFASyntaxException("\"fill\" must contain at least one parameter name-argument mapping", self.pos)
+            raise PFASyntaxException("\"fill\" must contain at least one parameter name-argument mapping", pos)
 
     def collect(self, pf):
         return super(FcnRefFill, self).collect(pf) + \
@@ -964,7 +1082,15 @@ class FcnRefFill(Argument):
 
 @titus.util.case
 class CallUserFcn(Expression):
-    def __init__(self, name, args, pos=None): pass
+    def __init__(self, name, args, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(name, Expression):
+            raise PFASyntaxException("\"name\" must be an Expression", pos)
+
+        if not isinstance(args, (list, tuple)) or not all(isinstance(x, Expression) for x in args):
+            raise PFASyntaxException("\"args\" must be a list of Expressions", pos)
 
     def collect(self, pf):
         return super(CallUserFcn, self).collect(pf) + \
@@ -1023,7 +1149,7 @@ class CallUserFcn(Expression):
         try:
             retType = LabelData.broadestType(retTypes)
         except IncompatibleTypes as err:
-            raise PFASemanticException(str(err))
+            raise PFASemanticException(str(err), self.pos)
 
         context = self.Context(retType, calls, nameResult, nameToNum, nameToFcn, [x[1] for x in argResults], [x[0] for x in argResults], nameToParamTypes, nameToRetTypes)
         return context, task(context, engineOptions)
@@ -1040,7 +1166,15 @@ class CallUserFcn(Expression):
 
 @titus.util.case
 class Call(Expression):
-    def __init__(self, name, args, pos=None): pass
+    def __init__(self, name, args, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(name, basestring):
+            raise PFASyntaxException("\"name\" must be a string", pos)
+
+        if not isinstance(args, (list, tuple)) or not all(isinstance(x, Argument) for x in args):
+            raise PFASyntaxException("\"args\" must be a list of Arguments", pos)
 
     def collect(self, pf):
         return super(Call, self).collect(pf) + \
@@ -1108,7 +1242,12 @@ class Call(Expression):
 
 @titus.util.case
 class Ref(Expression):
-    def __init__(self, name, pos=None): pass
+    def __init__(self, name, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(name, basestring):
+            raise PFASyntaxException("\"name\" must be a string", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         if symbolTable.get(self.name) is None:
@@ -1125,7 +1264,9 @@ class Ref(Expression):
 
 @titus.util.case
 class LiteralNull(LiteralValue):
-    def __init__(self, pos=None): pass
+    def __init__(self, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroNull(), set([self.desc]))
@@ -1142,7 +1283,12 @@ class LiteralNull(LiteralValue):
 
 @titus.util.case
 class LiteralBoolean(LiteralValue):
-    def __init__(self, value, pos=None): pass
+    def __init__(self, value, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(value, bool):
+            raise PFASyntaxException("\"value\" must be boolean", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroBoolean(), set([self.desc]), self.value)
@@ -1159,7 +1305,12 @@ class LiteralBoolean(LiteralValue):
 
 @titus.util.case
 class LiteralInt(LiteralValue):
-    def __init__(self, value, pos=None): pass
+    def __init__(self, value, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(value, (int, long)):
+            raise PFASyntaxException("\"value\" must be an int", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroInt(), set([self.desc]), self.value)
@@ -1176,7 +1327,12 @@ class LiteralInt(LiteralValue):
 
 @titus.util.case
 class LiteralLong(LiteralValue):
-    def __init__(self, value, pos=None): pass
+    def __init__(self, value, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(value, (int, long)):
+            raise PFASyntaxException("\"value\" must be an int", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroLong(), set([self.desc]), self.value)
@@ -1195,7 +1351,12 @@ class LiteralLong(LiteralValue):
 
 @titus.util.case
 class LiteralFloat(LiteralValue):
-    def __init__(self, value, pos=None): pass
+    def __init__(self, value, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(value, (int, long, float)):
+            raise PFASyntaxException("\"value\" must be a number", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroFloat(), set([self.desc]), self.value)
@@ -1214,7 +1375,12 @@ class LiteralFloat(LiteralValue):
 
 @titus.util.case
 class LiteralDouble(LiteralValue):
-    def __init__(self, value, pos=None): pass
+    def __init__(self, value, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(value, (int, long, float)):
+            raise PFASyntaxException("\"value\" must be a number", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroDouble(), set([self.desc]), self.value)
@@ -1231,7 +1397,12 @@ class LiteralDouble(LiteralValue):
 
 @titus.util.case
 class LiteralString(LiteralValue):
-    def __init__(self, value, pos=None): pass
+    def __init__(self, value, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(value, basestring):
+            raise PFASyntaxException("\"value\" must be a string", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroString(), set([self.desc]), self.value)
@@ -1250,7 +1421,12 @@ class LiteralString(LiteralValue):
 
 @titus.util.case
 class LiteralBase64(LiteralValue):
-    def __init__(self, value, pos=None): pass
+    def __init__(self, value, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(value, basestring):
+            raise PFASyntaxException("\"value\" must be a string", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroBytes(), set([self.desc]), self.value)
@@ -1269,16 +1445,21 @@ class LiteralBase64(LiteralValue):
 
 @titus.util.case
 class Literal(LiteralValue):
-    def __init__(self, avroPlaceholder, value, pos=None): pass
+    def __init__(self, avroPlaceholder, value, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(avroPlaceholder, (AvroPlaceholder, AvroType)):
+            raise PFASyntaxException("\"avroPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
+
+        if not isinstance(value, basestring):
+            raise PFASyntaxException("\"value\" must be a string", pos)
 
     def equals(self, other):
         if isinstance(other, Literal):
             return self.avroPlaceholder == other.avroPlaceholder and json.loads(self.value) == json.loads(other.value)
         else:
             return False
-
-    def __hash__(self):
-        return hash((self.avroPlaceholder, json.loads(self.value)))
 
     @property
     def avroType(self):
@@ -1302,16 +1483,21 @@ class Literal(LiteralValue):
 
 @titus.util.case
 class NewObject(Expression):
-    def __init__(self, fields, avroPlaceholder, pos=None): pass
+    def __init__(self, fields, avroPlaceholder, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(fields, dict) or not all(isinstance(x, Expression) for x in fields.values()):
+            raise PFASyntaxException("\"fields\" must be a dictionary of Expressions", pos)
+
+        if not isinstance(avroPlaceholder, (AvroPlaceholder, AvroType)):
+            raise PFASyntaxException("\"avroPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
 
     def equals(self, other):
         if isinstance(other, NewObject):
             return self.fields == other.fields and self.avroPlaceholder == other.avroPlaceholder
         else:
             return False
-
-    def __hash__(self):
-        return hash((self.fields, avroPlaceholder))
 
     @property
     def avroType(self):
@@ -1375,16 +1561,21 @@ class NewObject(Expression):
 
 @titus.util.case
 class NewArray(Expression):
-    def __init__(self, items, avroPlaceholder, pos=None): pass
+    def __init__(self, items, avroPlaceholder, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(items, (list, tuple)) or not all(isinstance(x, Expression) for x in items):
+            raise PFASyntaxException("\"items\" must be a list of Expressions", pos)
+
+        if not isinstance(avroPlaceholder, (AvroPlaceholder, AvroType)):
+            raise PFASyntaxException("\"avroPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
 
     def equals(self, other):
         if isinstance(other, NewArray):
             return self.items == other.items and self.avroPlaceholder == other.avroPlaceholder
         else:
             return False
-
-    def __hash__(self):
-        return hash((self.items, self.avroPlaceholder))
 
     @property
     def avroType(self):
@@ -1438,8 +1629,14 @@ class NewArray(Expression):
 @titus.util.case
 class Do(Expression):
     def __init__(self, body, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(body, (list, tuple)) or not all(isinstance(x, Expression) for x in body):
+            raise PFASyntaxException("\"body\" must be a list of Expressions", pos)
+
         if len(self.body) < 1:
-            raise PFASyntaxException("\"do\" block must contain at least one expression", self.pos)
+            raise PFASyntaxException("\"do\" block must contain at least one expression", pos)
 
     def collect(self, pf):
         return super(Do, self).collect(pf) + \
@@ -1477,8 +1674,14 @@ class Do(Expression):
 @titus.util.case
 class Let(Expression):
     def __init__(self, values, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(values, dict) or not all(isinstance(x, Expression) for x in values.values()):
+            raise PFASyntaxException("\"values\" must be a dictionary of Expressions", pos)
+
         if len(self.values) < 1:
-            raise PFASyntaxException("\"let\" must contain at least one declaration", self.pos)
+            raise PFASyntaxException("\"let\" must contain at least one declaration", pos)
 
     def collect(self, pf):
         return super(Let, self).collect(pf) + \
@@ -1538,8 +1741,14 @@ class Let(Expression):
 @titus.util.case
 class SetVar(Expression):
     def __init__(self, values, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(values, dict) or not all(isinstance(x, Expression) for x in values.values()):
+            raise PFASyntaxException("\"values\" must be a dictionary of Expressions", pos)
+
         if len(self.values) < 1:
-            raise PFASyntaxException("\"set\" must contain at least one assignment", self.pos)
+            raise PFASyntaxException("\"set\" must contain at least one assignment", pos)
 
     def collect(self, pf):
         return super(SetVar, self).collect(pf) + \
@@ -1588,8 +1797,17 @@ class SetVar(Expression):
 @titus.util.case
 class AttrGet(Expression, HasPath):
     def __init__(self, expr, path, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(expr, Expression):
+            raise PFASyntaxException("\"expr\" must be an Expression", pos)
+
+        if not isinstance(path, (list, tuple)) or not all(isinstance(x, Expression) for x in path):
+            raise PFASyntaxException("\"path\" must be a list of Expressions", pos)
+
         if len(self.path) < 1:
-            raise PFASyntaxException("attr path must have at least one key", self.pos)
+            raise PFASyntaxException("attr path must have at least one key", pos)
 
     def collect(self, pf):
         return super(AttrGet, self).collect(pf) + \
@@ -1630,8 +1848,20 @@ class AttrGet(Expression, HasPath):
 @titus.util.case
 class AttrTo(Expression, HasPath):
     def __init__(self, expr, path, to, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(expr, Expression):
+            raise PFASyntaxException("\"expr\" must be an Expression", pos)
+
+        if not isinstance(path, (list, tuple)) or not all(isinstance(x, Expression) for x in path):
+            raise PFASyntaxException("\"path\" must be a list of Expressions", pos)
+
+        if not isinstance(to, Argument):
+            raise PFASyntaxException("\"to\" must be an Argument", pos)
+
         if len(self.path) < 1:
-            raise PFASyntaxException("attr path must have at least one key", self.pos)
+            raise PFASyntaxException("attr path must have at least one key", pos)
 
     def collect(self, pf):
         return super(AttrTo, self).collect(pf) + \
@@ -1696,7 +1926,15 @@ class AttrTo(Expression, HasPath):
 
 @titus.util.case
 class CellGet(Expression, HasPath):
-    def __init__(self, cell, path, pos=None): pass
+    def __init__(self, cell, path, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(cell, basestring):
+            raise PFASyntaxException("\"cell\" must be a string", pos)
+
+        if not isinstance(path, (list, tuple)) or not all(isinstance(x, Expression) for x in path):
+            raise PFASyntaxException("\"path\" must be a list of Expressions", pos)
 
     def collect(self, pf):
         return super(CellGet, self).collect(pf) + \
@@ -1735,7 +1973,18 @@ class CellGet(Expression, HasPath):
 
 @titus.util.case
 class CellTo(Expression, HasPath):
-    def __init__(self, cell, path, to, pos=None): pass
+    def __init__(self, cell, path, to, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(cell, basestring):
+            raise PFASyntaxException("\"cell\" must be a string", pos)
+
+        if not isinstance(path, (list, tuple)) or not all(isinstance(x, Expression) for x in path):
+            raise PFASyntaxException("\"path\" must be a list of Expressions", pos)
+
+        if not isinstance(to, Argument):
+            raise PFASyntaxException("\"to\" must be an Argument", pos)
 
     def collect(self, pf):
         return super(CellTo, self).collect(pf) + \
@@ -1800,8 +2049,17 @@ class CellTo(Expression, HasPath):
 @titus.util.case
 class PoolGet(Expression, HasPath):
     def __init__(self, pool, path, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(pool, basestring):
+            raise PFASyntaxException("\"pool\" must be a string", pos)
+
+        if not isinstance(path, (list, tuple)) or not all(isinstance(x, Expression) for x in path):
+            raise PFASyntaxException("\"path\" must be a list of Expressions", pos)
+
         if len(self.path) < 1:
-            raise PFASyntaxException("pool path must have at least one key", self.pos)
+            raise PFASyntaxException("pool path must have at least one key", pos)
 
     def collect(self, pf):
         return super(PoolGet, self).collect(pf) + \
@@ -1840,8 +2098,23 @@ class PoolGet(Expression, HasPath):
 @titus.util.case
 class PoolTo(Expression, HasPath):
     def __init__(self, pool, path, to, init, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(pool, basestring):
+            raise PFASyntaxException("\"pool\" must be a string", pos)
+
+        if not isinstance(path, (list, tuple)) or not all(isinstance(x, Expression) for x in path):
+            raise PFASyntaxException("\"path\" must be a list of Expressions", pos)
+
+        if not isinstance(to, Argument):
+            raise PFASyntaxException("\"to\" must be an Argument", pos)
+
+        if not isinstance(init, Expression):
+            raise PFASyntaxException("\"init\" must be an Expression", pos)
+
         if len(self.path) < 1:
-            raise PFASyntaxException("pool path must have at least one key", self.pos)
+            raise PFASyntaxException("pool path must have at least one key", pos)
 
     def collect(self, pf):
         return super(PoolTo, self).collect(pf) + \
@@ -1914,11 +2187,23 @@ class PoolTo(Expression, HasPath):
 @titus.util.case
 class If(Expression):
     def __init__(self, predicate, thenClause, elseClause, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(predicate, Expression):
+            raise PFASyntaxException("\"predicate\" must be an Expression", pos)
+
+        if not isinstance(thenClause, (list, tuple)) or not all(isinstance(x, Expression) for x in thenClause):
+            raise PFASyntaxException("\"thenClause\" must be a list of Expressions", pos)
+
+        if (not isinstance(elseClause, (list, tuple)) or not all(isinstance(x, Expression) for x in elseClause)) and not elseClause is None:
+            raise PFASyntaxException("\"elseClause\" must be a list of Expressions or None", pos)
+        
         if len(self.thenClause) < 1:
-            raise PFASyntaxException("\"then\" clause must contain at least one expression", self.pos)
+            raise PFASyntaxException("\"then\" clause must contain at least one expression", pos)
 
         if self.elseClause is not None and len(self.elseClause) < 1:
-            raise PFASyntaxException("\"else\" clause must contain at least one expression", self.pos)
+            raise PFASyntaxException("\"else\" clause must contain at least one expression", pos)
 
     def collect(self, pf):
         return super(If, self).collect(pf) + \
@@ -1964,7 +2249,7 @@ class If(Expression):
                 try:
                     retType = P.mustBeAvro(LabelData.broadestType([thenType, elseType]))
                 except IncompatibleTypes as err:
-                    raise PFASemanticException(str(err))
+                    raise PFASemanticException(str(err), self.pos)
 
             retType, elseTaskResults, elseSymbols = retType, [x[1] for x in elseResults], elseScope.inThisScope
         else:
@@ -1990,15 +2275,24 @@ class If(Expression):
 @titus.util.case
 class Cond(Expression):
     def __init__(self, ifthens, elseClause, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(ifthens, (list, tuple)) or not all(isinstance(x, If) for x in ifthens):
+            raise PFASyntaxException("\"ifthens\" must be a list of Ifs", pos)
+
+        if (not isinstance(elseClause, (list, tuple)) or not all(isinstance(x, Expression) for x in elseClause)) and not elseClause is None:
+            raise PFASyntaxException("\"elseClause\" must be a list of Expressions or None", pos)
+
         if len(self.ifthens) < 1:
-            raise PFASyntaxException("\"cond\" must contain at least one predicate-block pair", self.pos)
+            raise PFASyntaxException("\"cond\" must contain at least one predicate-block pair", pos)
 
         for it in ifthens:
             if len(it.thenClause) < 1:
-                raise PFASyntaxException("\"then\" clause must contain at least one expression", self.pos)
+                raise PFASyntaxException("\"then\" clause must contain at least one expression", pos)
 
         if self.elseClause is not None and len(self.elseClause) < 1:
-            raise PFASyntaxException("\"else\" clause must contain at least one expression", self.pos)
+            raise PFASyntaxException("\"else\" clause must contain at least one expression", pos)
 
     def collect(self, pf):
         return super(Cond, self).collect(pf) + \
@@ -2054,7 +2348,7 @@ class Cond(Expression):
                 try:
                     retType = LabelData.broadestType(walkTypes)
                 except IncompatibleTypes as err:
-                    raise PFASemanticException(str(err))
+                    raise PFASemanticException(str(err), self.pos)
 
         context = self.Context(retType, calls.union(set([self.desc])), (self.elseClause is not None), walkBlocks)
         return context, task(context, engineOptions)
@@ -2078,7 +2372,15 @@ class Cond(Expression):
 
 @titus.util.case
 class While(Expression):
-    def __init__(self, predicate, body, pos=None): pass
+    def __init__(self, predicate, body, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(predicate, Expression):
+            raise PFASyntaxException("\"predicate\" must be an Expression", pos)
+
+        if not isinstance(body, (list, tuple)) or not all(isinstance(x, Expression) for x in body):
+            raise PFASyntaxException("\"body\" must be XXX", pos)
 
     def collect(self, pf):
         return super(While, self).collect(pf) + \
@@ -2124,7 +2426,15 @@ class While(Expression):
 
 @titus.util.case
 class DoUntil(Expression):
-    def __init__(self, body, predicate, pos=None): pass
+    def __init__(self, body, predicate, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(body, (list, tuple)) or not all(isinstance(x, Expression) for x in body):
+            raise PFASyntaxException("\"body\" must be a list of Expressions", pos)
+
+        if not isinstance(predicate, Expression):
+            raise PFASyntaxException("\"predicate\" must be an Expression", pos)
 
     def collect(self, pf):
         return super(DoUntil, self).collect(pf) + \
@@ -2171,14 +2481,29 @@ class DoUntil(Expression):
 @titus.util.case
 class For(Expression):
     def __init__(self, init, predicate, step, body, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(init, dict) or not all(isinstance(x, Expression) for x in init.values()):
+            raise PFASyntaxException("\"init\" must be a dictionary of Expression", pos)
+
+        if not isinstance(predicate, Expression):
+            raise PFASyntaxException("\"predicate\" must be an Expression", pos)
+
+        if not isinstance(step, dict) or not all(isinstance(x, Expression) for x in step.values()):
+            raise PFASyntaxException("\"step\" must be a dictionary of Expressions", pos)
+
+        if not isinstance(body, (list, tuple)) or not all(isinstance(x, Expression) for x in body):
+            raise PFASyntaxException("\"body\" must be XXX", pos)
+
         if len(self.init) < 1:
-            raise PFASyntaxException("\"for\" must contain at least one declaration", self.pos)
+            raise PFASyntaxException("\"for\" must contain at least one declaration", pos)
 
         if len(self.step) < 1:
-            raise PFASyntaxException("\"step\" must contain at least one assignment", self.pos)
+            raise PFASyntaxException("\"step\" must contain at least one assignment", pos)
 
         if len(self.body) < 1:
-            raise PFASyntaxException("\"do\" must contain at least one statement", self.pos)
+            raise PFASyntaxException("\"do\" must contain at least one statement", pos)
 
     def collect(self, pf):
         return super(For, self).collect(pf) + \
@@ -2269,8 +2594,23 @@ class For(Expression):
 @titus.util.case
 class Foreach(Expression):
     def __init__(self, name, array, body, seq, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(name, basestring):
+            raise PFASyntaxException("\"name\" must be a string", pos)
+
+        if not isinstance(array, Expression):
+            raise PFASyntaxException("\"array\" must be an Expression", pos)
+
+        if not isinstance(body, (list, tuple)) or not all(isinstance(x, Expression) for x in body):
+            raise PFASyntaxException("\"body\" must be a list of Expressions", pos)
+
+        if not isinstance(seq, bool):
+            raise PFASyntaxException("\"seq\" must be boolean", pos)
+
         if len(self.body) < 1:
-            raise PFASyntaxException("\"do\" must contain at least one statement", self.pos)
+            raise PFASyntaxException("\"do\" must contain at least one statement", pos)
 
     def collect(self, pf):
         return super(Foreach, self).collect(pf) + \
@@ -2332,8 +2672,23 @@ class Foreach(Expression):
 @titus.util.case
 class Forkeyval(Expression):
     def __init__(self, forkey, forval, map, body, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(forkey, basestring):
+            raise PFASyntaxException("\"forkey\" must be a string", pos)
+
+        if not isinstance(forval, basestring):
+            raise PFASyntaxException("\"forval\" must be a string", pos)
+
+        if not isinstance(map, Expression):
+            raise PFASyntaxException("\"map\" must be an Expression", pos)
+
+        if not isinstance(body, (list, tuple)) or not all(isinstance(x, Expression) for x in body):
+            raise PFASyntaxException("\"body\" must be a list of Expression", pos)
+
         if len(self.body) < 1:
-            raise PFASyntaxException("\"do\" must contain at least one statement", self.pos)
+            raise PFASyntaxException("\"do\" must contain at least one statement", pos)
 
     def collect(self, pf):
         return super(Forkeyval, self).collect(pf) + \
@@ -2400,11 +2755,23 @@ class Forkeyval(Expression):
 @titus.util.case
 class CastCase(Ast):
     def __init__(self, avroPlaceholder, named, body, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(avroPlaceholder, (AvroPlaceholder, AvroType)):
+            raise PFASyntaxException("\"avroPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
+
+        if not isinstance(named, basestring):
+            raise PFASyntaxException("\"named\" must be a string", pos)
+
+        if not isinstance(body, (list, tuple)) or not all(isinstance(x, Expression) for x in body):
+            raise PFASyntaxException("\"body\" must be a list of Expression", pos)
+
         if len(self.body) < 1:
-            raise PFASyntaxException("\"do\" must contain at least one statement", self.pos)
+            raise PFASyntaxException("\"do\" must contain at least one statement", pos)
 
         if not validSymbolName(self.named):
-            raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(self.named), self.pos)
+            raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(self.named), pos)
 
     @property
     def avroType(self):
@@ -2444,7 +2811,18 @@ class CastCase(Ast):
 
 @titus.util.case
 class CastBlock(Expression):
-    def __init__(self, expr, castCases, partial, pos=None): pass
+    def __init__(self, expr, castCases, partial, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(expr, Expression):
+            raise PFASyntaxException("\"expr\" must be an Expression", pos)
+
+        if not isinstance(castCases, (list, tuple)) or not all(isinstance(x, CastCase) for x in castCases):
+            raise PFASyntaxException("\"castCases\" must be a list of CastCases", pos)
+
+        if not isinstance(partial, bool):
+            raise PFASyntaxException("\"partial\" must be boolean", pos)
 
     def collect(self, pf):
         return super(CastBlock, self).collect(pf) + \
@@ -2495,7 +2873,7 @@ class CastBlock(Expression):
             try:
                 retType = LabelData.broadestType([x[0].retType for x in cases])
             except IncompatibleTypes as err:
-                raise PFASemanticException(str(err))
+                raise PFASemanticException(str(err), self.pos)
 
         context = self.Context(retType, calls.union(set([self.desc])), exprType, exprResult, cases, self.partial)
         return context, task(context, engineOptions)
@@ -2515,7 +2893,15 @@ class CastBlock(Expression):
 
 @titus.util.case
 class Upcast(Expression):
-    def __init__(self, expr, avroPlaceholder, pos=None): pass
+    def __init__(self, expr, avroPlaceholder, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(expr, Expression):
+            raise PFASyntaxException("\"expr\" must be an Expression", pos)
+
+        if not isinstance(avroPlaceholder, (AvroPlaceholder, AvroType)):
+            raise PFASyntaxException("\"avroPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
 
     @property
     def avroType(self):
@@ -2558,14 +2944,26 @@ class Upcast(Expression):
 @titus.util.case
 class IfNotNull(Expression):
     def __init__(self, exprs, thenClause, elseClause, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(exprs, dict) or not all(isinstance(x, Expression) for x in exprs.values()):
+            raise PFASyntaxException("\"exprs\" must be a dictionary of Expressions", pos)
+
+        if not isinstance(thenClause, (list, tuple)) or not all(isinstance(x, Expression) for x in thenClause):
+            raise PFASyntaxException("\"thenClause\" must be a list of Expressions", pos)
+
+        if (not isinstance(elseClause, (list, tuple)) or not all(isinstance(x, Expression) for x in elseClause)) and not elseClause is None:
+            raise PFASyntaxException("\"elseClause\" must be a list of Expressions or None", pos)
+
         if len(self.exprs) < 1:
-            raise PFASyntaxException("\"ifnotnull\" must contain at least one symbol-expression mapping", self.pos)
+            raise PFASyntaxException("\"ifnotnull\" must contain at least one symbol-expression mapping", pos)
 
         if len(self.thenClause) < 1:
-            raise PFASyntaxException("\"then\" clause must contain at least one expression", self.pos)
+            raise PFASyntaxException("\"then\" clause must contain at least one expression", pos)
 
         if self.elseClause is not None and len(self.elseClause) < 1:
-            raise PFASyntaxException("\"else\" clause must contain at least one expression", self.pos)
+            raise PFASyntaxException("\"else\" clause must contain at least one expression", pos)
 
     def collect(self, pf):
         return super(IfNotNull, self).collect(pf) + \
@@ -2628,7 +3026,7 @@ class IfNotNull(Expression):
             try:
                 retType = LabelData.broadestType([thenType, elseType])
             except IncompatibleTypes as err:
-                raise PFASemanticException(str(err))
+                raise PFASemanticException(str(err), self.pos)
 
             retType, elseTaskResults, elseSymbols = retType, [x[1] for x in elseResults], elseScope.inThisScope
         else:
@@ -2832,8 +3230,14 @@ class BinaryFormatter(object):
 @titus.util.case
 class Pack(Expression):
     def __init__(self, exprs, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(exprs, (list, tuple)) or not all(isinstance(x, (list, tuple)) and len(x) == 2 and isinstance(x[0], basestring) and isinstance(x[1], Expression) for x in exprs):
+            raise PFASyntaxException("\"exprs\" must be a list of (string, Expression) tuples", pos)
+
         if len(self.exprs) < 1:
-            raise PFASyntaxException("\"pack\" must contain at least one format-expression mapping", self.pos)
+            raise PFASyntaxException("\"pack\" must contain at least one format-expression mapping", pos)
 
     def collect(self, pf):
         return super(Pack, self).collect(pf) + \
@@ -2879,14 +3283,29 @@ class Pack(Expression):
 @titus.util.case
 class Unpack(Expression):
     def __init__(self, bytes, format, thenClause, elseClause, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(bytes, Expression):
+            raise PFASyntaxException("\"bytes\" must be an Expression", pos)
+
+        if not isinstance(format, (list, tuple)) or not all(isinstance(x, (list, tuple)) and len(x) == 2 and isinstance(x[0], basestring) and isinstance(x[1], basestring) for x in format):
+            raise PFASyntaxException("\"format\" must be a list of (string, string) tuples", pos)
+
+        if not isinstance(thenClause, (list, tuple)) or not all(isinstance(x, Expression) for x in thenClause):
+            raise PFASyntaxException("\"thenClause\" must be a list of Expressions or None", pos)
+
+        if (not isinstance(elseClause, (list, tuple)) or not all(isinstance(x, Expression) for x in elseClause)) and not elseClause is None:
+            raise PFASyntaxException("\"elseClause\" must be a list of Expressions or None", pos)
+
         if len(format) < 1:
-            raise PFASyntaxException("unpack's \"format\" must contain at least one symbol-format mapping", self.pos)
+            raise PFASyntaxException("unpack's \"format\" must contain at least one symbol-format mapping", pos)
 
         if len(thenClause) < 1:
-            raise PFASyntaxException("\"then\" clause must contain at least one expression", self.pos)
+            raise PFASyntaxException("\"then\" clause must contain at least one expression", pos)
 
         if elseClause is not None and len(elseClause) < 1:
-            raise PFASyntaxException("\"else\" clause must contain at least one expression", self.pos)
+            raise PFASyntaxException("\"else\" clause must contain at least one expression", pos)
 
     def collect(self, pf):
         return super(Unpack, self).collect(pf) + \
@@ -2943,7 +3362,7 @@ class Unpack(Expression):
             try:
                 retType = LabelData.broadestType([thenType, elseType])
             except IncompatibleTypes as err:
-                raise PFASemanticException(str(err))
+                raise PFASemanticException(str(err), self.pos)
 
             retType, elseTaskResults, elseSymbols = retType, [x[1] for x in elseResults], elseScope.inThisScope
         else:
@@ -2971,7 +3390,12 @@ class Unpack(Expression):
         
 @titus.util.case
 class Doc(Expression):
-    def __init__(self, comment, pos=None): pass
+    def __init__(self, comment, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(comment, basestring):
+            raise PFASyntaxException("\"comment\" must be a string", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(AvroNull(), set([self.desc]))
@@ -2990,7 +3414,15 @@ class Doc(Expression):
 
 @titus.util.case
 class Error(Expression):
-    def __init__(self, message, code, pos=None): pass
+    def __init__(self, message, code, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(message, basestring):
+            raise PFASyntaxException("\"message\" must be a string", pos)
+
+        if not isinstance(code, (int, long)) and not code is None:
+            raise PFASyntaxException("\"code\" must be an int or None", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions):
         context = self.Context(ExceptionType(), set([self.desc]), self.message, self.code)
@@ -3011,7 +3443,15 @@ class Error(Expression):
 
 @titus.util.case
 class Try(Expression):
-    def __init__(self, exprs, filter, pos=None): pass
+    def __init__(self, exprs, filter, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(exprs, (list, tuple)) or not all(isinstance(x, Expression) for x in exprs):
+            raise PFASyntaxException("\"exprs\" must be a list of Expressions", pos)
+
+        if (not isinstance(filter, (list, tuple)) or not all(isinstance(x, basestring) for x in filter)) and not filter is None:
+            raise PFASyntaxException("\"filter\" must be a list of strings or None", pos)
 
     def collect(self, pf):
         return super(Try, self).collect(pf) + \
@@ -3059,7 +3499,15 @@ class Try(Expression):
 
 @titus.util.case
 class Log(Expression):
-    def __init__(self, exprs, namespace, pos=None): pass
+    def __init__(self, exprs, namespace, pos=None):
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(exprs, (list, tuple)) or not all(isinstance(x, Expression) for x in exprs):
+            raise PFASyntaxException("\"exprs\" must be a list of Expressions", pos)
+
+        if not isinstance(namespace, basestring) and not namespace is None:
+            raise PFASyntaxException("\"namespace\" must be a string or None", pos)
 
     def collect(self, pf):
         return super(Log, self).collect(pf) + \

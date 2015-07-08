@@ -34,6 +34,7 @@ import org.codehaus.janino.util.resource.ResourceFinder
 
 import org.apache.avro.file.DataFileStream
 import org.apache.avro.file.DataFileWriter
+import org.apache.avro.io.DatumReader
 import org.apache.avro.io.DecoderFactory
 import org.apache.avro.io.EncoderFactory
 import org.apache.avro.io.JsonEncoder
@@ -440,6 +441,7 @@ package jvmcompiler {
 
   abstract class PFAEngineBase {
     val specificData = new PFASpecificData(getClass.getClassLoader)
+    def datumReader[INPUT <: AnyRef]: DatumReader[INPUT] = new PFADatumReader[INPUT](specificData)
 
     def checkClock(): Unit
 
@@ -508,6 +510,8 @@ package jvmcompiler {
     def inputType: AvroType = _inputType
     private var _outputType: AvroType = null
     def outputType: AvroType = _outputType
+    private var _method: Method.Method = null
+    def method: Method.Method = _method
 
     private var _randomGenerator: Random = null
     def randomGenerator = _randomGenerator
@@ -551,6 +555,7 @@ package jvmcompiler {
       _namedTypes = null
       _inputType = null
       _outputType = null
+      _method = null
 
       _randomGenerator = null
 
@@ -709,6 +714,8 @@ package jvmcompiler {
       _outputType = context.output
       _namedTypes = context.compiledTypes map {x => (x.fullName, x)} toMap
 
+      _method = config.method
+
       pfaInputTranslator = new PFADataTranslator(inputType, classLoader)
       avroInputTranslator = new AvroDataTranslator(inputType, classLoader)
 
@@ -798,6 +805,10 @@ package jvmcompiler {
       poolState(name, config.pools(name).shared) map {case (k, v) => (k, analysis(v))}
     }
 
+    def snapshotCell(name: String): AnyRef = toBoxed(cellState(name))
+
+    def snapshotPool(name: String): Map[String, AnyRef] = getRunlock.synchronized { poolState(name) } map {case (k, v) => (k, toBoxed(v))}
+
     def snapshot(): EngineConfig = getRunlock.synchronized {
       val newCells = config.cells map {
         case (cname, Cell(avroPlaceholder, _, shared, rollback, source, _)) =>
@@ -831,7 +842,7 @@ package jvmcompiler {
     }
 
     def fromJson(json: Array[Byte], schema: Schema): AnyRef = {
-      val reader = new PFADatumReader[AnyRef](specificData)
+      val reader = datumReader[AnyRef]
       reader.setSchema(schema)
       val decoder = DecoderFactory.get.jsonDecoder(schema, new ByteArrayInputStream(json))
       reader.read(null, decoder)
@@ -847,7 +858,7 @@ package jvmcompiler {
     }
 
     def fromAvro(avro: Array[Byte], schema: Schema): AnyRef = {
-      val reader = new PFADatumReader[AnyRef](specificData)
+      val reader = datumReader[AnyRef]
       reader.setSchema(schema)
       val decoder = DecoderFactory.get.validatingDecoder(schema, DecoderFactory.get.binaryDecoder(avro, null))
       reader.read(null, decoder)
@@ -867,8 +878,8 @@ package jvmcompiler {
     def toJson(obj: AnyRef, avroType: AvroType): String         = toJson(obj, avroType.schema)
     def toAvro(obj: AnyRef, avroType: AvroType): Array[Byte]    = toAvro(obj, avroType.schema)
 
-    def avroInputIterator[X](inputStream: InputStream): DataFileStream[X] = {    // DataFileStream is a java.util.Iterator
-      val reader = new PFADatumReader[X](specificData)
+    def avroInputIterator[X <: AnyRef](inputStream: InputStream): DataFileStream[X] = {    // DataFileStream is a java.util.Iterator
+      val reader = datumReader[X]
       reader.setSchema(inputType.schema)
       val out = new DataFileStream[X](inputStream, reader)
       
@@ -878,8 +889,8 @@ package jvmcompiler {
       out
     }
 
-    def jsonInputIterator[X](inputStream: InputStream): java.util.Iterator[X] = {
-      val reader = new PFADatumReader[X](specificData)
+    def jsonInputIterator[X <: AnyRef](inputStream: InputStream): java.util.Iterator[X] = {
+      val reader = datumReader[X]
       reader.setSchema(inputType.schema)
       val scanner = new java.util.Scanner(inputStream)
 
@@ -894,8 +905,8 @@ package jvmcompiler {
       }
     }
 
-    def jsonInputIterator[X](inputIterator: java.util.Iterator[String]): java.util.Iterator[X] = {
-      val reader = new PFADatumReader[X](specificData)
+    def jsonInputIterator[X <: AnyRef](inputIterator: java.util.Iterator[String]): java.util.Iterator[X] = {
+      val reader = datumReader[X]
       reader.setSchema(inputType.schema)
 
       new java.util.Iterator[X] {
@@ -909,8 +920,8 @@ package jvmcompiler {
       }
     }
 
-    def jsonInputIterator[X](inputIterator: scala.collection.Iterator[String]): scala.collection.Iterator[X] = {
-      val reader = new PFADatumReader[X](specificData)
+    def jsonInputIterator[X <: AnyRef](inputIterator: scala.collection.Iterator[String]): scala.collection.Iterator[X] = {
+      val reader = datumReader[X]
       reader.setSchema(inputType.schema)
 
       new scala.collection.Iterator[X] {
@@ -977,15 +988,15 @@ package jvmcompiler {
     val classLoader: java.lang.ClassLoader
     private var pfaInputTranslator: PFADataTranslator = null
     private var avroInputTranslator: AvroDataTranslator = null
-    def fromPFAData(datum: AnyRef): AnyRef = pfaInputTranslator.translate(datum)
-    def fromGenericAvroData(datum: AnyRef): AnyRef = avroInputTranslator.translate(datum)
+    def fromPFAData[INPUT <: AnyRef](datum: AnyRef): INPUT = pfaInputTranslator.translate(datum).asInstanceOf[INPUT]
+    def fromGenericAvroData[INPUT <: AnyRef](datum: AnyRef): INPUT = avroInputTranslator.translate(datum).asInstanceOf[INPUT]
   }
 
   trait PFAEngine[INPUT <: AnyRef, OUTPUT <: AnyRef] {
     var log: Function2[String, Option[String], Unit]
-    val config: EngineConfig
-    val options: EngineOptions
-    val callGraph: Map[String, Set[String]]
+    def config: EngineConfig
+    def options: EngineOptions
+    def callGraph: Map[String, Set[String]]
     def calledBy(fcnName: String, exclude: Set[String] = Set[String]()): Set[String]
     def callDepth(fcnName: String, exclude: Set[String] = Set[String](), startingDepth: Double = 0): Double
     def isRecursive(fcnName: String): Boolean
@@ -997,20 +1008,24 @@ package jvmcompiler {
     def instance: Int
 
     def specificData: PFASpecificData
-    val inputClass: java.lang.Class[AnyRef]
-    val outputClass: java.lang.Class[AnyRef]
-    val classLoader: java.lang.ClassLoader
+    def datumReader: DatumReader[INPUT]
+    def inputClass: java.lang.Class[AnyRef]
+    def outputClass: java.lang.Class[AnyRef]
+    def classLoader: java.lang.ClassLoader
     def begin(): Unit
     def action(input: INPUT): OUTPUT
     def end(): Unit
 
+    def snapshotCell(name: String): AnyRef
+    def snapshotPool(name: String): Map[String, AnyRef]
     def snapshot: EngineConfig
     def analyzeCell[X](name: String, analysis: Any => X): X
     def analyzePool[X](name: String, analysis: Any => X): Map[String, X]
 
-    val namedTypes: Map[String, AvroCompiled]
-    val inputType: AvroType
-    val outputType: AvroType
+    def namedTypes: Map[String, AvroCompiled]
+    def inputType: AvroType
+    def outputType: AvroType
+    def method: Method.Method
 
     def avroInputIterator[X](inputStream: InputStream): DataFileStream[X]    // DataFileStream is a java.util.Iterator
     def jsonInputIterator[X](inputStream: InputStream): java.util.Iterator[X]
@@ -1025,8 +1040,8 @@ package jvmcompiler {
     def jsonOutputDataStream(fileName: String, writeSchema: Boolean): JsonOutputDataStream
     def jsonOutput(obj: OUTPUT): String
 
-    def fromPFAData(datum: AnyRef): AnyRef
-    def fromGenericAvroData(datum: AnyRef): AnyRef
+    def fromPFAData(datum: AnyRef): INPUT
+    def fromGenericAvroData(datum: AnyRef): INPUT
 
     def randomGenerator: Random
 

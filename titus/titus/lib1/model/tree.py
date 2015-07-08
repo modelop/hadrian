@@ -44,29 +44,36 @@ def simpleComparison(paramTypes, datum, comparison, missingOperators, parser):
     fieldValueType = [x for x in paramTypes[0]["fields"] if x["name"] == field][0]["type"]
     valueType = [x for x in paramTypes[1]["fields"] if x["name"] == "value"][0]["type"]
 
+    if isinstance(fieldValueType, (tuple, list)) and fieldValue is not None:
+        fieldValue, = fieldValue.values()
+    if isinstance(valueType, (tuple, list)) and value is not None:
+        value, = value.values()
+
+    if isinstance(fieldValueType, (list, tuple)):
+        withoutNull = [x for x in fieldValueType if x != "null" and x != {"type": "null"}]
+        if len(withoutNull) == 1:
+            fieldValueType = withoutNull[0]
+        else:
+            fieldValueType = withoutNull
+
+    if not missingOperators and fieldValue is None:
+        return None
+
     if operator == "in" or operator == "notIn":
         valueAvroType = parser.getAvroType(valueType)
 
         if isinstance(valueAvroType, AvroArray) and valueAvroType.items.accepts(parser.getAvroType(fieldValueType)):
             pass
         elif isinstance(valueAvroType, AvroUnion) and any(isinstance(x, AvroArray) and x.items.accepts(parser.getAvroType(fieldValueType)) for x in valueAvroType.types):
-            value = value["array"]
+            pass
         else:
             raise PFARuntimeException("bad value type")
-            
+
         containedInList = (fieldValue in value)
         if operator == "in":
             return containedInList
         else:
             return not containedInList
-
-    if not missingOperators:
-        if isinstance(fieldValueType, (list, tuple)):
-            withoutNull = [x for x in fieldValueType if x != "null"]
-            if len(withoutNull) == 1:
-                fieldValueType = withoutNull[0]
-            else:
-                fieldValueType = withoutNull
 
     if (valueType in ("int", "long", "float", "double") and \
         fieldValueType in ("int", "long", "float", "double")) or \
@@ -74,14 +81,6 @@ def simpleComparison(paramTypes, datum, comparison, missingOperators, parser):
         pass
     else:
         raise PFARuntimeException("bad value type")
-
-    if isinstance(fieldValueType, (tuple, list)) and fieldValue is not None:
-        fieldValue, = fieldValue.values()
-    if isinstance(valueType, (tuple, list)) and value is not None:
-        value, = value.values()
-
-    if not missingOperators and fieldValue is None:
-        return None
 
     if operator == "<=":
         return fieldValue <= value
@@ -117,6 +116,9 @@ class MissingTest(LibFcn):
     name = prefix + "missingTest"
     sig = Sig([{"datum": P.WildRecord("D", {})}, {"comparison": P.WildRecord("T", {"field": P.EnumFields("F", "D"), "operator": P.String(), "value": P.Wildcard("V")})}], P.Union([P.Null(), P.Boolean()]))
     def __call__(self, state, scope, paramTypes, datum, comparison):
+#         newDatumTypeFields = [{"name": x["name"], "type": removeNull(x["type"])} if x["name"] == comparison["field"] else x for x in paramTypes[0]["fields"]]
+#         newParamTypes = [dict(paramTypes[0], fields=newDatumTypeFields)] + paramTypes[1:]
+#         return simpleComparison(newParamTypes, datum, comparison, False, state.parser)
         return simpleComparison(paramTypes, datum, comparison, False, state.parser)
 provide(MissingTest())
 
@@ -151,3 +153,27 @@ class SimpleWalk(LibFcn):
                     break
         return node
 provide(SimpleWalk())
+
+class MissingWalk(LibFcn):
+    name = prefix + "missingWalk"
+    sig = Sig([{"datum": P.WildRecord("D", {})}, {"treeNode": P.WildRecord("T", {"pass": P.Union([P.WildRecord("T", {}), P.Wildcard("S")]), "fail": P.Union([P.WildRecord("T", {}), P.Wildcard("S")]), "missing": P.Union([P.WildRecord("T", {}), P.Wildcard("S")])})}, {"test": P.Fcn([P.WildRecord("D", {}), P.WildRecord("T", {})], P.Union([P.Null(), P.Boolean()]))}], P.Wildcard("S"))
+    def __call__(self, state, scope, paramTypes, datum, treeNode, test):
+        treeNodeTypeName = paramTypes[1]["name"]
+        node = treeNode
+        while True:
+            result = callfcn(state, scope, test, [datum, node])
+            if result is True:
+                union = node["pass"]
+            elif result is False:
+                union = node["fail"]
+            elif result is None:
+                union = node["missing"]
+            if union is None:
+                node = None
+                break
+            else:
+                (utype, node), = union.items()
+                if utype != treeNodeTypeName:
+                    break
+        return node
+provide(MissingWalk())

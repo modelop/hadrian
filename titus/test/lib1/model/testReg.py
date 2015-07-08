@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 
 # Copyright (C) 2014  Open Data ("Open Data" refers to
@@ -122,190 +121,119 @@ action:
         self.assertAlmostEqual(out["dos"],  1.5,   places=1)
         self.assertAlmostEqual(out["tres"], 100.5, places=1)
 
-
-
-    def testRegNormSoftmax(self):
+    def testRegLinearVariance1(self):
         engine, = PFAEngine.fromYaml("""
 input: {type: array, items: double}
-output: {type: array, items: double}
-action: {model.reg.norm.softmax: input}
-""")
-        out = engine.action([1, 2, 3, 4])
-        self.assertAlmostEqual(out[0], 0.03205860328008499, places = 5)
-        self.assertAlmostEqual(out[1], 0.08714431874203257, places = 5)
-        self.assertAlmostEqual(out[2], 0.23688281808991013, places = 5)
-        self.assertAlmostEqual(out[3], 0.64391425988797220, places = 5)
-
-        engine, = PFAEngine.fromYaml("""
-input: {type: map, values: double}
-output: {type: map, values: double}
-action: {model.reg.norm.softmax: input}
-""")
-        out = engine.action({"one": 1, "two": 2, "three": 3, "four": 4})
-        self.assertAlmostEqual(out["one"],   0.03205860328008499, places = 5)
-        self.assertAlmostEqual(out["two"],   0.08714431874203257, places = 5)
-        self.assertAlmostEqual(out["three"], 0.23688281808991013, places = 5)
-        self.assertAlmostEqual(out["four"],  0.64391425988797220, places = 5)
-
-
-
-    def testRegNormLogit(self):
-        engine, = PFAEngine.fromYaml("""
-input: double
 output: double
-action: {model.reg.norm.logit: input}
+cells:
+  model:
+    type:
+      type: record
+      name: Model
+      fields:
+        - {name: covar, type: {type: array, items: {type: array, items: double}}}
+    init:
+      covar: [[ 1.0, -0.1, 0.0],
+              [-0.1,  2.0, 0.0],
+              [ 0.0,  0.0, 0.0]]
+action:
+  model.reg.linearVariance:
+    - input
+    - cell: model
 """)
-        self.assertAlmostEqual(engine.action(2.2), 0.9002495108803148, places = 5)
+        self.assertAlmostEqual(engine.action([0.1, 0.2]), 0.086, places=3)
 
+    def testRegLinearVariance2(self):
         engine, = PFAEngine.fromYaml("""
 input: {type: array, items: double}
 output: {type: array, items: double}
-action: {model.reg.norm.logit: input}
+cells:
+  model:
+    type:
+      type: record
+      name: Model
+      fields:
+        - {name: covar, type: {type: array, items: {type: array, items: {type: array, items: double}}}}
+    init:
+      covar:
+        - [[ 1.0, -0.1, 0.0],
+           [-0.1,  2.0, 0.0],
+           [ 0.0,  0.0, 0.0]]
+        - [[ 1.0, -0.1, 0.0],
+           [-0.1,  2.0, 0.0],
+           [ 0.0,  0.0, 0.0]]
+        - [[ 1.0, -0.1, 0.0],
+           [-0.1,  2.0, 0.0],
+           [ 0.0,  0.0, 0.0]]
+        - [[ 1.0, -0.1, 0.0],
+           [-0.1,  2.0, 0.0],
+           [ 0.0,  0.0, 0.0]]
+action:
+  model.reg.linearVariance:
+    - input
+    - cell: model
 """)
-        out = engine.action([1, 2, 3, 4])
-        self.assertAlmostEqual(out[0], 0.7310585786300049, places = 5)
-        self.assertAlmostEqual(out[1], 0.8807970779778823, places = 5)
-        self.assertAlmostEqual(out[2], 0.9525741268224334, places = 5)
-        self.assertAlmostEqual(out[3], 0.9820137900379085, places = 5)
+        results = engine.action([0.1, 0.2])
+        self.assertAlmostEqual(results[0], 0.086, places=3)
+        self.assertAlmostEqual(results[1], 0.086, places=3)
+        self.assertAlmostEqual(results[2], 0.086, places=3)
 
+    def testRegLinearVariance3(self):
         engine, = PFAEngine.fromYaml("""
 input: {type: map, values: double}
-output: {type: map, values: double}
-action: {model.reg.norm.logit: input}
-""")
-        out = engine.action({"one": 1, "two": 2, "three": 3, "four": 4})
-        self.assertAlmostEqual(out["one"],  0.7310585786300049, places = 5)
-        self.assertAlmostEqual(out["two"],  0.8807970779778823, places = 5)
-        self.assertAlmostEqual(out["three"],0.9525741268224334, places = 5)
-        self.assertAlmostEqual(out["four"], 0.9820137900379085, places = 5)
-
-
-
-    def testRegNormProbit(self):
-        engine, = PFAEngine.fromYaml("""
-input: double
 output: double
-action: {model.reg.norm.probit: input}
+cells:
+  model:
+    type:
+      type: record
+      name: Model
+      fields:
+        - {name: covar, type: {type: map, values: {type: map, values: double}}}
+    init:
+      covar: {a: {a:  1.0, b: -0.1, "": 0.0},
+              b: {a: -0.1, b:  2.0, "": 0.0},
+             "": {a:  0.0, b:  0.0, "": 0.0}}
+action:
+  model.reg.linearVariance:
+    - input
+    - cell: model
 """)
-        self.assertAlmostEqual(engine.action(2.2), 0.9860965524865013, places = 5)
+        self.assertAlmostEqual(engine.action({"a": 0.1, "b": 0.2}), 0.086, places=3)
 
-        engine, = PFAEngine.fromYaml("""
-input: {type: array, items: double}
-output: {type: array, items: double}
-action: {model.reg.norm.probit: input}
-""")
-        out = engine.action([1, 2, 3, 4])
-        self.assertAlmostEqual(out[0], 0.841344746068543 , places = 5)
-        self.assertAlmostEqual(out[1], 0.9772498680518207, places = 5)
-        self.assertAlmostEqual(out[2], 0.9986501019683699, places = 5)
-        self.assertAlmostEqual(out[3], 0.9999683287581669, places = 5)
-
-        engine, = PFAEngine.fromYaml("""
-input: {type: map, values: double}
-output: {type: map, values: double}
-action: {model.reg.norm.probit: input}
-""")
-        out = engine.action({"one": 1, "two": 2, "three": 3, "four": 4})
-        self.assertAlmostEqual(out["one"],   0.841344746068543 , places = 5)
-        self.assertAlmostEqual(out["two"],   0.9772498680518207, places = 5)
-        self.assertAlmostEqual(out["three"], 0.9986501019683699, places = 5)
-        self.assertAlmostEqual(out["four"],  0.9999683287581669, places = 5)
-
-
-
-    def testRegNormCloglog(self):
-        engine, = PFAEngine.fromYaml("""
-input: double
-output: double
-action: {model.reg.norm.cloglog: input}
-""")
-        self.assertAlmostEqual(engine.action(2.2), 0.9998796388196516, places = 5)
-
-        engine, = PFAEngine.fromYaml("""
-input: {type: array, items: double}
-output: {type: array, items: double}
-action: {model.reg.norm.cloglog: input}
-""")
-        out = engine.action([1, 2, 3, 4])
-        self.assertAlmostEqual(out[0], 0.9340119641546875, places = 5)
-        self.assertAlmostEqual(out[1], 0.9993820210106689, places = 5)
-        self.assertAlmostEqual(out[2], 0.9999999981078213, places = 5)
-        self.assertAlmostEqual(out[3], 1.0               , places = 5)
-
+    def testRegLinearVariance4(self):
         engine, = PFAEngine.fromYaml("""
 input: {type: map, values: double}
 output: {type: map, values: double}
-action: {model.reg.norm.cloglog: input}
+cells:
+  model:
+    type:
+      type: record
+      name: Model
+      fields:
+        - {name: covar, type: {type: map, values: {type: map, values: {type: map, values: double}}}}
+    init:
+      covar:
+        one: {a: {a:  1.0, b: -0.1, "": 0.0},
+              b: {a: -0.1, b:  2.0, "": 0.0},
+             "": {a:  0.0, b:  0.0, "": 0.0}}
+        two: {a: {a:  1.0, b: -0.1, "": 0.0},
+              b: {a: -0.1, b:  2.0, "": 0.0},
+             "": {a:  0.0, b:  0.0, "": 0.0}}
+        three: {a: {a:  1.0, b: -0.1, "": 0.0},
+                b: {a: -0.1, b:  2.0, "": 0.0},
+               "": {a:  0.0, b:  0.0, "": 0.0}}
+        four: {a: {a:  1.0, b: -0.1, "": 0.0},
+               b: {a: -0.1, b:  2.0, "": 0.0},
+              "": {a:  0.0, b:  0.0, "": 0.0}}
+action:
+  model.reg.linearVariance:
+    - input
+    - cell: model
 """)
-        out = engine.action({"one": 1, "two": 2, "three": 3, "four": 4})
-        self.assertAlmostEqual(out["one"],   0.9340119641546875, places = 5)
-        self.assertAlmostEqual(out["two"],   0.9993820210106689, places = 5)
-        self.assertAlmostEqual(out["three"], 0.9999999981078213, places = 5)
-        self.assertAlmostEqual(out["four"],  1.0               , places = 5)
-
-
-
-    def testRegNormLoglog(self):
-        engine, = PFAEngine.fromYaml("""
-input: double
-output: double
-action: {model.reg.norm.loglog: input}
-""")
-        self.assertAlmostEqual(engine.action(2.2), 1.203611803484212E-4,  places = 5)
-
-        engine, = PFAEngine.fromYaml("""
-input: {type: array, items: double}
-output: {type: array, items: double}
-action: {model.reg.norm.loglog: input}
-""")
-        out = engine.action([1, 2, 3, 4])
-        self.assertAlmostEqual(out[0], 0.06598803584531254   , places = 5)
-        self.assertAlmostEqual(out[1], 6.179789893310934E-4  , places = 5)
-        self.assertAlmostEqual(out[2], 1.8921786948382924E-9 , places = 5)
-        self.assertAlmostEqual(out[3], 1.9423376049564073E-24, places = 5)
-
-        engine, = PFAEngine.fromYaml("""
-input: {type: map, values: double}
-output: {type: map, values: double}
-action: {model.reg.norm.loglog: input}
-""")
-        out = engine.action({"one": 1, "two": 2, "three": 3, "four": 4})
-        self.assertAlmostEqual(out["one"],   0.06598803584531254   , places = 5)
-        self.assertAlmostEqual(out["two"],   6.179789893310934E-4  , places = 5)
-        self.assertAlmostEqual(out["three"], 1.8921786948382924E-9 , places = 5)
-        self.assertAlmostEqual(out["four"],  1.9423376049564073E-24, places = 5)
-
-
-
-    def testRegNormCauchit(self):
-        engine, = PFAEngine.fromYaml("""
-input: double
-output: double
-action: {model.reg.norm.cauchit: input}
-""")
-        self.assertAlmostEqual(engine.action(2.2), 0.8642002512199081, places = 5)
-
-        engine, = PFAEngine.fromYaml("""
-input: {type: array, items: double}
-output: {type: array, items: double}
-action: {model.reg.norm.cauchit: input}
-""")
-        out = engine.action([1, 2, 3, 4])
-        self.assertAlmostEqual(out[0], 0.75              , places = 5)
-        self.assertAlmostEqual(out[1], 0.8524163823495667, places = 5)
-        self.assertAlmostEqual(out[2], 0.8975836176504333, places = 5)
-        self.assertAlmostEqual(out[3], 0.9220208696226307, places = 5)
-
-        engine, = PFAEngine.fromYaml("""
-input: {type: map, values: double}
-output: {type: map, values: double}
-action: {model.reg.norm.cauchit: input}
-""")
-        out = engine.action({"one": 1, "two": 2, "three": 3, "four": 4})
-        self.assertAlmostEqual(out["one"],   0.75              , places = 5)
-        self.assertAlmostEqual(out["two"],   0.8524163823495667, places = 5)
-        self.assertAlmostEqual(out["three"], 0.8975836176504333, places = 5)
-        self.assertAlmostEqual(out["four"],  0.9220208696226307, places = 5)
+        results = engine.action({"a": 0.1, "b": 0.2})
+        self.assertAlmostEqual(results["one"], 0.086, places=3)
+        self.assertAlmostEqual(results["two"], 0.086, places=3)
+        self.assertAlmostEqual(results["three"], 0.086, places=3)
 
     def testRegResidual(self):
         engine, = PFAEngine.fromYaml("""

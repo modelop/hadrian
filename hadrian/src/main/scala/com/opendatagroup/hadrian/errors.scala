@@ -34,15 +34,14 @@ package errors {
       }, message), null)
 
   class PFAInitializationException(override val message: String)
-      extends PFAException("PFA initialization error: " + message, null)
+      extends PFAException(message, null)
 
   class PFARuntimeException(override val message: String, cause: Exception = null)
-      extends PFAException("PFA runtime error: " + message, cause)
+      extends PFAException(message, cause)
 
   class PFAUserException(override val message: String, val code: Option[Int])
-      extends PFAException("PFA user-defined error: " +
-        (if (code == None) message else "%s (code %s)".format(message, code.get)), null)
+      extends PFAException((if (code == None) message else "%s (code %s)".format(message, code.get)), null)
 
   class PFATimeoutException(override val message: String)
-      extends PFAException("PFA timeout error: " + message, null)
+      extends PFAException(message, null)
 }

@@ -52,14 +52,14 @@ package datatype {
   ///////////////////////////////////////////////////////// the most general types
 
   trait Type {
-    def accepts(that: Type): Boolean
+    def accepts(that: Type, checkNames: Boolean = true): Boolean
     def avroType: AvroType = throw new IllegalArgumentException
   }
 
   case class FcnType(params: Seq[Type], ret: AvroType) extends Type {
-    def accepts(that: Type): Boolean = that match {
+    def accepts(that: Type, checkNames: Boolean = true): Boolean = that match {
       case FcnType(thatparams, thatret) =>
-        thatparams.corresponds(params) { _.accepts(_) }  &&  ret.accepts(thatret)
+        thatparams.corresponds(params) {(x, y) => x.accepts(y, checkNames) }  &&  ret.accepts(thatret, checkNames)
       case _ => false
     }
     override def toString() = """{"type":"function","params":[%s],"ret":%s}""".format(params.mkString(","), ret.toString)
@@ -107,14 +107,10 @@ package datatype {
       else
         namespace.get + "." + alias
 
-    // this == "reader" (the anticipated signature, pattern to be matched),
-    // that == "writer" (the given fact, argument to be accepted or rejected)
-    def accepts(that: Type): Boolean = accepts(that, mutable.Set(), true)
-
-    private[datatype] def _recordFieldsOkay(thisRecord: AvroRecord, thatRecord: AvroRecord, memo: mutable.Set[String], checkRecord: Boolean): Boolean = {
+    private[datatype] def _recordFieldsOkay(thisRecord: AvroRecord, thatRecord: AvroRecord, memo: mutable.Set[String], checkRecord: Boolean, checkNames: Boolean): Boolean = {
       for (xf <- thisRecord.fields)
         if (xf.default == None) {
-          if (!thatRecord.fields.exists(yf => xf.name == yf.name  &&  xf.avroType.accepts(yf.avroType, memo, checkRecord)))
+          if (!thatRecord.fields.exists(yf => xf.name == yf.name  &&  xf.avroType._accepts(yf.avroType, memo, checkRecord, checkNames)))
             return false
         }
         else {
@@ -122,13 +118,17 @@ package datatype {
           // but having a matching name with a mismatched type is bad
           // (spec isn't clear, but org.apache.avro.SchemaCompatibility works that way)
           for (yf <- thatRecord.fields if (xf.name == yf.name))
-            if (!xf.avroType.accepts(yf.avroType, memo, checkRecord))
+            if (!xf.avroType._accepts(yf.avroType, memo, checkRecord, checkNames))
               return false
         }
       true
     }
 
-    def accepts(that: Type, memo: mutable.Set[String], checkRecord: Boolean): Boolean = (this, that) match {
+    // this == "reader" (the anticipated signature, pattern to be matched),
+    // that == "writer" (the given fact, argument to be accepted or rejected)
+    def accepts(that: Type, checkNames: Boolean = true): Boolean = _accepts(that, mutable.Set(), true, checkNames)
+
+    private def _accepts(that: Type, memo: mutable.Set[String] = mutable.Set(), checkRecord: Boolean = true, checkNames: Boolean = true): Boolean = (this, that) match {
       case (_, exceptionThat: ExceptionType) => false
 
       case (AvroNull(), AvroNull()) => true
@@ -141,23 +141,23 @@ package datatype {
       case (AvroFloat(), AvroInt() | AvroLong() | AvroFloat()) => true
       case (AvroDouble(), AvroInt() | AvroLong() | AvroFloat() | AvroDouble()) => true
 
-      case (AvroArray(x), AvroArray(y)) => x.accepts(y, memo, checkRecord)
-      case (AvroMap(x), AvroMap(y)) => x.accepts(y, memo, checkRecord)
+      case (AvroArray(x), AvroArray(y)) => x._accepts(y, memo, checkRecord, checkNames)
+      case (AvroMap(x), AvroMap(y)) => x._accepts(y, memo, checkRecord, checkNames)
 
       case (AvroFixed(thisSize, thisName, thisNamespace, _, _), AvroFixed(thatSize, thatName, thatNamespace, _, _)) =>
-        thisSize == thatSize  &&  thisName == thatName  &&  thisNamespace == thatNamespace
+        thisSize == thatSize  &&  (!checkNames  ||  (thisName == thatName  &&  thisNamespace == thatNamespace))
 
       case (AvroEnum(thisSymbols, thisName, thisNamespace, _, _), AvroEnum(thatSymbols, thatName, thatNamespace, _, _)) =>
-        (thatSymbols.toSet subsetOf thisSymbols.toSet)  &&  thisName == thatName  &&  thisNamespace == thatNamespace
+        (thatSymbols.toSet subsetOf thisSymbols.toSet)  &&  (!checkNames  ||  (thisName == thatName  &&  thisNamespace == thatNamespace))
 
       case (thisRecord @ AvroRecord(thisFields, _, _, _, _), thatRecord @ AvroRecord(thatFields, _, _, _, _)) =>
-        if (thisRecord.fullName != thatRecord.fullName)
+        if (checkNames  &&  thisRecord.fullName != thatRecord.fullName)
           false
         else if (checkRecord  &&  !memo.contains(thatRecord.fullName)) {
-          if (!_recordFieldsOkay(thisRecord, thatRecord, memo, checkRecord = false))
+          if (!_recordFieldsOkay(thisRecord, thatRecord, memo, checkRecord = false, checkNames))
             return false
           memo.add(thisRecord.fullName)
-          if (!_recordFieldsOkay(thisRecord, thatRecord, memo, checkRecord))
+          if (!_recordFieldsOkay(thisRecord, thatRecord, memo, checkRecord, checkNames))
             return false
           true
         }
@@ -166,15 +166,15 @@ package datatype {
 
       case (AvroUnion(thisTypes), AvroUnion(thatTypes)) =>
         for (yt <- thatTypes)
-          if (!thisTypes.exists(xt => xt.accepts(yt, memo, checkRecord)))
+          if (!thisTypes.exists(xt => xt._accepts(yt, memo, checkRecord, checkNames)))
             return false
         true
 
       case (AvroUnion(thisTypes), _) =>
-        thisTypes.exists(xt => xt.accepts(that, memo, checkRecord))
+        thisTypes.exists(xt => xt._accepts(that, memo, checkRecord, checkNames))
 
       case (_, AvroUnion(thatTypes)) =>
-        thatTypes.forall(yt => this.accepts(yt, memo, checkRecord))
+        thatTypes.forall(yt => this._accepts(yt, memo, checkRecord, checkNames))
 
       case _ => false
     }
@@ -210,7 +210,7 @@ package datatype {
   // (which must return a bottom type, a type that can have no value)
   private[hadrian] case class ExceptionType() extends AvroType {
     val name = "exception"
-    override def accepts(that: Type): Boolean = that.isInstanceOf[ExceptionType]
+    override def accepts(that: Type, checkNames: Boolean = true): Boolean = that.isInstanceOf[ExceptionType]
     override def toString() = """{"type":"exception"}"""
     def schema: Schema = AvroNull().schema
     def jsonNode(memo: mutable.Set[String]): JsonNode = throw new Exception("don't call jsonNode() on ExceptionType")

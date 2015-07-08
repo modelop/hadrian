@@ -345,4 +345,41 @@ return java.lang.Boolean.valueOf(com.opendatagroup.hadrian.lib1.model.tree.packa
   }
   provide(SimpleWalk)
 
+  ////   missingWalk (MissinWalk)
+  object MissingWalk extends LibFcn {
+    val name = prefix + "missingWalk"
+    val sig = Sig(List(
+      "datum" -> P.WildRecord("D", Map()),
+      "treeNode" -> P.WildRecord("T", ListMap("pass" -> P.Union(List(P.WildRecord("T", Map()), P.Wildcard("S"))),
+                                              "fail" -> P.Union(List(P.WildRecord("T", Map()), P.Wildcard("S"))),
+                                              "missing" -> P.Union(List(P.WildRecord("T", Map()), P.Wildcard("S"))))),
+      "test" -> P.Fcn(List(P.Wildcard("D"), P.Wildcard("T")), P.Union(List(P.Null, P.Boolean)))
+    ), P.Wildcard("S"))
+    val doc =
+      <doc>
+        <desc>Descend through a tree, testing the fields of <p>datum</p> with the <p>test</p> function using <p>treeNode</p> to define the comparison, continuing to <pf>pass</pf>, <pf>fail</pf>, or <pf>missing</pf> until reaching a leaf node of type <tp>S</tp> (score).</desc>
+        <param name="datum">Sample value to test.</param>
+        <param name="treeNode">Node of the tree, which contains a predicate to be interpreted by <p>test</p>.
+          <paramField name="pass">Branch to follow if <p>test</p> returns <c>true</c>.</paramField>
+          <paramField name="fail">Branch to follow if <p>test</p> returns <c>false</c>.</paramField>
+          <paramField name="missing">Branch to follow if <p>test</p> returns <c>null</c>.</paramField>
+        </param>
+        <param name="test">Test function that converts <p>datum</p> and <p>treeNode</p> into <c>true</c>, <c>false</c>, or <c>null</c>.</param>
+        <ret>Leaf node of type <tp>S</tp>, which must be different from the tree nodes.  For a classification tree, <tp>S</tp> could be a string or an enumeration set.  For a regression tree, <tp>S</tp> would be a numerical type.  For a multivariate regression tree, <tp>S</tp> would be an array of numbers, etc.</ret>
+      </doc>
+    @tailrec
+    def apply(datum: PFARecord, treeNode: PFARecord, test: (PFARecord, PFARecord) => java.lang.Boolean): AnyRef = {
+      val next = test(datum, treeNode) match {
+        case null => treeNode.get("missing")
+        case java.lang.Boolean.TRUE => treeNode.get("pass")
+        case java.lang.Boolean.FALSE => treeNode.get("fail")
+      }
+      next match {
+        case x: PFARecord if (treeNode.getSchema.getFullName == x.getSchema.getFullName) => apply(datum, x, test)
+        case x => x
+      }
+    }
+  }
+  provide(MissingWalk)
+
 }

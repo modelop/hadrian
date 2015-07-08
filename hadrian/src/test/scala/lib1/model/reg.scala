@@ -138,185 +138,124 @@ action:
     out("tres").doubleValue should be (100.5 +- 0.1)
   }
 
-  "model.reg.norm.*" must "softmax" taggedAs(Lib1, Lib1ModelReg) in {
-    val engine2 = PFAEngine.fromYaml("""
+  "model.reg.linearVariance" must "do one-level array signature" taggedAs(Lib1, Lib1ModelReg) in {
+    val engine = PFAEngine.fromYaml("""
 input: {type: array, items: double}
-output: {type: array, items: double}
-action: {model.reg.norm.softmax: input}
+output: double
+cells:
+  model:
+    type:
+      type: record
+      name: Model
+      fields:
+        - {name: covar, type: {type: array, items: {type: array, items: double}}}
+    init:
+      covar: [[ 1.0, -0.1, 0.0],
+              [-0.1,  2.0, 0.0],
+              [ 0.0,  0.0, 0.0]]
+action:
+  model.reg.linearVariance:
+    - input
+    - cell: model
 """).head
-    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3, 4]""")).asInstanceOf[PFAArray[Double]].toVector
-    out2(0) should be (0.03205860328008499 +- 0.0000001)
-    out2(1) should be (0.08714431874203257 +- 0.0000001)
-    out2(2) should be (0.23688281808991013 +- 0.0000001)
-    out2(3) should be (0.6439142598879722 +- 0.0000001)
-
-    val engine3 = PFAEngine.fromYaml("""
-input: {type: map, values: double}
-output: {type: map, values: double}
-action: {model.reg.norm.softmax: input}
-""").head
-    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3, "four": 4}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
-    out3("one").doubleValue should be (0.03205860328008499 +- 0.0000001)
-    out3("two").doubleValue should be (0.08714431874203257 +- 0.0000001)
-    out3("three").doubleValue should be (0.23688281808991013 +- 0.0000001)
-    out3("four").doubleValue should be (0.6439142598879722 +- 0.0000001)
+    engine.action(engine.jsonInput("""[0.1, 0.2]""")).asInstanceOf[java.lang.Double].doubleValue should be (0.086 +- 0.001)
   }
 
-  it must "logit" taggedAs(Lib1, Lib1ModelReg) in {
-    val engine1 = PFAEngine.fromYaml("""
-input: double
-output: double
-action: {model.reg.norm.logit: input}
-""").head
-    engine1.action(engine1.jsonInput("""2.2""")).asInstanceOf[java.lang.Double].doubleValue should be (0.9002495108803148 +- 0.0000001)
-
-    val engine2 = PFAEngine.fromYaml("""
+  it must "do two-level array signature" taggedAs(Lib1, Lib1ModelReg) in {
+    val engine = PFAEngine.fromYaml("""
 input: {type: array, items: double}
 output: {type: array, items: double}
-action: {model.reg.norm.logit: input}
+cells:
+  model:
+    type:
+      type: record
+      name: Model
+      fields:
+        - {name: covar, type: {type: array, items: {type: array, items: {type: array, items: double}}}}
+    init:
+      covar:
+        - [[ 1.0, -0.1, 0.0],
+           [-0.1,  2.0, 0.0],
+           [ 0.0,  0.0, 0.0]]
+        - [[ 1.0, -0.1, 0.0],
+           [-0.1,  2.0, 0.0],
+           [ 0.0,  0.0, 0.0]]
+        - [[ 1.0, -0.1, 0.0],
+           [-0.1,  2.0, 0.0],
+           [ 0.0,  0.0, 0.0]]
+        - [[ 1.0, -0.1, 0.0],
+           [-0.1,  2.0, 0.0],
+           [ 0.0,  0.0, 0.0]]
+action:
+  model.reg.linearVariance:
+    - input
+    - cell: model
 """).head
-    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3, 4]""")).asInstanceOf[PFAArray[Double]].toVector
-    out2(0) should be (0.7310585786300049 +- 0.0000001)
-    out2(1) should be (0.8807970779778823 +- 0.0000001)
-    out2(2) should be (0.9525741268224334 +- 0.0000001)
-    out2(3) should be (0.9820137900379085 +- 0.0000001)
-
-    val engine3 = PFAEngine.fromYaml("""
-input: {type: map, values: double}
-output: {type: map, values: double}
-action: {model.reg.norm.logit: input}
-""").head
-    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3, "four": 4}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
-    out3("one").doubleValue should be (0.7310585786300049 +- 0.0000001)
-    out3("two").doubleValue should be (0.8807970779778823 +- 0.0000001)
-    out3("three").doubleValue should be (0.9525741268224334 +- 0.0000001)
-    out3("four").doubleValue should be (0.9820137900379085 +- 0.0000001)
+    val results = engine.action(engine.jsonInput("""[0.1, 0.2]""")).asInstanceOf[PFAArray[Double]].toVector
+    results(0) should be (0.086 +- 0.001)
+    results(1) should be (0.086 +- 0.001)
+    results(2) should be (0.086 +- 0.001)
+    results(3) should be (0.086 +- 0.001)
   }
 
-  it must "probit" taggedAs(Lib1, Lib1ModelReg) in {
-    val engine1 = PFAEngine.fromYaml("""
-input: double
-output: double
-action: {model.reg.norm.probit: input}
-""").head
-    engine1.action(engine1.jsonInput("""2.2""")).asInstanceOf[java.lang.Double].doubleValue should be (0.9860965524865013 +- 0.0000001)
-
-    // println("below is testing logit, not probit")
-    val engine2 = PFAEngine.fromYaml("""
-input: {type: array, items: double}
-output: {type: array, items: double}
-action: {model.reg.norm.probit: input}
-""").head
-    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3, 4]""")).asInstanceOf[PFAArray[Double]].toVector
-    out2(0) should be (0.841344746068543  +- 0.0000001)
-    out2(1) should be (0.9772498680518207 +- 0.0000001)
-    out2(2) should be (0.9986501019683699 +- 0.0000001)
-    out2(3) should be (0.9999683287581669 +- 0.0000001)
-
-    // println("below is testing logit, not probit")
-    val engine3 = PFAEngine.fromYaml("""
+  it must "do one-level map signature" taggedAs(Lib1, Lib1ModelReg) in {
+    val engine = PFAEngine.fromYaml("""
 input: {type: map, values: double}
-output: {type: map, values: double}
-action: {model.reg.norm.probit: input}
+output: double
+cells:
+  model:
+    type:
+      type: record
+      name: Model
+      fields:
+        - {name: covar, type: {type: map, values: {type: map, values: double}}}
+    init:
+      covar: {a: {a:  1.0, b: -0.1, "": 0.0},
+              b: {a: -0.1, b:  2.0, "": 0.0},
+             "": {a:  0.0, b:  0.0, "": 0.0}}
+action:
+  model.reg.linearVariance:
+    - input
+    - cell: model
 """).head
-    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3, "four": 4}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
-    out3("one").doubleValue should be   (0.841344746068543  +- 0.0000001)
-    out3("two").doubleValue should be   (0.9772498680518207 +- 0.0000001)
-    out3("three").doubleValue should be (0.9986501019683699 +- 0.0000001)
-    out3("four").doubleValue should be  (0.9999683287581669 +- 0.0000001)
+    engine.action(engine.jsonInput("""{"a": 0.1, "b": 0.2}""")).asInstanceOf[java.lang.Double].doubleValue should be (0.086 +- 0.001)
   }
 
-  it must "cloglog" taggedAs(Lib1, Lib1ModelReg) in {
-    val engine1 = PFAEngine.fromYaml("""
-input: double
-output: double
-action: {model.reg.norm.cloglog: input}
-""").head
-    engine1.action(engine1.jsonInput("""2.2""")).asInstanceOf[java.lang.Double].doubleValue should be (0.9998796388196516 +- 0.0000001)
-
-    val engine2 = PFAEngine.fromYaml("""
-input: {type: array, items: double}
-output: {type: array, items: double}
-action: {model.reg.norm.cloglog: input}
-""").head
-    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3, 4]""")).asInstanceOf[PFAArray[Double]].toVector
-    out2(0) should be (0.9340119641546875 +- 0.0000001)
-    out2(1) should be (0.9993820210106689 +- 0.0000001)
-    out2(2) should be (0.9999999981078213 +- 0.0000001)
-    out2(3) should be (1.0 +- 0.0000001)
-
-    val engine3 = PFAEngine.fromYaml("""
+  it must "do two-level map signature" taggedAs(Lib1, Lib1ModelReg) in {
+    val engine = PFAEngine.fromYaml("""
 input: {type: map, values: double}
 output: {type: map, values: double}
-action: {model.reg.norm.cloglog: input}
+cells:
+  model:
+    type:
+      type: record
+      name: Model
+      fields:
+        - {name: covar, type: {type: map, values: {type: map, values: {type: map, values: double}}}}
+    init:
+      covar:
+        one: {a: {a:  1.0, b: -0.1, "": 0.0},
+              b: {a: -0.1, b:  2.0, "": 0.0},
+             "": {a:  0.0, b:  0.0, "": 0.0}}
+        two: {a: {a:  1.0, b: -0.1, "": 0.0},
+              b: {a: -0.1, b:  2.0, "": 0.0},
+             "": {a:  0.0, b:  0.0, "": 0.0}}
+        three: {a: {a:  1.0, b: -0.1, "": 0.0},
+                b: {a: -0.1, b:  2.0, "": 0.0},
+               "": {a:  0.0, b:  0.0, "": 0.0}}
+        four: {a: {a:  1.0, b: -0.1, "": 0.0},
+               b: {a: -0.1, b:  2.0, "": 0.0},
+              "": {a:  0.0, b:  0.0, "": 0.0}}
+action:
+  model.reg.linearVariance:
+    - input
+    - cell: model
 """).head
-    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3, "four": 4}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
-    out3("one").doubleValue should be (0.9340119641546875 +- 0.0000001)
-    out3("two").doubleValue should be (0.9993820210106689 +- 0.0000001)
-    out3("three").doubleValue should be (0.9999999981078213 +- 0.0000001)
-    out3("four").doubleValue should be (1.0 +- 0.0000001)
-  }
-
-  it must "loglog" taggedAs(Lib1, Lib1ModelReg) in {
-    val engine1 = PFAEngine.fromYaml("""
-input: double
-output: double
-action: {model.reg.norm.loglog: input}
-""").head
-    engine1.action(engine1.jsonInput("""2.2""")).asInstanceOf[java.lang.Double].doubleValue should be (1.203611803484212E-4 +- 0.0000001)
-
-    val engine2 = PFAEngine.fromYaml("""
-input: {type: array, items: double}
-output: {type: array, items: double}
-action: {model.reg.norm.loglog: input}
-""").head
-    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3, 4]""")).asInstanceOf[PFAArray[Double]].toVector
-    out2(0) should be (0.06598803584531254 +- 0.0000001)
-    out2(1) should be (6.179789893310934E-4 +- 0.0000001)
-    out2(2) should be (1.8921786948382924E-9 +- 0.0000001)
-    out2(3) should be (1.9423376049564073E-24 +- 0.0000001)
-
-    val engine3 = PFAEngine.fromYaml("""
-input: {type: map, values: double}
-output: {type: map, values: double}
-action: {model.reg.norm.loglog: input}
-""").head
-    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3, "four": 4}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
-    out3("one").doubleValue should be (0.06598803584531254 +- 0.0000001)
-    out3("two").doubleValue should be (6.179789893310934E-4 +- 0.0000001)
-    out3("three").doubleValue should be (1.8921786948382924E-9 +- 0.0000001)
-    out3("four").doubleValue should be (1.9423376049564073E-24 +- 0.0000001)
-  }
-
-  it must "cauchit" taggedAs(Lib1, Lib1ModelReg) in {
-    val engine1 = PFAEngine.fromYaml("""
-input: double
-output: double
-action: {model.reg.norm.cauchit: input}
-""").head
-    engine1.action(engine1.jsonInput("""2.2""")).asInstanceOf[java.lang.Double].doubleValue should be (0.8642002512199081 +- 0.0000001)
-
-    val engine2 = PFAEngine.fromYaml("""
-input: {type: array, items: double}
-output: {type: array, items: double}
-action: {model.reg.norm.cauchit: input}
-""").head
-    val out2 = engine2.action(engine2.jsonInput("""[1, 2, 3, 4]""")).asInstanceOf[PFAArray[Double]].toVector
-    out2(0) should be (0.75 +- 0.0000001)
-    out2(1) should be (0.8524163823495667 +- 0.0000001)
-    out2(2) should be (0.8975836176504333 +- 0.0000001)
-    out2(3) should be (0.9220208696226307 +- 0.0000001)
-
-    val engine3 = PFAEngine.fromYaml("""
-input: {type: map, values: double}
-output: {type: map, values: double}
-action: {model.reg.norm.cauchit: input}
-""").head
-    val out3 = engine3.action(engine3.jsonInput("""{"one": 1, "two": 2, "three": 3, "four": 4}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
-    out3("one").doubleValue should be (0.75 +- 0.0000001)
-    out3("two").doubleValue should be (0.8524163823495667 +- 0.0000001)
-    out3("three").doubleValue should be (0.8975836176504333 +- 0.0000001)
-    out3("four").doubleValue should be (0.9220208696226307 +- 0.0000001)
+    val results = engine.action(engine.jsonInput("""{"a": 0.1, "b": 0.2}""")).asInstanceOf[PFAMap[java.lang.Double]].toMap
+    results("one").doubleValue should be (0.086 +- 0.001)
+    results("two").doubleValue should be (0.086 +- 0.001)
+    results("three").doubleValue should be (0.086 +- 0.001)
+    results("four").doubleValue should be (0.086 +- 0.001)
   }
 
   "model.reg.residual" must "work" taggedAs(Lib1, Lib1ModelReg) in {

@@ -153,6 +153,57 @@ action: {rand.sample: [3, input]}
     engine.action(PFAArray.fromVector(Vector("one", "two", "three", "four", "five"))).asInstanceOf[PFAArray[String]].toVector should be (Vector("three", "four", "five"))
   }
 
+  it must "make random deviates from a histogram" taggedAs(Lib1, Lib1Rand) in {
+    val engine = PFAEngine.fromYaml("""
+input: "null"
+output: int
+randseed: 12345
+action: {rand.histogram: {value: [3.3, 2.2, 5.5, 0.0, 1.1, 8.8], type: {type: array, items: double}}}
+""").head
+    val results = 0 until 1000000 map {i => engine.action(null)}
+    results.count(_ == 0) / 1000000.0 should be (0.15789473684210525 +- 0.001)
+    results.count(_ == 1) / 1000000.0 should be (0.10526315789473686 +- 0.001)
+    results.count(_ == 2) / 1000000.0 should be (0.26315789473684215 +- 0.001)
+    results.count(_ == 3) / 1000000.0 should be (0.0 +- 0.001)
+    results.count(_ == 4) / 1000000.0 should be (0.05263157894736843 +- 0.001)
+    results.count(_ == 5) / 1000000.0 should be (0.42105263157894746 +- 0.001)
+    results.count(_ == 6) / 1000000.0 should be (0.0 +- 0.001)
+  }
+
+  it must "make random deviates from a histogram with the other signature" taggedAs(Lib1, Lib1Rand) in {
+    val engine = PFAEngine.fromYaml("""
+input: "null"
+output: HistogramItem
+randseed: 12345
+cells:
+  hist:
+    type:
+      type: array
+      items:
+        type: record
+        name: HistogramItem
+        fields:
+          - {name: label, type: string}
+          - {name: prob, type: double}
+    init:
+      - {label: A, prob: 3.3}
+      - {label: B, prob: 2.2}
+      - {label: C, prob: 5.5}
+      - {label: D, prob: 0.0}
+      - {label: E, prob: 1.1}
+      - {label: F, prob: 8.8}
+action: {rand.histogram: {cell: hist}}
+""").head
+    val results = 0 until 1000000 map {i => engine.action(null)}
+    results.count(_.asInstanceOf[PFARecord].get("label") == "A") / 1000000.0 should be (0.15789473684210525 +- 0.001)
+    results.count(_.asInstanceOf[PFARecord].get("label") == "B") / 1000000.0 should be (0.10526315789473686 +- 0.001)
+    results.count(_.asInstanceOf[PFARecord].get("label") == "C") / 1000000.0 should be (0.26315789473684215 +- 0.001)
+    results.count(_.asInstanceOf[PFARecord].get("label") == "D") / 1000000.0 should be (0.0 +- 0.001)
+    results.count(_.asInstanceOf[PFARecord].get("label") == "E") / 1000000.0 should be (0.05263157894736843 +- 0.001)
+    results.count(_.asInstanceOf[PFARecord].get("label") == "F") / 1000000.0 should be (0.42105263157894746 +- 0.001)
+    results.count(_.asInstanceOf[PFARecord].get("label") == "G") / 1000000.0 should be (0.0 +- 0.001)
+  }
+
   it must "generate random strings" taggedAs(Lib1, Lib1Rand) in {
     val engine1 = PFAEngine.fromYaml("""
 input: "null"

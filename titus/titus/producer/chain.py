@@ -20,6 +20,7 @@
 
 import json as jsonlib
 import sys
+import time
 
 import avro.schema
 
@@ -51,6 +52,7 @@ from titus.datatype import jsonEncoder
 
 from titus.pfaast import Method
 from titus.pfaast import EngineConfig
+from titus.pfaast import CellPoolSource
 from titus.pfaast import Cell
 from titus.pfaast import Pool
 from titus.pfaast import FcnDef
@@ -84,10 +86,10 @@ def engine(pfas, name=None, randseed=None, doc=None, version=None, metadata={}, 
 
 def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, metadata={}, options={}, tryYaml=False, verbose=False):
     # normalize all input forms to ASTs
-    if verbose: sys.stderr.write("Converting all inputs to ASTs\n")
+    if verbose: sys.stderr.write(time.asctime() + " Converting all inputs to ASTs\n")
     asts = []
     for i, src in enumerate(pfas):
-        if verbose: sys.stderr.write("    step {0}\n".format(i + 1))
+        if verbose: sys.stderr.write(time.asctime() + "     step {0}\n".format(i + 1))
         if isinstance(src, EngineConfig):
             ast = src
         elif isinstance(src, dict):
@@ -139,7 +141,7 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
         return "step{0:d}_{1}_{2}".format(i + 1, pfa.name, x)
 
     # define new names for all types to avoid type name collisions
-    if verbose: sys.stderr.write("Changing type names to avoid collisions\n")
+    if verbose: sys.stderr.write(time.asctime() + " Changing type names to avoid collisions\n")
     originalNameToNewName = {}
     for i, pfa in enumerate(pfas):
         originalNameToNewName[i] = {}
@@ -169,7 +171,7 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
     trivialName(len(pfas) - 1, pfas[-1].output, set())
 
     # ensure that chained types match and will be given the same names
-    if verbose: sys.stderr.write("Verifying that input/output schemas match along the chain\n")
+    if verbose: sys.stderr.write(time.asctime() + " Verifying that input/output schemas match along the chain\n")
     def chainPair(i, first, second, memo):
         if isinstance(first, AvroNull) and isinstance(second, AvroNull):
             return True
@@ -231,35 +233,49 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
 
     def rename(i, avroType, memo):
         if isinstance(avroType, AvroArray):
-            return AvroArray(rename(i, avroType.items, memo))
+            return {"type": "array", "items": rename(i, avroType.items, memo)}
         elif isinstance(avroType, AvroMap):
-            return AvroMap(rename(i, avroType.values, memo))
+            return {"type": "map", "values": rename(i, avroType.values, memo)}
         elif isinstance(avroType, AvroUnion):
-            return AvroUnion([rename(i, t, memo) for t in avroType.types])
+            return [rename(i, t, memo) for t in avroType.types]
         elif isinstance(avroType, AvroFixed):
             ns, n = split(originalNameToNewName[i][avroType.fullName])
-            return AvroFixed(avroType.size, n, ns)
+            out = {"type": "fixed", "name": n, "size": avroType.size}
+            if ns is not None:
+                out["namespace"] = ns
+            return out
         elif isinstance(avroType, AvroEnum):
             ns, n = split(originalNameToNewName[i][avroType.fullName])
-            return AvroEnum(avroType.symbols, n, ns)
+            out = {"type": "enum", "name": n, "symbols": avroType.symbols}
+            if ns is not None:
+                out["namespace"] = ns
+            return out
         elif isinstance(avroType, AvroRecord):
             newName = originalNameToNewName[i][avroType.fullName]
             if newName in memo:
-                return schemaToAvroType(memo[newName])
+                return memo[newName]
             else:
                 ns, n = split(newName)
-                schema = avro.schema.RecordSchema(n, ns, [], avro.schema.Names(), "record")
-                memo[newName] = schema
-                schema.set_prop("fields", [AvroField(f.name, rename(i, f.avroType, memo), f.default, f.order).schema for f in avroType.fields])
-                return schemaToAvroType(memo[newName])
+                out = {"type": "record", "name": n, "fields": []}
+                if ns is not None:
+                    out["namespace"] = ns
+                memo[newName] = join(ns, n)
+                for f in avroType.fields:
+                    newf = {"name": f.name, "type": rename(i, f.avroType, memo)}
+                    if f.default is not None:
+                        newf["default"] = f.default
+                    if f.order is not None:
+                        newf["order"] = f.order
+                    out["fields"].append(newf)
+                return out
         else:
-            return avroType
+            return jsonlib.loads(repr(avroType))
 
     avroTypeBuilder = AvroTypeBuilder()
     memo = {}
     def newPlaceholder(i, oldAvroType):
         newAvroType = rename(i, oldAvroType, {})
-        return avroTypeBuilder.makePlaceholder(repr(newAvroType), memo)
+        return avroTypeBuilder.makePlaceholder(jsonlib.dumps(newAvroType), memo)
             
     # combined name, if not explicitly set
     if name is None:
@@ -281,40 +297,18 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
     inputPlaceholder = newPlaceholder(0, pfas[0].input)
     outputPlaceholder = newPlaceholder(len(pfas) - 1, pfas[-1].output)
 
-    if verbose: sys.stderr.write("Converting model parameters\n")
+    if verbose: sys.stderr.write(time.asctime() + " Adding [name, instance, metadata, actionsStarted, actionsFinished, version] as model parameters\n")
 
-    # combined cells with non-clobbering names
-    cells = {"name": Cell(newPlaceholder(i, AvroString()), jsonlib.dumps(""), False, False),
-             "instance": Cell(newPlaceholder(i, AvroInt()), jsonlib.dumps(0), False, False),
-             "metadata": Cell(newPlaceholder(i, AvroMap(AvroString())), jsonlib.dumps({}), False, False),
-             "actionsStarted": Cell(newPlaceholder(i, AvroLong()), jsonlib.dumps(0), False, False),
-             "actionsFinished": Cell(newPlaceholder(i, AvroLong()), jsonlib.dumps(0), False, False)}
+    cells = {"name": Cell(newPlaceholder(0, AvroString()), jsonlib.dumps(""), False, False, CellPoolSource.EMBEDDED),
+             "instance": Cell(newPlaceholder(0, AvroInt()), jsonlib.dumps(0), False, False, CellPoolSource.EMBEDDED),
+             "metadata": Cell(newPlaceholder(0, AvroMap(AvroString())), jsonlib.dumps({}), False, False, CellPoolSource.EMBEDDED),
+             "actionsStarted": Cell(newPlaceholder(0, AvroLong()), jsonlib.dumps(0), False, False, CellPoolSource.EMBEDDED),
+             "actionsFinished": Cell(newPlaceholder(0, AvroLong()), jsonlib.dumps(0), False, False, CellPoolSource.EMBEDDED)}
     if version is not None:
-        cells["version"] = Cell(newPlaceholder(i, AvroInt()), 0, False, False)
-
-    for i, pfa in enumerate(pfas):
-        if verbose and len(pfa.cells) > 0: sys.stderr.write("    step {0}:\n".format(i + 1))
-        for cellName, cell in pfa.cells.items():
-            if verbose: sys.stderr.write("        cell {0}\n".format(cellName))
-            oldAvroType = cell.avroType
-            newAvroType = rename(i, oldAvroType, {})
-            original = jsonDecoder(oldAvroType, jsonlib.loads(cell.init))
-            converted = jsonlib.dumps(jsonEncoder(newAvroType, original))
-            cells[prefixCell(i, pfa, cellName)] = Cell(newPlaceholder(i, cell.avroType), converted, cell.shared, cell.rollback, cell.pos)
-
-    # combined pools with non-clobbering names
+        cells["version"] = Cell(newPlaceholder(0, AvroInt()), 0, False, False, CellPoolSource.EMBEDDED)
     pools = {}
-    for i, pfa in enumerate(pfas):
-        if verbose and len(pfa.pools) > 0: sys.stderr.write("    step {0}:\n".format(i + 1))
-        for poolName, pool in pfa.pools.items():
-            if verbose: sys.stderr.write("        pool {0}\n".format(poolName))
-            oldAvroType = pool.avroType
-            newAvroType = rename(i, oldAvroType, {})
-            original = jsonDecoder(oldAvroType, jsonlib.loads(pool.init))
-            converted = jsonlib.dumps(jsonEncoder(newAvroType, original))
-            pools[prefixPool(i, pfa, poolName)] = Pool(newPlaceholder(i, pool.avroType), converted, pool.shared, pool.rollback, pool.pos)
 
-    if verbose: sys.stderr.write("Converting scoring engine algorithm\n")
+    if verbose: sys.stderr.write(time.asctime() + " Converting scoring engine algorithm\n")
 
     # all code will go into user functions, including begin/action/end
     fcns = {}
@@ -332,7 +326,7 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
            CellTo("actionsFinished", [], Ref("actionsFinished"))]
 
     for i, pfa in enumerate(pfas):
-        if verbose: sys.stderr.write("    step {0}: {1}\n".format(i + 1, pfa.name))
+        if verbose: sys.stderr.write(time.asctime() + "     step {0}: {1}\n".format(i + 1, pfa.name))
 
         thisActionFcnName = prefixAction(i, pfa)
         if i + 1 < len(pfas):
@@ -483,9 +477,53 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
                                                          [x.replace(fcnReplacer) for x in fcnDef.body],
                                                          fcnDef.pos)
 
+    if verbose: sys.stderr.write(time.asctime() + " Create types for model parameters\n")
+
+    for i, pfa in enumerate(pfas):
+        if verbose and len(pfa.cells) > 0: sys.stderr.write(time.asctime() + "     step {0}:\n".format(i + 1))
+        for cellName, cell in pfa.cells.items():
+            if verbose: sys.stderr.write(time.asctime() + "         cell {0}\n".format(cellName))
+            newCell = Cell(newPlaceholder(i, cell.avroType), cell.init, cell.shared, cell.rollback, cell.source, cell.pos)
+            cells[prefixCell(i, pfa, cellName)] = newCell
+            if cell.source == "embedded":
+                def converter(avroType):
+                    original = jsonDecoder(cell.avroType, jsonlib.loads(cell.init))
+                    return jsonlib.dumps(jsonEncoder(avroType, original))
+                newCell.converter = converter
+                
+    for i, pfa in enumerate(pfas):
+        if verbose and len(pfa.pools) > 0: sys.stderr.write(time.asctime() + "     step {0}:\n".format(i + 1))
+        for poolName, pool in pfa.pools.items():
+            if verbose: sys.stderr.write(time.asctime() + "         pool {0}\n".format(poolName))
+            newPool = Pool(newPlaceholder(i, pool.avroType), pool.init, pool.shared, pool.rollback, pool.source, pool.pos)
+            pools[prefixPool(i, pfa, poolName)] = newPool
+            if pool.source == "embedded":
+                def converter(avroType):
+                    original = jsonDecoder(pool.avroType, jsonlib.loads(pool.init))
+                    return jsonlib.dumps(jsonEncoder(avroType, original))
+                newPool.converter = converter
+                
     # make sure all the types work together
-    if verbose: sys.stderr.write("Resolving types\n")
+    if verbose: sys.stderr.write(time.asctime() + " Resolving all types\n")
     avroTypeBuilder.resolveTypes()
+
+    if verbose: sys.stderr.write(time.asctime() + " Converting the model parameters themselves\n")
+
+    for i, pfa in enumerate(pfas):
+        if verbose and len(pfa.cells) > 0: sys.stderr.write(time.asctime() + "     step {0}:\n".format(i + 1))
+        for cellName, cell in pfa.cells.items():
+            if verbose: sys.stderr.write(time.asctime() + "         cell {0}\n".format(cellName))
+            if cell.source == "embedded":
+                newCell = cells[prefixCell(i, pfa, cellName)]
+                newCell.init = newCell.converter(newCell.avroType)
+
+    for i, pfa in enumerate(pfas):
+        if verbose and len(pfa.pools) > 0: sys.stderr.write(time.asctime() + "     step {0}:\n".format(i + 1))
+        for poolName, pool in pfa.pools.items():
+            if verbose: sys.stderr.write(time.asctime() + "         pool {0}\n".format(poolName))
+            if pool.source == "embedded":
+                newPool = pools[prefixPool(i, pfa, poolName)]
+                newPool.init = newPool.converter(newPool.avroType)
 
     # randseed, doc, version, metadata, and options need to be explicitly set
 
@@ -508,10 +546,10 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
                        metadata,
                        options)
     if check:
-        if verbose: sys.stderr.write("Verifying PFA validity\n")
+        if verbose: sys.stderr.write(time.asctime() + " Verifying PFA validity\n")
         PFAEngine.fromAst(out)
 
-    if verbose: sys.stderr.write("Done\n")
+    if verbose: sys.stderr.write(time.asctime() + " Done\n")
     return out
 
 

@@ -15,6 +15,8 @@ import com.opendatagroup.hadrian.jvmcompiler.PFAEngine
 import com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine
 import com.opendatagroup.hadrian.util.convertFromJson
 
+import com.opendatagroup.antinous.engine.JythonEngine
+
 object Main {
   object Format extends Enumeration {
     val AVRO, JSON, JSONSCHEMA = Value
@@ -63,7 +65,8 @@ object Main {
           if (y.exists)
             success
           else
-            failure(y.getAbsolutePath + " does not exist")})
+            failure(y.getAbsolutePath + " does not exist")
+        })
         .action((x, c) => c.copy(saveState = Some(x)))
         .text("base file name for saving the scoring engine state (a directory, file name prefix, or both)")
 
@@ -76,15 +79,21 @@ object Main {
         .action((x, c) => c.copy(debug = true))
         .text("print out auto-generated Java code for PFA engine")
 
-      arg[File]("engineFileName.pfa|json|yaml|yml")
+      arg[File]("engineFileName.pfa|json|yaml|yml|py")
         .required
         .validate({x => 
-          if (x.exists)
-            success
+          if (x.exists) {
+            val name = x.getName.toLowerCase
+            if (name.endsWith(".pfa")  ||  name.endsWith(".json")  ||  name.endsWith(".yaml")  ||  name.endsWith(".yml")  ||  name.endsWith(".py"))
+              success
+            else
+              failure(x.getName + " does not end with .pfa|json|yaml|yml|py")
+          }
           else
-            failure(x.getAbsolutePath + " does not exist")})
+            failure(x.getAbsolutePath + " does not exist")
+        })
         .action((x, c) => c.copy(engine = x))
-        .text("scoring engine encoded in PFA")
+        .text("scoring engine encoded in PFA (pfa|json|yaml|yml) or Python (py)")
 
       arg[File]("inputFile.json|avro")
         .minOccurs(0)
@@ -108,14 +117,14 @@ input.
 """)
     }
     parser.parse(args, Config()) map {config =>
+      val normalizedName = config.engine.getName.toLowerCase
       val engines =
-        try {
+        if (normalizedName.endsWith(".pfa")  ||  normalizedName.endsWith(".json"))
           PFAEngine.fromJson(config.engine, multiplicity = config.numberOfEngines, debug = config.debug)
-        }
-        catch {
-          case exception: org.codehaus.jackson.JsonProcessingException =>
-            PFAEngine.fromYaml(new java.util.Scanner(config.engine).useDelimiter("\\Z").next(), multiplicity = config.numberOfEngines, debug = config.debug)
-        }
+        else if (normalizedName.endsWith(".yaml")  ||  normalizedName.endsWith(".yml"))
+          PFAEngine.fromYaml(new java.util.Scanner(config.engine).useDelimiter("\\Z").next(), multiplicity = config.numberOfEngines, debug = config.debug)
+        else
+          JythonEngine.fromPython(config.engine, config.engine.getName, multiplicity = config.numberOfEngines)
 
       // every engine input bucket is a fermion: it can only take zero or one items; if full, System.in blocks
       val inputBuckets = Array.fill[Option[AnyRef]](config.numberOfEngines)(None)
@@ -149,14 +158,14 @@ input.
       val inputThread = new Thread(new InputRunnable, "Hadrian-input")
 
       // keeps going while inputThread is alive or there's work to be done
-      class EngineRunnable(engine: PFAEngine[AnyRef, AnyRef]) extends Runnable {
+      class EngineRunnable(engine: PFAEngine[_, _]) extends Runnable {
         private var lastPrintout = 0L
         private var timeInAction = 0L
         private var callsToAction = 0.0
 
-        def action(engine: PFAEngine[AnyRef, AnyRef], input: AnyRef): AnyRef = {
+        def action(engine: PFAEngine[_, _], input: AnyRef): AnyRef = {
           val startTime = System.currentTimeMillis
-          val out = engine.action(input)
+          val out = engine.asInstanceOf[PFAEngine[AnyRef, AnyRef]].action(input)
           val endTime = System.currentTimeMillis
 
           timeInAction += endTime - startTime
@@ -185,6 +194,7 @@ input.
             }
 
           val index = engine.instance
+          engine.begin()
           while (inputThread.isAlive  ||  inputBuckets(index) != None) {
             inputBuckets(index) match {
               case None =>
@@ -194,6 +204,7 @@ input.
                 processInput(x)
             }
           }
+          engine.end()
         }
       }
       val engineThreads = engines map {x => new Thread(new EngineRunnable(x), s"Hadrian-engine-${x.instance}")}

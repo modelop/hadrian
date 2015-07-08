@@ -194,30 +194,30 @@ class TestTypeCheck(unittest.TestCase):
 
     def testPool(self):
         for shared in True, False:
-            self.assertRaises(PFASyntaxException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": []}'''), pools={"x": Pool(AvroArray(AvroInt()), "", shared, False, CellPoolSource.EMBEDDED)}))
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"]]}'''), pools={"x": Pool(AvroArray(AvroInt()), "", shared, False, CellPoolSource.EMBEDDED)}), AvroArray(AvroInt())))
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2]}'''), pools={"x": Pool(AvroArray(AvroInt()), "", shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 1, 2, 3]}'''), pools={"x": Pool(AvroArray(AvroArray(AvroArray(AvroInt()))), "", shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
-            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 1]}'''), pools={"x": Pool(AvroInt(), "", shared, False, CellPoolSource.EMBEDDED)}))
-            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 1, 2, 3, 4]}'''), pools={"x": Pool(AvroArray(AvroArray(AvroArray(AvroInt()))), "", shared, False, CellPoolSource.EMBEDDED)}))
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], "y"]}'''), {"y": AvroInt()}, pools={"x": Pool(AvroArray(AvroInt()), "", shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
+            self.assertRaises(PFASyntaxException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": []}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False, CellPoolSource.EMBEDDED)}))
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"]]}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False, CellPoolSource.EMBEDDED)}), AvroArray(AvroInt())))
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2]}'''), pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 1, 2, 3]}'''), pools={"x": Pool(AvroArray(AvroArray(AvroArray(AvroInt()))), {}, shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
+            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 1]}'''), pools={"x": Pool(AvroInt(), {}, shared, False, CellPoolSource.EMBEDDED)}))
+            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 1, 2, 3, 4]}'''), pools={"x": Pool(AvroArray(AvroArray(AvroArray(AvroInt()))), {}, shared, False, CellPoolSource.EMBEDDED)}))
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], "y"]}'''), {"y": AvroInt()}, pools={"x": Pool(AvroArray(AvroInt()), {}, shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
 
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"]]}'''), pools={"x": Pool(AvroMap(AvroInt()), "", shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"], ["two"], ["three"]]}'''), pools={"x": Pool(AvroMap(AvroMap(AvroMap(AvroInt()))), "", shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
-            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"], ["two"], ["three"], ["four"]]}'''), pools={"x": Pool(AvroMap(AvroMap(AvroMap(AvroInt()))), "", shared, False, CellPoolSource.EMBEDDED)}))
-            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"]]}'''), pools={"x": Pool(AvroInt(), "", shared, False, CellPoolSource.EMBEDDED)}))
-            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2]}'''), pools={"x": Pool(AvroMap(AvroInt()), "", shared, False, CellPoolSource.EMBEDDED)}))
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], "y"]}'''), {"y": AvroString()}, pools={"x": Pool(AvroMap(AvroInt()), "", shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"]]}'''), pools={"x": Pool(AvroMap(AvroInt()), {}, shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"], ["two"], ["three"]]}'''), pools={"x": Pool(AvroMap(AvroMap(AvroMap(AvroInt()))), {}, shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
+            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"], ["two"], ["three"], ["four"]]}'''), pools={"x": Pool(AvroMap(AvroMap(AvroMap(AvroInt()))), {}, shared, False, CellPoolSource.EMBEDDED)}))
+            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"]]}'''), pools={"x": Pool(AvroInt(), {}, shared, False, CellPoolSource.EMBEDDED)}))
+            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], 2]}'''), pools={"x": Pool(AvroMap(AvroInt()), {}, shared, False, CellPoolSource.EMBEDDED)}))
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], "y"]}'''), {"y": AvroString()}, pools={"x": Pool(AvroMap(AvroInt()), {}, shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
 
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"], 1, ["one"], 1]}'''), pools={"x": Pool(AvroMap(AvroArray(AvroMap(AvroArray(AvroInt())))), "", shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
-            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"], 1, ["one"], 1]}'''), pools={"x": Pool(AvroMap(AvroArray(AvroArray(AvroMap(AvroInt())))), "", shared, False, CellPoolSource.EMBEDDED)}))
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"], 1, ["one"], 1]}'''), pools={"x": Pool(AvroMap(AvroArray(AvroMap(AvroArray(AvroInt())))), {}, shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
+            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"], 1, ["one"], 1]}'''), pools={"x": Pool(AvroMap(AvroArray(AvroArray(AvroMap(AvroInt())))), {}, shared, False, CellPoolSource.EMBEDDED)}))
 
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"]]}'''), pools={"x": Pool(AvroRecord([AvroField("one", AvroInt())], "MyRecord"), "", shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
-            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], "y"]}'''), {"y": AvroString()}, pools={"x": Pool(AvroRecord([AvroField("one", AvroInt())], "MyRecord"), "", shared, False, CellPoolSource.EMBEDDED)}))
-            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["two"]]}'''), pools={"x": Pool(AvroRecord([AvroField("one", AvroInt())], "MyRecord"), "", shared, False, CellPoolSource.EMBEDDED)}))
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"]]}'''), pools={"x": Pool(AvroRecord([AvroField("one", AvroInt())], "MyRecord"), {}, shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
+            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], "y"]}'''), {"y": AvroString()}, pools={"x": Pool(AvroRecord([AvroField("one", AvroInt())], "MyRecord"), {}, shared, False, CellPoolSource.EMBEDDED)}))
+            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["two"]]}'''), pools={"x": Pool(AvroRecord([AvroField("one", AvroInt())], "MyRecord"), {}, shared, False, CellPoolSource.EMBEDDED)}))
 
-            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], "y", 1, ["one"], 1]}'''), {"y": AvroString()}, pools={"x": Pool(AvroMap(AvroArray(AvroRecord([AvroField("one", AvroArray(AvroInt()))], "MyRecord"))), "", shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
-            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"], 1, "y", 1]}'''), {"y": AvroString()}, pools={"x": Pool(AvroMap(AvroArray(AvroRecord([AvroField("one", AvroArray(AvroInt()))], "MyRecord"))), "", shared, False, CellPoolSource.EMBEDDED)}))
+            self.assertTrue(self.typeEquality(inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], "y", 1, ["one"], 1]}'''), {"y": AvroString()}, pools={"x": Pool(AvroMap(AvroArray(AvroRecord([AvroField("one", AvroArray(AvroInt()))], "MyRecord"))), {}, shared, False, CellPoolSource.EMBEDDED)}), AvroInt()))
+            self.assertRaises(PFASemanticException, lambda: inferType(jsonToAst.expr('''{"pool": "x", "path": [["p"], ["one"], 1, "y", 1]}'''), {"y": AvroString()}, pools={"x": Pool(AvroMap(AvroArray(AvroRecord([AvroField("one", AvroArray(AvroInt()))], "MyRecord"))), {}, shared, False, CellPoolSource.EMBEDDED)}))
 
     def testPoolTo(self):
         for shared in True, False:

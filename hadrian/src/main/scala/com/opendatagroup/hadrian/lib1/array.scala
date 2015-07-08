@@ -1238,9 +1238,12 @@ package object array {
         if (a.toVector.isEmpty)
           throw new PFARuntimeException("empty array")
         else {
-          val sorted = PFAArray.fromVector(a.toVector.sorted)
-          val index = a.toVector.size / 2
-          sorted(index)
+          val sa = PFAArray.fromVector(a.toVector.sorted)
+          val half = a.toVector.size / 2
+          if (sa.size % 2 == 1)
+            sa(half)
+          else
+            sa(half - 1)
         }
     }
     class SorterLong {
@@ -1248,9 +1251,12 @@ package object array {
         if (a.toVector.isEmpty)
           throw new PFARuntimeException("empty array")
         else {
-          val sorted = PFAArray.fromVector(a.toVector.sorted)
-          val index = a.toVector.size / 2
-          sorted(index)
+          val sa = PFAArray.fromVector(a.toVector.sorted)
+          val half = a.toVector.size / 2
+          if (sa.size % 2 == 1)
+            sa(half)
+          else
+            sa(half - 1)
         }
     }
     class SorterFloat {
@@ -1258,11 +1264,11 @@ package object array {
         if (a.toVector.isEmpty)
           throw new PFARuntimeException("empty array")
         else {
-          val sorted = PFAArray.fromVector(a.toVector.sorted)
+          val sa = PFAArray.fromVector(a.toVector.sorted)
           if (a.toVector.size % 2 == 1)
-            sorted(a.toVector.size / 2)
+            sa(a.toVector.size / 2)
           else
-            (sorted(a.toVector.size / 2) + sorted(a.toVector.size / 2 + 1)) / 2.0f
+            (sa(a.toVector.size / 2 - 1) + sa(a.toVector.size / 2)) / 2.0f
         }
     }
     class SorterDouble {
@@ -1270,11 +1276,11 @@ package object array {
         if (a.toVector.isEmpty)
           throw new PFARuntimeException("empty array")
         else {
-          val sorted = PFAArray.fromVector(a.toVector.sorted)
+          val sa = PFAArray.fromVector(a.toVector.sorted)
           if (a.toVector.size % 2 == 1)
-            sorted(a.toVector.size / 2)
+            sa(a.toVector.size / 2)
           else
-            (sorted(a.toVector.size / 2) + sorted(a.toVector.size / 2 + 1)) / 2.0
+            (sa(a.toVector.size / 2 - 1) + sa(a.toVector.size / 2)) / 2.0
         }
     }
     class SorterOther(comparisonOperatorLT: ComparisonOperatorLT) {
@@ -1282,13 +1288,140 @@ package object array {
         if (a.toVector.isEmpty)
           throw new PFARuntimeException("empty array")
         else {
-          val sorted = PFAArray.fromVector(a.toVector.sortWith(comparisonOperatorLT))
-          val index = a.toVector.size / 2
-          sorted(index)
+          val sa = PFAArray.fromVector(a.toVector.sortWith(comparisonOperatorLT))
+          val half = a.toVector.size / 2
+          if (sa.size % 2 == 1)
+            sa(half)
+          else
+            sa(half - 1)
         }
     }
   }
   provide(Median)
+
+  ////   ntile (NTile)
+  object NTile extends LibFcn {
+    val name = prefix + "ntile"
+    val sig = Sig(List("a" -> P.Array(P.Wildcard("A")), "p" -> P.Double), P.Wildcard("A"))
+    val doc =
+      <doc>
+        <desc>Return the value that is at the "n-tile" of <p>a</p> (like a percentile).</desc>
+        <param name="a">Array of objects to be take the percentile of.</param>
+        <param name="p">A double between 0 and 1.</param>
+        <detail>If <p>a</p> has an even number of elements and is a <c>float</c> or <c>double</c>, this function will take the average of the two elements closest to the center of the sorted array.  For any other type, it returns the left (first) of the two elements closest to the center of the sorted array.  If <p>p</p> is exactly one (or greater), the max of the array is returned.  If <p>p</p> is zero (or less), the min of the array is returned.</detail>{errorOnEmpty}
+      </doc>
+    override def javaRef(fcnType: FcnType): JavaCode = fcnType.params.head match {
+      case AvroArray(AvroInt()) =>
+        JavaCode("(new " + this.getClass.getName + "SorterInt())")
+      case AvroArray(AvroLong()) =>
+        JavaCode("(new " + this.getClass.getName + "SorterLong())")
+      case AvroArray(AvroFloat()) =>
+        JavaCode("(new " + this.getClass.getName + "SorterFloat())")
+      case AvroArray(AvroDouble()) =>
+        JavaCode("(new " + this.getClass.getName + "SorterDouble())")
+      case AvroArray(x) =>
+        JavaCode("(new " + this.getClass.getName + "SorterOther(new com.opendatagroup.hadrian.data.ComparisonOperatorLT(%s)))", javaSchema(x, false))
+      case _ =>
+        throw new Exception  // should never be called
+    }
+    class SorterInt {
+      def apply(a: PFAArray[Int], p: Double): Int =
+        if (a.toVector.isEmpty)
+          throw new PFARuntimeException("empty array")
+        else {
+          val sa = PFAArray.fromVector(a.toVector.sorted)
+          if (p <= 0.0)
+            return sa.toVector.head
+          if (p >= 1.0)
+            return sa.toVector.reverse.head
+          val k = (sa.size - 1.0) * p
+          val f = Math.floor(k)
+          if (sa.size % 2 == 1)
+            sa(f.toInt)
+          else
+            sa(k.toInt)
+        }
+    }
+    class SorterLong {
+      def apply(a: PFAArray[Long], p: Double): Long =
+        if (a.toVector.isEmpty)
+          throw new PFARuntimeException("empty array")
+        else {
+          val sa = PFAArray.fromVector(a.toVector.sorted)
+          if (p <= 0.0)
+            return sa.toVector.head
+          if (p >= 1.0)
+            return sa.toVector.reverse.head
+          val k = (sa.size - 1.0) * p
+          val f = Math.floor(k)
+          if (sa.size % 2 == 1)
+            sa(f.toInt)
+          else
+            sa(k.toInt)
+        }
+    }
+    class SorterFloat {
+      def apply(a: PFAArray[Float], p: Double): Float =
+        if (a.toVector.isEmpty)
+          throw new PFARuntimeException("empty array")
+        else {
+          val sa = PFAArray.fromVector(a.toVector.sorted)
+          if (p <= 0.0)
+            return sa.toVector.head
+          if (p >= 1.0)
+            return sa.toVector.reverse.head
+          val k = (sa.size - 1.0)*p
+          val f = Math.floor(k)
+          val c = Math.ceil(k)
+          if (f == c)
+            return sa(k.toInt)
+          val d0 = sa(f.toInt) * (c - k)
+          val d1 = sa(c.toInt) * (k - f)
+            (d0 + d1).toFloat
+        }
+    }
+    class SorterDouble {
+      def apply(a: PFAArray[Double], p: Double): Double =
+        if (a.toVector.isEmpty)
+          throw new PFARuntimeException("empty array")
+        else {
+          val sa = PFAArray.fromVector(a.toVector.sorted)
+          if (p <= 0.0)
+            return sa.toVector.head
+          if (p >= 1.0)
+            return sa.toVector.reverse.head
+          val k = (sa.size - 1.0)*p
+          val f = Math.floor(k)
+          val c = Math.ceil(k)
+          if (f == c)
+            return sa(k.toInt)
+          val d0 = sa(f.toInt) * (c - k)
+          val d1 = sa(c.toInt) * (k - f)
+            d0 + d1
+        }
+    }
+    class SorterOther(comparisonOperatorLT: ComparisonOperatorLT) {
+      def apply[X <: AnyRef](a: PFAArray[X], p: Double): X =
+        if (a.toVector.isEmpty)
+          throw new PFARuntimeException("empty array")
+        else {
+          val sa = PFAArray.fromVector(a.toVector.sortWith(comparisonOperatorLT))
+          if (p <= 0.0)
+            return sa.toVector.head
+          if (p >= 1.0)
+            return sa.toVector.reverse.head
+          val k = (sa.size - 1.0) * p
+          val f = Math.floor(k)
+          if (sa.size % 2 == 1)
+            sa(f.toInt)
+          else
+            sa(k.toInt)
+        }
+    }
+  }
+  provide(NTile)
+
+
 
   ////   mode (Mode)
   object Mode extends LibFcn {
@@ -1847,5 +1980,24 @@ package object array {
       PFAMap.fromMap(a.toVector.groupBy(fcn) map {case (key, vector) => (key, PFAArray.fromVector(vector))})
   }
   provide(GroupBy)
+
+  object Logsumexp extends LibFcn {
+    val name = prefix + "logsumexp"
+    val sig = Sig(List("datum" -> P.Array(P.Double)), P.Double)
+    
+    val doc =
+      <doc>
+        <desc> Compute <m>{"""z = \\sum_{n = 1}^{N} exp{x_n}"""}</m> in a numerically stable way. </desc>
+      </doc>
+
+    def apply(datum: PFAArray[Double]): Double = {
+      val datumVec = datum.toVector
+      val dmax = datumVec.max
+      var res = 0.0
+      datumVec foreach{ i => res += Math.exp(i - dmax) }
+      Math.log(res) + dmax
+    }
+  }
+  provide(Logsumexp)
 
 }

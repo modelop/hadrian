@@ -3,11 +3,11 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.opendatagroup</groupId>
-    <artifactId>hadrian-hadoop</artifactId>
-    <version>0.6.11</version>
+    <artifactId>hadrian-mr</artifactId>
+    <version>0.7.1</version>
     <packaging>jar</packaging>
 
-    <name>hadrian-hadoop</name>
+    <name>hadrian-mr</name>
     <url>http://www.opendatagroup.com</url>
 
     <licenses>
@@ -36,24 +36,35 @@
             <classifier>hadoop2</classifier>
         </dependency>
 
-         <dependency>
-             <groupId>org.apache.hadoop</groupId>
-             <artifactId>hadoop-core</artifactId>
-             <version>2.4.1-mapr-1408</version>
-            <scope>provided</scope>
-         </dependency>
- 
-         <dependency>
-             <groupId>org.apache.hadoop</groupId>
-             <artifactId>hadoop-common</artifactId>
-             <version>2.4.1-mapr-1408</version>
-            <scope>provided</scope>
-         </dependency>
+        <!-- <dependency> -->
+        <!--     <groupId>org.apache.hadoop</groupId> -->
+        <!--     <artifactId>hadoop-core</artifactId> -->
+        <!--     <version>1.2.1</version> -->
+        <!--     <scope>provided</scope> -->
+        <!-- </dependency> -->
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-core</artifactId>
+            <version>2.6.0-mr1-cdh5.4.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>2.6.0-cdh5.4.2</version>
+        </dependency>
 
         <dependency>
             <groupId>com.opendatagroup</groupId>
             <artifactId>hadrian</artifactId>
-            <version>0.6.11</version>
+            <version>0.7.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.opendatagroup</groupId>
+            <artifactId>antinous</artifactId>
+            <version>0.7.1</version>
         </dependency>
 
         <dependency>
@@ -67,18 +78,24 @@
             <artifactId>scala-library</artifactId>
             <version>2.10.4</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.github.scopt</groupId>
+            <artifactId>scopt_2.10</artifactId>
+            <version>3.3.0</version>
+        </dependency>
+
     </dependencies>
 
     <repositories>
-
-        <repository>
-            <id>mapr</id>
-            <url>http://repository.mapr.com/maven/</url>
-        </repository>
-
         <repository>
             <id>opendatagroup</id>
             <url>http://repository.opendatagroup.com/maven</url>
+        </repository>
+
+        <repository>
+            <id>cloudera</id>
+            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
         </repository>
 
     </repositories>
@@ -130,9 +147,12 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef> 
                     </descriptorRefs>
+                    <descriptors>
+                        <descriptor>src/main/assembly/exclude-antinous.xml</descriptor>
+                    </descriptors>
                     <archive>
                         <manifest>
-                            <mainClass>com.opendatagroup.hadrian.hadoop.Main</mainClass>
+                            <mainClass>com.opendatagroup.hadrian.mr.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>

@@ -662,10 +662,16 @@ class Median(LibFcn):
     def __call__(self, state, scope, paramTypes, a):
         if len(a) == 0:
             raise PFARuntimeException("empty array")
+        sa = sorted(a) # bug, sorting using python comparitors, not avro
+        half = len(sa) / 2
+        dataType = paramTypes[-1]
+
+        if len(sa) % 2:
+            return sa[half]
+        if (dataType is "float") or (dataType is "double"):
+            return (sa[half - 1] + sa[half])/2.0
         else:
-            sa = sorted(a)
-            index = int(len(a) / 2)
-            return sa[index]
+            return sa[half - 1]
 provide(Median())
 
 class Mode(LibFcn):
@@ -687,6 +693,36 @@ class Mode(LibFcn):
                     bestx, bestn = x, n
             return bestx
 provide(Mode())
+
+class NTile(LibFcn):
+    name = prefix + "ntile"
+    sig = Sig([{"a": P.Array(P.Wildcard("A"))}, {"p": P.Double()}], P.Wildcard("A"))
+    def __call__(self, state, scope, paramTypes, a, p):
+        if len(a) == 0:
+            raise PFARuntimeException("empty array")
+        if p <= 0.0:
+            return min(a)
+        if p >= 1.0:
+            return max(a)
+        sa = sorted(a)
+        k = (len(a) - 1.0)*p
+        f = math.floor(k)
+
+        dataType = paramTypes[-1]
+        if (dataType is "float") or (dataType is "double"):
+            c = math.ceil(k)
+            if f == c:
+                return sa[int(k)]
+            d0 = sa[int(f)] * (c - k)
+            d1 = sa[int(c)] * (k - f)
+            return d0 + d1
+        else:
+            if len(sa) % 2:
+                return sa[int(f)]
+            else:
+                return sa[int(k)]
+
+provide(NTile())
 
 #################################################################### set or set-like functions
 
@@ -988,3 +1024,26 @@ class GroupBy(LibFcn):
             out[key].append(x)
         return out
 provide(GroupBy())
+
+class Logsumexp(LibFcn):
+    name = prefix + "logsumexp"
+    sig = Sig([{"datum": P.Array(P.Double())}], P.Double())
+    def __call__(self, state, scope, paramTypes, datum):
+        dmax = max(datum)
+        res = 0.0
+        for v in datum:
+            res += math.exp(v - dmax)
+        return math.log(res) + dmax
+provide(Logsumexp())
+
+
+
+
+
+
+
+
+
+
+
+

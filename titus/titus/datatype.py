@@ -102,9 +102,13 @@ def schemaToAvroType(schema):
         out._schema = schema
         return out
     elif schema.type == "array":
-        return AvroArray(schemaToAvroType(schema.items))
+        out = AvroArray.__new__(AvroArray)
+        out._schema = schema
+        return out
     elif schema.type == "map":
-        return AvroMap(schemaToAvroType(schema.values))
+        out = AvroMap.__new__(AvroMap)
+        out._schema = schema
+        return out
     elif schema.type == "record":
         out = AvroRecord.__new__(AvroRecord)
         out._schema = schema
@@ -797,9 +801,10 @@ def jsonEncoder(avroType, value):
                 out[field.name] = jsonEncoder(field.avroType, value[field.name])
             elif field.default is not None:
                 pass
-            elif isinstance(field.avroType, AvroNull):
+            else:
                 raise titus.errors.AvroException("{0} does not match schema {1}".format(json.dumps(value), ts(avroType)))
         return out
+
     elif isinstance(avroType, AvroUnion):
         if isinstance(value, dict) and len(value) == 1:
             val, = value.values()

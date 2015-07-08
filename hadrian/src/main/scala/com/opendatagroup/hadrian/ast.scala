@@ -243,6 +243,7 @@ package ast {
       lib1.impute.provides ++
       lib1.interp.provides ++
       lib1.la.provides ++
+      lib1.link.provides ++
       lib1.map.provides ++
       lib1.math.provides ++
       lib1.metric.provides ++
@@ -252,11 +253,14 @@ package ast {
       lib1.regex.provides ++
       lib1.spec.provides ++
       lib1.string.provides ++
+      lib1.test.provides ++
       lib1.stat.change.provides ++
       lib1.stat.sample.provides ++
       lib1.time.provides ++
       lib1.model.cluster.provides ++
+      lib1.model.naive.provides ++
       lib1.model.neighbor.provides ++
+      lib1.model.neural.provides ++
       lib1.model.reg.provides ++
       lib1.model.tree.provides
     )  // TODO: ++ lib1.other.provides ++ lib1.stillother.provides

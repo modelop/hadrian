@@ -1,0 +1,34 @@
+input:
+  type: record
+  name: Input
+  fields:
+    - name: key
+      type:
+        type: record
+        name: Key
+        fields:
+          - {name: groupby, type: string}
+          - {name: sortby, type: double}
+
+    - name: value
+      type:
+        type: record
+        name: Value
+        fields:
+          - {name: name, type: string}
+          - {name: mass, type: double}
+          - {name: radius, type: double}
+          - {name: max_distance, type: double}
+
+output: double
+
+pools:
+  stuff:
+    type: double
+    init: {}
+
+action:
+  pool: stuff
+  path: [input.value.name]
+  to: input.value.max_distance
+  init: input.value.max_distance

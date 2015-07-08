@@ -1,0 +1,39 @@
+input:
+  type: record
+  name: Input
+  fields:
+    - name: key
+      type: string
+    - name: value
+      type:
+        type: record
+        name: Value
+        fields:
+          - {name: name, type: string}
+          - {name: mass, type: double}
+          - {name: radius, type: double}
+          - {name: max_distance, type: double}
+
+output:
+  type: record
+  name: Output
+  fields:
+    - {name: key, type: string}
+    - {name: distances, type: {type: array, items: double}}
+
+method: fold
+zero: {key: "", distances: []}
+
+action:
+  new:
+    key: input.key
+    distances: {a.append: [tally.distances, input.value.max_distance]}
+  type:
+    Output
+
+merge:
+  new:
+    key: tallyOne.key
+    distances: {a.concat: [tallyOne.distances, tallyTwo.distances]}
+  type:
+    Output

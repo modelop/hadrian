@@ -822,7 +822,7 @@ def _readCell(data, dot, avroTypeBuilder):
         at = data.get("@")
         _shared = False
         _rollback = False
-        _source = '"embedded"'
+        _source = "embedded"
         keys = set(x for x in data.keys() if x != "@")
         for key in keys:
             if key == "type": _avroType = _readAvroPlaceholder(data[key], dot + "." + key, avroTypeBuilder)
@@ -836,7 +836,7 @@ def _readCell(data, dot, avroTypeBuilder):
         if ("type" not in keys) or ("init" not in keys) or (not keys.issubset(set(["type", "init", "shared", "rollback", "source"]))):
             raise PFASyntaxException("wrong set of fields for a cell: " + ", ".join(keys), pos(dot, at))
         else:
-            if _source == '"avro"':
+            if _source == "avro":
                 url = json.loads(_init)
                 if not isinstance(url, basestring):
                     raise PFASyntaxException("source: avro requires init to be a string", pos(dot, at))
@@ -845,7 +845,7 @@ def _readCell(data, dot, avroTypeBuilder):
                     return reader.read()
                 _init = getit
 
-            elif _source == '"json"':
+            elif _source == "json":
                 url = json.loads(_init)
                 if not isinstance(url, basestring):
                     raise PFASyntaxException("source: json requires init to be a string", pos(dot, at))
@@ -853,7 +853,7 @@ def _readCell(data, dot, avroTypeBuilder):
                     return urllib.urlopen(url).read()
                 _init = getit
                 
-            elif _source == '"embedded"':
+            elif _source == "embedded":
                 pass
                 # # which is the equivalent of...
                 # value = json.loads(_init)
@@ -864,7 +864,7 @@ def _readCell(data, dot, avroTypeBuilder):
             else:
                 raise PFASyntaxException("unrecognized source type \"{0}\"".format(_source), pos(dot, at))
 
-            return Cell(_avroType, _init, _shared, _rollback, json.loads(_source), pos(dot, at))
+            return Cell(_avroType, _init, _shared, _rollback, _source, pos(dot, at))
     else:
         raise PFASyntaxException("expected cell, not " + _trunc(repr(data)), None)
 
@@ -884,7 +884,7 @@ def _readPool(data, dot, avroTypeBuilder):
         _init = {}
         _shared = False
         _rollback = False
-        _source = '"embedded"'
+        _source = "embedded"
         keys = set(x for x in data.keys() if x != "@")
         for key in keys:
             if key == "type": _avroType = _readAvroPlaceholder(data[key], dot + "." + key, avroTypeBuilder)
@@ -896,7 +896,7 @@ def _readPool(data, dot, avroTypeBuilder):
         if ("type" not in keys) or (not keys.issubset(set(["type", "init", "shared", "rollback", "source"]))):
             raise PFASyntaxException("wrong set of fields for a pool: " + ", ".join(keys), pos(dot, at))
         else:
-            if _source == '"avro"':
+            if _source == "avro":
                 url = json.loads(_init)
                 if not isinstance(url, basestring):
                     raise PFASyntaxException("source: avro requires init to be a string", pos(dot, at))
@@ -905,7 +905,7 @@ def _readPool(data, dot, avroTypeBuilder):
                     return reader.read()
                 _init = getit
 
-            elif _source == '"json"':
+            elif _source == "json":
                 url = json.loads(_init)
                 if not isinstance(url, basestring):
                     raise PFASyntaxException("source: json requires init to be a string", pos(dot, at))
@@ -913,7 +913,7 @@ def _readPool(data, dot, avroTypeBuilder):
                     return urllib.urlopen(url).read()
                 _init = getit
                 
-            elif _source == '"embedded"':
+            elif _source == "embedded":
                 pass
                 # # which is the equivalent of...
                 # value = {}
@@ -926,6 +926,6 @@ def _readPool(data, dot, avroTypeBuilder):
             else:
                 raise PFASyntaxException("unrecognized source type \"{0}\"".format(_source), pos(dot, at))
 
-            return Pool(_avroType, _init, _shared, _rollback, json.loads(_source), pos(dot, at))
+            return Pool(_avroType, _init, _shared, _rollback, _source, pos(dot, at))
     else:
         raise PFASyntaxException("expected pool, not " + _trunc(repr(data)), pos(dot, at))

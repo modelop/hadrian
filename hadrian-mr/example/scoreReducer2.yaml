@@ -1,0 +1,42 @@
+input:
+  type: record
+  name: Input
+  fields:
+    - name: key
+      type:
+        type: record
+        name: Key
+        fields:
+          - {name: groupby, type: string}
+          - {name: sortby, type: double, order: descending}
+
+    - name: value
+      type:
+        type: record
+        name: Value
+        fields:
+          - {name: name, type: string}
+          - {name: mass, type: double}
+          - {name: radius, type: double}
+          - {name: max_distance, type: double}
+
+output:
+  type: record
+  name: Output
+  fields:
+    - {name: key, type: string}
+    - {name: distances, type: {type: array, items: double}}
+
+cells:
+  tally:
+    type: {type: array, items: double}
+    init: []
+
+action:
+  new:
+    key: input.key.groupby
+    distances:
+      cell: tally
+      to: {a.append: [{cell: tally}, input.value.max_distance]}
+  type:
+    Output

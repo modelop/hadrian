@@ -27,7 +27,7 @@ limitations under the License.
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian</artifactId>
-  <version>0.6.11</version>
+  <version>0.7.1</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -229,6 +229,7 @@ limitations under the License.
     Lib1Impute
     Lib1Interp
     Lib1LA
+    Lib1Link
     Lib1Map
     Lib1Math
     Lib1Metric
@@ -237,12 +238,15 @@ limitations under the License.
     Lib1Regex
     Lib1Spec
     Lib1String
+    Lib1Test
     Lib1Time
     Lib1ProbDist
     Lib1StatChange
     Lib1StatSample
     Lib1ModelCluster
+    Lib1ModelNaive
     Lib1ModelNeighbor
+    Lib1ModelNeural
     Lib1ModelReg
     Lib1ModelTree
 </tagsToInclude>
@@ -282,7 +286,6 @@ limitations under the License.
         </executions>
       </plugin>
 
-
       <plugin>
         <artifactId>maven-install-plugin</artifactId>
         <version>2.3.1</version>
@@ -290,7 +293,6 @@ limitations under the License.
           <createChecksum>true</createChecksum>
         </configuration>
       </plugin>
-
 
     </plugins>
 

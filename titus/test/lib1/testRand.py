@@ -140,6 +140,55 @@ action: {rand.sample: [3, input]}
         self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), ["three", "five", "one"])
         self.assertEqual(engine.action(["one", "two", "three", "four", "five"]), ["three", "two", "five"])
 
+    def testHistogram(self):
+        engine, = PFAEngine.fromYaml('''
+input: "null"
+output: int
+randseed: 12345
+action: {rand.histogram: {value: [3.3, 2.2, 5.5, 0.0, 1.1, 8.8], type: {type: array, items: double}}}
+''')
+        results = [engine.action(None) for i in xrange(0, 10000)]
+        self.assertAlmostEqual(results.count(0) / 10000.0, 0.15789473684210525, places=2)
+        self.assertAlmostEqual(results.count(1) / 10000.0, 0.10526315789473686, places=2)
+        self.assertAlmostEqual(results.count(2) / 10000.0, 0.26315789473684215, places=2)
+        self.assertAlmostEqual(results.count(3) / 10000.0, 0.0, places=2)
+        self.assertAlmostEqual(results.count(4) / 10000.0, 0.05263157894736843, places=2)
+        self.assertAlmostEqual(results.count(5) / 10000.0, 0.42105263157894746, places=2)
+        self.assertAlmostEqual(results.count(6) / 10000.0, 0.0, places=2)
+
+    def testHistogram2(self):
+        engine, = PFAEngine.fromYaml('''
+input: "null"
+output: HistogramItem
+randseed: 12345
+cells:
+  hist:
+    type:
+      type: array
+      items:
+        type: record
+        name: HistogramItem
+        fields:
+          - {name: label, type: string}
+          - {name: prob, type: double}
+    init:
+      - {label: A, prob: 3.3}
+      - {label: B, prob: 2.2}
+      - {label: C, prob: 5.5}
+      - {label: D, prob: 0.0}
+      - {label: E, prob: 1.1}
+      - {label: F, prob: 8.8}
+action: {rand.histogram: {cell: hist}}
+''')
+        results = [engine.action(None) for i in xrange(0, 10000)]
+        self.assertAlmostEqual(sum(1 for x in results if x["label"] == "A") / 10000.0, 0.15789473684210525, places=2)
+        self.assertAlmostEqual(sum(1 for x in results if x["label"] == "B") / 10000.0, 0.10526315789473686, places=2)
+        self.assertAlmostEqual(sum(1 for x in results if x["label"] == "C") / 10000.0, 0.26315789473684215, places=2)
+        self.assertAlmostEqual(sum(1 for x in results if x["label"] == "D") / 10000.0, 0.0, places=2)
+        self.assertAlmostEqual(sum(1 for x in results if x["label"] == "E") / 10000.0, 0.05263157894736843, places=2)
+        self.assertAlmostEqual(sum(1 for x in results if x["label"] == "F") / 10000.0, 0.42105263157894746, places=2)
+        self.assertAlmostEqual(sum(1 for x in results if x["label"] == "G") / 10000.0, 0.0, places=2)
+
     def testString(self):
         engine1, = PFAEngine.fromYaml('''
 input: "null"

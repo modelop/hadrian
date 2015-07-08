@@ -563,4 +563,73 @@ fcns:
     engine.action(engine.jsonInput("""{"one": 15, "two": 7, "three": "ZEST"}""")) should be ("no-no")
   }
 
+  "missingWalk" must "work for a typical example" taggedAs(Lib1, Lib1ModelTree) in {
+    val engine = PFAEngine.fromYaml("""
+input: {type: record, name: Datum, fields: [{name: one, type: ["null", int]}, {name: two, type: ["null", double]}, {name: three, type: ["null", string]}]}
+output: string
+cells:
+  tree:
+    type:
+      type: record
+      name: TreeNode
+      fields:
+        - name: field
+          type:
+            type: enum
+            name: Fields
+            symbols: [one, two, three]
+        - {name: operator, type: string}
+        - {name: value, type: ["null", int, double, string, {type: array, items: double}]}
+        - {name: pass, type: [string, TreeNode]}
+        - {name: fail, type: [string, TreeNode]}
+        - {name: missing, type: [string, TreeNode]}
+    init:
+      field: one
+      operator: "<"
+      value: {double: 12}
+      pass:
+        TreeNode:
+          field: two
+          operator: ">"
+          value: {double: 3.5}
+          pass: {string: yes-yes}
+          fail: {string: yes-no}
+          missing: {string: yes-maybe}
+      fail:
+        TreeNode:
+          field: two
+          operator: "in"
+          value: {array: [3.14, 6.28]}
+          pass: {string: no-yes}
+          fail: {string: no-no}
+          missing: {string: no-maybe}
+      missing:
+        TreeNode:
+          field: three
+          operator: ==
+          value: {string: TEST}
+          pass: {string: maybe-yes}
+          fail: {string: maybe-no}
+          missing: {string: maybe-maybe}
+action:
+  - model.tree.missingWalk:
+      - input
+      - cell: tree
+      - params: [{d: Datum}, {t: TreeNode}]
+        ret: ["null", boolean]
+        do: {model.tree.missingTest: [d, t]}
+""").head
+
+    engine.action(engine.jsonInput("""{"one": {"int": 1}, "two": {"double": 7}, "three": {"string": "whatever"}}""")) should be ("yes-yes")
+    engine.action(engine.jsonInput("""{"one": {"int": 1}, "two": {"double": 0}, "three": {"string": "whatever"}}""")) should be ("yes-no")
+    engine.action(engine.jsonInput("""{"one": {"int": 1}, "two": null, "three": {"string": "whatever"}}""")) should be ("yes-maybe")
+
+    engine.action(engine.jsonInput("""{"one": {"int": 15}, "two": {"double": 3.14}, "three": {"string": "whatever"}}""")) should be ("no-yes")
+    engine.action(engine.jsonInput("""{"one": {"int": 15}, "two": {"double": 1.61}, "three": {"string": "whatever"}}""")) should be ("no-no")
+    engine.action(engine.jsonInput("""{"one": {"int": 15}, "two": null, "three": {"string": "whatever"}}""")) should be ("no-maybe")
+
+    engine.action(engine.jsonInput("""{"one": null, "two": {"double": 7}, "three": {"string": "TEST"}}""")) should be ("maybe-yes")
+    engine.action(engine.jsonInput("""{"one": null, "two": {"double": 7}, "three": {"string": "ZEST"}}""")) should be ("maybe-no")
+    engine.action(engine.jsonInput("""{"one": null, "two": {"double": 7}, "three": null}""")) should be ("maybe-maybe")
+  }
 }

@@ -1038,6 +1038,111 @@ action:
 """).head.action(null).toString should be ("NaN")
   }
 
+  it must "median" taggedAs(Lib1, Lib1Array) in {
+    PFAEngine.fromYaml("""
+input: "null"
+output: int
+action:
+  - a.median: {value: [1,2,3,4], type: {type: array, items: int}}
+""").head.action(null) should be (2)
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: double
+action:
+  - a.median: {value: [1,2,3,4,5], type: {type: array, items: double}}
+""").head.action(null) should be (3.0)
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  - a.median: {value: ["a","c","b","d"], type: {type: array, items: string}}
+""").head.action(null) should be ("b")
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  - a.median: {value: ["e","c","d","b","a"], type: {type: array, items: string}}
+""").head.action(null) should be ("c")
+  }
+
+  it must "ntile" taggedAs(Lib1, Lib1Array) in {
+    PFAEngine.fromYaml("""
+input: "null"
+output: double
+action:
+  - a.ntile:
+     - {value: [1,2,3,4], type: {type: array, items: double}}
+     - 0.5
+""").head.action(null) should be (2.5)
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: double
+action:
+  - a.ntile:
+     - {value: [1,2,3,4,5], type: {type: array, items: double}}
+     - 0.5
+""").head.action(null) should be (3.0)
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: double
+action:
+  - a.ntile:
+     - {value: [0,1,2,3,4,5,6,7,8,9,10], type: {type: array, items: double}}
+     - 0.1
+""").head.action(null) should be (1.0)
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: double
+action:
+  - a.ntile:
+     - {value: [4,5,6,7,8,9,10], type: {type: array, items: double}}
+     - -100
+""").head.action(null) should be (4)
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  - a.ntile:
+      - {value: ["a","c","b","d"], type: {type: array, items: string}}
+      - 0.5
+""").head.action(null) should be ("b")
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  - a.ntile:
+      - {value: ["a","c","b","d","e"], type: {type: array, items: string}}
+      - 0.5
+""").head.action(null) should be ("c")
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  - a.ntile:
+     - {value: ["a","c","b","d","e","f","g","h","i","j","k"], type: {type: array, items: string}}
+     - 0.1
+""").head.action(null) should be ("b")
+
+    PFAEngine.fromYaml("""
+input: "null"
+output: string
+action:
+  - a.ntile:
+     - {value: ["a","c","b","d","e","f","g","h","i","j","k"], type: {type: array, items: string}}
+     - 1000
+""").head.action(null) should be ("k")
+  }
+
+
   //////////////////////////////////////////////////////////////////// set or set-like functions
 
   "set-like functions" must "distinct" taggedAs(Lib1, Lib1Array) in {
@@ -1682,4 +1787,5 @@ action:
         else: {string: "odd"}
 """).head.action(null).asInstanceOf[PFAMap[PFAArray[Int]]].toMap map {case (k, v) => (k, v.toVector)} should be (Map("even" -> Vector(0, 2, 4), "odd" -> Vector(1, 3, 5)))
   }
+
 }

@@ -18,6 +18,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
+
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
 from titus.signature import Sig
@@ -106,6 +108,37 @@ class RandomSample(LibFcn):
         return state.rand.sample(population, size)
 provide(RandomSample())
         
+########################################################### deviates from a histogram
+
+class RandomHistogram(LibFcn):
+    name = prefix + "histogram"
+    sig = Sigs([Sig([{"distribution": P.Array(P.Double())}], P.Int()),
+                Sig([{"distribution": P.Array(P.WildRecord("A", {"prob": P.Double()}))}], P.Wildcard("A"))])
+    @staticmethod
+    def selectIndex(rand, distribution):
+        if any(math.isnan(x) or math.isinf(x) for x in distribution):
+            raise PFARuntimeException("distribution must be finite")
+        elif any(x < 0.0 for x in distribution):
+            raise PFARuntimeException("distribution must be non-negative")
+        cumulativeSum = [0.0]
+        for x in distribution:
+            cumulativeSum.append(cumulativeSum[-1] + x)
+        total = cumulativeSum[-1]
+        if total == 0.0:
+            raise PFARuntimeException("distribution must be non-empty")
+        position = rand.uniform(0.0, total)
+        for i, y in enumerate(cumulativeSum):
+            if position < y:
+                return i - 1
+    def __call__(self, state, scope, paramTypes, distribution):
+        if isinstance(paramTypes[-1], dict) and paramTypes[-1].get("type") == "record":
+            probs = [x["prob"] for x in distribution]
+            index = self.selectIndex(state.rand, probs)
+            return distribution[index]
+        else:
+            return self.selectIndex(state.rand, distribution)
+provide(RandomHistogram())
+
 ########################################################### strings and byte arrays
 
 class RandomString(LibFcn):

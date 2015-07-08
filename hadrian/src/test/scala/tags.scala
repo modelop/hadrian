@@ -48,6 +48,7 @@ package test.scala {
   object Lib1Impute extends Tag("Lib1Impute")
   object Lib1Interp extends Tag("Lib1Interp")
   object Lib1LA extends Tag("Lib1LA")
+  object Lib1Link extends Tag("Lib1Link")
   object Lib1Map extends Tag("Lib1Map")
   object Lib1Math extends Tag("Lib1Math")
   object Lib1Metric extends Tag("Lib1Metric")
@@ -56,6 +57,7 @@ package test.scala {
   object Lib1Regex extends Tag("Lib1Regex")
   object Lib1Spec extends Tag("Lib1Spec")
   object Lib1String extends Tag("Lib1String")
+  object Lib1Test extends Tag("Lib1Test")
   object Lib1Time extends Tag("Lib1Time")
 
   object Lib1ProbDist extends Tag("Lib1ProbDist")
@@ -64,7 +66,9 @@ package test.scala {
   object Lib1StatSample extends Tag("Lib1StatSample")
 
   object Lib1ModelCluster extends Tag("Lib1ModelCluster")
+  object Lib1ModelNaive extends Tag("Lib1ModelNaive")
   object Lib1ModelNeighbor extends Tag("Lib1ModelNeighbor")
+  object Lib1ModelNeural extends Tag("Lib1ModelNeural")
   object Lib1ModelReg extends Tag("Lib1ModelReg")
   object Lib1ModelTree extends Tag("Lib1ModelTree")
 }

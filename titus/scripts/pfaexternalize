@@ -1,0 +1,248 @@
+#!/usr/bin/env python
+
+# Copyright (C) 2014  Open Data ("Open Data" refers to
+# one or more of the following companies: Open Data Partners LLC,
+# Open Data Research LLC, or Open Data Capital LLC.)
+# 
+# This file is part of Hadrian.
+# 
+# Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import argparse
+import json
+import math
+import re
+import sys
+import time
+
+import ijson
+
+##### these functions print out the JSON evaluates to True
+
+def doValue(event, value, parser, writer, stack, extractCells, extractPools, progress):
+    if event == "start_array":
+        doArray(parser, writer, stack, extractCells, extractPools, progress)
+    elif event == "start_map":
+        doMap(parser, writer, stack, extractCells, extractPools, progress)
+    elif event == "string":
+        writer(json.dumps(value))
+    elif event == "null":
+        writer("null")
+    elif event == "boolean":
+        if value:
+            writer("true")
+        else:
+            writer("false")
+    elif event == "number":
+        writer(str(value))
+    else:
+        raise ValueError("Expecting value, found {0}".format(event))
+
+def doArray(parser, writer, stack, extractCells, extractPools, progress):
+    writer("[")
+    progress.update()
+    index = 0
+    for prefix, event, value in parser:
+        if event == "end_array":
+            break
+        else:
+            if index != 0:
+                writer(", ")
+            doValue(event, value, parser, writer, stack + [index], extractCells, extractPools, progress)
+            index += 1
+    writer("]")
+
+def doMap(parser, writer, stack, extractCells, extractPools, progress):
+    writer("{")
+    progress.update()
+    first = True
+    for prefix, event, key in parser:
+        if event == "map_key":
+            if not first:
+                writer(", ")
+            else:
+                first = False
+
+            writer(json.dumps(key))
+            writer(": ")
+
+            if len(stack) == 2 and stack[0] == "cells" and key == "init" and stack[1] in extractCells:
+                fileName = extractCells[stack[1]]
+                progress.mention("Extracting cell {0} to {1}".format(key, fileName))
+                file = open(fileName, "w")
+                subwriter = file.write
+                writer(json.dumps(fileName))
+                writer(', source: "json"')
+
+            elif len(stack) == 2 and stack[0] == "pools" and key == "init" and stack[1] in extractPools:
+                fileName = extractPools[stack[1]]
+                progress.mention("Extracting pool {0} to {1}".format(key, fileName))
+                file = open(fileName, "w")
+                subwriter = file.write
+                writer(json.dumps(fileName))
+                writer(', source: "json"')
+
+            else:
+                file = None
+                subwriter = writer
+
+            prefix, event, value = parser.next()
+            doValue(event, value, parser, subwriter, stack + [key], extractCells, extractPools, progress)
+
+            if file is not None:
+                progress.mention("Return to model")
+                file.close()
+
+        elif event == "end_map":
+            break
+        else:
+            raise ValueError("Expecting key-value pair, found {0}".format(event))
+    writer("}")
+
+class ProgressTrait(object):
+    def update(self):
+        pass
+    def mention(self, text):
+        pass
+    def finish(self):
+        pass
+    @staticmethod
+    def twoSigFigs(x):
+        return round(x, -2*int(math.floor(math.log10(x))))
+
+class ProgressMessages(ProgressTrait):
+    def __init__(self, verbose):
+        self.verbose = verbose
+        self.startTime = time.time()
+    def update(self):
+        pass
+    def mention(self, text):
+        if self.verbose:
+            sys.stderr.write(text + "\n")
+            sys.stderr.flush()
+    def finish(self):
+        if self.verbose:
+            sys.stderr.write("Finished transforming JSON after {0} secs\n".format(self.twoSigFigs(time.time() - self.startTime)))
+            sys.stderr.flush()
+
+class ProgressMeter(ProgressTrait):
+    def __init__(self, inputStream):
+        print "First pass determines JSON object size (takes about 10 secs per GB)"
+        self.size = 0
+        chunk = inputStream.read(1024)
+        while chunk:
+            self.size += chunk.count("{") + chunk.count("[")
+            chunk = inputStream.read(1024)
+        print "Input contains {0} objects/arrays; reopening to perform transformation".format(self.size)
+        self.startTime = time.time()
+        self.lastPercent = -1.0
+        self.lastP = -1
+        self.lastTime = -1.0
+        self.lastT = -1
+        self.position = 0
+        self.longestLine = 0
+    def update(self):
+        self.position += 1
+        percent = 100.0 * self.position / self.size
+        p = int(math.floor(percent))
+        now = time.time()
+        t = int(math.floor(now - self.startTime))
+        if p > self.lastP or t > self.lastT:
+            p2 = int(math.floor(percent/2.0))
+            bar = "|" + "*" * p2 + "-" * (50 - p2) + "|"
+            if self.lastT > 1:
+                rate = (percent - self.lastPercent) / (now - self.lastTime)
+                estimate = (now - self.startTime) * self.size / self.position - (now - self.startTime)
+                line = "\r{0} {1}% in {2} secs at {3}/sec with {4} secs remaining".format(bar, p, t, self.twoSigFigs(rate), int(round(estimate)))
+            else:
+                line = "\r{0} {1}% in {2} secs".format(bar, p, t)
+            if self.longestLine > len(line):
+                line += " " * (self.longestLine - len(line))
+            else:
+                self.longestLine = len(line)
+            sys.stderr.write(line)
+            sys.stderr.flush()
+            self.lastPercent = percent
+            self.lastTime = now
+        self.lastP = p
+        self.lastT = t
+    def mention(self, text):
+        sys.stderr.write("\r" + text + " " * (self.longestLine - len(text)) + "\n")
+        sys.stderr.flush()
+    def finish(self):
+        sys.stderr.write("{0}Finished transforming JSON after {1} secs\n".format("\n" if self.longestLine > 0 else "", self.twoSigFigs(time.time() - self.startTime)))
+        sys.stderr.flush()
+
+##### run the whole thing on standard input
+if __name__ == "__main__":
+    # command-line arguments
+    argparser = argparse.ArgumentParser(description="Extract model data from specified cells and pools and put them in external files.",
+                                        epilog="""  --cell-NAME externalize cell NAME by extracting its data to NAME.json
+  --cell-NAME=FILENAME
+              externalize cell NAME to FILENAME
+
+  --pool-NAME externalize pool NAME to NAME.json
+  --pool-NAME=FILENAME
+              externalize pool NAME to FILENAME""",
+                                        formatter_class=argparse.RawDescriptionHelpFormatter)
+    argparser.add_argument("input", nargs="?", default="-", help="input PFA file, \"-\" for standard in")
+    argparser.add_argument("output", nargs="?", default="-", help="output PFA file, \"-\" for standard out")
+    argparser.add_argument("--progress", action="store_true", help="report progress by first scanning over the input to determine its size (incompatible with standard in)")
+    argparser.add_argument("--verbose", action="store_true", help="write progress messages to standard error (implied by --progress)")
+    arguments, extras = argparser.parse_known_args()
+    if arguments.progress and arguments.input == "-":
+        argparser.error("--progress is incompatible with standard in")
+    if arguments.progress:
+        arguments.verbose = True
+        
+    extractCells = {}
+    extractPools = {}
+    for arg in extras:
+        pair = re.split("\s*=\s*", arg, 1)
+        if len(pair) == 2:
+            arg, value = pair
+        else:
+            value = arg[7:] + ".json"
+        if arg.startswith("--cell-"):
+            extractCells[arg[7:]] = value
+        elif arg.startswith("--pool-"):
+            extractPools[arg[7:]] = value
+        else:
+            argparser.error("unrecognized argument: {0}".format(arg))
+
+    # open input stream (possibly for the first of two times)
+    inputStream = sys.stdin if arguments.input == "-" else open(arguments.input)
+
+    if arguments.verbose:
+        sys.stderr.write("Reading from {0}\n".format("standard in" if arguments.input == "-" else arguments.input))
+
+    # create progress meter and possibly do a first pass
+    if arguments.progress:
+        progress = ProgressMeter(inputStream)
+        inputStream = open(arguments.input)    # must be reopened for the second pass
+    else:
+        progress = ProgressMessages(arguments.verbose)
+
+    # open an output stream
+    outputStream = sys.stdout if arguments.output == "-" else open(arguments.output, "w")
+
+    if arguments.verbose:
+        sys.stderr.write("Extracting model to {0}\n".format("standard out" if arguments.output == "-" else arguments.output))
+
+    # walk through the JSON, putting a \n at the end of every valid JSON object (usually only one)
+    parser = ijson.parse(inputStream)
+    stack = []
+    for prefix, event, value in parser:
+        doValue(event, value, parser, outputStream.write, stack, extractCells, extractPools, progress)
+        outputStream.write("\n")
+    progress.finish()

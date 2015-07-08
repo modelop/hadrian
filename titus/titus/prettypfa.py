@@ -174,9 +174,19 @@ class Section(object):
         return "Section({0}, {1} at {2})".format(self.name, self.content, self.pos)
 
     def input(self, state):
+        if isinstance(self.content, (list, tuple)):
+            if len(self.content) == 1:
+                self.content, = self.content
+            else:
+                raise PrettyPfaException("Only one item allowed in input section")
         return state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.content.asType(state)), state.avroTypeMemo)
 
     def output(self, state):
+        if isinstance(self.content, (list, tuple)):
+            if len(self.content) == 1:
+                self.content, = self.content
+            else:
+                raise PrettyPfaException("Only one item allowed in output section")
         return state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.content.asType(state)), state.avroTypeMemo)
 
     def cells(self, state):
@@ -186,6 +196,11 @@ class Section(object):
         return dict(x.asPool(state) for x in self.content)
 
     def method(self):
+        if isinstance(self.content, (list, tuple)):
+            if len(self.content) == 1:
+                self.content, = self.content
+            else:
+                raise PrettyPfaException("Only one item allowed in method section")
         if isinstance(self.content, MiniString):
             out = self.content.value
         elif isinstance(self.content, MiniDotName):
@@ -218,17 +233,32 @@ class Section(object):
         return dict(x.asFcn(state) for x in self.content)
 
     def zero(self):
+        if isinstance(self.content, (list, tuple)):
+            if len(self.content) == 1:
+                self.content, = self.content
+            else:
+                raise PrettyPfaException("Only one item allowed in zero section")
         return jsonlib.dumps(self.content.asJson())
 
     def merge(self, state):
         return [x.asExpr(state) for x in self.content]
 
     def randseed(self):
+        if isinstance(self.content, (list, tuple)):
+            if len(self.content) == 1:
+                self.content, = self.content
+            else:
+                raise PrettyPfaException("Only one item allowed in randseed section")
         if not isinstance(self.content, MiniNumber) or not isinstance(self.content.value, (int, long)):
             raise PrettyPfaException("randseed must be an integer at PrettyPFA line {0}".format(self.lineno))
         return self.content.value
 
     def doc(self):
+        if isinstance(self.content, (list, tuple)):
+            if len(self.content) == 1:
+                self.content, = self.content
+            else:
+                raise PrettyPfaException("Only one item allowed in doc section")
         if isinstance(self.content, MiniString):
             out = self.content.value
         elif isinstance(self.content, MiniDotName):
@@ -238,14 +268,29 @@ class Section(object):
         return out
 
     def version(self):
+        if isinstance(self.content, (list, tuple)):
+            if len(self.content) == 1:
+                self.content, = self.content
+            else:
+                raise PrettyPfaException("Only one item allowed in version section")
         if not isinstance(self.content, MiniNumber) or not isinstance(self.content.value, (int, long)):
             raise PrettyPfaException("version must be an integer at PrettyPFA line {0}".format(self.lineno))
         return self.content.value
 
     def metadata(self):
+        if isinstance(self.content, (list, tuple)):
+            if len(self.content) == 1:
+                self.content, = self.content
+            else:
+                raise PrettyPfaException("Only one item allowed in metadata section")
         return self.content.asJson()
 
     def options(self):
+        if isinstance(self.content, (list, tuple)):
+            if len(self.content) == 1:
+                self.content, = self.content
+            else:
+                raise PrettyPfaException("Only one item allowed in options section")
         return self.content.asJson()
 
 class MiniAst(object):

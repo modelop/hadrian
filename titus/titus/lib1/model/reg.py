@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 
 # Copyright (C) 2014  Open Data ("Open Data" refers to
@@ -19,6 +18,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import math
+
+def np():
+    import numpy
+    return numpy
+
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
 from titus.signature import Sig
@@ -29,8 +34,6 @@ from titus.util import callfcn, div
 import titus.P as P
 from titus.lib1.array import argLowestN
 from titus.lib1.prob.dist import Chi2Distribution
-import math
-import numpy
 
 provides = {}
 def provide(fcn):
@@ -51,20 +54,20 @@ class Linear(LibFcn):
 
         if coeffType == {'items': 'double', 'type': 'array'}: #sig1
             coeff = model["coeff"] + [model["const"]]
-            datum = numpy.array(datum + [1.0])
+            datum = np().array(datum + [1.0])
             if len(datum) != len(coeff):
                 raise PFARuntimeException("misaligned coeff")
-            return float(numpy.dot(coeff, datum))
+            return float(np().dot(coeff, datum))
 
         elif coeffType == {'items': {'items': 'double', 'type': 'array'}, 'type': 'array'}: #sig2
-            coeff = numpy.array(model["coeff"])
-            const = numpy.array(model["const"])
-            datum = numpy.array(datum + [1.0])
+            coeff = np().array(model["coeff"])
+            const = np().array(model["const"])
+            datum = np().array(datum + [1.0])
             try:
-                coeff = numpy.vstack((coeff.T, const))
+                coeff = np().vstack((coeff.T, const))
             except:
                 raise PFARuntimeException('misaligned coeff')
-            return map(float, numpy.dot(coeff.T, datum))
+            return map(float, np().dot(coeff.T, datum))
 
         elif coeffType == {'values': 'double', 'type': 'map'}: #sig3
             coeff = model["coeff"]
@@ -97,89 +100,60 @@ class Linear(LibFcn):
             return outMap
 provide(Linear())
 
+class LinearVariance(LibFcn):
+    name = prefix + "linearVariance"
+    sig = Sigs([Sig([{"datum": P.Array(P.Double())}, {"model": P.WildRecord("M", {"covar": P.Array(P.Array(P.Double()))})}], P.Double()),
+                Sig([{"datum": P.Array(P.Double())}, {"model": P.WildRecord("M", {"covar": P.Array(P.Array(P.Array(P.Double())))})}], P.Array(P.Double())),
+                Sig([{"datum": P.Map(P.Double())}, {"model": P.WildRecord("M", {"covar": P.Map(P.Map(P.Double()))})}], P.Double()),
+                Sig([{"datum": P.Map(P.Double())}, {"model": P.WildRecord("M", {"covar": P.Map(P.Map(P.Map(P.Double())))})}], P.Map(P.Double()))])
+    def __call__(self, state, scope, paramTypes, datum, model):
+        covarType = [x["type"] for x in paramTypes[1]["fields"] if x["name"] == "covar"][0]
 
-class SoftMax(LibFcn):
-    name = prefix + "norm.softmax"
-    sig  = Sigs([Sig([{"x": P.Array(P.Double())}], P.Array(P.Double())),
-                 Sig([{"x": P.Map(P.Double())}], P.Map(P.Double()))])
-    def __call__(self, state, scope, paramTypes, x):
-        if paramTypes[0]["type"] == "map":
-            xx = x.copy()
-            if xx.values()[numpy.argmax(map(abs, xx.values()))] >= 0:
-                m = numpy.max(xx.values())
-            else:
-                m = numpy.min(xx.values())
-            denom = sum([math.exp(v - m) for v in x.values()])
-            for key in x.keys():
-                xx[key] = float(math.exp(xx[key] - m)/denom)
-            return xx
+        if covarType == {"type": "array", "items": {"type": "array", "items": "double"}}:  # sig1
+            datum = datum + [1.0]
+            covar = model["covar"]
+            if len(datum) != len(covar) or any(len(datum) != len(x) for x in covar):
+                raise PFARuntimeException("misaligned covariance")
+            x = np().matrix([datum])
+            C = np().matrix(covar)
+            return float(x.dot(C.dot(x.T))[0][0])
+
+        elif covarType == {"type": "array", "items": {"type": "array", "items": {"type": "array", "items": "double"}}}:  # sig2
+            datum = datum + [1.0]
+            x = np().matrix([datum])
+            out = []
+            for covar in model["covar"]:
+                if len(datum) != len(covar) or any(len(datum) != len(x) for x in covar):
+                    raise PFARuntimeException("misaligned covariance")
+                C = np().matrix(covar)
+                out.append(float(x.dot(C.dot(x.T))[0][0]))
+            return out
+
+        elif covarType == {"type": "map", "values": {"type": "map", "values": "double"}}:  # sig3
+            datum = dict(list(datum.items()) + [("", 1.0)])
+            covar = model["covar"]
+            keys = list(datum.keys())
+            x = np().matrix([[datum[k] for k in keys]])
+            try:
+                C = np().matrix([[covar[i][j] for j in keys] for i in keys])
+            except KeyError:
+                raise PFARuntimeException("misaligned covariance")
+            return float(x.dot(C.dot(x.T))[0][0])
+
         else:
-            if x[numpy.argmax(map(abs, x))] >= 0:
-                m = numpy.max(x)
-            else:
-                m = numpy.min(x)
-            denom = sum([math.exp(v - m) for v in x])
-            return [float(math.exp(val - m)/denom) for val in x]
-provide(SoftMax())
+            datum = dict(list(datum.items()) + [("", 1.0)])
+            keys = list(datum.keys())
+            x = np().matrix([[datum[k] for k in keys]])
+            out = {}
+            for depkey, covar in model["covar"].items():
+                try:
+                    C = np().matrix([[covar[i][j] for j in keys] for i in keys])
+                except KeyError:
+                    raise PFARuntimeException("misaligned covariance")
+                out[depkey] = float(x.dot(C.dot(x.T))[0][0])
+            return out
 
-def unwrapForNorm(x, func):
-    if isinstance(x, dict):
-        xx = x.copy()
-        for key, val in zip(x.keys(), x.values()):
-            xx[key] = float(func(val))
-        return xx
-    elif isinstance(x, (tuple, list)):
-        xx = x[:]
-        for i, val in enumerate(x):
-            xx[i] = float(func(val))
-        return xx
-    else:
-        return float(func(x))
-
-class Logit(LibFcn):
-    name = prefix + "norm.logit"
-    sig  = Sigs([Sig([{"x": P.Array(P.Double())}], P.Array(P.Double())),
-                 Sig([{"x": P.Map(P.Double())}], P.Map(P.Double())),
-                 Sig([{"x": P.Double()}], P.Double())])
-    def __call__(self, state, scope, paramTypes, x):
-        return unwrapForNorm(x, lambda y: 1./(1. + math.exp(-y)))
-provide(Logit())
-
-class Probit(LibFcn):
-    name = prefix + "norm.probit"
-    sig  = Sigs([Sig([{"x": P.Array(P.Double())}], P.Array(P.Double())),
-                 Sig([{"x": P.Map(P.Double())}], P.Map(P.Double())),
-                 Sig([{"x": P.Double()}], P.Double())])
-    def __call__(self, state, scope, paramTypes, x):
-        return unwrapForNorm(x, lambda y: (math.erf(y/math.sqrt(2.)) + 1.)/2.)
-provide(Probit())
-
-class CLoglog(LibFcn):
-    name = prefix + "norm.cloglog"
-    sig  = Sigs([Sig([{"x": P.Array(P.Double())}], P.Array(P.Double())),
-                 Sig([{"x": P.Map(P.Double())}], P.Map(P.Double())),
-                 Sig([{"x": P.Double()}], P.Double())])
-    def __call__(self, state, scope, paramTypes, x):
-        return unwrapForNorm(x, lambda y: 1. - math.exp(-math.exp(y)))
-provide(CLoglog())
-
-class LogLog(LibFcn):
-    name = prefix + "norm.loglog"
-    sig  = Sigs([Sig([{"x": P.Array(P.Double())}], P.Array(P.Double())),
-                 Sig([{"x": P.Map(P.Double())}], P.Map(P.Double())),
-                 Sig([{"x": P.Double()}], P.Double())])
-    def __call__(self, state, scope, paramTypes, x):
-        return unwrapForNorm(x, lambda y: math.exp(-math.exp(y)))
-provide(LogLog())
-
-class Cauchit(LibFcn):
-    name = prefix + "norm.cauchit"
-    sig  = Sigs([Sig([{"x": P.Array(P.Double())}], P.Array(P.Double())),
-                 Sig([{"x": P.Map(P.Double())}], P.Map(P.Double())),
-                 Sig([{"x": P.Double()}], P.Double())])
-    def __call__(self, state, scope, paramTypes, x):
-        return unwrapForNorm(x, lambda y: 0.5 + (1./math.pi)*math.atan(y))
-provide(Cauchit())
+provide(LinearVariance())
 
 
 class Residual(LibFcn):
@@ -261,30 +235,30 @@ class Mahalanobis(LibFcn):
             if (len(observation) < 1):
                 raise PFARuntimeException("too few rows/cols")
             if (len(observation) != len(prediction)):
-                raise PFARuntimaException("misaligned prediction")
+                raise PFARuntimeException("misaligned prediction")
             if (not all(len(i)==len(covariance[0]) for i in covariance)) and (len(covariance) != len(covariance[0])):
                 raise PFARuntimeException("misaligned covariance")
-            x = numpy.array([(o - p) for o, p in zip(observation, prediction)])
-            C = numpy.array(covariance)
+            x = np().array([(o - p) for o, p in zip(observation, prediction)])
+            C = np().array(covariance)
         else:
             if (len(observation) < 1):
                 raise PFARuntimeException("too few rows/cols")
             if (len(observation) != len(prediction)):
-                raise PFARuntimaException("misaligned prediction")
+                raise PFARuntimeException("misaligned prediction")
             # use observation keys throughout
             keys = observation.keys()
             try:
-                x = numpy.array([observation[key] - prediction[key] for key in keys])
+                x = np().array([observation[key] - prediction[key] for key in keys])
             except:
                 raise PFARuntimeException("misaligned prediction")
-            C = numpy.empty((len(keys), len(keys)))
+            C = np().empty((len(keys), len(keys)))
             try:
                 for i,k1 in enumerate(keys):
                     for j,k2 in enumerate(keys):
                         C[i,j] = float(covariance[k1][k2])
             except:
                 raise PFARuntimeException("misaligned covariance")
-        return float(numpy.sqrt(numpy.linalg.solve(C, x).T.dot(x)))
+        return float(np().sqrt(np().linalg.solve(C, x).T.dot(x)))
 provide(Mahalanobis())
 
 

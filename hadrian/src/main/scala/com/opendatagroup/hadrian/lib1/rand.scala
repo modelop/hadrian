@@ -21,6 +21,7 @@ package com.opendatagroup.hadrian.lib1
 import scala.util.Random
 import scala.language.postfixOps
 import scala.collection.mutable
+import scala.collection.immutable.ListMap
 
 import com.opendatagroup.hadrian.ast.LibFcn
 import com.opendatagroup.hadrian.errors.PFARuntimeException
@@ -38,6 +39,7 @@ import com.opendatagroup.hadrian.signature.Signature
 import com.opendatagroup.hadrian.signature.Sigs
 
 import com.opendatagroup.hadrian.data.PFAArray
+import com.opendatagroup.hadrian.data.PFARecord
 
 import com.opendatagroup.hadrian.datatype.Type
 import com.opendatagroup.hadrian.datatype.FcnType
@@ -225,6 +227,56 @@ package object rand {
     }
   }
   provide(RandomSample)
+
+  /////////////////////////////////////////////////////////// deviates from a histogram
+
+  ////   histogram (RandomHistogram)
+  object RandomHistogram extends LibFcn {
+    val name = prefix + "histogram"
+    val sig = Sigs(List(Sig(List("distribution" -> P.Array(P.Double)), P.Int),
+                        Sig(List("distribution" -> P.Array(P.WildRecord("A", ListMap("prob" -> P.Double)))), P.Wildcard("A"))))
+    val doc =
+      <doc>
+        <desc>Return a random index of <p>distribution</p> with probability proportional to the value of that index or a random item from <p>distribution</p> with probability proportional to the <pf>prob</pf> field.</desc>
+        <detail>If the probabilities do not sum to 1.0, they will be normalized first.</detail>
+        <error>Raises a "distribution must be non-empty" error if no items of <p>distribution</p> are non-zero.</error>
+        <error>Raises a "distribution must be finite" error if any items of <p>distribution</p> are infinite or <c>NaN</c>.</error>
+        <error>Raises a "distribution must be non-negative" error if any items of <p>distribution</p> are negative.</error>
+      </doc>
+    override def javaRef(fcnType: FcnType): JavaCode = fcnType.ret match {
+      case AvroInt() =>
+        JavaCode("(new " + this.getClass.getName + "SelectorIndex(randomGenerator()))")
+      case AvroRecord(_, _, _, _, _) =>
+        JavaCode("(new " + this.getClass.getName + "SelectorRecord(randomGenerator()))")
+    }
+    def selectIndex(distribution: Vector[Double], randomGenerator: Random): Int = {
+      val cumulativeSum = distribution.scanLeft(0.0)({(x, y) =>
+        if (java.lang.Double.isInfinite(y)  ||  java.lang.Double.isNaN(y))
+          throw new PFARuntimeException("distribution must be finite")
+        else if (y < 0.0)
+          throw new PFARuntimeException("distribution must be non-negative")
+        else
+          x + y})
+      val total = cumulativeSum.last
+      if (total == 0.0)
+        throw new PFARuntimeException("distribution must be non-empty")
+      val position = randomGenerator.nextDouble() * total
+      cumulativeSum.indexWhere(position < _) - 1
+    }
+    class SelectorIndex(randomGenerator: Random) {
+      def apply(distribution: PFAArray[Double]): Int =
+        selectIndex(distribution.toVector, randomGenerator)
+    }
+    class SelectorRecord(randomGenerator: Random) {
+      def apply(distribution: PFAArray[PFARecord]): PFARecord = {
+        val vector = distribution.toVector
+        val probs = vector map {_.get("prob").asInstanceOf[Double]}
+        val index = selectIndex(probs, randomGenerator)
+        vector(index)
+      }
+    }
+  }
+  provide(RandomHistogram)
 
   /////////////////////////////////////////////////////////// strings and byte arrays
 

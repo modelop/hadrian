@@ -7,7 +7,7 @@
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian-standalone</artifactId>
-  <version>0.6.11</version>
+  <version>0.7.1</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -31,7 +31,13 @@
     <dependency>
       <groupId>com.opendatagroup</groupId>
       <artifactId>hadrian</artifactId>
-      <version>0.6.11</version>
+      <version>0.7.1</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.opendatagroup</groupId>
+      <artifactId>antinous</artifactId>
+      <version>0.7.1</version>
     </dependency>
 
     <dependency>
@@ -54,14 +60,11 @@
 
   </dependencies>
 
-
   <repositories>
-
     <repository>
       <id>opendatagroup</id>
       <url>http://repository.opendatagroup.com/maven</url>
     </repository>
-
   </repositories>
 
   <build>
@@ -102,6 +105,9 @@
             <descriptorRefs>
                 <descriptorRef>jar-with-dependencies</descriptorRef>
             </descriptorRefs>
+            <descriptors>
+                <descriptor>src/main/assembly/exclude-antinous.xml</descriptor>
+            </descriptors>
           <archive>
             <manifest>
               <mainClass>com.opendatagroup.hadrian.standalone.Main</mainClass>
