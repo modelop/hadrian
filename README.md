@@ -17,6 +17,7 @@ This repository contains four libraries for working with PFA (see http://scoring
   * **Aurelius**: tools for building PFA from **R**
     * converts a subset of the R language to PFA
     * converts glm, glmnet, randomForest, and gbm models to PFA
+    * integrated with Titus for PFA validation and execution
   * **Antinous**: model producer in **Jython**
     * encapsulates arbitrary Jython code in a PFA container
     * produces models using k-means
