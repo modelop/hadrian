@@ -1,0 +1,417 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.lib1.spec &mdash; Titus 0.7.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.7.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.lib1.spec</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">from</span> <span class="nn">titus.fcn</span> <span class="kn">import</span> <span class="n">Fcn</span>
+<span class="kn">from</span> <span class="nn">titus.fcn</span> <span class="kn">import</span> <span class="n">LibFcn</span>
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">Sig</span>
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">Sigs</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">titus.errors</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">titus.P</span> <span class="kn">as</span> <span class="nn">P</span>
+
+<span class="n">provides</span> <span class="o">=</span> <span class="p">{}</span>
+<div class="viewcode-block" id="provide"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.provide">[docs]</a><span class="k">def</span> <span class="nf">provide</span><span class="p">(</span><span class="n">fcn</span><span class="p">):</span>
+    <span class="n">provides</span><span class="p">[</span><span class="n">fcn</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fcn</span></div>
+<span class="n">prefix</span> <span class="o">=</span> <span class="s">&quot;m.special.&quot;</span>
+
+<div class="viewcode-block" id="NChooseK"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.NChooseK">[docs]</a><span class="k">class</span> <span class="nc">NChooseK</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;nChooseK&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;n&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;k&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">nChooseK</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">k</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">NChooseK</span><span class="p">())</span>
+
+<div class="viewcode-block" id="LnBetaFcn"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.LnBetaFcn">[docs]</a><span class="k">class</span> <span class="nc">LnBetaFcn</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;lnBeta&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;a&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;b&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">logBetaFunction</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">LnBetaFcn</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ErfFcn"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.ErfFcn">[docs]</a><span class="k">class</span> <span class="nc">ErfFcn</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;erf&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;a&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">erf</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ErfFcn</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ErfcFcn"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.ErfcFcn">[docs]</a><span class="k">class</span> <span class="nc">ErfcFcn</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;erfc&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;a&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">erfc</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ErfcFcn</span><span class="p">())</span>
+
+<div class="viewcode-block" id="LnGammaFcn"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.LnGammaFcn">[docs]</a><span class="k">class</span> <span class="nc">LnGammaFcn</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;lnGamma&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;a&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">LnGammaFcn</span><span class="p">())</span>
+
+<span class="c">#class IncompleteBetaFcn(LibFcn):</span>
+<span class="c">#    name = prefix + &quot;incompletebetafcn&quot;</span>
+<span class="c">#    sig = Sig([{&quot;x&quot;: P.Double()}, {&quot;a&quot;: P.Double()}, {&quot;b&quot;: P.Double()}], P.Double())</span>
+<span class="c">#    def __call__(self, state, scope, paramTypes, x, a, b):</span>
+<span class="c">#        return incompleteBetaFunction(x, a, b)</span>
+<span class="c">#provide(IncompleteBetaFcn())</span>
+
+<span class="c">#class IncompleteBetaFcnInv(LibFcn):</span>
+<span class="c">#    name = prefix + &quot;incompletebetafcninv&quot;</span>
+<span class="c">#    sig = Sig([{&quot;p&quot;: P.Double()}, {&quot;a&quot;: P.Double()}, {&quot;b&quot;: P.Double()}], P.Double())</span>
+<span class="c">#    def __call__(self, state, scope, paramTypes, p, a, b):</span>
+<span class="c">#        return inverseIncompleteBetaFunction(p, a, b)</span>
+<span class="c">#provide(IncompleteBetaFcnInv())</span>
+
+<span class="c"># http://mathworld.wolfram.com/RegularizedGammaFunction.html</span>
+<span class="c">#class RegularizedGammaPFcn(LibFcn):</span>
+<span class="c">#    name = prefix + &quot;regularizedgammapfcn&quot;</span>
+<span class="c">#    sig = Sig([{&quot;x&quot;: P.Double()}, {&quot;a&quot;: P.Double()}], P.Double())</span>
+<span class="c">#    def __call__(self, state, scope, paramTypes, x, a):</span>
+<span class="c">#        return regularizedGammaP(a, x)</span>
+<span class="c">#provide(RegularizedGammaPFcn())</span>
+
+<span class="c"># http://mathworld.wolfram.com/RegularizedGammaFunction.html</span>
+<span class="c">#class RegularizedGammaQFcn(LibFcn):</span>
+<span class="c">#    name = prefix + &quot;regularizedgammaqfcn&quot;</span>
+<span class="c">#    sig = Sig([{&quot;x&quot;: P.Double()}, {&quot;a&quot;: P.Double()}], P.Double())</span>
+<span class="c">#    def __call__(self, state, scope, paramTypes, x, a):</span>
+<span class="c">#        return regularizedGammaQ(a, x)</span>
+<span class="c">#provide(RegularizedGammaQFcn())</span>
+
+<span class="c">#########################################################################################</span>
+<span class="c">### The actual functions ################################################################</span>
+<span class="c">#########################################################################################</span>
+
+<div class="viewcode-block" id="logBetaFunction"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.logBetaFunction">[docs]</a><span class="k">def</span> <span class="nf">logBetaFunction</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">a</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">b</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">)</span>
+
+<span class="c"># numerical recipes in C</span></div>
+<div class="viewcode-block" id="incompleteBetaFunction"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.incompleteBetaFunction">[docs]</a><span class="k">def</span> <span class="nf">incompleteBetaFunction</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">):</span>
+    <span class="n">lbeta</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">)</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> \
+            <span class="o">+</span> <span class="n">a</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">x</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">lbeta</span><span class="p">)</span> <span class="o">*</span> <span class="n">contFractionBeta</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">x</span><span class="p">)</span><span class="o">/</span><span class="n">a</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">lbeta</span><span class="p">)</span> <span class="o">*</span> <span class="n">contFractionBeta</span><span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="n">a</span><span class="p">,</span><span class="mf">1.</span><span class="o">-</span><span class="n">x</span><span class="p">)</span><span class="o">/</span><span class="n">b</span>
+
+<span class="c"># numerical recipes in C</span></div>
+<div class="viewcode-block" id="inverseIncompleteBetaFunction"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.inverseIncompleteBetaFunction">[docs]</a><span class="k">def</span> <span class="nf">inverseIncompleteBetaFunction</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="n">a1</span> <span class="o">=</span> <span class="n">a</span> <span class="o">-</span> <span class="mf">1.0</span>
+    <span class="n">b1</span> <span class="o">=</span> <span class="n">b</span> <span class="o">-</span> <span class="mf">1.0</span>
+    <span class="n">ERROR</span> <span class="o">=</span> <span class="mf">1.0e-10</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">p</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">0.0</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">p</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">1.0</span><span class="p">;</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">a</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">b</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">p</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">):</span>
+            <span class="n">pp</span> <span class="o">=</span> <span class="n">p</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pp</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="p">;</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="o">-</span><span class="mf">2.0</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">pp</span><span class="p">))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="mf">2.30753</span><span class="o">+</span><span class="n">t</span><span class="o">*</span><span class="mf">0.27061</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0</span><span class="o">+</span><span class="n">t</span><span class="o">*</span><span class="p">(</span><span class="mf">0.99229</span><span class="o">+</span><span class="n">t</span><span class="o">*</span><span class="mf">0.04481</span><span class="p">))</span> <span class="o">-</span> <span class="n">t</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">p</span> <span class="o">&lt;</span> <span class="mf">0.5</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="o">-</span><span class="n">x</span>
+        <span class="n">al</span> <span class="o">=</span> <span class="p">((</span><span class="n">x</span><span class="o">*</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="mf">3.0</span><span class="p">)</span><span class="o">/</span><span class="mf">6.0</span><span class="p">;</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="mf">2.0</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="n">a</span><span class="o">-</span><span class="mf">1.0</span><span class="p">)</span><span class="o">+</span><span class="mf">1.0</span><span class="o">/</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="n">b</span><span class="o">-</span><span class="mf">1.0</span><span class="p">));</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">al</span><span class="o">+</span><span class="n">h</span><span class="p">)</span><span class="o">/</span><span class="n">h</span><span class="p">)</span><span class="o">-</span><span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="n">b</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="mf">1.0</span><span class="o">/</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="n">a</span><span class="o">-</span><span class="mf">1.0</span><span class="p">))</span><span class="o">*</span><span class="p">(</span><span class="n">al</span><span class="o">+</span><span class="mf">5.0</span><span class="o">/</span><span class="mf">6.0</span><span class="o">-</span><span class="mf">2.0</span><span class="o">/</span><span class="p">(</span><span class="mf">3.0</span><span class="o">*</span><span class="n">h</span><span class="p">))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">a</span><span class="o">/</span><span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="n">b</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">2.0</span><span class="o">*</span><span class="n">w</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">lna</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">a</span><span class="o">/</span><span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="n">b</span><span class="p">))</span>
+        <span class="n">lnb</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">b</span><span class="o">/</span><span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="n">b</span><span class="p">))</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">a</span><span class="o">*</span><span class="n">lna</span><span class="p">)</span><span class="o">/</span><span class="n">a</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">b</span><span class="o">*</span><span class="n">lnb</span><span class="p">)</span><span class="o">/</span><span class="n">b</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">t</span> <span class="o">+</span> <span class="n">u</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">p</span> <span class="o">&lt;</span> <span class="n">t</span><span class="o">/</span><span class="n">w</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">a</span><span class="o">*</span><span class="n">w</span><span class="o">*</span><span class="n">p</span><span class="p">,</span><span class="mf">1.0</span><span class="o">/</span><span class="n">a</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">b</span><span class="o">*</span><span class="n">w</span><span class="o">*</span><span class="p">(</span><span class="mf">1.0</span><span class="o">-</span><span class="n">p</span><span class="p">),</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">afac</span> <span class="o">=</span> <span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">a</span><span class="p">)</span><span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">b</span><span class="p">)</span><span class="o">+</span><span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">j</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span> <span class="n">x</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">;</span>
+        <span class="n">err</span> <span class="o">=</span> <span class="n">incompleteBetaFunction</span><span class="p">(</span><span class="n">x</span><span class="p">,</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">)</span> <span class="o">-</span> <span class="n">p</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">a1</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">+</span><span class="n">b1</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">1.0</span><span class="o">-</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">afac</span><span class="p">)</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">err</span><span class="o">/</span><span class="n">t</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">u</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0</span><span class="o">-</span><span class="mf">0.5</span><span class="o">*</span><span class="nb">min</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="n">u</span><span class="o">*</span><span class="p">(</span><span class="n">a1</span><span class="o">/</span><span class="n">x</span> <span class="o">-</span> <span class="n">b1</span><span class="o">/</span><span class="p">(</span><span class="mf">1.0</span><span class="o">-</span><span class="n">x</span><span class="p">))))</span>
+        <span class="n">x</span> <span class="o">-=</span> <span class="n">t</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">t</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&gt;=</span> <span class="mf">1.0</span><span class="p">):</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">t</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">fabs</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">ERROR</span><span class="o">*</span><span class="n">x</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">j</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">break</span>
+    <span class="k">return</span> <span class="n">x</span>
+
+<span class="c"># numerical recipes in C</span>
+<span class="c"># used by incompleteBetaFcn and incompleteBetaFcnComp</span></div>
+<div class="viewcode-block" id="contFractionBeta"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.contFractionBeta">[docs]</a><span class="k">def</span> <span class="nf">contFractionBeta</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">,</span><span class="n">x</span><span class="p">,</span> <span class="n">maxIter</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-15</span><span class="p">):</span>
+    <span class="n">bm</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">az</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">am</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">qab</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span>
+    <span class="n">qap</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="mf">1.0</span>
+    <span class="n">qam</span> <span class="o">=</span> <span class="n">a</span> <span class="o">-</span> <span class="mf">1.0</span>
+    <span class="n">bz</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">qab</span><span class="o">*</span><span class="n">x</span><span class="o">/</span><span class="n">qap</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">maxIter</span><span class="p">):</span>
+        <span class="n">em</span> <span class="o">=</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">tem</span> <span class="o">=</span> <span class="n">em</span> <span class="o">+</span> <span class="n">em</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">em</span><span class="o">*</span><span class="p">(</span><span class="n">b</span><span class="o">-</span><span class="n">em</span><span class="p">)</span><span class="o">*</span><span class="n">x</span><span class="o">/</span><span class="p">((</span><span class="n">qam</span><span class="o">+</span><span class="n">tem</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="n">tem</span><span class="p">))</span>
+        <span class="n">ap</span> <span class="o">=</span> <span class="n">az</span> <span class="o">+</span> <span class="n">d</span><span class="o">*</span><span class="n">am</span>
+        <span class="n">bp</span> <span class="o">=</span> <span class="n">bz</span><span class="o">+</span><span class="n">d</span><span class="o">*</span><span class="n">bm</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="n">em</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">qab</span><span class="o">+</span><span class="n">em</span><span class="p">)</span><span class="o">*</span><span class="n">x</span><span class="o">/</span><span class="p">((</span><span class="n">qap</span><span class="o">+</span><span class="n">tem</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="n">tem</span><span class="p">))</span>
+        <span class="n">app</span> <span class="o">=</span> <span class="n">ap</span><span class="o">+</span><span class="n">d</span><span class="o">*</span><span class="n">az</span>
+        <span class="n">bpp</span> <span class="o">=</span> <span class="n">bp</span><span class="o">+</span><span class="n">d</span><span class="o">*</span><span class="n">bz</span>
+        <span class="n">aold</span> <span class="o">=</span> <span class="n">az</span>
+        <span class="n">am</span> <span class="o">=</span> <span class="n">ap</span><span class="o">/</span><span class="n">bpp</span>
+        <span class="n">bm</span> <span class="o">=</span> <span class="n">bp</span><span class="o">/</span><span class="n">bpp</span>
+        <span class="n">az</span> <span class="o">=</span> <span class="n">app</span><span class="o">/</span><span class="n">bpp</span>
+        <span class="n">bz</span> <span class="o">=</span> <span class="mf">1.0</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">az</span><span class="o">-</span><span class="n">aold</span><span class="p">)</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">epsilon</span><span class="o">*</span><span class="nb">abs</span><span class="p">(</span><span class="n">az</span><span class="p">))):</span>
+            <span class="k">return</span> <span class="n">az</span>
+    <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span>
+
+<span class="c"># http://grepcode.com/file/repo1.maven.org/maven2/org.apache.commons/commons-math3/3.0/org/apache/commons/math3/special/Gamma.java#Gamma.regularizedGammaP%28double%2Cdouble%29</span></div>
+<div class="viewcode-block" id="regularizedGammaP"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.regularizedGammaP">[docs]</a><span class="k">def</span> <span class="nf">regularizedGammaP</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">a</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span>
+    <span class="n">maxIter</span> <span class="o">=</span> <span class="mi">1000</span>
+    <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1e-15</span>
+    <span class="n">n</span>  <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">an</span> <span class="o">=</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">a</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="n">an</span>
+    <span class="k">while</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">an</span><span class="o">/</span><span class="n">total</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">epsilon</span><span class="p">)</span> <span class="ow">and</span> \
+          <span class="p">(</span><span class="n">n</span> <span class="o">&lt;</span> <span class="n">maxIter</span><span class="p">)</span> <span class="ow">and</span> \
+          <span class="p">(</span><span class="n">total</span> <span class="o">&lt;</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">)):</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">n</span> <span class="o">+</span> <span class="mf">1.0</span>
+        <span class="n">an</span> <span class="o">=</span> <span class="n">an</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="p">(</span><span class="n">a</span> <span class="o">+</span> <span class="n">n</span><span class="p">))</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="n">total</span> <span class="o">+</span> <span class="n">an</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="o">&gt;=</span> <span class="n">maxIter</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">total</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">):</span>
+        <span class="n">ans</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">ans</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span> <span class="o">+</span> <span class="p">(</span><span class="n">a</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="o">*</span> <span class="n">total</span>
+    <span class="k">return</span> <span class="n">ans</span>
+
+<span class="c"># http://www.johnkerl.org/python/sp_funcs_m.py.txt</span></div>
+<div class="viewcode-block" id="regularizedGammaQ"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.regularizedGammaQ">[docs]</a><span class="k">def</span> <span class="nf">regularizedGammaQ</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Incomplete gamma function.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mf">0.0</span> <span class="ow">or</span> <span class="n">a</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">a</span><span class="o">+</span><span class="mf">1.0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">gser</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">gcf</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+<span class="c"># http://www.johnkerl.org/python/sp_funcs_m.py.txt</span>
+<span class="c"># used by incompleteGammaFcn</span></div>
+<div class="viewcode-block" id="gser"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.gser">[docs]</a><span class="k">def</span> <span class="nf">gser</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">itmax</span><span class="o">=</span><span class="mi">700</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">3.0e-7</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Series approximation to the incomplete gamma function.&quot;&quot;&quot;</span>
+    <span class="n">gln</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">x</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span>
+    <span class="n">ap</span> <span class="o">=</span> <span class="n">a</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">a</span>
+    <span class="n">delta</span> <span class="o">=</span> <span class="n">total</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="n">itmax</span><span class="p">:</span>
+        <span class="n">ap</span> <span class="o">=</span> <span class="n">ap</span> <span class="o">+</span> <span class="mf">1.0</span>
+        <span class="n">delta</span> <span class="o">=</span> <span class="n">delta</span> <span class="o">*</span> <span class="n">x</span> <span class="o">/</span> <span class="n">ap</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="n">total</span> <span class="o">+</span> <span class="n">delta</span>
+        <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">delta</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">abs</span><span class="p">(</span><span class="n">total</span><span class="p">)</span><span class="o">*</span><span class="n">eps</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">total</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span> <span class="o">+</span> <span class="n">a</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="n">gln</span><span class="p">),</span> <span class="n">gln</span><span class="p">]</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span>
+
+<span class="c"># http://www.johnkerl.org/python/sp_funcs_m.py.txt</span>
+<span class="c"># used by incompleteGammaFcn</span></div>
+<div class="viewcode-block" id="gcf"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.gcf">[docs]</a><span class="k">def</span> <span class="nf">gcf</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">itmax</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">3.0e-7</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Continued fraction approximation of the incomplete gamma function.&quot;&quot;&quot;</span>
+    <span class="n">gln</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">gold</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">a0</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">a1</span> <span class="o">=</span> <span class="n">x</span>
+    <span class="n">b0</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">b1</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">fac</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">while</span> <span class="n">n</span> <span class="o">&lt;=</span> <span class="n">itmax</span><span class="p">:</span>
+        <span class="n">an</span> <span class="o">=</span> <span class="n">n</span>
+        <span class="n">ana</span> <span class="o">=</span> <span class="n">an</span> <span class="o">-</span> <span class="n">a</span>
+        <span class="n">a0</span> <span class="o">=</span> <span class="p">(</span><span class="n">a1</span> <span class="o">+</span> <span class="n">a0</span><span class="o">*</span><span class="n">ana</span><span class="p">)</span><span class="o">*</span><span class="n">fac</span>
+        <span class="n">b0</span> <span class="o">=</span> <span class="p">(</span><span class="n">b1</span> <span class="o">+</span> <span class="n">b0</span><span class="o">*</span><span class="n">ana</span><span class="p">)</span><span class="o">*</span><span class="n">fac</span>
+        <span class="n">anf</span> <span class="o">=</span> <span class="n">an</span><span class="o">*</span><span class="n">fac</span>
+        <span class="n">a1</span> <span class="o">=</span> <span class="n">x</span><span class="o">*</span><span class="n">a0</span> <span class="o">+</span> <span class="n">anf</span><span class="o">*</span><span class="n">a1</span>
+        <span class="n">b1</span> <span class="o">=</span> <span class="n">x</span><span class="o">*</span><span class="n">b0</span> <span class="o">+</span> <span class="n">anf</span><span class="o">*</span><span class="n">b1</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">a1</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">):</span>
+            <span class="n">fac</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">a1</span>
+            <span class="n">g</span> <span class="o">=</span> <span class="n">b1</span><span class="o">*</span><span class="n">fac</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">((</span><span class="n">g</span><span class="o">-</span><span class="n">gold</span><span class="p">)</span><span class="o">/</span><span class="n">g</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">eps</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">g</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">x</span><span class="o">+</span><span class="n">a</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">-</span><span class="n">gln</span><span class="p">),</span> <span class="n">gln</span><span class="p">)</span>
+            <span class="n">gold</span> <span class="o">=</span> <span class="n">g</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="n">n</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="nChooseK"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.spec.nChooseK">[docs]</a><span class="k">def</span> <span class="nf">nChooseK</span><span class="p">(</span><span class="n">n</span><span class="p">,</span><span class="n">k</span><span class="p">):</span>
+    <span class="c"># is n an integer?</span>
+    <span class="n">nInt</span> <span class="o">=</span> <span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="o">==</span> <span class="n">n</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">&lt;=</span> <span class="n">k</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">k</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;domain error&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="n">nInt</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">n</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">):</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="nb">pow</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="n">k</span><span class="p">))</span> \
+                                  <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span>    \
+                                  <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">n</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">n</span> <span class="o">&gt;=</span> <span class="n">k</span><span class="p">):</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> \
+                   <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">k</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">))</span>
+        <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">nInt</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">n</span> <span class="o">&lt;</span> <span class="n">k</span><span class="p">):</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> \
+                                   <span class="o">-</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>   \
+                                   <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">lgamma</span><span class="p">(</span><span class="n">k</span> <span class="o">-</span> <span class="n">n</span><span class="p">)</span>   \
+                   <span class="o">+</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="n">k</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">))))</span>
+        <span class="k">return</span> <span class="nb">round</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="k">return</span> <span class="mf">0.0</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

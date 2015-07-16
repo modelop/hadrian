@@ -1,0 +1,1094 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.datatype &mdash; Titus 0.7.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.7.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.7.1 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.datatype</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+
+<span class="kn">import</span> <span class="nn">avro.io</span>
+<span class="kn">import</span> <span class="nn">avro.schema</span>
+
+<span class="kn">import</span> <span class="nn">titus.errors</span>
+<span class="kn">import</span> <span class="nn">titus.util</span>
+<span class="kn">from</span> <span class="nn">titus.util</span> <span class="kn">import</span> <span class="n">ts</span>
+
+<span class="c">######################################################### the most general types</span>
+
+<div class="viewcode-block" id="Type"><a class="viewcode-back" href="../../titus.html#titus.datatype.Type">[docs]</a><span class="k">class</span> <span class="nc">Type</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="Type.avroType"><a class="viewcode-back" href="../../titus.html#titus.datatype.Type.avroType">[docs]</a>    <span class="k">def</span> <span class="nf">avroType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">raise</span> <span class="ne">TypeError</span>
+</div></div>
+<div class="viewcode-block" id="FcnType"><a class="viewcode-back" href="../../titus.html#titus.datatype.FcnType">[docs]</a><span class="k">class</span> <span class="nc">FcnType</span><span class="p">(</span><span class="n">Type</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">ret</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ret</span> <span class="o">=</span> <span class="n">ret</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="FcnType.params"><a class="viewcode-back" href="../../titus.html#titus.datatype.FcnType.params">[docs]</a>    <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="FcnType.ret"><a class="viewcode-back" href="../../titus.html#titus.datatype.FcnType.ret">[docs]</a>    <span class="k">def</span> <span class="nf">ret</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ret</span>
+</div>
+<div class="viewcode-block" id="FcnType.accepts"><a class="viewcode-back" href="../../titus.html#titus.datatype.FcnType.accepts">[docs]</a>    <span class="k">def</span> <span class="nf">accepts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">FcnType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">params</span><span class="p">)</span> <span class="ow">and</span> \
+                   <span class="nb">all</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">accepts</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">other</span><span class="o">.</span><span class="n">params</span><span class="p">))</span> <span class="ow">and</span> \
+                   <span class="bp">self</span><span class="o">.</span><span class="n">ret</span><span class="o">.</span><span class="n">accepts</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">ret</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+</div>
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">FcnType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">params</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ret</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">ret</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&#39;{{&quot;type&quot;: &quot;function&quot;, &quot;params&quot;: [{params}], &quot;ret&quot;: {ret}}}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">params</span><span class="o">=</span><span class="s">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">),</span>
+            <span class="n">ret</span><span class="o">=</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ret</span><span class="p">))</span>
+
+<div class="viewcode-block" id="FcnType.jsonNode"><a class="viewcode-back" href="../../titus.html#titus.datatype.FcnType.jsonNode">[docs]</a>    <span class="k">def</span> <span class="nf">jsonNode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;function&quot;</span><span class="p">,</span> <span class="s">&quot;params&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="n">memo</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">],</span> <span class="s">&quot;ret&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">ret</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="n">memo</span><span class="p">)}</span>
+
+<span class="c">######################################################### Avro types</span>
+</div></div>
+<div class="viewcode-block" id="jsonToAvroType"><a class="viewcode-back" href="../../titus.html#titus.datatype.jsonToAvroType">[docs]</a><span class="k">def</span> <span class="nf">jsonToAvroType</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">schemaToAvroType</span><span class="p">(</span><span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="jsonNodeToAvroType"><a class="viewcode-back" href="../../titus.html#titus.datatype.jsonNodeToAvroType">[docs]</a><span class="k">def</span> <span class="nf">jsonNodeToAvroType</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">schemaToAvroType</span><span class="p">(</span><span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+</div>
+<div class="viewcode-block" id="schemaToAvroType"><a class="viewcode-back" href="../../titus.html#titus.datatype.schemaToAvroType">[docs]</a><span class="k">def</span> <span class="nf">schemaToAvroType</span><span class="p">(</span><span class="n">schema</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;null&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">AvroNull</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;boolean&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">AvroBoolean</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;int&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">AvroInt</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;long&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">AvroLong</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;float&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">AvroFloat</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;double&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">AvroDouble</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;bytes&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">AvroBytes</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;fixed&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">AvroFixed</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">AvroFixed</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">schema</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;string&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">AvroString</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;enum&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">AvroEnum</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">AvroEnum</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">schema</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;array&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">AvroArray</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">AvroArray</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">schema</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;map&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">AvroMap</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">AvroMap</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">schema</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;record&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">AvroRecord</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">AvroRecord</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">schema</span>
+        <span class="k">return</span> <span class="n">out</span>
+    <span class="k">elif</span> <span class="n">schema</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s">&quot;union&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">AvroUnion</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">AvroUnion</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">schema</span>
+        <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="avroTypeToSchema"><a class="viewcode-back" href="../../titus.html#titus.datatype.avroTypeToSchema">[docs]</a><span class="k">def</span> <span class="nf">avroTypeToSchema</span><span class="p">(</span><span class="n">avroType</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">avroType</span><span class="o">.</span><span class="n">schema</span>
+</div>
+<div class="viewcode-block" id="AvroType"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroType">[docs]</a><span class="k">class</span> <span class="nc">AvroType</span><span class="p">(</span><span class="n">Type</span><span class="p">):</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroType.schema"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroType.schema">[docs]</a>    <span class="k">def</span> <span class="nf">schema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroType.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroType.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">None</span>
+</div>
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">schema</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroPlaceholder</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">avroType</span><span class="o">.</span><span class="n">schema</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_recordFieldsOkay</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">memo</span><span class="p">,</span> <span class="n">checkRecord</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">xf</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">xf</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">xf</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">yf</span><span class="o">.</span><span class="n">name</span> <span class="ow">and</span> <span class="n">xf</span><span class="o">.</span><span class="n">avroType</span><span class="o">.</span><span class="n">accepts</span><span class="p">(</span><span class="n">yf</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">memo</span><span class="p">,</span> <span class="n">checkRecord</span><span class="p">)</span> <span class="k">for</span> <span class="n">yf</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">fields</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="bp">False</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c"># not having a matching name in y is fine: x has a default</span>
+                <span class="c"># but having a matching name with a mismatched type is bad</span>
+                <span class="c"># (spec isn&#39;t clear, but org.apache.avro.SchemaCompatibility works that way)</span>
+                <span class="k">for</span> <span class="n">yf</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">xf</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">yf</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">xf</span><span class="o">.</span><span class="n">avroType</span><span class="o">.</span><span class="n">accepts</span><span class="p">(</span><span class="n">yf</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">memo</span><span class="p">,</span> <span class="n">checkRecord</span><span class="p">):</span>
+                            <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">return</span> <span class="bp">True</span>
+
+    <span class="c"># self == &quot;reader&quot; (the anticipated signature, pattern to be matched),</span>
+    <span class="c"># other == &quot;writer&quot; (the given fact, argument to be accepted or rejected)</span>
+    <span class="c"># the special cases handle situations in which Python-Avro fails to be fully covariant</span>
+<div class="viewcode-block" id="AvroType.accepts"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroType.accepts">[docs]</a>    <span class="k">def</span> <span class="nf">accepts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">memo</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">checkRecord</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">ExceptionType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroNull</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroNull</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroBoolean</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroBoolean</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroBytes</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroBytes</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroString</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroString</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroDouble</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroDouble</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroArray</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroArray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">accepts</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">memo</span><span class="p">,</span> <span class="n">checkRecord</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">accepts</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">memo</span><span class="p">,</span> <span class="n">checkRecord</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroFixed</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroFixed</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">size</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullName</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">fullName</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">symbols</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">))</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullName</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">fullName</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">memo</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">memo</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">memo</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">memo</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullName</span> <span class="o">!=</span> <span class="n">other</span><span class="o">.</span><span class="n">fullName</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">False</span>
+
+            <span class="k">elif</span> <span class="n">checkRecord</span> <span class="ow">and</span> <span class="n">other</span><span class="o">.</span><span class="n">fullName</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">memo</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordFieldsOkay</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">memo</span><span class="p">,</span> <span class="n">checkRecord</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="bp">False</span>
+
+                <span class="n">memo</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullName</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_recordFieldsOkay</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">memo</span><span class="p">,</span> <span class="n">checkRecord</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="bp">False</span>
+
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">yt</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">types</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">xt</span><span class="o">.</span><span class="n">accepts</span><span class="p">(</span><span class="n">yt</span><span class="p">,</span> <span class="n">memo</span><span class="p">,</span> <span class="n">checkRecord</span><span class="p">)</span> <span class="k">for</span> <span class="n">xt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="bp">False</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">xt</span><span class="o">.</span><span class="n">accepts</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">memo</span><span class="p">,</span> <span class="n">checkRecord</span><span class="p">)</span> <span class="k">for</span> <span class="n">xt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">accepts</span><span class="p">(</span><span class="n">yt</span><span class="p">,</span> <span class="n">memo</span><span class="p">,</span> <span class="n">checkRecord</span><span class="p">)</span> <span class="k">for</span> <span class="n">yt</span> <span class="ow">in</span> <span class="n">other</span><span class="o">.</span><span class="n">types</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+</div>
+<div class="viewcode-block" id="AvroType.toJson"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroType.toJson">[docs]</a>    <span class="k">def</span> <span class="nf">toJson</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="nb">set</span><span class="p">()))</span>
+</div>
+<div class="viewcode-block" id="AvroType.jsonNode"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroType.jsonNode">[docs]</a>    <span class="k">def</span> <span class="nf">jsonNode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroType.avroType"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroType.avroType">[docs]</a>    <span class="k">def</span> <span class="nf">avroType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="bp">self</span>
+</div>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">to_json</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="AvroCompiled"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroCompiled">[docs]</a><span class="k">class</span> <span class="nc">AvroCompiled</span><span class="p">(</span><span class="n">AvroType</span><span class="p">):</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroCompiled.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroCompiled.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">name</span></div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroCompiled.namespace"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroCompiled.namespace">[docs]</a>    <span class="k">def</span> <span class="nf">namespace</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">namespace</span></div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroCompiled.fullName"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroCompiled.fullName">[docs]</a>    <span class="k">def</span> <span class="nf">fullName</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">fullname</span>
+</div></div>
+<div class="viewcode-block" id="AvroNumber"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroNumber">[docs]</a><span class="k">class</span> <span class="nc">AvroNumber</span><span class="p">(</span><span class="n">AvroType</span><span class="p">):</span> <span class="k">pass</span></div>
+<div class="viewcode-block" id="AvroRaw"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroRaw">[docs]</a><span class="k">class</span> <span class="nc">AvroRaw</span><span class="p">(</span><span class="n">AvroType</span><span class="p">):</span> <span class="k">pass</span></div>
+<div class="viewcode-block" id="AvroIdentifier"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroIdentifier">[docs]</a><span class="k">class</span> <span class="nc">AvroIdentifier</span><span class="p">(</span><span class="n">AvroType</span><span class="p">):</span> <span class="k">pass</span></div>
+<div class="viewcode-block" id="AvroContainer"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroContainer">[docs]</a><span class="k">class</span> <span class="nc">AvroContainer</span><span class="p">(</span><span class="n">AvroType</span><span class="p">):</span> <span class="k">pass</span></div>
+<div class="viewcode-block" id="AvroMapping"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroMapping">[docs]</a><span class="k">class</span> <span class="nc">AvroMapping</span><span class="p">(</span><span class="n">AvroType</span><span class="p">):</span> <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="ExceptionType"><a class="viewcode-back" href="../../titus.html#titus.datatype.ExceptionType">[docs]</a><span class="k">class</span> <span class="nc">ExceptionType</span><span class="p">(</span><span class="n">AvroType</span><span class="p">):</span>
+<div class="viewcode-block" id="ExceptionType.accepts"><a class="viewcode-back" href="../../titus.html#titus.datatype.ExceptionType.accepts">[docs]</a>    <span class="k">def</span> <span class="nf">accepts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">ExceptionType</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&#39;{&quot;type&quot;:&quot;exception&quot;}&#39;</span>
+<div class="viewcode-block" id="ExceptionType.jsonNode"><a class="viewcode-back" href="../../titus.html#titus.datatype.ExceptionType.jsonNode">[docs]</a>    <span class="k">def</span> <span class="nf">jsonNode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;exception&quot;</span><span class="p">}</span></div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="ExceptionType.schema"><a class="viewcode-back" href="../../titus.html#titus.datatype.ExceptionType.schema">[docs]</a>    <span class="k">def</span> <span class="nf">schema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">AvroNull</span><span class="p">()</span><span class="o">.</span><span class="n">schema</span>
+
+<span class="c">######################################################### Avro type wrappers</span>
+</div></div>
+<div class="viewcode-block" id="AvroNull"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroNull">[docs]</a><span class="k">class</span> <span class="nc">AvroNull</span><span class="p">(</span><span class="n">AvroType</span><span class="p">):</span>
+    <span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">PrimitiveSchema</span><span class="p">(</span><span class="s">&quot;null&quot;</span><span class="p">)</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroNull.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroNull.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;null&quot;</span>
+</div></div>
+<div class="viewcode-block" id="AvroBoolean"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroBoolean">[docs]</a><span class="k">class</span> <span class="nc">AvroBoolean</span><span class="p">(</span><span class="n">AvroType</span><span class="p">):</span>
+    <span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">PrimitiveSchema</span><span class="p">(</span><span class="s">&quot;boolean&quot;</span><span class="p">)</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroBoolean.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroBoolean.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;boolean&quot;</span>
+</div></div>
+<div class="viewcode-block" id="AvroInt"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroInt">[docs]</a><span class="k">class</span> <span class="nc">AvroInt</span><span class="p">(</span><span class="n">AvroNumber</span><span class="p">):</span>
+    <span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">PrimitiveSchema</span><span class="p">(</span><span class="s">&quot;int&quot;</span><span class="p">)</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroInt.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroInt.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;int&quot;</span>
+</div></div>
+<div class="viewcode-block" id="AvroLong"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroLong">[docs]</a><span class="k">class</span> <span class="nc">AvroLong</span><span class="p">(</span><span class="n">AvroNumber</span><span class="p">):</span>
+    <span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">PrimitiveSchema</span><span class="p">(</span><span class="s">&quot;long&quot;</span><span class="p">)</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroLong.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroLong.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;long&quot;</span>
+</div></div>
+<div class="viewcode-block" id="AvroFloat"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroFloat">[docs]</a><span class="k">class</span> <span class="nc">AvroFloat</span><span class="p">(</span><span class="n">AvroNumber</span><span class="p">):</span>
+    <span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">PrimitiveSchema</span><span class="p">(</span><span class="s">&quot;float&quot;</span><span class="p">)</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroFloat.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroFloat.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;float&quot;</span>
+</div></div>
+<div class="viewcode-block" id="AvroDouble"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroDouble">[docs]</a><span class="k">class</span> <span class="nc">AvroDouble</span><span class="p">(</span><span class="n">AvroNumber</span><span class="p">):</span>
+    <span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">PrimitiveSchema</span><span class="p">(</span><span class="s">&quot;double&quot;</span><span class="p">)</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroDouble.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroDouble.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;double&quot;</span>
+</div></div>
+<div class="viewcode-block" id="AvroBytes"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroBytes">[docs]</a><span class="k">class</span> <span class="nc">AvroBytes</span><span class="p">(</span><span class="n">AvroRaw</span><span class="p">):</span>
+    <span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">PrimitiveSchema</span><span class="p">(</span><span class="s">&quot;bytes&quot;</span><span class="p">)</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroBytes.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroBytes.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;bytes&quot;</span>
+</div></div>
+<div class="viewcode-block" id="AvroFixed"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroFixed">[docs]</a><span class="k">class</span> <span class="nc">AvroFixed</span><span class="p">(</span><span class="n">AvroRaw</span><span class="p">,</span> <span class="n">AvroCompiled</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">uniqueFixedName</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">FixedSchema</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Names</span><span class="p">())</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroFixed.size"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroFixed.size">[docs]</a>    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">size</span></div>
+<div class="viewcode-block" id="AvroFixed.jsonNode"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroFixed.jsonNode">[docs]</a>    <span class="k">def</span> <span class="nf">jsonNode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullName</span> <span class="ow">in</span> <span class="n">memo</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullName</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">memo</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullName</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;fixed&quot;</span><span class="p">,</span> <span class="s">&quot;size&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span><span class="p">}</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="o">!=</span> <span class="s">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">return</span> <span class="n">out</span>
+</div></div>
+<div class="viewcode-block" id="AvroString"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroString">[docs]</a><span class="k">class</span> <span class="nc">AvroString</span><span class="p">(</span><span class="n">AvroIdentifier</span><span class="p">):</span> 
+    <span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">PrimitiveSchema</span><span class="p">(</span><span class="s">&quot;string&quot;</span><span class="p">)</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroString.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroString.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;string&quot;</span>
+</div></div>
+<div class="viewcode-block" id="AvroEnum"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroEnum">[docs]</a><span class="k">class</span> <span class="nc">AvroEnum</span><span class="p">(</span><span class="n">AvroIdentifier</span><span class="p">,</span> <span class="n">AvroCompiled</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbols</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">uniqueEnumName</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">EnumSchema</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="n">symbols</span><span class="p">,</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Names</span><span class="p">())</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroEnum.symbols"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroEnum.symbols">[docs]</a>    <span class="k">def</span> <span class="nf">symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">symbols</span></div>
+<div class="viewcode-block" id="AvroEnum.jsonNode"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroEnum.jsonNode">[docs]</a>    <span class="k">def</span> <span class="nf">jsonNode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullName</span> <span class="ow">in</span> <span class="n">memo</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullName</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">memo</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullName</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;enum&quot;</span><span class="p">,</span> <span class="s">&quot;symbols&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">}</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="o">!=</span> <span class="s">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">return</span> <span class="n">out</span>
+</div></div>
+<div class="viewcode-block" id="AvroArray"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroArray">[docs]</a><span class="k">class</span> <span class="nc">AvroArray</span><span class="p">(</span><span class="n">AvroContainer</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">ArraySchema</span><span class="p">(</span><span class="s">&quot;null&quot;</span><span class="p">,</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Names</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="o">.</span><span class="n">set_prop</span><span class="p">(</span><span class="s">&quot;items&quot;</span><span class="p">,</span> <span class="n">items</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroArray.items"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroArray.items">[docs]</a>    <span class="k">def</span> <span class="nf">items</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">schemaToAvroType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">items</span><span class="p">)</span></div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroArray.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroArray.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;array&quot;</span></div>
+<div class="viewcode-block" id="AvroArray.jsonNode"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroArray.jsonNode">[docs]</a>    <span class="k">def</span> <span class="nf">jsonNode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;array&quot;</span><span class="p">,</span> <span class="s">&quot;items&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="n">memo</span><span class="p">)}</span>
+</div></div>
+<div class="viewcode-block" id="AvroMap"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroMap">[docs]</a><span class="k">class</span> <span class="nc">AvroMap</span><span class="p">(</span><span class="n">AvroContainer</span><span class="p">,</span> <span class="n">AvroMapping</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">MapSchema</span><span class="p">(</span><span class="s">&quot;null&quot;</span><span class="p">,</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Names</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="o">.</span><span class="n">set_prop</span><span class="p">(</span><span class="s">&quot;values&quot;</span><span class="p">,</span> <span class="n">values</span><span class="o">.</span><span class="n">schema</span><span class="p">)</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroMap.values"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroMap.values">[docs]</a>    <span class="k">def</span> <span class="nf">values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">schemaToAvroType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">values</span><span class="p">)</span></div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroMap.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroMap.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;map&quot;</span></div>
+<div class="viewcode-block" id="AvroMap.jsonNode"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroMap.jsonNode">[docs]</a>    <span class="k">def</span> <span class="nf">jsonNode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;map&quot;</span><span class="p">,</span> <span class="s">&quot;values&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">values</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="n">memo</span><span class="p">)}</span>
+</div></div>
+<div class="viewcode-block" id="AvroRecord"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroRecord">[docs]</a><span class="k">class</span> <span class="nc">AvroRecord</span><span class="p">(</span><span class="n">AvroContainer</span><span class="p">,</span> <span class="n">AvroMapping</span><span class="p">,</span> <span class="n">AvroCompiled</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">util</span><span class="o">.</span><span class="n">uniqueRecordName</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">RecordSchema</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">namespace</span><span class="p">,</span> <span class="p">[],</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Names</span><span class="p">(),</span> <span class="s">&quot;record&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="o">.</span><span class="n">set_prop</span><span class="p">(</span><span class="s">&quot;fields&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">schema</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">])</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroRecord.fields"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroRecord.fields">[docs]</a>    <span class="k">def</span> <span class="nf">fields</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">AvroField</span><span class="o">.</span><span class="n">fromSchema</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">fields</span><span class="p">]</span></div>
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">fieldsDict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">)</span>
+<div class="viewcode-block" id="AvroRecord.field"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroRecord.field">[docs]</a>    <span class="k">def</span> <span class="nf">field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fieldsDict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span></div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroRecord.fieldsDict"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroRecord.fieldsDict">[docs]</a>    <span class="k">def</span> <span class="nf">fieldsDict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">AvroField</span><span class="o">.</span><span class="n">fromSchema</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">fields</span><span class="p">)</span></div>
+<div class="viewcode-block" id="AvroRecord.jsonNode"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroRecord.jsonNode">[docs]</a>    <span class="k">def</span> <span class="nf">jsonNode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullName</span> <span class="ow">in</span> <span class="n">memo</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fullName</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">memo</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fullName</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;record&quot;</span><span class="p">}</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="o">!=</span> <span class="s">&quot;&quot;</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+            <span class="n">out</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="n">memo</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">out</span>
+</div></div>
+<div class="viewcode-block" id="AvroUnion"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroUnion">[docs]</a><span class="k">class</span> <span class="nc">AvroUnion</span><span class="p">(</span><span class="n">AvroType</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">types</span><span class="p">):</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">types</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">types</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">titus</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AvroException</span><span class="p">(</span><span class="s">&quot;duplicate in union: &quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">types</span><span class="p">)))</span>
+        <span class="k">if</span> <span class="s">&quot;union&quot;</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">titus</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AvroException</span><span class="p">(</span><span class="s">&quot;nested union: &quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">ts</span><span class="p">,</span> <span class="n">types</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">UnionSchema</span><span class="p">([],</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Names</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="o">.</span><span class="n">_schemas</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">schema</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">types</span><span class="p">]</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroUnion.types"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroUnion.types">[docs]</a>    <span class="k">def</span> <span class="nf">types</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">schemaToAvroType</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span><span class="o">.</span><span class="n">_schemas</span><span class="p">]</span></div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroUnion.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroUnion.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;union&quot;</span></div>
+<div class="viewcode-block" id="AvroUnion.jsonNode"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroUnion.jsonNode">[docs]</a>    <span class="k">def</span> <span class="nf">jsonNode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="n">memo</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">]</span>
+</div></div>
+<div class="viewcode-block" id="AvroField"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroField">[docs]</a><span class="k">class</span> <span class="nc">AvroField</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="AvroField.fromSchema"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroField.fromSchema">[docs]</a>    <span class="k">def</span> <span class="nf">fromSchema</span><span class="p">(</span><span class="n">schema</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">AvroField</span><span class="o">.</span><span class="n">__new__</span><span class="p">(</span><span class="n">AvroField</span><span class="p">)</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">schema</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">avroType</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Field</span><span class="p">(</span><span class="n">avroType</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">to_json</span><span class="p">(),</span> <span class="n">name</span><span class="p">,</span> <span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="n">order</span><span class="p">,</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Names</span><span class="p">())</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroField.schema"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroField.schema">[docs]</a>    <span class="k">def</span> <span class="nf">schema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_schema</span></div>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">to_json</span><span class="p">())</span>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroField.name"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroField.name">[docs]</a>    <span class="k">def</span> <span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">name</span></div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroField.avroType"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroField.avroType">[docs]</a>    <span class="k">def</span> <span class="nf">avroType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">schemaToAvroType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">type</span><span class="p">)</span></div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroField.default"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroField.default">[docs]</a>    <span class="k">def</span> <span class="nf">default</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">default</span></div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroField.order"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroField.order">[docs]</a>    <span class="k">def</span> <span class="nf">order</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">order</span></div>
+<div class="viewcode-block" id="AvroField.jsonNode"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroField.jsonNode">[docs]</a>    <span class="k">def</span> <span class="nf">jsonNode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">avroType</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="n">memo</span><span class="p">)}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s">&quot;default&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s">&quot;order&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">order</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+<span class="c">########################### resolving types out of order in streaming input</span>
+</div></div>
+<div class="viewcode-block" id="AvroPlaceholder"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroPlaceholder">[docs]</a><span class="k">class</span> <span class="nc">AvroPlaceholder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original</span><span class="p">,</span> <span class="n">forwardDeclarationParser</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original</span> <span class="o">=</span> <span class="n">original</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">forwardDeclarationParser</span> <span class="o">=</span> <span class="n">forwardDeclarationParser</span>
+        
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroPlaceholder.avroType"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroPlaceholder.avroType">[docs]</a>    <span class="k">def</span> <span class="nf">avroType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forwardDeclarationParser</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">original</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroPlaceholder</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">avroType</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">avroType</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">AvroType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">avroType</span> <span class="o">==</span> <span class="n">other</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">avroType</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">forwardDeclarationParser</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">original</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">forwardDeclarationParser</span><span class="o">.</span><span class="n">lookup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">original</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&#39;{&quot;type&quot;: &quot;unknown&quot;}&#39;</span>
+
+<div class="viewcode-block" id="AvroPlaceholder.toJson"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroPlaceholder.toJson">[docs]</a>    <span class="k">def</span> <span class="nf">toJson</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="AvroPlaceholder.jsonNode"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroPlaceholder.jsonNode">[docs]</a>    <span class="k">def</span> <span class="nf">jsonNode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">memo</span><span class="o">=</span><span class="nb">set</span><span class="p">()):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">avroType</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="n">memo</span><span class="p">)</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroPlaceholder.parser"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroPlaceholder.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">forwardDeclarationParser</span>
+</div></div>
+<div class="viewcode-block" id="AvroFilledPlaceholder"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroFilledPlaceholder">[docs]</a><span class="k">class</span> <span class="nc">AvroFilledPlaceholder</span><span class="p">(</span><span class="n">AvroPlaceholder</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">avroType</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_avroType</span> <span class="o">=</span> <span class="n">avroType</span>
+
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="AvroFilledPlaceholder.avroType"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroFilledPlaceholder.avroType">[docs]</a>    <span class="k">def</span> <span class="nf">avroType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_avroType</span>
+</div>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">avroType</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="parseAvroType"><a class="viewcode-back" href="../../titus.html#titus.datatype.parseAvroType">[docs]</a><span class="k">def</span> <span class="nf">parseAvroType</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">schemaToAvroType</span><span class="p">(</span><span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">make_avsc_object</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Names</span><span class="p">()))</span>
+</div>
+<div class="viewcode-block" id="ForwardDeclarationParser"><a class="viewcode-back" href="../../titus.html#titus.datatype.ForwardDeclarationParser">[docs]</a><span class="k">class</span> <span class="nc">ForwardDeclarationParser</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">Names</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lookupTable</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="ForwardDeclarationParser.contains"><a class="viewcode-back" href="../../titus.html#titus.datatype.ForwardDeclarationParser.contains">[docs]</a>    <span class="k">def</span> <span class="nf">contains</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">original</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookupTable</span>
+</div>
+<div class="viewcode-block" id="ForwardDeclarationParser.lookup"><a class="viewcode-back" href="../../titus.html#titus.datatype.ForwardDeclarationParser.lookup">[docs]</a>    <span class="k">def</span> <span class="nf">lookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookupTable</span><span class="p">[</span><span class="n">original</span><span class="p">]</span>
+</div>
+    <span class="nd">@property</span>
+<div class="viewcode-block" id="ForwardDeclarationParser.compiledTypes"><a class="viewcode-back" href="../../titus.html#titus.datatype.ForwardDeclarationParser.compiledTypes">[docs]</a>    <span class="k">def</span> <span class="nf">compiledTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lookupTable</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">AvroFixed</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">))]</span>
+</div>
+<div class="viewcode-block" id="ForwardDeclarationParser.parse"><a class="viewcode-back" href="../../titus.html#titus.datatype.ForwardDeclarationParser.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jsonStrings</span><span class="p">):</span>
+        <span class="n">schemae</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">unresolvedSize</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">lastUnresolvedSize</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">errorMessages</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">while</span> <span class="n">unresolvedSize</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">jsonString</span> <span class="ow">in</span> <span class="n">jsonStrings</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">jsonString</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">schemae</span><span class="p">:</span>
+                    <span class="n">obj</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">jsonString</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">has_name</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+                        <span class="n">gotit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">get_name</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+                        <span class="n">schemae</span><span class="p">[</span><span class="n">jsonString</span><span class="p">]</span> <span class="o">=</span> <span class="n">gotit</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">oldnames</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">gotit</span> <span class="o">=</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">make_avsc_object</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+                        <span class="k">except</span> <span class="n">avro</span><span class="o">.</span><span class="n">schema</span><span class="o">.</span><span class="n">SchemaParseException</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">oldnames</span>
+                            <span class="n">errorMessages</span><span class="p">[</span><span class="n">jsonString</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">schemae</span><span class="p">[</span><span class="n">jsonString</span><span class="p">]</span> <span class="o">=</span> <span class="n">gotit</span>
+
+            <span class="n">unresolved</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">jsonStrings</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">schemae</span><span class="p">]</span>
+            <span class="n">unresolvedSize</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">unresolved</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">unresolvedSize</span> <span class="o">==</span> <span class="n">lastUnresolvedSize</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">titus</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">SchemaParseException</span><span class="p">(</span><span class="s">&quot;Could not resolve the following types:</span><span class="se">\n</span><span class="s">    &quot;</span> <span class="o">+</span>
+                    <span class="s">&quot;</span><span class="se">\n</span><span class="s">    &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s">&quot;{0} ({1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">errorMessages</span><span class="p">[</span><span class="n">x</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">jsonStrings</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">schemae</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">lastUnresolvedSize</span> <span class="o">=</span> <span class="n">unresolvedSize</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">schemaToAvroType</span><span class="p">(</span><span class="n">schemae</span><span class="p">[</span><span class="n">x</span><span class="p">]))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">jsonStrings</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lookupTable</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span>
+</div>
+<div class="viewcode-block" id="ForwardDeclarationParser.getSchema"><a class="viewcode-back" href="../../titus.html#titus.datatype.ForwardDeclarationParser.getSchema">[docs]</a>    <span class="k">def</span> <span class="nf">getSchema</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">description</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">getAvroType</span><span class="p">(</span><span class="n">description</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">result</span><span class="o">.</span><span class="n">avroType</span>
+</div>
+<div class="viewcode-block" id="ForwardDeclarationParser.getAvroType"><a class="viewcode-back" href="../../titus.html#titus.datatype.ForwardDeclarationParser.getAvroType">[docs]</a>    <span class="k">def</span> <span class="nf">getAvroType</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">description</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">description</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">has_name</span><span class="p">(</span><span class="n">description</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">schemaToAvroType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">get_name</span><span class="p">(</span><span class="n">description</span><span class="p">,</span> <span class="bp">None</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="s">&quot;null&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">AvroNull</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="s">&quot;boolean&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">AvroBoolean</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="s">&quot;int&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">AvroInt</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="s">&quot;long&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">AvroLong</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="s">&quot;float&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">AvroFloat</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="s">&quot;double&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">AvroDouble</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="s">&quot;bytes&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">AvroBytes</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="s">&quot;string&quot;</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">AvroString</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">obj</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">description</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">getSchema</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">description</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">description</span> <span class="o">==</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;null&quot;</span><span class="p">}:</span>
+                <span class="k">return</span> <span class="n">AvroNull</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;boolean&quot;</span><span class="p">}:</span>
+                <span class="k">return</span> <span class="n">AvroBoolean</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;int&quot;</span><span class="p">}:</span>
+                <span class="k">return</span> <span class="n">AvroInt</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;long&quot;</span><span class="p">}:</span>
+                <span class="k">return</span> <span class="n">AvroLong</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;float&quot;</span><span class="p">}:</span>
+                <span class="k">return</span> <span class="n">AvroFloat</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;double&quot;</span><span class="p">}:</span>
+                <span class="k">return</span> <span class="n">AvroDouble</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;bytes&quot;</span><span class="p">}:</span>
+                <span class="k">return</span> <span class="n">AvroBytes</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span> <span class="o">==</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;string&quot;</span><span class="p">}:</span>
+                <span class="k">return</span> <span class="n">AvroString</span><span class="p">()</span>
+            <span class="k">elif</span> <span class="n">description</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s">&quot;array&quot;</span> <span class="ow">and</span> <span class="s">&quot;items&quot;</span> <span class="ow">in</span> <span class="n">description</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">AvroArray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getSchema</span><span class="p">(</span><span class="n">description</span><span class="p">[</span><span class="s">&quot;items&quot;</span><span class="p">]))</span>
+            <span class="k">elif</span> <span class="n">description</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;type&quot;</span><span class="p">)</span> <span class="o">==</span> <span class="s">&quot;map&quot;</span> <span class="ow">and</span> <span class="s">&quot;values&quot;</span> <span class="ow">in</span> <span class="n">description</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">AvroArray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">getSchema</span><span class="p">(</span><span class="n">description</span><span class="p">[</span><span class="s">&quot;values&quot;</span><span class="p">]))</span>
+            <span class="k">elif</span> <span class="n">description</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;type&quot;</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;fixed&quot;</span><span class="p">,</span> <span class="s">&quot;enum&quot;</span><span class="p">,</span> <span class="s">&quot;record&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">has_name</span><span class="p">(</span><span class="n">description</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">),</span> <span class="n">description</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;namespace&quot;</span><span class="p">)):</span>
+                    <span class="k">return</span> <span class="n">schemaToAvroType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">get_name</span><span class="p">(</span><span class="n">description</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">),</span> <span class="n">description</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;namespace&quot;</span><span class="p">)))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">titus</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AvroException</span><span class="p">(</span><span class="s">&quot;new types, like {0}, cannot be defined with the parser.getAvroType or parser.getSchema methods (use parse)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">description</span><span class="p">)))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">description</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">AvroUnion</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">getSchema</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">description</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">None</span>
+</div></div>
+<div class="viewcode-block" id="AvroTypeBuilder"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroTypeBuilder">[docs]</a><span class="k">class</span> <span class="nc">AvroTypeBuilder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">forwardDeclarationParser</span> <span class="o">=</span> <span class="n">ForwardDeclarationParser</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">originals</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="AvroTypeBuilder.removeEmptyNamespaces"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroTypeBuilder.removeEmptyNamespaces">[docs]</a>    <span class="k">def</span> <span class="nf">removeEmptyNamespaces</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s">&quot;namespace&quot;</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">and</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">x</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;&quot;</span><span class="p">):</span>
+                <span class="k">del</span> <span class="n">x</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">removeEmptyNamespaces</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">removeEmptyNamespaces</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span>
+</div>
+<div class="viewcode-block" id="AvroTypeBuilder.removeDuplicateNames"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroTypeBuilder.removeDuplicateNames">[docs]</a>    <span class="k">def</span> <span class="nf">removeDuplicateNames</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s">&quot;name&quot;</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">and</span> <span class="s">&quot;type&quot;</span> <span class="ow">in</span> <span class="n">x</span> <span class="ow">and</span> <span class="n">x</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;enum&quot;</span><span class="p">,</span> <span class="s">&quot;fixed&quot;</span><span class="p">,</span> <span class="s">&quot;record&quot;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s">&quot;namespace&quot;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot;.&quot;</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">x</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">memo</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">memo</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">!=</span> <span class="n">x</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">titus</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AvroException</span><span class="p">(</span><span class="s">&quot;type name </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> previously defined as</span><span class="se">\n</span><span class="s">{1}</span><span class="se">\n</span><span class="s">now defined as</span><span class="se">\n</span><span class="s">{2}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ts</span><span class="p">(</span><span class="n">jsonNodeToAvroType</span><span class="p">(</span><span class="n">memo</span><span class="p">[</span><span class="n">name</span><span class="p">])),</span> <span class="n">ts</span><span class="p">(</span><span class="n">jsonNodeToAvroType</span><span class="p">(</span><span class="n">x</span><span class="p">))))</span>
+                <span class="k">return</span> <span class="n">name</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">memo</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">x</span>
+                <span class="k">return</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">removeDuplicateNames</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">memo</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">removeDuplicateNames</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">memo</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">removeDuplicateNames</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">memo</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span>
+</div>
+<div class="viewcode-block" id="AvroTypeBuilder.makePlaceholder"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroTypeBuilder.makePlaceholder">[docs]</a>    <span class="k">def</span> <span class="nf">makePlaceholder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">avroJsonString</span><span class="p">,</span> <span class="n">memo</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">memo</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">avroJsonString</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">removeDuplicateNames</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">removeEmptyNamespaces</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">avroJsonString</span><span class="p">)),</span> <span class="n">memo</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">originals</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">avroJsonString</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">AvroPlaceholder</span><span class="p">(</span><span class="n">avroJsonString</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">forwardDeclarationParser</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="AvroTypeBuilder.resolveTypes"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroTypeBuilder.resolveTypes">[docs]</a>    <span class="k">def</span> <span class="nf">resolveTypes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">forwardDeclarationParser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">originals</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">originals</span> <span class="o">=</span> <span class="p">[]</span>
+</div>
+<div class="viewcode-block" id="AvroTypeBuilder.resolveOneType"><a class="viewcode-back" href="../../titus.html#titus.datatype.AvroTypeBuilder.resolveOneType">[docs]</a>    <span class="k">def</span> <span class="nf">resolveOneType</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">avroJsonString</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">ForwardDeclarationParser</span><span class="p">()</span><span class="o">.</span><span class="n">parse</span><span class="p">([</span><span class="n">avroJsonString</span><span class="p">])[</span><span class="n">avroJsonString</span><span class="p">]</span>
+
+<span class="c">########################### Avro-Python is missing a JSON decoder</span>
+</div></div>
+<div class="viewcode-block" id="jsonDecoder"><a class="viewcode-back" href="../../titus.html#titus.datatype.jsonDecoder">[docs]</a><span class="k">def</span> <span class="nf">jsonDecoder</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroNull</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroBoolean</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="bp">True</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">long</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroDouble</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroBytes</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroFixed</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">==</span> <span class="n">avroType</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">out</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroString</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroArray</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">jsonDecoder</span><span class="p">(</span><span class="n">avroType</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">jsonDecoder</span><span class="p">(</span><span class="n">avroType</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+                    <span class="n">out</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">jsonDecoder</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">field</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">out</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">jsonDecoder</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">default</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroNull</span><span class="p">):</span>
+                    <span class="n">out</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">titus</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AvroException</span><span class="p">(</span><span class="s">&quot;{0} does not match schema {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">)))</span>
+            <span class="k">return</span> <span class="n">out</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">tag</span><span class="p">,</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="n">val</span><span class="p">,</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">types</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">{</span><span class="n">tag</span><span class="p">:</span> <span class="n">jsonDecoder</span><span class="p">(</span><span class="n">types</span><span class="p">[</span><span class="n">tag</span><span class="p">],</span> <span class="n">val</span><span class="p">)}</span>
+        <span class="k">elif</span> <span class="n">value</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">and</span> <span class="s">&quot;null&quot;</span> <span class="ow">in</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">types</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span>
+    <span class="k">raise</span> <span class="n">titus</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AvroException</span><span class="p">(</span><span class="s">&quot;{0} does not match schema {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">)))</span>
+</div>
+<div class="viewcode-block" id="jsonEncoder"><a class="viewcode-back" href="../../titus.html#titus.datatype.jsonEncoder">[docs]</a><span class="k">def</span> <span class="nf">jsonEncoder</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroNull</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroBoolean</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">value</span> <span class="ow">is</span> <span class="bp">True</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">True</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">False</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">True</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">False</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">True</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">False</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroDouble</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">True</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">False</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroBytes</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroFixed</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="nb">bytes</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">==</span> <span class="n">avroType</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">out</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroString</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">)</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroArray</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">jsonEncoder</span><span class="p">(</span><span class="n">avroType</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">value</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">jsonEncoder</span><span class="p">(</span><span class="n">avroType</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">value</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">jsonEncoder</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">value</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">field</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">titus</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AvroException</span><span class="p">(</span><span class="s">&quot;{0} does not match schema {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">val</span><span class="p">,</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">types</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">jsonEncoder</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">val</span><span class="p">)}</span>
+                <span class="k">except</span> <span class="n">titus</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AvroException</span><span class="p">:</span>
+                    <span class="k">pass</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">types</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="k">return</span> <span class="p">{</span><span class="n">t</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">jsonEncoder</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">value</span><span class="p">)}</span>
+            <span class="k">except</span> <span class="n">titus</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AvroException</span><span class="p">:</span>
+                <span class="k">pass</span>
+    <span class="k">raise</span> <span class="n">titus</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AvroException</span><span class="p">(</span><span class="s">&quot;{0} does not match schema {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">)))</span>
+
+<span class="c">########################### check data value against type</span>
+</div>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">numpy</span>
+    <span class="n">booleanTypes</span> <span class="o">=</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">bool_</span><span class="p">,)</span>
+    <span class="n">integerTypes</span> <span class="o">=</span> <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">int_</span><span class="p">,</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">intc</span><span class="p">,</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">intp</span><span class="p">,</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">int8</span><span class="p">,</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">int16</span><span class="p">,</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">uint16</span><span class="p">,</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">uint32</span><span class="p">,</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">uint64</span><span class="p">)</span>
+    <span class="n">floatTypes</span>   <span class="o">=</span> <span class="n">integerTypes</span> <span class="o">+</span> \
+                   <span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">float_</span><span class="p">,</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span>
+                    <span class="n">numpy</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="n">booleanTypes</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">integerTypes</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="n">floatTypes</span>   <span class="o">=</span> <span class="p">()</span>
+
+<div class="viewcode-block" id="checkData"><a class="viewcode-back" href="../../titus.html#titus.datatype.checkData">[docs]</a><span class="k">def</span> <span class="nf">checkData</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">avroType</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroNull</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="o">==</span> <span class="s">&quot;null&quot;</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">elif</span> <span class="n">data</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroBoolean</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">data</span> <span class="o">==</span> <span class="s">&quot;true&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="n">data</span> <span class="o">==</span> <span class="s">&quot;false&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">booleanTypes</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">data</span> <span class="ow">is</span> <span class="bp">True</span> <span class="ow">or</span> <span class="n">data</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">integerTypes</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">integerTypes</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">floatTypes</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">)):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroDouble</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">floatTypes</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="p">(</span><span class="n">AvroBytes</span><span class="p">,</span> <span class="n">AvroFixed</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">unicode</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">,</span> <span class="s">&quot;replace&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="p">(</span><span class="n">AvroString</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">,</span> <span class="s">&quot;replace&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">unicode</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroArray</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&quot;__iter__&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">checkData</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">avroType</span><span class="o">.</span><span class="n">items</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&quot;__iter__&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&quot;__getitem__&quot;</span><span class="p">):</span>
+            <span class="n">newData</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">checkData</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">avroType</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                    <span class="n">newData</span><span class="p">[</span><span class="n">key</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">,</span> <span class="s">&quot;replace&quot;</span><span class="p">)]</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">unicode</span><span class="p">):</span>
+                    <span class="n">newData</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found key {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">key</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">newData</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&quot;__iter__&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s">&quot;__getitem__&quot;</span><span class="p">):</span>
+            <span class="n">newData</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, couldn&#39;t find key {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+                <span class="n">newData</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">checkData</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">avroType</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">newData</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">tag</span><span class="p">,</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="n">value</span><span class="p">,</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">tpe</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">types</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">tpe</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">tag</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">tag</span> <span class="o">==</span> <span class="s">&quot;null&quot;</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="n">checkData</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">tpe</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="p">{</span><span class="n">tag</span><span class="p">:</span> <span class="n">checkData</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">tpe</span><span class="p">)}</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">tpe</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">types</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">newData</span> <span class="o">=</span> <span class="n">checkData</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">tpe</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">tpe</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s">&quot;null&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">newData</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">{</span><span class="n">tpe</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">newData</span><span class="p">}</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;expecting {0}, found {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">),</span> <span class="n">data</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">data</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

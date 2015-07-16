@@ -1,0 +1,623 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.lib1.regex &mdash; Titus 0.7.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.7.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.lib1.regex</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c">#</span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">titus.fcn</span> <span class="kn">import</span> <span class="n">Fcn</span>
+<span class="kn">from</span> <span class="nn">titus.fcn</span> <span class="kn">import</span> <span class="n">LibFcn</span>
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">Sig</span>
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">Sigs</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">titus.errors</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">titus.util</span> <span class="kn">import</span> <span class="n">callfcn</span><span class="p">,</span> <span class="n">negativeIndex</span><span class="p">,</span> <span class="n">checkRange</span><span class="p">,</span> <span class="n">startEnd</span>
+<span class="kn">import</span> <span class="nn">titus.P</span> <span class="kn">as</span> <span class="nn">P</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">ctypes</span>
+
+<span class="n">provides</span> <span class="o">=</span> <span class="p">{}</span>
+<div class="viewcode-block" id="provide"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.provide">[docs]</a><span class="k">def</span> <span class="nf">provide</span><span class="p">(</span><span class="n">fcn</span><span class="p">):</span>
+    <span class="n">provides</span><span class="p">[</span><span class="n">fcn</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fcn</span>
+</div>
+<span class="n">prefix</span> <span class="o">=</span> <span class="s">&quot;re.&quot;</span>
+
+<span class="c">####################################################################</span>
+
+<span class="c">## try to import clib (give warning if user doesnt have it)</span>
+<span class="c">## wrap clib for either ubuntu linux or mac after checking system</span>
+<span class="c">#    - works on sys.platform -&gt; darwin, sys.platform -&gt; linux2</span>
+<span class="c">## expose clib regex functionality to Regexer</span>
+
+<span class="c"># this class holds info about clib regex compile settings</span>
+<span class="c"># for use in the future to dynamically wrap clibs regex</span>
+<div class="viewcode-block" id="RegexSpecs"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.RegexSpecs">[docs]</a><span class="k">class</span> <span class="nc">RegexSpecs</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">system</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">platform</span>
+        <span class="k">if</span> <span class="n">system</span> <span class="o">==</span> <span class="s">&quot;linux2&quot;</span><span class="p">:</span>
+            <span class="c"># tested on</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">libname</span> <span class="o">=</span> <span class="s">&quot;libc.so.6&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_linux2Specs</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">importSuccessfull</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="n">system</span> <span class="o">==</span> <span class="s">&quot;darwin&quot;</span><span class="p">:</span>
+            <span class="c"># tested on</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">libname</span> <span class="o">=</span> <span class="s">&quot;libc.dylib&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_darwinSpecs</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">importSuccessfull</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">importSuccessfull</span> <span class="o">=</span> <span class="bp">False</span>
+
+    <span class="k">def</span> <span class="nf">_darwinSpecs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multilineFlag</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">posixExtendedSyntaxFlag</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numNullPointersBefore_re_nsub</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numNullPointersAfter_re_nsub</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">field_re_nsub</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;re_nsub&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">field_rm_so</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;rm_so&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulong</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">field_rm_co</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;rm_co&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_ulong</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_linux2Specs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">multilineFlag</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">posixExtendedSyntaxFlag</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numNullPointersBefore_re_nsub</span> <span class="o">=</span> <span class="mi">6</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numNullPointersAfter_re_nsub</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">field_re_nsub</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;re_nsub&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_size_t</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">field_rm_so</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;rm_so&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">field_rm_co</span> <span class="o">=</span> <span class="p">(</span><span class="s">&quot;rm_co&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_int</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">importSuccessfull</span> <span class="o">=</span> <span class="bp">True</span>
+</div>
+<div class="viewcode-block" id="Regexer"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.Regexer">[docs]</a><span class="k">class</span> <span class="nc">Regexer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="n">firstTime</span> <span class="o">=</span> <span class="bp">True</span>
+    <span class="n">clibSpecs</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">Regex_t</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">Regmatch_t</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">libc</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">Regexer</span><span class="o">.</span><span class="n">firstTime</span><span class="p">:</span>
+            <span class="c"># get clib regex specs for the wrapper</span>
+            <span class="n">Regexer</span><span class="o">.</span><span class="n">clibSpecs</span> <span class="o">=</span> <span class="n">RegexSpecs</span><span class="p">()</span>
+
+            <span class="c"># this block is here to run only when titus evaluates a pfa regex function</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">Regexer</span><span class="o">.</span><span class="n">clibSpecs</span><span class="o">.</span><span class="n">importSuccessfull</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s">&quot;clib unavailable&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c"># define the uninstantiated regex_t class</span>
+                <span class="n">regex_t_fields</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">Regexer</span><span class="o">.</span><span class="n">clibSpecs</span><span class="o">.</span><span class="n">numNullPointersBefore_re_nsub</span><span class="p">):</span>
+                    <span class="n">regex_t_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">(</span><span class="s">&quot;unusedname&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_void_p</span><span class="p">)</span> <span class="p">)</span>
+                <span class="n">regex_t_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Regexer</span><span class="o">.</span><span class="n">clibSpecs</span><span class="o">.</span><span class="n">field_re_nsub</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">Regexer</span><span class="o">.</span><span class="n">clibSpecs</span><span class="o">.</span><span class="n">numNullPointersAfter_re_nsub</span><span class="p">):</span>
+                    <span class="n">regex_t_fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">(</span><span class="s">&quot;unusedname&quot;</span><span class="p">,</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">c_void_p</span><span class="p">)</span> <span class="p">)</span>
+                <span class="n">Regexer</span><span class="o">.</span><span class="n">Regex_t</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="s">&quot;Regex_t&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">Structure</span><span class="p">,),</span> <span class="p">{</span><span class="s">&quot;_fields_&quot;</span><span class="p">:</span> <span class="n">regex_t_fields</span><span class="p">})</span>
+                <span class="c"># define the uninstantiated regmatch_t class</span>
+                <span class="n">regmatch_t_fields</span> <span class="o">=</span> <span class="p">[</span><span class="n">Regexer</span><span class="o">.</span><span class="n">clibSpecs</span><span class="o">.</span><span class="n">field_rm_so</span><span class="p">,</span> <span class="n">Regexer</span><span class="o">.</span><span class="n">clibSpecs</span><span class="o">.</span><span class="n">field_rm_co</span><span class="p">]</span>
+                <span class="n">Regexer</span><span class="o">.</span><span class="n">Regmatch_t</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="s">&quot;Regmatch_t&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">Structure</span><span class="p">,),</span> <span class="p">{</span><span class="s">&quot;_fields_&quot;</span><span class="p">:</span> <span class="n">regmatch_t_fields</span><span class="p">})</span>
+                <span class="c"># actually import the clibrary</span>
+                <span class="n">Regexer</span><span class="o">.</span><span class="n">libc</span> <span class="o">=</span> <span class="n">ctypes</span><span class="o">.</span><span class="n">cdll</span><span class="o">.</span><span class="n">LoadLibrary</span><span class="p">(</span><span class="n">Regexer</span><span class="o">.</span><span class="n">clibSpecs</span><span class="o">.</span><span class="n">libname</span><span class="p">)</span>
+
+            <span class="n">Regexer</span><span class="o">.</span><span class="n">firstTime</span> <span class="o">=</span> <span class="bp">False</span>
+
+        <span class="c"># haystack and pattern come in as type(haystack) == unicode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">haystack</span> <span class="o">=</span> <span class="n">haystack</span>
+        <span class="c"># keep track of haystack unicode indexes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">haystack_indices</span> <span class="o">=</span> <span class="n">utf8ByteIndexes</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">haystack</span><span class="p">))</span>
+        <span class="c"># compile pattern into regex_t object</span>
+        <span class="n">regex_t</span> <span class="o">=</span> <span class="n">Regexer</span><span class="o">.</span><span class="n">Regex_t</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">comp</span> <span class="o">=</span> <span class="n">Regexer</span><span class="o">.</span><span class="n">libc</span><span class="o">.</span><span class="n">regcomp</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">byref</span><span class="p">(</span><span class="n">regex_t</span><span class="p">),</span> <span class="n">pattern</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">),</span> <span class="n">Regexer</span><span class="o">.</span><span class="n">clibSpecs</span><span class="o">.</span><span class="n">posixExtendedSyntaxFlag</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">UnicodeDecodeError</span><span class="p">:</span>
+            <span class="n">comp</span> <span class="o">=</span> <span class="n">Regexer</span><span class="o">.</span><span class="n">libc</span><span class="o">.</span><span class="n">regcomp</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">byref</span><span class="p">(</span><span class="n">regex_t</span><span class="p">),</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">Regexer</span><span class="o">.</span><span class="n">clibSpecs</span><span class="o">.</span><span class="n">posixExtendedSyntaxFlag</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="n">comp</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;bad pattern&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">regex_t</span> <span class="o">=</span> <span class="n">regex_t</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">numGroups</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">regex_t</span><span class="o">.</span><span class="n">re_nsub</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groupArray</span> <span class="o">=</span> <span class="p">(</span><span class="n">Regexer</span><span class="o">.</span><span class="n">Regmatch_t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">numGroups</span><span class="p">)()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indexOffset</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="Regexer.search"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.Regexer.search">[docs]</a>    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">):</span>
+        <span class="n">ex</span> <span class="o">=</span> <span class="n">Regexer</span><span class="o">.</span><span class="n">libc</span><span class="o">.</span><span class="n">regexec</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">byref</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">regex_t</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">haystack</span><span class="p">[</span><span class="n">start</span><span class="p">:],</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">numGroups</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">groupArray</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">indexOffset</span> <span class="o">=</span> <span class="n">start</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">ex</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">start</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">haystack</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+</div>
+<div class="viewcode-block" id="Regexer.groupsFound"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.Regexer.groupsFound">[docs]</a>    <span class="k">def</span> <span class="nf">groupsFound</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># count results in group array that arent (-1, -1)</span>
+        <span class="n">numFound</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">numGroups</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">groupArray</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">rm_so</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">numFound</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">numFound</span>
+</div>
+<div class="viewcode-block" id="Regexer.getRegion"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.Regexer.getRegion">[docs]</a>    <span class="k">def</span> <span class="nf">getRegion</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">Region</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">groupArray</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">indexOffset</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Regexer.free"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.Regexer.free">[docs]</a>    <span class="k">def</span> <span class="nf">free</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c"># free after every use!</span>
+        <span class="n">Regexer</span><span class="o">.</span><span class="n">libc</span><span class="o">.</span><span class="n">regfree</span><span class="p">(</span><span class="n">ctypes</span><span class="o">.</span><span class="n">byref</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">regex_t</span><span class="p">))</span>
+
+<span class="c"># region class (for use similar to joni in scala)</span></div></div>
+<div class="viewcode-block" id="Region"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.Region">[docs]</a><span class="k">class</span> <span class="nc">Region</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">groupArray</span><span class="p">,</span> <span class="n">indexOffset</span><span class="p">):</span>
+        <span class="n">beg</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">groupArray</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">groupArray</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">rm_so</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="n">beg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">groupArray</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">rm_so</span><span class="p">)</span> <span class="o">+</span> <span class="n">indexOffset</span><span class="p">)</span>
+                <span class="n">end</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">groupArray</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">rm_co</span><span class="p">)</span> <span class="o">+</span> <span class="n">indexOffset</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">beg</span> <span class="o">=</span> <span class="n">beg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">end</span> <span class="o">=</span> <span class="n">end</span>
+</div>
+<div class="viewcode-block" id="utf8ByteIndexes"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.utf8ByteIndexes">[docs]</a><span class="k">def</span> <span class="nf">utf8ByteIndexes</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">cumulative</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">)):</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cumulative</span><span class="p">)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="nb">ord</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">if</span>   <span class="p">(</span><span class="n">c</span> <span class="o">&lt;=</span>     <span class="mh">0x7f</span><span class="p">):</span> <span class="n">cumulative</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">c</span> <span class="o">&lt;=</span>    <span class="mh">0x7ff</span><span class="p">):</span> <span class="n">cumulative</span> <span class="o">+=</span> <span class="mi">2</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">c</span> <span class="o">&lt;=</span>   <span class="mh">0xffff</span><span class="p">):</span> <span class="n">cumulative</span> <span class="o">+=</span> <span class="mi">3</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">c</span> <span class="o">&lt;=</span> <span class="mh">0x1fffff</span><span class="p">):</span> <span class="n">cumulative</span> <span class="o">+=</span> <span class="mi">4</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span>
+    <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="convert"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.convert">[docs]</a><span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramType0</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">paramType0</span> <span class="o">==</span> <span class="s">&quot;string&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">haystack</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">),</span> <span class="n">pattern</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">),</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span>
+
+<span class="c">############################################################# Index</span></div>
+<div class="viewcode-block" id="Index"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.Index">[docs]</a><span class="k">class</span> <span class="nc">Index</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;index&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())),</span>
+               <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span>  <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="mi">0</span><span class="p">):</span>
+            <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Index</span><span class="p">())</span>
+
+<span class="c">############################################################# Contains</span>
+<div class="viewcode-block" id="Contains"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.Contains">[docs]</a><span class="k">class</span> <span class="nc">Contains</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;contains&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span>  <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Contains</span><span class="p">())</span>
+
+<span class="c">############################################################# Count</span>
+<div class="viewcode-block" id="Count"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.Count">[docs]</a><span class="k">class</span> <span class="nc">Count</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;count&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span>  <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">while</span> <span class="n">found</span><span class="p">:</span>
+            <span class="n">total</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+            <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">total</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Count</span><span class="p">())</span>
+
+<span class="c">############################################################# Rindex</span>
+<div class="viewcode-block" id="RIndex"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.RIndex">[docs]</a><span class="k">class</span> <span class="nc">RIndex</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;rindex&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">found</span><span class="p">:</span>
+                <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">RIndex</span><span class="p">())</span>
+
+<span class="c">############################################################# Groups</span>
+<div class="viewcode-block" id="Groups"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.Groups">[docs]</a><span class="k">class</span> <span class="nc">Groups</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;groups&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()))),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">groupsFound</span><span class="p">()):</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Groups</span><span class="p">())</span>
+
+<span class="c">############################################################# IndexAll</span>
+<div class="viewcode-block" id="IndexAll"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.IndexAll">[docs]</a><span class="k">class</span> <span class="nc">IndexAll</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;indexall&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()))),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">found</span><span class="p">:</span>
+                <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">IndexAll</span><span class="p">())</span>
+
+<span class="c">############################################################# FindAll</span>
+<div class="viewcode-block" id="FindAll"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.FindAll">[docs]</a><span class="k">class</span> <span class="nc">FindAll</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;findall&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">found</span><span class="p">:</span>
+                <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]]))</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">FindAll</span><span class="p">())</span>
+
+<span class="c">############################################################# FindFirst</span>
+<div class="viewcode-block" id="FindFirst"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.FindFirst">[docs]</a><span class="k">class</span> <span class="nc">FindFirst</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;findfirst&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">())])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+            <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">FindFirst</span><span class="p">())</span>
+
+<span class="c">############################################################# FindGroupsFirst</span>
+<div class="viewcode-block" id="FindGroupsFirst"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.FindGroupsFirst">[docs]</a><span class="k">class</span> <span class="nc">FindGroupsFirst</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;findgroupsfirst&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">found</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="n">re</span><span class="o">.</span><span class="n">groupsFound</span><span class="p">()):</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span><span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="n">i</span><span class="p">]]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">FindGroupsFirst</span><span class="p">())</span>
+
+<span class="c">############################################################# FindGroupsAll</span>
+<div class="viewcode-block" id="FindGroupsAll"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.FindGroupsAll">[docs]</a><span class="k">class</span> <span class="nc">FindGroupsAll</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;findgroupsall&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()))),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">())))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">found</span><span class="p">:</span>
+                <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+                <span class="n">groupList</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">groupsFound</span><span class="p">()):</span>
+                    <span class="n">groupList</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span><span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="n">i</span><span class="p">]]))</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">groupList</span><span class="p">)</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">FindGroupsAll</span><span class="p">())</span>
+
+<span class="c">############################################################# GroupsAll</span>
+<div class="viewcode-block" id="GroupsAll"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.GroupsAll">[docs]</a><span class="k">class</span> <span class="nc">GroupsAll</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;groupsall&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())))),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()))))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">found</span><span class="p">:</span>
+                <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+                <span class="n">groupList</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">groupsFound</span><span class="p">()):</span>
+                    <span class="n">groupList</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">groupList</span><span class="p">)</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">GroupsAll</span><span class="p">())</span>
+
+<span class="c">############################################################# ReplaceFirst</span>
+<div class="viewcode-block" id="ReplaceFirst"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.ReplaceFirst">[docs]</a><span class="k">class</span> <span class="nc">ReplaceFirst</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;replacefirst&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;replacement&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;replacement&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">())])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">replacement</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">[:</span><span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">+</span> <span class="n">replacement</span> <span class="o">+</span> <span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]:])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">)</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ReplaceFirst</span><span class="p">())</span>
+
+<span class="c">############################################################# ReplaceLast</span>
+<div class="viewcode-block" id="ReplaceLast"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.ReplaceLast">[docs]</a><span class="k">class</span> <span class="nc">ReplaceLast</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;replacelast&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;replacement&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;replacement&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">())])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">replacement</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">found</span><span class="p">:</span>
+                <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">[:</span><span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span> <span class="o">+</span> <span class="n">replacement</span> <span class="o">+</span> <span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]:])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">)</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ReplaceLast</span><span class="p">())</span>
+
+<span class="c">############################################################# Split</span>
+<div class="viewcode-block" id="Split"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.Split">[docs]</a><span class="k">class</span> <span class="nc">Split</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;split&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+        <span class="n">beg</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">end</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="n">flag</span> <span class="o">=</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">flag</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">found</span><span class="p">:</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="n">beg</span><span class="p">:</span><span class="n">end</span><span class="p">]))</span>
+                <span class="n">beg</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">beg</span><span class="p">)</span>
+                <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">beg</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">haystack</span><span class="p">):</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="n">beg</span><span class="p">:]))</span>
+            <span class="k">if</span> <span class="n">flag</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">)</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Split</span><span class="p">())</span>
+
+<span class="c">############################################################# ReplaceAll</span>
+<div class="viewcode-block" id="ReplaceAll"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.regex.ReplaceAll">[docs]</a><span class="k">class</span> <span class="nc">ReplaceAll</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;replaceall&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;replacement&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;haystack&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;pattern&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;replacement&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">())])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">replacement</span><span class="p">):</span>
+        <span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">re</span> <span class="o">=</span> <span class="n">Regexer</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">pattern</span><span class="p">)</span>
+        <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+        <span class="n">beg</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">found</span><span class="p">:</span>
+            <span class="k">while</span> <span class="n">found</span><span class="p">:</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">+</span> <span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="n">beg</span><span class="p">:</span><span class="n">end</span><span class="p">])</span> <span class="o">+</span> <span class="n">replacement</span>
+                <span class="n">beg</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">end</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">found</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">beg</span><span class="p">)</span>
+                <span class="n">region</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">getRegion</span><span class="p">()</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">region</span><span class="o">.</span><span class="n">beg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">beg</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">haystack</span><span class="p">):</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">out</span> <span class="o">+</span> <span class="n">to</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="n">beg</span><span class="p">:])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">haystack</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s">&quot;utf-8&quot;</span><span class="p">)</span>
+        <span class="n">re</span><span class="o">.</span><span class="n">free</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">out</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ReplaceAll</span><span class="p">())</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,390 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.lib1.core &mdash; Titus 0.7.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.7.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.lib1.core</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">from</span> <span class="nn">titus.errors</span> <span class="kn">import</span> <span class="n">PFARuntimeException</span>
+<span class="kn">from</span> <span class="nn">titus.fcn</span> <span class="kn">import</span> <span class="n">Fcn</span>
+<span class="kn">from</span> <span class="nn">titus.fcn</span> <span class="kn">import</span> <span class="n">LibFcn</span>
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">Sig</span>
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">Sigs</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">titus.P</span> <span class="kn">as</span> <span class="nn">P</span>
+
+<span class="n">provides</span> <span class="o">=</span> <span class="p">{}</span>
+<div class="viewcode-block" id="provide"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.provide">[docs]</a><span class="k">def</span> <span class="nf">provide</span><span class="p">(</span><span class="n">fcn</span><span class="p">):</span>
+    <span class="n">provides</span><span class="p">[</span><span class="n">fcn</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fcn</span>
+</div>
+<span class="n">anyNumber</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">AvroInt</span><span class="p">(),</span> <span class="n">AvroLong</span><span class="p">(),</span> <span class="n">AvroFloat</span><span class="p">(),</span> <span class="n">AvroDouble</span><span class="p">()])</span>
+
+<span class="n">INT_MIN_VALUE</span> <span class="o">=</span> <span class="o">-</span><span class="mi">2147483648</span>
+<span class="n">INT_MAX_VALUE</span> <span class="o">=</span> <span class="mi">2147483647</span>
+<span class="n">LONG_MIN_VALUE</span> <span class="o">=</span> <span class="o">-</span><span class="mi">9223372036854775808</span>
+<span class="n">LONG_MAX_VALUE</span> <span class="o">=</span> <span class="mi">9223372036854775807</span>
+<span class="n">FLOAT_MIN_VALUE</span> <span class="o">=</span> <span class="mf">1.4e-45</span>
+<span class="n">FLOAT_MAX_VALUE</span> <span class="o">=</span> <span class="mf">3.4028235e38</span>
+<span class="n">DOUBLE_MIN_VALUE</span> <span class="o">=</span> <span class="mf">4.9e-324</span>
+<span class="n">DOUBLE_MAX_VALUE</span> <span class="o">=</span> <span class="mf">1.7976931348623157e308</span>
+
+<div class="viewcode-block" id="checkForOverflow"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.checkForOverflow">[docs]</a><span class="k">def</span> <span class="nf">checkForOverflow</span><span class="p">(</span><span class="n">paramTypes</span><span class="p">,</span> <span class="n">out</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;int&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">out</span> <span class="o">&lt;</span> <span class="n">INT_MIN_VALUE</span> <span class="ow">or</span> <span class="n">out</span> <span class="o">&gt;</span> <span class="n">INT_MAX_VALUE</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;int overflow&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">out</span>
+    <span class="k">elif</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;long&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">out</span> <span class="o">&lt;</span> <span class="n">LONG_MIN_VALUE</span> <span class="ow">or</span> <span class="n">out</span> <span class="o">&gt;</span> <span class="n">LONG_MAX_VALUE</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;long overflow&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">out</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">out</span>
+    
+<span class="c">#################################################################### basic arithmetic</span>
+</div>
+<div class="viewcode-block" id="Plus"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Plus">[docs]</a><span class="k">class</span> <span class="nc">Plus</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;+&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span> <span class="n">anyNumber</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span> <span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">checkForOverflow</span><span class="p">(</span><span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Plus</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Minus"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Minus">[docs]</a><span class="k">class</span> <span class="nc">Minus</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;-&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span> <span class="n">anyNumber</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">checkForOverflow</span><span class="p">(</span><span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span> <span class="o">-</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Minus</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Times"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Times">[docs]</a><span class="k">class</span> <span class="nc">Times</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;*&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span> <span class="n">anyNumber</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">checkForOverflow</span><span class="p">(</span><span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span> <span class="o">*</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Times</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Divide"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Divide">[docs]</a><span class="k">class</span> <span class="nc">Divide</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;/&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;nan&quot;</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Divide</span><span class="p">())</span>
+
+<div class="viewcode-block" id="FloorDivide"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.FloorDivide">[docs]</a><span class="k">class</span> <span class="nc">FloorDivide</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;//&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span> <span class="nb">set</span><span class="p">([</span><span class="n">AvroInt</span><span class="p">(),</span> <span class="n">AvroLong</span><span class="p">()]))},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">))</span>
+<div class="viewcode-block" id="FloorDivide.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.FloorDivide.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} // {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">//</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">FloorDivide</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Negative"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Negative">[docs]</a><span class="k">class</span> <span class="nc">Negative</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;u-&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span> <span class="n">anyNumber</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">checkForOverflow</span><span class="p">(</span><span class="n">paramTypes</span><span class="p">,</span> <span class="o">-</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Negative</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Modulo"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Modulo">[docs]</a><span class="k">class</span> <span class="nc">Modulo</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;%&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;k&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span> <span class="n">anyNumber</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;n&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">))</span>
+<div class="viewcode-block" id="Modulo.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Modulo.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} % {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">%</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Modulo</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Remainder"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Remainder">[docs]</a><span class="k">class</span> <span class="nc">Remainder</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%%</span><span class="s">&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;k&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span> <span class="n">anyNumber</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;n&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="n">q</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">trunc</span><span class="p">(</span><span class="n">x</span> <span class="o">/</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">copysign</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">y</span> <span class="o">*</span> <span class="n">q</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Remainder</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Pow"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Pow">[docs]</a><span class="k">class</span> <span class="nc">Pow</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;**&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span> <span class="n">anyNumber</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">checkForOverflow</span><span class="p">(</span><span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="o">**</span><span class="n">y</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Pow</span><span class="p">())</span>
+
+<span class="c">#################################################################### generic comparison operators</span>
+
+<div class="viewcode-block" id="Comparison"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Comparison">[docs]</a><span class="k">class</span> <span class="nc">Comparison</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;cmp&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+<div class="viewcode-block" id="Comparison.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Comparison.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;cmp({0}, {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">cmp</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Comparison</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Equal"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Equal">[docs]</a><span class="k">class</span> <span class="nc">Equal</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;==&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+<div class="viewcode-block" id="Equal.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Equal.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} == {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">==</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Equal</span><span class="p">())</span>
+
+<div class="viewcode-block" id="GreaterOrEqual"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.GreaterOrEqual">[docs]</a><span class="k">class</span> <span class="nc">GreaterOrEqual</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;&gt;=&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+<div class="viewcode-block" id="GreaterOrEqual.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.GreaterOrEqual.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} &gt;= {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">GreaterOrEqual</span><span class="p">())</span>
+
+<div class="viewcode-block" id="GreaterThan"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.GreaterThan">[docs]</a><span class="k">class</span> <span class="nc">GreaterThan</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;&gt;&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+<div class="viewcode-block" id="GreaterThan.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.GreaterThan.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} &gt; {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">GreaterThan</span><span class="p">())</span>
+
+<div class="viewcode-block" id="NotEqual"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.NotEqual">[docs]</a><span class="k">class</span> <span class="nc">NotEqual</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;!=&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+<div class="viewcode-block" id="NotEqual.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.NotEqual.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} != {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">!=</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">NotEqual</span><span class="p">())</span>
+
+<div class="viewcode-block" id="LessThan"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.LessThan">[docs]</a><span class="k">class</span> <span class="nc">LessThan</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;&lt;&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+<div class="viewcode-block" id="LessThan.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.LessThan.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} &lt; {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">LessThan</span><span class="p">())</span>
+
+<div class="viewcode-block" id="LessOrEqual"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.LessOrEqual">[docs]</a><span class="k">class</span> <span class="nc">LessOrEqual</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;&lt;=&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+<div class="viewcode-block" id="LessOrEqual.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.LessOrEqual.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} &lt;= {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">&lt;=</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">LessOrEqual</span><span class="p">())</span>
+
+<span class="c">#################################################################### max and min</span>
+
+<div class="viewcode-block" id="Max"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Max">[docs]</a><span class="k">class</span> <span class="nc">Max</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;max&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">))</span>
+<div class="viewcode-block" id="Max.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Max.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;max({0}, {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Max</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Min"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Min">[docs]</a><span class="k">class</span> <span class="nc">Min</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;min&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">))</span>
+<div class="viewcode-block" id="Min.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.Min.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;min({0}, {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Min</span><span class="p">())</span>
+
+<span class="c">#################################################################### logical operators</span>
+
+<div class="viewcode-block" id="LogicalAnd"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.LogicalAnd">[docs]</a><span class="k">class</span> <span class="nc">LogicalAnd</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;&amp;&amp;&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+<div class="viewcode-block" id="LogicalAnd.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.LogicalAnd.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} and {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="ow">and</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">LogicalAnd</span><span class="p">())</span>
+
+<div class="viewcode-block" id="LogicalOr"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.LogicalOr">[docs]</a><span class="k">class</span> <span class="nc">LogicalOr</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;||&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+<div class="viewcode-block" id="LogicalOr.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.LogicalOr.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} or {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="ow">or</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">LogicalOr</span><span class="p">())</span>
+
+<div class="viewcode-block" id="LogicalXOr"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.LogicalXOr">[docs]</a><span class="k">class</span> <span class="nc">LogicalXOr</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;^^&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="ow">or</span> <span class="n">y</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">x</span> <span class="ow">and</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">LogicalXOr</span><span class="p">())</span>
+
+<div class="viewcode-block" id="LogicalNot"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.LogicalNot">[docs]</a><span class="k">class</span> <span class="nc">LogicalNot</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;!&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+<div class="viewcode-block" id="LogicalNot.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.LogicalNot.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;(not {0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="ow">not</span> <span class="n">x</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">LogicalNot</span><span class="p">())</span>
+
+<span class="c">#################################################################### bitwise arithmetic</span>
+
+<div class="viewcode-block" id="BitwiseAnd"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.BitwiseAnd">[docs]</a><span class="k">class</span> <span class="nc">BitwiseAnd</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;&amp;&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">())])</span>
+<div class="viewcode-block" id="BitwiseAnd.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.BitwiseAnd.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} &amp; {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">&amp;</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">BitwiseAnd</span><span class="p">())</span>
+
+<div class="viewcode-block" id="BitwiseOr"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.BitwiseOr">[docs]</a><span class="k">class</span> <span class="nc">BitwiseOr</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;|&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">())])</span>
+
+<div class="viewcode-block" id="BitwiseOr.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.BitwiseOr.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} | {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">|</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">BitwiseOr</span><span class="p">())</span>
+
+<div class="viewcode-block" id="BitwiseXOr"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.BitwiseXOr">[docs]</a><span class="k">class</span> <span class="nc">BitwiseXOr</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;^&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">())])</span>
+<div class="viewcode-block" id="BitwiseXOr.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.BitwiseXOr.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;({0} ^ {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span> <span class="o">^</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">BitwiseXOr</span><span class="p">())</span>
+
+<div class="viewcode-block" id="BitwiseNot"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.BitwiseNot">[docs]</a><span class="k">class</span> <span class="nc">BitwiseNot</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;~&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">())])</span>
+<div class="viewcode-block" id="BitwiseNot.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.core.BitwiseNot.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;(~{0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="o">~</span><span class="n">x</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">BitwiseNot</span><span class="p">())</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

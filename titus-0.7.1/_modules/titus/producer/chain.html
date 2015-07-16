@@ -1,0 +1,701 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.producer.chain &mdash; Titus 0.7.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.7.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.producer.chain</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">json</span> <span class="kn">as</span> <span class="nn">jsonlib</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">import</span> <span class="nn">avro.schema</span>
+
+<span class="kn">import</span> <span class="nn">titus.pfaast</span>
+<span class="kn">import</span> <span class="nn">titus.reader</span>
+<span class="kn">from</span> <span class="nn">titus.util</span> <span class="kn">import</span> <span class="n">ts</span>
+
+<span class="kn">from</span> <span class="nn">titus.genpy</span> <span class="kn">import</span> <span class="n">PFAEngine</span>
+
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">schemaToAvroType</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroNull</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroBoolean</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroInt</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroLong</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroFloat</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroDouble</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroBytes</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroFixed</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroString</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroEnum</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroArray</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroMap</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroRecord</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroUnion</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroField</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroTypeBuilder</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">jsonDecoder</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">jsonEncoder</span>
+
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">Method</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">EngineConfig</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">CellPoolSource</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">Cell</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">Pool</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">FcnDef</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">FcnRef</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">FcnRefFill</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">CallUserFcn</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">Call</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">Ref</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">LiteralNull</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">Literal</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">NewObject</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">NewArray</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">Do</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">CellGet</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">CellTo</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">PoolGet</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">PoolTo</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">CastCase</span>
+<span class="kn">from</span> <span class="nn">titus.pfaast</span> <span class="kn">import</span> <span class="n">Upcast</span>
+
+<div class="viewcode-block" id="PFAChainError"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.chain.PFAChainError">[docs]</a><span class="k">class</span> <span class="nc">PFAChainError</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span> <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="jsonNode"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.chain.jsonNode">[docs]</a><span class="k">def</span> <span class="nf">jsonNode</span><span class="p">(</span><span class="n">pfas</span><span class="p">,</span> <span class="n">lineNumbers</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">randseed</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{},</span> <span class="n">options</span><span class="o">=</span><span class="p">{},</span> <span class="n">tryYaml</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ast</span><span class="p">(</span><span class="n">pfas</span><span class="p">,</span> <span class="n">check</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">randseed</span><span class="p">,</span> <span class="n">doc</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">tryYaml</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="n">lineNumbers</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="json"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.chain.json">[docs]</a><span class="k">def</span> <span class="nf">json</span><span class="p">(</span><span class="n">pfas</span><span class="p">,</span> <span class="n">lineNumbers</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">randseed</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{},</span> <span class="n">options</span><span class="o">=</span><span class="p">{},</span> <span class="n">tryYaml</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ast</span><span class="p">(</span><span class="n">pfas</span><span class="p">,</span> <span class="n">check</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">randseed</span><span class="p">,</span> <span class="n">doc</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">tryYaml</span><span class="p">,</span> <span class="n">verbose</span><span class="p">)</span><span class="o">.</span><span class="n">toJson</span><span class="p">(</span><span class="n">lineNumbers</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="engine"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.chain.engine">[docs]</a><span class="k">def</span> <span class="nf">engine</span><span class="p">(</span><span class="n">pfas</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">randseed</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{},</span> <span class="n">options</span><span class="o">=</span><span class="p">{},</span> <span class="n">tryYaml</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">sharedState</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">multiplicity</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">style</span><span class="o">=</span><span class="s">&quot;pure&quot;</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">PFAEngine</span><span class="o">.</span><span class="n">fromAst</span><span class="p">(</span><span class="n">ast</span><span class="p">(</span><span class="n">pfas</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">randseed</span><span class="p">,</span> <span class="n">doc</span><span class="p">,</span> <span class="n">version</span><span class="p">,</span> <span class="n">metadata</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">tryYaml</span><span class="p">,</span> <span class="n">verbose</span><span class="p">),</span> <span class="n">options</span><span class="p">,</span> <span class="n">sharedState</span><span class="p">,</span> <span class="n">multiplicity</span><span class="p">,</span> <span class="n">style</span><span class="p">,</span> <span class="n">debug</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="ast"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.chain.ast">[docs]</a><span class="k">def</span> <span class="nf">ast</span><span class="p">(</span><span class="n">pfas</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">randseed</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">doc</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">version</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{},</span> <span class="n">options</span><span class="o">=</span><span class="p">{},</span> <span class="n">tryYaml</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="c"># normalize all input forms to ASTs</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot; Converting all inputs to ASTs</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+    <span class="n">asts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">src</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pfas</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;     step {0}</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">EngineConfig</span><span class="p">):</span>
+            <span class="n">ast</span> <span class="o">=</span> <span class="n">src</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">ast</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">jsonToAst</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">ast</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">jsonToAst</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">tryYaml</span><span class="p">:</span>
+                    <span class="n">ast</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">reader</span><span class="o">.</span><span class="n">yamlToAst</span><span class="p">(</span><span class="n">src</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span>
+        <span class="n">asts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ast</span><span class="p">)</span>
+    <span class="n">pfas</span> <span class="o">=</span> <span class="n">asts</span>
+
+    <span class="c"># helper functions for transforming names</span>
+    <span class="k">def</span> <span class="nf">split</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s">&quot;.&quot;</span> <span class="ow">in</span> <span class="n">t</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">t</span><span class="p">[:</span><span class="n">t</span><span class="o">.</span><span class="n">rindex</span><span class="p">(</span><span class="s">&quot;.&quot;</span><span class="p">)],</span> <span class="n">t</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">rindex</span><span class="p">(</span><span class="s">&quot;.&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span><span class="p">,</span> <span class="n">t</span>
+
+    <span class="k">def</span> <span class="nf">join</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">n</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">ns</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">ns</span> <span class="o">==</span> <span class="s">&quot;&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">n</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">ns</span> <span class="o">+</span> <span class="s">&quot;.&quot;</span> <span class="o">+</span> <span class="n">n</span>
+
+    <span class="k">def</span> <span class="nf">prefixType</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="n">ns</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">join</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="s">&quot;Step{0:d}_{1}_{2}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pfa</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">prefixAction</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;step{0:d}_{1}_action&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pfa</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">prefixFcnRef</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&quot;u.&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s">&quot;u.step{0:d}_{1}_fcn_{2}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pfa</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span>
+
+    <span class="k">def</span> <span class="nf">prefixFcnDef</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;step{0:d}_{1}_fcn_{2}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pfa</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">prefixCell</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;step{0:d}_{1}_{2}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pfa</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">prefixPool</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;step{0:d}_{1}_{2}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pfa</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+    <span class="c"># define new names for all types to avoid type name collisions</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot; Changing type names to avoid collisions</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+    <span class="n">originalNameToNewName</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pfa</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pfas</span><span class="p">):</span>
+        <span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">typeName</span> <span class="ow">in</span> <span class="n">pfa</span><span class="o">.</span><span class="n">inputPlaceholder</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">typeName</span><span class="p">]</span> <span class="o">=</span> <span class="n">prefixType</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">typeName</span><span class="p">)</span>
+
+    <span class="c"># but any names in the input to the first and the output from the last should not be changed</span>
+    <span class="k">def</span> <span class="nf">trivialName</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">avroType</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroArray</span><span class="p">):</span>
+            <span class="n">trivialName</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">avroType</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">memo</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">):</span>
+            <span class="n">trivialName</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">avroType</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">memo</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">types</span><span class="p">:</span>
+                <span class="n">trivialName</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">memo</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="p">(</span><span class="n">AvroFixed</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">)):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">avroType</span><span class="o">.</span><span class="n">fullName</span>
+            <span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">avroType</span><span class="o">.</span><span class="n">fullName</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">memo</span><span class="p">:</span>
+                <span class="n">memo</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+                    <span class="n">trivialName</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">memo</span><span class="p">)</span>
+                <span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="n">t</span>
+    <span class="n">trivialName</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pfas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+    <span class="n">trivialName</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pfas</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pfas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">output</span><span class="p">,</span> <span class="nb">set</span><span class="p">())</span>
+
+    <span class="c"># ensure that chained types match and will be given the same names</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot; Verifying that input/output schemas match along the chain</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">chainPair</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroNull</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroNull</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroBoolean</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroBoolean</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroDouble</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroDouble</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroBytes</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroBytes</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroFixed</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroFixed</span><span class="p">):</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">avroType</span><span class="o">.</span><span class="n">fullName</span>
+            <span class="k">if</span> <span class="n">first</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">second</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+                <span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">][</span><span class="n">second</span><span class="o">.</span><span class="n">fullName</span><span class="p">]</span> <span class="o">=</span> <span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">first</span><span class="o">.</span><span class="n">fullName</span><span class="p">]</span>
+                <span class="k">return</span> <span class="bp">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroString</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroString</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">first</span><span class="o">.</span><span class="n">symbols</span> <span class="o">==</span> <span class="n">second</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+                <span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">][</span><span class="n">second</span><span class="o">.</span><span class="n">fullName</span><span class="p">]</span> <span class="o">=</span> <span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">first</span><span class="o">.</span><span class="n">fullName</span><span class="p">]</span>
+                <span class="k">return</span> <span class="bp">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroArray</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroArray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">chainPair</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">first</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">second</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">memo</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">chainPair</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">first</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">second</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">memo</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">first</span><span class="o">.</span><span class="n">fullName</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">memo</span><span class="p">:</span>
+                <span class="n">memo</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">first</span><span class="o">.</span><span class="n">fullName</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">first</span><span class="o">.</span><span class="n">fields</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">second</span><span class="o">.</span><span class="n">fields</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="bp">False</span>
+                <span class="k">for</span> <span class="n">f1</span><span class="p">,</span> <span class="n">f2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">first</span><span class="o">.</span><span class="n">fields</span><span class="p">,</span> <span class="n">second</span><span class="o">.</span><span class="n">fields</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">f1</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">f2</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="bp">False</span>
+                    <span class="k">elif</span> <span class="ow">not</span> <span class="n">chainPair</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">f1</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">f2</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="bp">False</span>
+                <span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">][</span><span class="n">second</span><span class="o">.</span><span class="n">fullName</span><span class="p">]</span> <span class="o">=</span> <span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">first</span><span class="o">.</span><span class="n">fullName</span><span class="p">]</span>
+                <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">second</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">yt</span> <span class="ow">in</span> <span class="n">second</span><span class="o">.</span><span class="n">types</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">chainPair</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">xt</span><span class="p">,</span> <span class="n">yt</span><span class="p">,</span> <span class="n">memo</span><span class="p">)</span> <span class="k">for</span> <span class="n">xt</span> <span class="ow">in</span> <span class="n">first</span><span class="o">.</span><span class="n">types</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="bp">False</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pfas</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">first</span> <span class="o">=</span> <span class="n">pfas</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">output</span>
+        <span class="n">second</span> <span class="o">=</span> <span class="n">pfas</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">input</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">chainPair</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="nb">set</span><span class="p">()):</span>
+            <span class="k">raise</span> <span class="n">PFAChainError</span><span class="p">(</span><span class="s">&quot;output of engine {0}: {1} not compatible with input of engine {2}: {3}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ts</span><span class="p">(</span><span class="n">first</span><span class="p">),</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">ts</span><span class="p">(</span><span class="n">second</span><span class="p">)))</span>
+
+    <span class="k">def</span> <span class="nf">rename</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">avroType</span><span class="p">,</span> <span class="n">memo</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroArray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;array&quot;</span><span class="p">,</span> <span class="s">&quot;items&quot;</span><span class="p">:</span> <span class="n">rename</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">avroType</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">memo</span><span class="p">)}</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;map&quot;</span><span class="p">,</span> <span class="s">&quot;values&quot;</span><span class="p">:</span> <span class="n">rename</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">avroType</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">memo</span><span class="p">)}</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">rename</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">memo</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">types</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroFixed</span><span class="p">):</span>
+            <span class="n">ns</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">avroType</span><span class="o">.</span><span class="n">fullName</span><span class="p">])</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;fixed&quot;</span><span class="p">,</span> <span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="n">n</span><span class="p">,</span> <span class="s">&quot;size&quot;</span><span class="p">:</span> <span class="n">avroType</span><span class="o">.</span><span class="n">size</span><span class="p">}</span>
+            <span class="k">if</span> <span class="n">ns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ns</span>
+            <span class="k">return</span> <span class="n">out</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">):</span>
+            <span class="n">ns</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">avroType</span><span class="o">.</span><span class="n">fullName</span><span class="p">])</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;enum&quot;</span><span class="p">,</span> <span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="n">n</span><span class="p">,</span> <span class="s">&quot;symbols&quot;</span><span class="p">:</span> <span class="n">avroType</span><span class="o">.</span><span class="n">symbols</span><span class="p">}</span>
+            <span class="k">if</span> <span class="n">ns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ns</span>
+            <span class="k">return</span> <span class="n">out</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">):</span>
+            <span class="n">newName</span> <span class="o">=</span> <span class="n">originalNameToNewName</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">avroType</span><span class="o">.</span><span class="n">fullName</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">newName</span> <span class="ow">in</span> <span class="n">memo</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">memo</span><span class="p">[</span><span class="n">newName</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ns</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">split</span><span class="p">(</span><span class="n">newName</span><span class="p">)</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;record&quot;</span><span class="p">,</span> <span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="n">n</span><span class="p">,</span> <span class="s">&quot;fields&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+                <span class="k">if</span> <span class="n">ns</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">out</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ns</span>
+                <span class="n">memo</span><span class="p">[</span><span class="n">newName</span><span class="p">]</span> <span class="o">=</span> <span class="n">join</span><span class="p">(</span><span class="n">ns</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">avroType</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+                    <span class="n">newf</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="n">rename</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">memo</span><span class="p">)}</span>
+                    <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                        <span class="n">newf</span><span class="p">[</span><span class="s">&quot;default&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">default</span>
+                    <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">order</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                        <span class="n">newf</span><span class="p">[</span><span class="s">&quot;order&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">order</span>
+                    <span class="n">out</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">newf</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">out</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">jsonlib</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">avroType</span><span class="p">))</span>
+
+    <span class="n">avroTypeBuilder</span> <span class="o">=</span> <span class="n">AvroTypeBuilder</span><span class="p">()</span>
+    <span class="n">memo</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">def</span> <span class="nf">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">oldAvroType</span><span class="p">):</span>
+        <span class="n">newAvroType</span> <span class="o">=</span> <span class="n">rename</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">oldAvroType</span><span class="p">,</span> <span class="p">{})</span>
+        <span class="k">return</span> <span class="n">avroTypeBuilder</span><span class="o">.</span><span class="n">makePlaceholder</span><span class="p">(</span><span class="n">jsonlib</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">newAvroType</span><span class="p">),</span> <span class="n">memo</span><span class="p">)</span>
+            
+    <span class="c"># combined name, if not explicitly set</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s">&quot;Chain_&quot;</span> <span class="o">+</span> <span class="s">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">pfa</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">pfa</span> <span class="ow">in</span> <span class="n">pfas</span><span class="p">)</span>
+
+    <span class="c"># combined method (fold not supported yet, but could be)</span>
+    <span class="n">method</span> <span class="o">=</span> <span class="n">Method</span><span class="o">.</span><span class="n">MAP</span>
+    <span class="k">for</span> <span class="n">pfa</span> <span class="ow">in</span> <span class="n">pfas</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">pfa</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">Method</span><span class="o">.</span><span class="n">EMIT</span><span class="p">:</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="n">Method</span><span class="o">.</span><span class="n">EMIT</span>
+        <span class="k">elif</span> <span class="n">pfa</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">Method</span><span class="o">.</span><span class="n">FOLD</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&quot;chaining of fold-type scoring engines has not been implemented yet&quot;</span><span class="p">)</span>
+
+    <span class="c"># no zero or merge until we support fold method</span>
+    <span class="n">zero</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">merge</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="c"># input/output types from first and last</span>
+    <span class="n">inputPlaceholder</span> <span class="o">=</span> <span class="n">newPlaceholder</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pfas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+    <span class="n">outputPlaceholder</span> <span class="o">=</span> <span class="n">newPlaceholder</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pfas</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pfas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">output</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot; Adding [name, instance, metadata, actionsStarted, actionsFinished, version] as model parameters</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+
+    <span class="n">cells</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="n">Cell</span><span class="p">(</span><span class="n">newPlaceholder</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">AvroString</span><span class="p">()),</span> <span class="n">jsonlib</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="p">),</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">CellPoolSource</span><span class="o">.</span><span class="n">EMBEDDED</span><span class="p">),</span>
+             <span class="s">&quot;instance&quot;</span><span class="p">:</span> <span class="n">Cell</span><span class="p">(</span><span class="n">newPlaceholder</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">()),</span> <span class="n">jsonlib</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">CellPoolSource</span><span class="o">.</span><span class="n">EMBEDDED</span><span class="p">),</span>
+             <span class="s">&quot;metadata&quot;</span><span class="p">:</span> <span class="n">Cell</span><span class="p">(</span><span class="n">newPlaceholder</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">(</span><span class="n">AvroString</span><span class="p">())),</span> <span class="n">jsonlib</span><span class="o">.</span><span class="n">dumps</span><span class="p">({}),</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">CellPoolSource</span><span class="o">.</span><span class="n">EMBEDDED</span><span class="p">),</span>
+             <span class="s">&quot;actionsStarted&quot;</span><span class="p">:</span> <span class="n">Cell</span><span class="p">(</span><span class="n">newPlaceholder</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">()),</span> <span class="n">jsonlib</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">CellPoolSource</span><span class="o">.</span><span class="n">EMBEDDED</span><span class="p">),</span>
+             <span class="s">&quot;actionsFinished&quot;</span><span class="p">:</span> <span class="n">Cell</span><span class="p">(</span><span class="n">newPlaceholder</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">()),</span> <span class="n">jsonlib</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">CellPoolSource</span><span class="o">.</span><span class="n">EMBEDDED</span><span class="p">)}</span>
+    <span class="k">if</span> <span class="n">version</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">cells</span><span class="p">[</span><span class="s">&quot;version&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Cell</span><span class="p">(</span><span class="n">newPlaceholder</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">()),</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="n">CellPoolSource</span><span class="o">.</span><span class="n">EMBEDDED</span><span class="p">)</span>
+    <span class="n">pools</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot; Converting scoring engine algorithm</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+
+    <span class="c"># all code will go into user functions, including begin/action/end</span>
+    <span class="n">fcns</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">begin</span> <span class="o">=</span> <span class="p">[</span><span class="n">CellTo</span><span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">,</span> <span class="p">[],</span> <span class="n">Ref</span><span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">)),</span>
+             <span class="n">CellTo</span><span class="p">(</span><span class="s">&quot;instance&quot;</span><span class="p">,</span> <span class="p">[],</span> <span class="n">Ref</span><span class="p">(</span><span class="s">&quot;instance&quot;</span><span class="p">)),</span>
+             <span class="n">CellTo</span><span class="p">(</span><span class="s">&quot;metadata&quot;</span><span class="p">,</span> <span class="p">[],</span> <span class="n">Ref</span><span class="p">(</span><span class="s">&quot;metadata&quot;</span><span class="p">))]</span>
+    <span class="k">if</span> <span class="n">version</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">begin</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">CellTo</span><span class="p">(</span><span class="s">&quot;version&quot;</span><span class="p">,</span> <span class="p">[],</span> <span class="n">Ref</span><span class="p">(</span><span class="s">&quot;version&quot;</span><span class="p">)))</span>
+
+    <span class="n">action</span> <span class="o">=</span> <span class="p">[</span><span class="n">CellTo</span><span class="p">(</span><span class="s">&quot;actionsStarted&quot;</span><span class="p">,</span> <span class="p">[],</span> <span class="n">Ref</span><span class="p">(</span><span class="s">&quot;actionsStarted&quot;</span><span class="p">)),</span>
+              <span class="n">CellTo</span><span class="p">(</span><span class="s">&quot;actionsFinished&quot;</span><span class="p">,</span> <span class="p">[],</span> <span class="n">Ref</span><span class="p">(</span><span class="s">&quot;actionsFinished&quot;</span><span class="p">))]</span>
+
+    <span class="n">end</span> <span class="o">=</span> <span class="p">[</span><span class="n">CellTo</span><span class="p">(</span><span class="s">&quot;actionsStarted&quot;</span><span class="p">,</span> <span class="p">[],</span> <span class="n">Ref</span><span class="p">(</span><span class="s">&quot;actionsStarted&quot;</span><span class="p">)),</span>
+           <span class="n">CellTo</span><span class="p">(</span><span class="s">&quot;actionsFinished&quot;</span><span class="p">,</span> <span class="p">[],</span> <span class="n">Ref</span><span class="p">(</span><span class="s">&quot;actionsFinished&quot;</span><span class="p">))]</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pfa</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pfas</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;     step {0}: {1}</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pfa</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+
+        <span class="n">thisActionFcnName</span> <span class="o">=</span> <span class="n">prefixAction</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">pfas</span><span class="p">):</span>
+            <span class="n">nextActionFcnName</span> <span class="o">=</span> <span class="n">prefixAction</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">pfas</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">nextActionFcnName</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="c"># this is a closure; it must be defined in the loop to pick up free variables</span>
+        <span class="n">lazyFcnReplacer</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">def</span> <span class="nf">genericReplacer</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">FcnDef</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">FcnDef</span><span class="p">([{</span><span class="n">t</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">values</span><span class="p">()[</span><span class="mi">0</span><span class="p">])}</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">params</span><span class="p">],</span>
+                              <span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">ret</span><span class="p">),</span>
+                              <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">lazyFcnReplacer</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">body</span><span class="p">],</span>     <span class="c"># this is the one place where we should pass down fcnReplacer rather than self</span>
+                              <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">FcnRef</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">FcnRef</span><span class="p">(</span><span class="n">prefixFcnRef</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">epxr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">FcnRefFill</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">FcnRefFill</span><span class="p">(</span><span class="n">prefixFcnRef</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
+                                  <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">fill</span><span class="o">.</span><span class="n">items</span><span class="p">()),</span>
+                                  <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">CallUserFcn</span><span class="p">):</span>   <span class="c"># TODO: need to change the symbols of the corresponding enum</span>
+                <span class="k">return</span> <span class="n">CallUserFcn</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                                   <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">args</span><span class="p">],</span>
+                                   <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">Call</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">pfa</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">Method</span><span class="o">.</span><span class="n">EMIT</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">pfas</span><span class="p">)</span> <span class="ow">and</span> <span class="n">expr</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s">&quot;emit&quot;</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">Call</span><span class="p">(</span><span class="s">&quot;u.&quot;</span> <span class="o">+</span> <span class="n">nextActionFcnName</span><span class="p">,</span>
+                                <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">args</span><span class="p">],</span>
+                                <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">Call</span><span class="p">(</span><span class="n">prefixFcnRef</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
+                                <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">args</span><span class="p">],</span>
+                                <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">Literal</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">Literal</span><span class="p">(</span><span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">avroType</span><span class="p">),</span>
+                               <span class="n">expr</span><span class="o">.</span><span class="n">value</span><span class="p">,</span>
+                               <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">NewObject</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">NewObject</span><span class="p">(</span><span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">items</span><span class="p">()),</span>
+                                 <span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">avroType</span><span class="p">),</span>
+                                 <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">NewArray</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">NewArray</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">items</span><span class="p">],</span>
+                                <span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">avroType</span><span class="p">),</span>
+                                <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">CellGet</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">CellGet</span><span class="p">(</span><span class="n">prefixCell</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">cell</span><span class="p">),</span>
+                               <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">path</span><span class="p">],</span>
+                               <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">CellTo</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">CellTo</span><span class="p">(</span><span class="n">prefixCell</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">cell</span><span class="p">),</span>
+                              <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">path</span><span class="p">],</span>
+                              <span class="n">expr</span><span class="o">.</span><span class="n">to</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                              <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">PoolGet</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">PoolGet</span><span class="p">(</span><span class="n">prefixPool</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">pool</span><span class="p">),</span>
+                               <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">path</span><span class="p">],</span>
+                               <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">PoolTo</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">PoolTo</span><span class="p">(</span><span class="n">prefixPool</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">pool</span><span class="p">),</span>
+                              <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">path</span><span class="p">],</span>
+                              <span class="n">expr</span><span class="o">.</span><span class="n">to</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                              <span class="n">expr</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                              <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">CastCase</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">CastCase</span><span class="p">(</span><span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">avroType</span><span class="p">),</span>
+                                <span class="n">expr</span><span class="o">.</span><span class="n">named</span><span class="p">,</span>
+                                <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">body</span><span class="p">],</span>
+                                <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">Upcast</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">Upcast</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+                              <span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">expr</span><span class="o">.</span><span class="n">avroType</span><span class="p">),</span>
+                              <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+        <span class="n">genericReplacer</span><span class="o">.</span><span class="n">isDefinedAt</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="n">FcnDef</span><span class="p">,</span> <span class="n">FcnRef</span><span class="p">,</span> <span class="n">FcnRefFill</span><span class="p">,</span> <span class="n">CallUserFcn</span><span class="p">,</span> <span class="n">Call</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">NewObject</span><span class="p">,</span> <span class="n">CellGet</span><span class="p">,</span> <span class="n">CellTo</span><span class="p">,</span> <span class="n">PoolGet</span><span class="p">,</span> <span class="n">PoolTo</span><span class="p">,</span> <span class="n">CastCase</span><span class="p">,</span> <span class="n">Upcast</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">fcnReplacer</span><span class="p">(</span><span class="n">expr</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">genericReplacer</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">fcnReplacer</span><span class="p">)</span>
+        <span class="n">fcnReplacer</span><span class="o">.</span><span class="n">isDefinedAt</span> <span class="o">=</span> <span class="n">genericReplacer</span><span class="o">.</span><span class="n">isDefinedAt</span>
+
+        <span class="n">lazyFcnReplacer</span> <span class="o">=</span> <span class="n">fcnReplacer</span>
+
+        <span class="c"># add statements to begin</span>
+        <span class="k">def</span> <span class="nf">beginReplacer</span><span class="p">(</span><span class="n">expr</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">Ref</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">expr</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">,</span> <span class="s">&quot;instance&quot;</span><span class="p">,</span> <span class="s">&quot;metadata&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">version</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">expr</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s">&quot;version&quot;</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">CellGet</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">[],</span> <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">expr</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">genericReplacer</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">beginReplacer</span><span class="p">)</span>
+        <span class="n">beginReplacer</span><span class="o">.</span><span class="n">isDefinedAt</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Ref</span><span class="p">)</span> <span class="ow">or</span> <span class="n">genericReplacer</span><span class="o">.</span><span class="n">isDefinedAt</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">begin</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">beginReplacer</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">pfa</span><span class="o">.</span><span class="n">begin</span><span class="p">])</span>
+
+        <span class="c"># add statements to end</span>
+        <span class="k">def</span> <span class="nf">endReplacer</span><span class="p">(</span><span class="n">expr</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">Ref</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">expr</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">,</span> <span class="s">&quot;instance&quot;</span><span class="p">,</span> <span class="s">&quot;metadata&quot;</span><span class="p">,</span> <span class="s">&quot;actionsStarted&quot;</span><span class="p">,</span> <span class="s">&quot;actionsFinished&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">version</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">expr</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s">&quot;version&quot;</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">CellGet</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">[],</span> <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">expr</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">genericReplacer</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">endReplacer</span><span class="p">)</span>
+        <span class="n">endReplacer</span><span class="o">.</span><span class="n">isDefinedAt</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Ref</span><span class="p">)</span> <span class="ow">or</span> <span class="n">genericReplacer</span><span class="o">.</span><span class="n">isDefinedAt</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">end</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">endReplacer</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">pfa</span><span class="o">.</span><span class="n">end</span><span class="p">])</span>
+
+        <span class="c"># convert the action into a user function</span>
+        <span class="k">def</span> <span class="nf">actionReplacer</span><span class="p">(</span><span class="n">expr</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">Ref</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">expr</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">,</span> <span class="s">&quot;instance&quot;</span><span class="p">,</span> <span class="s">&quot;metadata&quot;</span><span class="p">,</span> <span class="s">&quot;actionsStarted&quot;</span><span class="p">,</span> <span class="s">&quot;actionsFinished&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">version</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">expr</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s">&quot;version&quot;</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">CellGet</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">[],</span> <span class="n">expr</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">expr</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">genericReplacer</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">actionReplacer</span><span class="p">)</span>
+        <span class="n">actionReplacer</span><span class="o">.</span><span class="n">isDefinedAt</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Ref</span><span class="p">)</span> <span class="ow">or</span> <span class="n">genericReplacer</span><span class="o">.</span><span class="n">isDefinedAt</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">body</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">actionReplacer</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">pfa</span><span class="o">.</span><span class="n">action</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="n">Method</span><span class="o">.</span><span class="n">MAP</span><span class="p">:</span>
+            <span class="c"># if the overall method is MAP, then we know that all of the individual engines are MAP</span>
+            <span class="c"># the overall action calls a nested chain of engines-as-functions and each engine-as-a-function just does its job and returns (body is unmodified)</span>
+            <span class="n">fcns</span><span class="p">[</span><span class="n">thisActionFcnName</span><span class="p">]</span> <span class="o">=</span> <span class="n">FcnDef</span><span class="p">([{</span><span class="s">&quot;input&quot;</span><span class="p">:</span> <span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="o">.</span><span class="n">input</span><span class="p">)}],</span> <span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="o">.</span><span class="n">output</span><span class="p">),</span> <span class="n">body</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">action</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Call</span><span class="p">(</span><span class="s">&quot;u.&quot;</span> <span class="o">+</span> <span class="n">thisActionFcnName</span><span class="p">,</span> <span class="p">[</span><span class="n">Ref</span><span class="p">(</span><span class="s">&quot;input&quot;</span><span class="p">)]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">action</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">Call</span><span class="p">(</span><span class="s">&quot;u.&quot;</span> <span class="o">+</span> <span class="n">thisActionFcnName</span><span class="p">,</span> <span class="p">[</span><span class="n">action</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="n">Method</span><span class="o">.</span><span class="n">EMIT</span><span class="p">:</span>
+            <span class="c"># if the overall method is EMIT, then some individual engines might be MAP or might be EMIT</span>
+            <span class="c"># the overall action calls the first engine-as-a-function and the engines-as-functions call each other (body is modified)</span>
+            <span class="k">if</span> <span class="n">pfa</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">Method</span><span class="o">.</span><span class="n">MAP</span> <span class="ow">and</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">pfas</span><span class="p">):</span>
+                <span class="n">body</span> <span class="o">=</span> <span class="p">[</span><span class="n">Call</span><span class="p">(</span><span class="s">&quot;u.&quot;</span> <span class="o">+</span> <span class="n">nextActionFcnName</span><span class="p">,</span> <span class="p">[</span><span class="n">Do</span><span class="p">(</span><span class="n">body</span><span class="p">)]),</span> <span class="n">LiteralNull</span><span class="p">()]</span>
+            <span class="k">elif</span> <span class="n">pfa</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">Method</span><span class="o">.</span><span class="n">MAP</span><span class="p">:</span>
+                <span class="n">body</span> <span class="o">=</span> <span class="p">[</span><span class="n">Call</span><span class="p">(</span><span class="s">&quot;emit&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">Do</span><span class="p">(</span><span class="n">body</span><span class="p">)])]</span>
+            <span class="k">elif</span> <span class="n">pfa</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="n">Method</span><span class="o">.</span><span class="n">EMIT</span><span class="p">:</span>
+                <span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">LiteralNull</span><span class="p">())</span>
+
+            <span class="n">fcns</span><span class="p">[</span><span class="n">thisActionFcnName</span><span class="p">]</span> <span class="o">=</span> <span class="n">FcnDef</span><span class="p">([{</span><span class="s">&quot;input&quot;</span><span class="p">:</span> <span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="o">.</span><span class="n">input</span><span class="p">)}],</span> <span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">AvroNull</span><span class="p">()),</span> <span class="n">body</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">action</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Call</span><span class="p">(</span><span class="s">&quot;u.&quot;</span> <span class="o">+</span> <span class="n">thisActionFcnName</span><span class="p">,</span> <span class="p">[</span><span class="n">Ref</span><span class="p">(</span><span class="s">&quot;input&quot;</span><span class="p">)]))</span>
+
+        <span class="c"># convert all of the user functions into user functions</span>
+        <span class="k">for</span> <span class="n">fcnName</span><span class="p">,</span> <span class="n">fcnDef</span> <span class="ow">in</span> <span class="n">pfa</span><span class="o">.</span><span class="n">fcns</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="c"># note: some of these user-defined functions may call emit; if so, they&#39;ll call the right emit</span>
+            <span class="n">fcns</span><span class="p">[</span><span class="n">prefixFcnDef</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">fcnName</span><span class="p">)]</span> <span class="o">=</span> <span class="n">FcnDef</span><span class="p">([{</span><span class="n">t</span><span class="o">.</span><span class="n">keys</span><span class="p">()[</span><span class="mi">0</span><span class="p">]:</span> <span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">values</span><span class="p">()[</span><span class="mi">0</span><span class="p">])}</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">fcnDef</span><span class="o">.</span><span class="n">paramsPlaceholder</span><span class="p">],</span>
+                                                         <span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">fcnDef</span><span class="o">.</span><span class="n">ret</span><span class="p">),</span>
+                                                         <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">fcnReplacer</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fcnDef</span><span class="o">.</span><span class="n">body</span><span class="p">],</span>
+                                                         <span class="n">fcnDef</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot; Create types for model parameters</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pfa</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pfas</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">pfa</span><span class="o">.</span><span class="n">cells</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;     step {0}:</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">cellName</span><span class="p">,</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">pfa</span><span class="o">.</span><span class="n">cells</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;         cell {0}</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cellName</span><span class="p">))</span>
+            <span class="n">newCell</span> <span class="o">=</span> <span class="n">Cell</span><span class="p">(</span><span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">cell</span><span class="o">.</span><span class="n">avroType</span><span class="p">),</span> <span class="n">cell</span><span class="o">.</span><span class="n">init</span><span class="p">,</span> <span class="n">cell</span><span class="o">.</span><span class="n">shared</span><span class="p">,</span> <span class="n">cell</span><span class="o">.</span><span class="n">rollback</span><span class="p">,</span> <span class="n">cell</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">cell</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="n">cells</span><span class="p">[</span><span class="n">prefixCell</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">cellName</span><span class="p">)]</span> <span class="o">=</span> <span class="n">newCell</span>
+            <span class="k">if</span> <span class="n">cell</span><span class="o">.</span><span class="n">source</span> <span class="o">==</span> <span class="s">&quot;embedded&quot;</span><span class="p">:</span>
+                <span class="k">def</span> <span class="nf">converter</span><span class="p">(</span><span class="n">avroType</span><span class="p">):</span>
+                    <span class="n">original</span> <span class="o">=</span> <span class="n">jsonDecoder</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">jsonlib</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">init</span><span class="p">))</span>
+                    <span class="k">return</span> <span class="n">jsonlib</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">jsonEncoder</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">original</span><span class="p">))</span>
+                <span class="n">newCell</span><span class="o">.</span><span class="n">converter</span> <span class="o">=</span> <span class="n">converter</span>
+                
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pfa</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pfas</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">pfa</span><span class="o">.</span><span class="n">pools</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;     step {0}:</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">poolName</span><span class="p">,</span> <span class="n">pool</span> <span class="ow">in</span> <span class="n">pfa</span><span class="o">.</span><span class="n">pools</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;         pool {0}</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">poolName</span><span class="p">))</span>
+            <span class="n">newPool</span> <span class="o">=</span> <span class="n">Pool</span><span class="p">(</span><span class="n">newPlaceholder</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pool</span><span class="o">.</span><span class="n">avroType</span><span class="p">),</span> <span class="n">pool</span><span class="o">.</span><span class="n">init</span><span class="p">,</span> <span class="n">pool</span><span class="o">.</span><span class="n">shared</span><span class="p">,</span> <span class="n">pool</span><span class="o">.</span><span class="n">rollback</span><span class="p">,</span> <span class="n">pool</span><span class="o">.</span><span class="n">source</span><span class="p">,</span> <span class="n">pool</span><span class="o">.</span><span class="n">pos</span><span class="p">)</span>
+            <span class="n">pools</span><span class="p">[</span><span class="n">prefixPool</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">poolName</span><span class="p">)]</span> <span class="o">=</span> <span class="n">newPool</span>
+            <span class="k">if</span> <span class="n">pool</span><span class="o">.</span><span class="n">source</span> <span class="o">==</span> <span class="s">&quot;embedded&quot;</span><span class="p">:</span>
+                <span class="k">def</span> <span class="nf">converter</span><span class="p">(</span><span class="n">avroType</span><span class="p">):</span>
+                    <span class="n">original</span> <span class="o">=</span> <span class="n">jsonDecoder</span><span class="p">(</span><span class="n">pool</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">jsonlib</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">pool</span><span class="o">.</span><span class="n">init</span><span class="p">))</span>
+                    <span class="k">return</span> <span class="n">jsonlib</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">jsonEncoder</span><span class="p">(</span><span class="n">avroType</span><span class="p">,</span> <span class="n">original</span><span class="p">))</span>
+                <span class="n">newPool</span><span class="o">.</span><span class="n">converter</span> <span class="o">=</span> <span class="n">converter</span>
+                
+    <span class="c"># make sure all the types work together</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot; Resolving all types</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+    <span class="n">avroTypeBuilder</span><span class="o">.</span><span class="n">resolveTypes</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot; Converting the model parameters themselves</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pfa</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pfas</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">pfa</span><span class="o">.</span><span class="n">cells</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;     step {0}:</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">cellName</span><span class="p">,</span> <span class="n">cell</span> <span class="ow">in</span> <span class="n">pfa</span><span class="o">.</span><span class="n">cells</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;         cell {0}</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cellName</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">cell</span><span class="o">.</span><span class="n">source</span> <span class="o">==</span> <span class="s">&quot;embedded&quot;</span><span class="p">:</span>
+                <span class="n">newCell</span> <span class="o">=</span> <span class="n">cells</span><span class="p">[</span><span class="n">prefixCell</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">cellName</span><span class="p">)]</span>
+                <span class="n">newCell</span><span class="o">.</span><span class="n">init</span> <span class="o">=</span> <span class="n">newCell</span><span class="o">.</span><span class="n">converter</span><span class="p">(</span><span class="n">newCell</span><span class="o">.</span><span class="n">avroType</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">pfa</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pfas</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">verbose</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">pfa</span><span class="o">.</span><span class="n">pools</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;     step {0}:</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">poolName</span><span class="p">,</span> <span class="n">pool</span> <span class="ow">in</span> <span class="n">pfa</span><span class="o">.</span><span class="n">pools</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;         pool {0}</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">poolName</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">pool</span><span class="o">.</span><span class="n">source</span> <span class="o">==</span> <span class="s">&quot;embedded&quot;</span><span class="p">:</span>
+                <span class="n">newPool</span> <span class="o">=</span> <span class="n">pools</span><span class="p">[</span><span class="n">prefixPool</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">pfa</span><span class="p">,</span> <span class="n">poolName</span><span class="p">)]</span>
+                <span class="n">newPool</span><span class="o">.</span><span class="n">init</span> <span class="o">=</span> <span class="n">newPool</span><span class="o">.</span><span class="n">converter</span><span class="p">(</span><span class="n">newPool</span><span class="o">.</span><span class="n">avroType</span><span class="p">)</span>
+
+    <span class="c"># randseed, doc, version, metadata, and options need to be explicitly set</span>
+
+    <span class="c"># return a (possibly checked) AST</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">EngineConfig</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                       <span class="n">method</span><span class="p">,</span>
+                       <span class="n">inputPlaceholder</span><span class="p">,</span>
+                       <span class="n">outputPlaceholder</span><span class="p">,</span>
+                       <span class="n">begin</span><span class="p">,</span>
+                       <span class="n">action</span><span class="p">,</span>
+                       <span class="n">end</span><span class="p">,</span>
+                       <span class="n">fcns</span><span class="p">,</span>
+                       <span class="n">zero</span><span class="p">,</span>
+                       <span class="n">merge</span><span class="p">,</span>
+                       <span class="n">cells</span><span class="p">,</span>
+                       <span class="n">pools</span><span class="p">,</span>
+                       <span class="n">randseed</span><span class="p">,</span>
+                       <span class="n">doc</span><span class="p">,</span>
+                       <span class="n">version</span><span class="p">,</span>
+                       <span class="n">metadata</span><span class="p">,</span>
+                       <span class="n">options</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">check</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot; Verifying PFA validity</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+        <span class="n">PFAEngine</span><span class="o">.</span><span class="n">fromAst</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot; Done</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span>
+
+
+
+
+<span class="c">## TODO: turn these into unit tests</span>
+
+<span class="c">## ### BEGIN testing</span>
+
+<span class="c">## import titus.prettypfa</span>
+
+<span class="c">## pfas = [titus.prettypfa.json(&#39;&#39;&#39;</span>
+<span class="c">## input: record(value: string, Input)</span>
+<span class="c">## output: record(key: string, value: string, Output)</span>
+<span class="c">## action:</span>
+<span class="c">##   new(Output, key: input.value, value: input.value);</span>
+<span class="c">## &#39;&#39;&#39;), titus.prettypfa.json(&#39;&#39;&#39;</span>
+<span class="c">## input: record(key: string, value: string, Input)</span>
+<span class="c">## output: record(number: int, Output)</span>
+<span class="c">## method: emit</span>
+<span class="c">## cells:</span>
+<span class="c">##   hold(Input) = {key: &quot;what&quot;, value: &quot;99&quot;}</span>
+<span class="c">## end:</span>
+<span class="c">##   log(actionsFinished)</span>
+<span class="c">## action:</span>
+<span class="c">##   var one = 1;</span>
+<span class="c">##   u.parser(input.value, one);</span>
+<span class="c">##   u.parser(hold.value, one);</span>
+<span class="c">##   hold.value = s.concat(hold.value, &quot;9&quot;);</span>
+<span class="c">##   u.parser(input.value, cast.int(actionsStarted));</span>
+<span class="c">## fcns:</span>
+<span class="c">##   parser = fcn(x: string, i: int -&gt; null) emit(new(Output, number: parse.int(x, 10) + i));</span>
+<span class="c">## &#39;&#39;&#39;), titus.prettypfa.json(&#39;&#39;&#39;</span>
+<span class="c">## input: record(number: int, Input)</span>
+<span class="c">## output: record(bigger: string, Output)</span>
+<span class="c">## action:</span>
+<span class="c">##   log(name);</span>
+<span class="c">##   new(Output, bigger: s.concat(s.number(input.number), &quot;X&quot;));</span>
+<span class="c">## &#39;&#39;&#39;)]</span>
+
+<span class="c">## eng, = engine(pfas)</span>
+
+<span class="c">## def emit(x):</span>
+<span class="c">##     print x</span>
+<span class="c">## eng.emit = emit</span>
+<span class="c">## eng.begin()</span>
+<span class="c">## eng.action({&quot;value&quot;: &quot;6&quot;})</span>
+<span class="c">## eng.action({&quot;value&quot;: &quot;6&quot;})</span>
+<span class="c">## eng.action({&quot;value&quot;: &quot;6&quot;})</span>
+<span class="c">## eng.action({&quot;value&quot;: &quot;6&quot;})</span>
+<span class="c">## eng.action({&quot;value&quot;: &quot;6&quot;})</span>
+<span class="c">## eng.end()</span>
+
+<span class="c">## ### END testing</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

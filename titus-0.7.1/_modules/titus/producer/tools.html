@@ -1,0 +1,803 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.producer.tools &mdash; Titus 0.7.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.7.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.producer.tools</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="c">############################################## quick access functions</span>
+
+<div class="viewcode-block" id="splitIndex"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.splitIndex">[docs]</a><span class="k">def</span> <span class="nf">splitIndex</span><span class="p">(</span><span class="n">index</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Normalize a casual index like &quot;one, two, 3,four&quot; to canonical form like [&quot;one&quot;, &quot;two&quot;, 3, &quot;four&quot;].&quot;&quot;&quot;</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">index</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="get"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.get">[docs]</a><span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get a subexpression from the root expr and index.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">splitIndex</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">expr</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="assign"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.assign">[docs]</a><span class="k">def</span> <span class="nf">assign</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">to</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Destructively (in-place) replace a subexpression at a given index with another expression.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">splitIndex</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">expr</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="n">out</span><span class="p">[</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">to</span>
+</div>
+<div class="viewcode-block" id="assigned"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.assigned">[docs]</a><span class="k">def</span> <span class="nf">assigned</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">to</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a copy of expr with a replaced subexpression, leaving the original intact.&quot;&quot;&quot;</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+    <span class="n">assign</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">to</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">expr</span>
+</div>
+<div class="viewcode-block" id="assignAt"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.assignAt">[docs]</a><span class="k">def</span> <span class="nf">assignAt</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">expr</span><span class="p">,</span> <span class="n">to</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Destructively (in-place) replace subexpressions that match a regular expression pattern.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indexes</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">expr</span><span class="p">):</span>
+        <span class="n">assign</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">to</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="assignedAt"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.assignedAt">[docs]</a><span class="k">def</span> <span class="nf">assignedAt</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">expr</span><span class="p">,</span> <span class="n">to</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a copy of expr with replaced subexpressions at points that match a regular expression pattern.&quot;&quot;&quot;</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">indexes</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">expr</span><span class="p">):</span>
+        <span class="n">assign</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">to</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">expr</span>
+</div>
+<div class="viewcode-block" id="remove"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.remove">[docs]</a><span class="k">def</span> <span class="nf">remove</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Destructively (in-place) remove a subexpression at a given index.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+        <span class="n">index</span> <span class="o">=</span> <span class="n">splitIndex</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">expr</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+    <span class="k">del</span> <span class="n">out</span><span class="p">[</span><span class="n">index</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+</div>
+<div class="viewcode-block" id="removed"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.removed">[docs]</a><span class="k">def</span> <span class="nf">removed</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a copy of expr with a subexpression removed at a given index.&quot;&quot;&quot;</span>
+    <span class="n">expr</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span>
+    <span class="n">remove</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">index</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">expr</span>
+
+<span class="c">############################################## pattern-matching primitives</span>
+</div>
+<div class="viewcode-block" id="Match"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Match">[docs]</a><span class="k">class</span> <span class="nc">Match</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represents an expression matched by a regular expression.</span>
+
+<span class="sd">    original is a copy of the expression, identical to the original subexpression.</span>
+<span class="sd">    modified is a copy of the expression with RegEx substitutions.</span>
+<span class="sd">    groups is a dictionary of modified subexpressions.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original</span><span class="p">,</span> <span class="n">modified</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">original</span> <span class="o">=</span> <span class="n">original</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="n">modified</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Match(&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modified</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+</div>
+<div class="viewcode-block" id="getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.getmatch">[docs]</a><span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generic function to match a regular expression pattern to a haystack expression.&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">pattern</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="s">&quot;@&quot;</span><span class="p">]))</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="n">haystack</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="s">&quot;@&quot;</span><span class="p">])):</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">Match</span><span class="p">({},</span> <span class="p">{})</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">pattern</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s">&quot;@&quot;</span><span class="p">:</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">getmatch</span><span class="p">(</span><span class="n">pattern</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">haystack</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">out</span><span class="o">.</span><span class="n">original</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">original</span>
+                    <span class="n">out</span><span class="o">.</span><span class="n">modified</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">modified</span>
+                    <span class="n">out</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pattern</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">haystack</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">Match</span><span class="p">([],</span> <span class="p">[])</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pattern</span><span class="p">):</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">getmatch</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">haystack</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">original</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">original</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">modified</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">modified</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="p">(</span><span class="nb">basestring</span><span class="p">,</span> <span class="nb">long</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">pattern</span> <span class="o">==</span> <span class="n">haystack</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Match</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">elif</span> <span class="n">pattern</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">True</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">pattern</span> <span class="ow">is</span> <span class="n">haystack</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Match</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pattern</span><span class="o">.</span><span class="n">getmatch</span><span class="p">(</span><span class="n">haystack</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Matcher"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Matcher">[docs]</a><span class="k">class</span> <span class="nc">Matcher</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Base class of regular expression patterns (other than literal JSON expressions).&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Matcher.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Matcher.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</div></div>
+<div class="viewcode-block" id="Group"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Group">[docs]</a><span class="k">class</span> <span class="nc">Group</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Tag a subexpression with a name so that it can be found later.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwds</span><span class="p">):</span>
+        <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">matcher</span><span class="p">),</span> <span class="o">=</span> <span class="n">kwds</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Group(&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;=&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">matcher</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="Group.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Group.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">matcher</span><span class="o">.</span><span class="n">getmatch</span><span class="p">(</span><span class="n">haystack</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">modified</span>
+            <span class="k">return</span> <span class="n">m</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+</div></div>
+<div class="viewcode-block" id="Min"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Min">[docs]</a><span class="k">class</span> <span class="nc">Min</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Match a dictionary that has at least the given key-value pairs.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">obj</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">obj</span> <span class="o">=</span> <span class="n">obj</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Min(&quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">k</span> <span class="o">+</span> <span class="s">&quot;=&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj</span><span class="o">.</span><span class="n">items</span><span class="p">())</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="Min.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Min.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="s">&quot;@&quot;</span><span class="p">]))</span><span class="o">.</span><span class="n">difference</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">haystack</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">Match</span><span class="p">(</span><span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">haystack</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s">&quot;@&quot;</span><span class="p">),</span>
+                    <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">haystack</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s">&quot;@&quot;</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">obj</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s">&quot;@&quot;</span><span class="p">:</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">obj</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">haystack</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">out</span><span class="o">.</span><span class="n">original</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">original</span>
+                    <span class="n">out</span><span class="o">.</span><span class="n">modified</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">modified</span>
+                    <span class="n">out</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">return</span> <span class="n">out</span>
+</div></div>
+<div class="viewcode-block" id="Start"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Start">[docs]</a><span class="k">class</span> <span class="nc">Start</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Match a list that starts with the given elements.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">array</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array</span> <span class="o">=</span> <span class="n">array</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Start(&quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">))</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="Start.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Start.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">haystack</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">Match</span><span class="p">([],</span> <span class="p">[])</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">):</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">getmatch</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">haystack</span><span class="p">[</span><span class="n">index</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">original</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">original</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">modified</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">modified</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">None</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">original</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">):])</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">modified</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">):])</span>
+        <span class="k">return</span> <span class="n">out</span>
+</div></div>
+<div class="viewcode-block" id="End"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.End">[docs]</a><span class="k">class</span> <span class="nc">End</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Match a list that ends with the given elements.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">array</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array</span> <span class="o">=</span> <span class="n">array</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;End(&quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">))</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="End.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.End.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">haystack</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">Match</span><span class="p">([],</span> <span class="p">[])</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">):</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">getmatch</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="n">haystack</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">haystack</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">)</span> <span class="o">+</span> <span class="n">index</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">original</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">original</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">modified</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">modified</span><span class="p">)</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">None</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">original</span> <span class="o">=</span> <span class="n">haystack</span><span class="p">[:(</span><span class="nb">len</span><span class="p">(</span><span class="n">haystack</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">))]</span> <span class="o">+</span> <span class="n">out</span><span class="o">.</span><span class="n">original</span>
+        <span class="n">out</span><span class="o">.</span><span class="n">modified</span> <span class="o">=</span> <span class="n">haystack</span><span class="p">[:(</span><span class="nb">len</span><span class="p">(</span><span class="n">haystack</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="p">))]</span> <span class="o">+</span> <span class="n">out</span><span class="o">.</span><span class="n">modified</span>
+        <span class="k">return</span> <span class="n">out</span>
+</div></div>
+<div class="viewcode-block" id="Or"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Or">[docs]</a><span class="k">class</span> <span class="nc">Or</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Match at least one of several alternatives.</span>
+
+<span class="sd">    If any alternatives have substitutions, the first matching substitution is returned.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">alternatives</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alternatives</span> <span class="o">=</span> <span class="n">alternatives</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Or(&quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alternatives</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="Or.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Or.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alternatives</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">for</span> <span class="n">alt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alternatives</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">getmatch</span><span class="p">(</span><span class="n">alt</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">m</span>
+        <span class="k">return</span> <span class="bp">None</span>
+</div></div>
+<div class="viewcode-block" id="And"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.And">[docs]</a><span class="k">class</span> <span class="nc">And</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Match every one of several alternatives.</span>
+
+<span class="sd">    If any alternatives have substitutions, the last substitution is returned.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">alternatives</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alternatives</span> <span class="o">=</span> <span class="n">alternatives</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;And(&quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alternatives</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="And.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.And.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alternatives</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">for</span> <span class="n">alt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">alternatives</span><span class="p">:</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="n">getmatch</span><span class="p">(</span><span class="n">alt</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">return</span> <span class="n">m</span>
+</div></div>
+<div class="viewcode-block" id="Approx"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Approx">[docs]</a><span class="k">class</span> <span class="nc">Approx</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Match a number within a given range.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">central</span><span class="p">,</span> <span class="n">error</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">central</span> <span class="o">=</span> <span class="n">central</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">error</span> <span class="o">=</span> <span class="n">error</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Approx(&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">central</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="Approx.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Approx.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="p">(</span><span class="nb">long</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="nb">abs</span><span class="p">(</span><span class="n">haystack</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">central</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Match</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+</div></div>
+<div class="viewcode-block" id="LT"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.LT">[docs]</a><span class="k">class</span> <span class="nc">LT</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Match a number if it is less than some value.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;LT(&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="LT.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.LT.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="p">(</span><span class="nb">long</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="n">haystack</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Match</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+</div></div>
+<div class="viewcode-block" id="LE"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.LE">[docs]</a><span class="k">class</span> <span class="nc">LE</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Match a number if it is less than or equal to some value.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;LE(&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="LE.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.LE.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="p">(</span><span class="nb">long</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="n">haystack</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Match</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+</div></div>
+<div class="viewcode-block" id="GT"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.GT">[docs]</a><span class="k">class</span> <span class="nc">GT</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Match a number if it is greater than some value.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;GT(&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="GT.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.GT.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="p">(</span><span class="nb">long</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="n">haystack</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Match</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+</div></div>
+<div class="viewcode-block" id="GE"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.GE">[docs]</a><span class="k">class</span> <span class="nc">GE</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Match a number if it is greater than or equal to some value.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;GE(&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="GE.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.GE.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="p">(</span><span class="nb">long</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="n">haystack</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Match</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+</div></div>
+<div class="viewcode-block" id="RegEx"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.RegEx">[docs]</a><span class="k">class</span> <span class="nc">RegEx</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Match a string with a regular expression.</span>
+
+<span class="sd">    If &#39;to&#39; is given, this provides a substitution (using \\1, \\2, etc. variables).</span>
+<span class="sd">    The &#39;flags&#39; are iLmsux, corresponding to Python regular expression flags.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pattern</span><span class="p">,</span> <span class="n">to</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pattern</span> <span class="o">=</span> <span class="n">pattern</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to</span> <span class="o">=</span> <span class="n">to</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flags</span> <span class="o">=</span> <span class="n">flags</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;RegEx(&quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">flags</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="RegEx.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.RegEx.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="n">flags</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s">&quot;i&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span> <span class="ow">or</span> <span class="s">&quot;I&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span><span class="p">:</span>
+                <span class="n">flags</span> <span class="o">|=</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span>
+            <span class="k">if</span> <span class="s">&quot;l&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span> <span class="ow">or</span> <span class="s">&quot;L&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span><span class="p">:</span>
+                <span class="n">flags</span> <span class="o">|=</span> <span class="n">re</span><span class="o">.</span><span class="n">L</span>
+            <span class="k">if</span> <span class="s">&quot;m&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span> <span class="ow">or</span> <span class="s">&quot;M&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span><span class="p">:</span>
+                <span class="n">flags</span> <span class="o">|=</span> <span class="n">re</span><span class="o">.</span><span class="n">M</span>
+            <span class="k">if</span> <span class="s">&quot;s&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span> <span class="ow">or</span> <span class="s">&quot;S&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span><span class="p">:</span>
+                <span class="n">flags</span> <span class="o">|=</span> <span class="n">re</span><span class="o">.</span><span class="n">S</span>
+            <span class="k">if</span> <span class="s">&quot;u&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span> <span class="ow">or</span> <span class="s">&quot;U&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span><span class="p">:</span>
+                <span class="n">flags</span> <span class="o">|=</span> <span class="n">re</span><span class="o">.</span><span class="n">U</span>
+            <span class="k">if</span> <span class="s">&quot;x&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span> <span class="ow">or</span> <span class="s">&quot;X&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">flags</span><span class="p">:</span>
+                <span class="n">flags</span> <span class="o">|=</span> <span class="n">re</span><span class="o">.</span><span class="n">X</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">flags</span><span class="p">)</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">to</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Match</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Match</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pattern</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">to</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">flags</span><span class="o">=</span><span class="n">flags</span><span class="p">))</span>
+</div></div>
+<div class="viewcode-block" id="Any"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Any">[docs]</a><span class="k">class</span> <span class="nc">Any</span><span class="p">(</span><span class="n">Matcher</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Match any expression or any expression with one of several given types.&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">types</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">types</span> <span class="o">=</span> <span class="n">types</span>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;Any(&quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">))</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+<div class="viewcode-block" id="Any.getmatch"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.Any.getmatch">[docs]</a>    <span class="k">def</span> <span class="nf">getmatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">types</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">Match</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+
+<span class="c">############################################## pattern-matching functions</span>
+</div></div>
+<div class="viewcode-block" id="search"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.search">[docs]</a><span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">result</span><span class="o">=</span><span class="p">()):</span>
+    <span class="sd">&quot;&quot;&quot;Create a generator to yield matches as (index, Match) pairs.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">haystack</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">result</span> <span class="o">+</span> <span class="p">(</span><span class="n">key</span><span class="p">,)):</span>
+                <span class="k">yield</span> <span class="n">x</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">haystack</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">item</span><span class="p">,</span> <span class="n">result</span> <span class="o">+</span> <span class="p">(</span><span class="n">i</span><span class="p">,)):</span>
+                <span class="k">yield</span> <span class="n">x</span>
+
+    <span class="n">m</span> <span class="o">=</span> <span class="n">getmatch</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">result</span><span class="p">,</span> <span class="n">m</span>
+</div>
+<div class="viewcode-block" id="searchFirst"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.searchFirst">[docs]</a><span class="k">def</span> <span class="nf">searchFirst</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a (index, Match) pair or None if there is no match.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="bp">None</span>
+</div>
+<div class="viewcode-block" id="index"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.index">[docs]</a><span class="k">def</span> <span class="nf">index</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return an index or None if there is no match.&quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">searchFirst</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="indexes"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.indexes">[docs]</a><span class="k">def</span> <span class="nf">indexes</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a generator to yield matching indexes.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="contains"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.contains">[docs]</a><span class="k">def</span> <span class="nf">contains</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return True if the pattern is found; False otherwise.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">searchFirst</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span>
+</div>
+<div class="viewcode-block" id="count"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.count">[docs]</a><span class="k">def</span> <span class="nf">count</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the number of matches.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)))</span>
+</div>
+<div class="viewcode-block" id="findRef"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.findRef">[docs]</a><span class="k">def</span> <span class="nf">findRef</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a reference to the matching subexpression within the original structure (for in-place modifications) or None if there is no match.&quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">searchFirst</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">get</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</div>
+<div class="viewcode-block" id="findCopy"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.findCopy">[docs]</a><span class="k">def</span> <span class="nf">findCopy</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return a copy of the matching subexpression or None if there is no match.&quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">searchFirst</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">None</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">original</span>   <span class="c"># &quot;original&quot; is a copy that is identical to the original (see Match class)</span>
+</div>
+<div class="viewcode-block" id="findAllRef"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.findAllRef">[docs]</a><span class="k">def</span> <span class="nf">findAllRef</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a generator to yield references to matching subexpressions within the original structure (for in-place modifications).&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">get</span><span class="p">(</span><span class="n">haystack</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</div>
+<div class="viewcode-block" id="findAllCopy"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.findAllCopy">[docs]</a><span class="k">def</span> <span class="nf">findAllCopy</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a generator to yield copies of the matching subexpressions.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">haystack</span><span class="p">):</span>
+        <span class="k">yield</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">original</span>   <span class="c"># &quot;original&quot; is a copy that is identical to the original (see Match class)</span>
+
+<span class="c">############################################## the look function presents a JSON object in an analyzable way</span>
+</div>
+<div class="viewcode-block" id="look"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.look">[docs]</a><span class="k">def</span> <span class="nf">look</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">maxDepth</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">inlineDepth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">indexWidth</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">dropAt</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stream</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Print a JSON object on the screen in a readable way.</span>
+
+<span class="sd">    maxDepth: maximum depth to show before printing ellipsis (...)</span>
+<span class="sd">    inlineDepth: maximum depth to show on a single line</span>
+<span class="sd">    indexWidth: width (in characters) of the index column on the left</span>
+<span class="sd">    dropAt: don&#39;t show &quot;@&quot; keys</span>
+<span class="sd">    stream: allows the output to be sent to a file or stream.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">dropAt</span><span class="p">:</span>
+        <span class="n">expr</span> <span class="o">=</span> <span class="n">_dropAt</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">maxDepth</span> <span class="o">+</span> <span class="n">inlineDepth</span><span class="p">)</span>
+    <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">((</span><span class="s">&quot;</span><span class="si">%%</span><span class="s">-</span><span class="si">%d</span><span class="s">s </span><span class="si">%%</span><span class="s">s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">indexWidth</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="s">&quot;index&quot;</span><span class="p">,</span> <span class="s">&quot;data&quot;</span><span class="p">))</span>
+    <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;-&quot;</span> <span class="o">*</span> <span class="p">(</span><span class="n">indexWidth</span> <span class="o">*</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">reprindex</span><span class="p">,</span> <span class="n">reprdata</span> <span class="ow">in</span> <span class="n">_look</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">maxDepth</span><span class="p">,</span> <span class="n">inlineDepth</span><span class="p">,</span> <span class="p">[],</span> <span class="n">indexWidth</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">):</span>
+        <span class="n">stream</span><span class="o">.</span><span class="n">write</span><span class="p">((</span><span class="s">&quot;</span><span class="si">%%</span><span class="s">-</span><span class="si">%d</span><span class="s">s </span><span class="si">%%</span><span class="s">s</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">indexWidth</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">reprindex</span><span class="p">,</span> <span class="n">reprdata</span><span class="p">))</span>
+    <span class="n">stream</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+</div>
+<span class="k">def</span> <span class="nf">_dropAt</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">depth</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="o">.</span><span class="n">__class__</span><span class="p">([(</span><span class="n">k</span><span class="p">,</span> <span class="n">_dropAt</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">depth</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s">&quot;@&quot;</span><span class="p">])</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">_dropAt</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">depth</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">expr</span>
+
+<span class="k">def</span> <span class="nf">_acceptableDepth</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">limit</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">limit</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">False</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">_acceptableDepth</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">limit</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">_acceptableDepth</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">limit</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">True</span>
+
+<span class="k">class</span> <span class="nc">_Pair</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">key</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+
+<span class="k">class</span> <span class="nc">_Item</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span>
+
+<span class="k">def</span> <span class="nf">_look</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">maxDepth</span><span class="p">,</span> <span class="n">inlineDepth</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">indexWidth</span><span class="p">,</span> <span class="n">indent</span><span class="p">):</span>
+    <span class="n">reprindex</span> <span class="o">=</span> <span class="s">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">reprindex</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">indexWidth</span><span class="p">:</span>
+        <span class="n">reprindex</span> <span class="o">=</span> <span class="n">reprindex</span><span class="p">[:(</span><span class="n">indexWidth</span> <span class="o">-</span> <span class="mi">3</span><span class="p">)]</span> <span class="o">+</span> <span class="s">&quot;...&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">_Pair</span><span class="p">):</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">_look</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">maxDepth</span><span class="p">,</span> <span class="n">inlineDepth</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">indexWidth</span><span class="p">,</span> <span class="n">indent</span><span class="p">)</span>
+        <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">reprindex</span>
+        <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">indent</span> <span class="o">+</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">key</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;: &quot;</span> <span class="o">+</span> <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+        <span class="n">block</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot;,&quot;</span>
+        <span class="k">return</span> <span class="n">block</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">_Item</span><span class="p">):</span>
+        <span class="n">block</span> <span class="o">=</span> <span class="n">_look</span><span class="p">(</span><span class="n">expr</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">maxDepth</span><span class="p">,</span> <span class="n">inlineDepth</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">indexWidth</span><span class="p">,</span> <span class="n">indent</span><span class="p">)</span>
+        <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">reprindex</span>
+        <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">indent</span> <span class="o">+</span> <span class="n">block</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+        <span class="n">block</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot;,&quot;</span>
+        <span class="k">return</span> <span class="n">block</span>
+
+    <span class="k">elif</span> <span class="n">_acceptableDepth</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">inlineDepth</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[[</span><span class="n">reprindex</span><span class="p">,</span> <span class="n">indent</span> <span class="o">+</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">expr</span><span class="p">)]]</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">maxDepth</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">block</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">expr</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">block</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">_look</span><span class="p">(</span><span class="n">_Pair</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="n">maxDepth</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">inlineDepth</span><span class="p">,</span> <span class="n">index</span> <span class="o">+</span> <span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">indexWidth</span><span class="p">,</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;  &quot;</span><span class="p">))</span>
+            <span class="n">block</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[[</span><span class="n">reprindex</span><span class="p">,</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;{&quot;</span><span class="p">]]</span> <span class="o">+</span> <span class="n">block</span> <span class="o">+</span> <span class="p">[[</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;}&quot;</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[[</span><span class="n">reprindex</span><span class="p">,</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;{...}&quot;</span><span class="p">]]</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">maxDepth</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">block</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">expr</span><span class="p">):</span>
+                <span class="n">block</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">_look</span><span class="p">(</span><span class="n">_Item</span><span class="p">(</span><span class="n">value</span><span class="p">),</span> <span class="n">maxDepth</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">inlineDepth</span><span class="p">,</span> <span class="n">index</span> <span class="o">+</span> <span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">indexWidth</span><span class="p">,</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;  &quot;</span><span class="p">))</span>
+            <span class="n">block</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">block</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s">&quot;,&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[[</span><span class="n">reprindex</span><span class="p">,</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;[&quot;</span><span class="p">]]</span> <span class="o">+</span> <span class="n">block</span> <span class="o">+</span> <span class="p">[[</span><span class="s">&quot;&quot;</span><span class="p">,</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;]&quot;</span><span class="p">]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[[</span><span class="n">reprindex</span><span class="p">,</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;[...]&quot;</span><span class="p">]]</span>
+
+<span class="c">############################################## the uniqueSymbols function might be intended to avoid symbol name conflicts</span>
+
+<span class="c"># FIXME: what is this stuff?  If I can&#39;t figure it out, I&#39;m going to remove it.</span>
+
+<div class="viewcode-block" id="uniqueSymbols"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.tools.uniqueSymbols">[docs]</a><span class="k">def</span> <span class="nf">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">tr</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">tr</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="n">expr</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">expr</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">expr</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">expr</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="n">keys</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s">&quot;@&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">keys</span><span class="p">[</span><span class="s">&quot;@&quot;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">keys</span> <span class="ow">in</span> <span class="p">([</span><span class="s">&quot;int&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s">&quot;long&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s">&quot;float&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s">&quot;double&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s">&quot;string&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s">&quot;base64&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">,</span> <span class="s">&quot;value&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s">&quot;doc&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s">&quot;error&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s">&quot;error&quot;</span><span class="p">,</span> <span class="s">&quot;code&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s">&quot;fcn&quot;</span><span class="p">],</span> <span class="p">[</span><span class="s">&quot;fcn&quot;</span><span class="p">,</span> <span class="s">&quot;fill&quot;</span><span class="p">]):</span>
+            <span class="k">return</span> <span class="n">expr</span>
+
+        <span class="k">if</span> <span class="n">keys</span> <span class="o">==</span> <span class="p">[</span><span class="s">&quot;new&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">]</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;new&quot;</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;new&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">))</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s">&quot;@&quot;</span> <span class="k">else</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;new&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">()),</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">]}</span>
+
+        <span class="k">elif</span> <span class="n">keys</span> <span class="o">==</span> <span class="p">[</span><span class="s">&quot;new&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">]:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;new&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;new&quot;</span><span class="p">]],</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">]}</span>
+
+        <span class="k">elif</span> <span class="n">keys</span> <span class="o">==</span> <span class="p">[</span><span class="s">&quot;do&quot;</span><span class="p">]:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;do&quot;</span><span class="p">:</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;do&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))}</span>
+
+        <span class="k">elif</span> <span class="n">keys</span> <span class="o">==</span> <span class="p">[</span><span class="s">&quot;let&quot;</span><span class="p">]:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;let&quot;</span><span class="p">:</span> <span class="n">_uniqueDeclare</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;let&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">)}</span>
+
+        <span class="k">elif</span> <span class="n">keys</span> <span class="o">==</span> <span class="p">[</span><span class="s">&quot;set&quot;</span><span class="p">]:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;set&quot;</span><span class="p">:</span> <span class="n">_uniqueReassign</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;set&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">)}</span>
+
+        <span class="k">elif</span> <span class="s">&quot;attr&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;attr&quot;</span><span class="p">:</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;attr&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)),</span> <span class="s">&quot;path&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;path&quot;</span><span class="p">]]}</span>
+            <span class="k">if</span> <span class="s">&quot;to&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;to&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;to&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="s">&quot;cell&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;cell&quot;</span><span class="p">:</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;cell&quot;</span><span class="p">]}</span>
+            <span class="k">if</span> <span class="s">&quot;path&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;path&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;path&quot;</span><span class="p">]]</span>
+            <span class="k">if</span> <span class="s">&quot;to&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;to&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;to&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="s">&quot;pool&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;pool&quot;</span><span class="p">:</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;pool&quot;</span><span class="p">],</span> <span class="s">&quot;path&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;path&quot;</span><span class="p">]]}</span>
+            <span class="k">if</span> <span class="s">&quot;to&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;to&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;to&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s">&quot;init&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;init&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;init&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="s">&quot;if&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;if&quot;</span><span class="p">:</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;if&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)),</span> <span class="s">&quot;then&quot;</span><span class="p">:</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;then&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))}</span>
+            <span class="k">if</span> <span class="s">&quot;else&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;else&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;else&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="s">&quot;cond&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;cond&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;cond&quot;</span><span class="p">]]}</span>
+            <span class="k">if</span> <span class="s">&quot;else&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;else&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;else&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="n">keys</span> <span class="o">==</span> <span class="p">[</span><span class="s">&quot;while&quot;</span><span class="p">,</span> <span class="s">&quot;do&quot;</span><span class="p">]:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;while&quot;</span><span class="p">:</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;while&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)),</span> <span class="s">&quot;do&quot;</span><span class="p">:</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;do&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))}</span>
+
+        <span class="k">elif</span> <span class="n">keys</span> <span class="o">==</span> <span class="p">[</span><span class="s">&quot;do&quot;</span><span class="p">,</span> <span class="s">&quot;until&quot;</span><span class="p">]:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;do&quot;</span><span class="p">:</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;do&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)),</span> <span class="s">&quot;until&quot;</span><span class="p">:</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;until&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))}</span>
+
+        <span class="k">elif</span> <span class="n">keys</span> <span class="o">==</span> <span class="p">[</span><span class="s">&quot;for&quot;</span><span class="p">,</span> <span class="s">&quot;while&quot;</span><span class="p">,</span> <span class="s">&quot;step&quot;</span><span class="p">,</span> <span class="s">&quot;do&quot;</span><span class="p">]:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;for&quot;</span><span class="p">:</span> <span class="n">_uniqueDeclare</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;for&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">),</span>
+                   <span class="s">&quot;while&quot;</span><span class="p">:</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;while&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)),</span>
+                   <span class="s">&quot;step&quot;</span><span class="p">:</span> <span class="n">_uniqueReassign</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;step&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">),</span>
+                   <span class="s">&quot;do&quot;</span><span class="p">:</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;do&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))}</span>
+
+        <span class="k">elif</span> <span class="s">&quot;foreach&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;foreach&quot;</span><span class="p">:</span> <span class="n">_newSymbol</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;foreach&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">),</span>
+                   <span class="s">&quot;in&quot;</span><span class="p">:</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;in&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)),</span>
+                   <span class="s">&quot;do&quot;</span><span class="p">:</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;do&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))}</span>
+            <span class="k">if</span> <span class="s">&quot;seq&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;seq&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;seq&quot;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">keys</span> <span class="o">==</span> <span class="p">[</span><span class="s">&quot;forkey&quot;</span><span class="p">,</span> <span class="s">&quot;forval&quot;</span><span class="p">,</span> <span class="s">&quot;in&quot;</span><span class="p">,</span> <span class="s">&quot;do&quot;</span><span class="p">]:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;forkey&quot;</span><span class="p">:</span> <span class="n">_newSymbol</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;forkey&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">),</span>
+                   <span class="s">&quot;forval&quot;</span><span class="p">:</span> <span class="n">_newSymbol</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;forval&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">),</span>
+                   <span class="s">&quot;in&quot;</span><span class="p">:</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;in&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)),</span>
+                   <span class="s">&quot;do&quot;</span><span class="p">:</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;do&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))}</span>
+
+        <span class="k">elif</span> <span class="s">&quot;cast&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;cast&quot;</span><span class="p">:</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;cast&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)),</span> <span class="s">&quot;cases&quot;</span><span class="p">:</span> <span class="p">[]}</span>
+            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;cases&quot;</span><span class="p">]:</span>
+                <span class="n">scope</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;cases&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&quot;as&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="s">&quot;as&quot;</span><span class="p">],</span> <span class="s">&quot;named&quot;</span><span class="p">:</span> <span class="n">_newSymbol</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s">&quot;named&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">scope</span><span class="p">),</span> <span class="s">&quot;do&quot;</span><span class="p">:</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s">&quot;do&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">scope</span><span class="p">)})</span>
+            <span class="k">if</span> <span class="s">&quot;partial&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;partial&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;partial&quot;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">keys</span> <span class="o">==</span> <span class="p">[</span><span class="s">&quot;upcast&quot;</span><span class="p">,</span> <span class="s">&quot;as&quot;</span><span class="p">]:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;upcast&quot;</span><span class="p">:</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;upcast&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)),</span> <span class="s">&quot;as&quot;</span><span class="p">:</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;as&quot;</span><span class="p">]}</span>
+
+        <span class="k">elif</span> <span class="s">&quot;ifnotnull&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">scope</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;ifnotnull&quot;</span><span class="p">:</span> <span class="n">_uniqueDeclare</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;ifnotnull&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">scope</span><span class="p">),</span>
+                   <span class="s">&quot;then&quot;</span><span class="p">:</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;then&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">scope</span><span class="p">)}</span>
+            <span class="k">if</span> <span class="s">&quot;else&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;else&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;else&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="s">&quot;log&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;log&quot;</span><span class="p">:</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;log&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))}</span>
+            <span class="k">if</span> <span class="s">&quot;namespace&quot;</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">keys</span> <span class="o">==</span> <span class="p">[</span><span class="s">&quot;params&quot;</span><span class="p">,</span> <span class="s">&quot;ret&quot;</span><span class="p">,</span> <span class="s">&quot;do&quot;</span><span class="p">]:</span>
+            <span class="n">scope</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;params&quot;</span><span class="p">:</span> <span class="p">[</span><span class="nb">dict</span><span class="p">((</span><span class="n">_newSymbol</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">scope</span><span class="p">),</span> <span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s">&quot;@&quot;</span> <span class="k">else</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;params&quot;</span><span class="p">]],</span>
+                   <span class="s">&quot;ret&quot;</span><span class="p">:</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;ret&quot;</span><span class="p">],</span>
+                   <span class="s">&quot;do&quot;</span><span class="p">:</span> <span class="n">_uniqueMaybeList</span><span class="p">(</span><span class="n">expr</span><span class="p">[</span><span class="s">&quot;do&quot;</span><span class="p">],</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">scope</span><span class="p">)}</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">key</span><span class="p">,</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+            <span class="n">value</span><span class="p">,</span> <span class="o">=</span> <span class="n">expr</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))}</span>
+
+        <span class="k">if</span> <span class="s">&quot;@&quot;</span> <span class="ow">in</span> <span class="n">expr</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&quot;@&quot;</span><span class="p">,</span> <span class="n">expr</span><span class="p">[</span><span class="s">&quot;@&quot;</span><span class="p">])]</span> <span class="o">+</span> <span class="n">out</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">out</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span>
+</div>
+<span class="k">class</span> <span class="nc">_NewSymbol</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_highestSeen</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">original</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">original</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">toavoid</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">original</span>
+        <span class="n">trial</span> <span class="o">=</span> <span class="s">&quot;var&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_highestSeen</span><span class="p">)</span>
+        <span class="k">while</span> <span class="n">trial</span> <span class="ow">in</span> <span class="n">toavoid</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_highestSeen</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">trial</span> <span class="o">=</span> <span class="s">&quot;var&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_highestSeen</span><span class="p">)</span>
+        <span class="n">toavoid</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">trial</span><span class="p">)</span>
+        <span class="n">tr</span><span class="p">[</span><span class="n">original</span><span class="p">]</span> <span class="o">=</span> <span class="n">trial</span>
+        <span class="k">return</span> <span class="n">trial</span>
+<span class="n">_newSymbol</span> <span class="o">=</span> <span class="n">_NewSymbol</span><span class="p">()</span>
+
+<span class="k">def</span> <span class="nf">_uniqueDeclare</span><span class="p">(</span><span class="n">declare</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">):</span>
+    <span class="n">scope</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">_newSymbol</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">),</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">scope</span><span class="p">))</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s">&quot;@&quot;</span> <span class="k">else</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">declare</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+
+<span class="k">def</span> <span class="nf">_uniqueReassign</span><span class="p">(</span><span class="n">reassign</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">):</span>
+    <span class="n">scope</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="n">tr</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">k</span><span class="p">),</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">scope</span><span class="p">))</span> <span class="k">if</span> <span class="n">k</span> <span class="o">!=</span> <span class="s">&quot;@&quot;</span> <span class="k">else</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">declare</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+
+<span class="k">def</span> <span class="nf">_uniqueMaybeList</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="n">tr</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">x</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">uniqueSymbols</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">toavoid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">tr</span><span class="p">))</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

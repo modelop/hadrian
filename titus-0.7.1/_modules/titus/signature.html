@@ -1,0 +1,559 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.signature &mdash; Titus 0.7.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.7.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.7.1 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.signature</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+
+<span class="kn">import</span> <span class="nn">titus.P</span> <span class="kn">as</span> <span class="nn">P</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">Type</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">FcnType</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">ExceptionType</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroType</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroCompiled</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroNull</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroBoolean</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroInt</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroLong</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroFloat</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroDouble</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroBytes</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroFixed</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroString</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroEnum</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroArray</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroMap</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroRecord</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroField</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroUnion</span>
+
+<div class="viewcode-block" id="IncompatibleTypes"><a class="viewcode-back" href="../../titus.html#titus.signature.IncompatibleTypes">[docs]</a><span class="k">class</span> <span class="nc">IncompatibleTypes</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span> <span class="k">pass</span>
+</div>
+<div class="viewcode-block" id="LabelData"><a class="viewcode-back" href="../../titus.html#titus.signature.LabelData">[docs]</a><span class="k">class</span> <span class="nc">LabelData</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="LabelData.distinctTypes"><a class="viewcode-back" href="../../titus.html#titus.signature.LabelData.distinctTypes">[docs]</a>    <span class="k">def</span> <span class="nf">distinctTypes</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">out</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">out</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">candidate</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">candidate</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+                <span class="n">out</span> <span class="o">=</span> <span class="n">LabelData</span><span class="o">.</span><span class="n">distinctTypes</span><span class="p">(</span><span class="n">candidate</span><span class="o">.</span><span class="n">types</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">any</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">accepts</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">out</span><span class="p">):</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">out</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">candidate</span><span class="o">.</span><span class="n">accepts</span><span class="p">(</span><span class="n">y</span><span class="p">):</span> <span class="k">break</span>
+                    <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">):</span>
+                    <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">candidate</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">out</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">candidate</span>
+        <span class="k">return</span> <span class="n">out</span>
+</div>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="LabelData.broadestType"><a class="viewcode-back" href="../../titus.html#titus.signature.LabelData.broadestType">[docs]</a>    <span class="k">def</span> <span class="nf">broadestType</span><span class="p">(</span><span class="n">candidates</span><span class="p">):</span>
+        <span class="n">realCandidates</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">candidates</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ExceptionType</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;empty list of types&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">realCandidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;list of types consists only of exception type&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroNull</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroBoolean</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroInt</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroLong</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroFloat</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroDouble</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroDouble</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroBytes</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroString</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroArray</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroArray</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">mustBeAvro</span><span class="p">(</span><span class="n">LabelData</span><span class="o">.</span><span class="n">broadestType</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">items</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">])))</span>
+
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroMap</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">mustBeAvro</span><span class="p">(</span><span class="n">LabelData</span><span class="o">.</span><span class="n">broadestType</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">])))</span>
+
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroFixed</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="n">fullName</span> <span class="o">=</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">fullName</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">fullName</span> <span class="o">==</span> <span class="n">fullName</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                <span class="k">return</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">IncompatibleTypes</span><span class="p">(</span><span class="s">&quot;incompatible fixed types: &quot;</span> <span class="o">+</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="n">realCandidates</span><span class="p">)))</span>
+
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="n">fullName</span> <span class="o">=</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">fullName</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">fullName</span> <span class="o">==</span> <span class="n">fullName</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                <span class="k">return</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">IncompatibleTypes</span><span class="p">(</span><span class="s">&quot;incompatible enum types: &quot;</span> <span class="o">+</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="n">realCandidates</span><span class="p">)))</span>
+
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="n">fullName</span> <span class="o">=</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">fullName</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">fullName</span> <span class="o">==</span> <span class="n">fullName</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                <span class="k">return</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">IncompatibleTypes</span><span class="p">(</span><span class="s">&quot;incompatible record types: &quot;</span> <span class="o">+</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="n">realCandidates</span><span class="p">)))</span>
+
+        <span class="k">elif</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">FcnType</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">params</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">ret</span>
+
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">params</span> <span class="o">==</span> <span class="n">params</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">ret</span> <span class="o">==</span> <span class="n">ret</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+                <span class="k">return</span> <span class="n">realCandidates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">IncompatibleTypes</span><span class="p">(</span><span class="s">&quot;incompatible function types: &quot;</span> <span class="o">+</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="n">realCandidates</span><span class="p">)))</span>
+
+        <span class="k">elif</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">FcnType</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">realCandidates</span><span class="p">):</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="n">LabelData</span><span class="o">.</span><span class="n">distinctTypes</span><span class="p">(</span><span class="n">realCandidates</span><span class="p">)</span>
+            <span class="n">types</span> <span class="o">=</span> <span class="p">[</span><span class="n">P</span><span class="o">.</span><span class="n">mustBeAvro</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">types</span><span class="p">]</span>
+
+            <span class="n">countFixed</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">countEnum</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">types</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">AvroFixed</span><span class="p">):</span>
+                    <span class="n">countFixed</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">):</span>
+                    <span class="n">countEnum</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="k">if</span> <span class="n">countFixed</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">IncompatibleTypes</span><span class="p">(</span><span class="s">&quot;incompatible fixed types&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">countEnum</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">IncompatibleTypes</span><span class="p">(</span><span class="s">&quot;incompatible enum types&quot;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">AvroUnion</span><span class="p">(</span><span class="n">types</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">IncompatibleTypes</span><span class="p">(</span><span class="s">&quot;incompatible function/non-function types: &quot;</span> <span class="o">+</span> <span class="s">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">repr</span><span class="p">,</span> <span class="n">realCandidates</span><span class="p">)))</span>
+</div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">members</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">expectedFields</span> <span class="o">=</span> <span class="bp">None</span>
+
+<div class="viewcode-block" id="LabelData.add"><a class="viewcode-back" href="../../titus.html#titus.signature.LabelData.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">members</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="LabelData.determineAssignment"><a class="viewcode-back" href="../../titus.html#titus.signature.LabelData.determineAssignment">[docs]</a>    <span class="k">def</span> <span class="nf">determineAssignment</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">LabelData</span><span class="o">.</span><span class="n">broadestType</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">members</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectedFields</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">expectedFields</span> <span class="o">!=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">out</span><span class="o">.</span><span class="n">fields</span><span class="p">]:</span>
+                    <span class="k">raise</span> <span class="n">IncompatibleTypes</span><span class="p">(</span><span class="s">&quot;fields do not agree with EnumFields symbols (same names, same order)&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">IncompatibleTypes</span><span class="p">(</span><span class="s">&quot;EnumFields.wildRecord does not point to a record&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">out</span>
+</div>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;&lt;titus.signature.LabelData {0} at {1}&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">members</span><span class="p">,</span> <span class="s">&quot;0x</span><span class="si">%x</span><span class="s">&quot;</span> <span class="o">%</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="Signature"><a class="viewcode-back" href="../../titus.html#titus.signature.Signature">[docs]</a><span class="k">class</span> <span class="nc">Signature</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Signature.accepts"><a class="viewcode-back" href="../../titus.html#titus.signature.Signature.accepts">[docs]</a>    <span class="k">def</span> <span class="nf">accepts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+</div></div>
+<div class="viewcode-block" id="Sigs"><a class="viewcode-back" href="../../titus.html#titus.signature.Sigs">[docs]</a><span class="k">class</span> <span class="nc">Sigs</span><span class="p">(</span><span class="n">Signature</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cases</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cases</span> <span class="o">=</span> <span class="n">cases</span>
+
+<div class="viewcode-block" id="Sigs.accepts"><a class="viewcode-back" href="../../titus.html#titus.signature.Sigs.accepts">[docs]</a>    <span class="k">def</span> <span class="nf">accepts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">case</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cases</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">case</span><span class="o">.</span><span class="n">accepts</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">result</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">result</span>
+        <span class="k">return</span> <span class="bp">None</span>
+</div></div>
+<div class="viewcode-block" id="Sig"><a class="viewcode-back" href="../../titus.html#titus.signature.Sig">[docs]</a><span class="k">class</span> <span class="nc">Sig</span><span class="p">(</span><span class="n">Signature</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">ret</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ret</span> <span class="o">=</span> <span class="n">ret</span>
+
+<div class="viewcode-block" id="Sig.accepts"><a class="viewcode-back" href="../../titus.html#titus.signature.Sig.accepts">[docs]</a>    <span class="k">def</span> <span class="nf">accepts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="n">labelData</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">values</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a</span><span class="p">,</span> <span class="n">labelData</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">args</span><span class="p">)):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">assignments</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">l</span><span class="p">,</span> <span class="n">ld</span><span class="o">.</span><span class="n">determineAssignment</span><span class="p">())</span> <span class="k">for</span> <span class="n">l</span><span class="p">,</span> <span class="n">ld</span> <span class="ow">in</span> <span class="n">labelData</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+                <span class="n">assignedParams</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">values</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a</span><span class="p">,</span> <span class="n">assignments</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">args</span><span class="p">)]</span>
+                <span class="n">assignedRet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">assignRet</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ret</span><span class="p">,</span> <span class="n">assignments</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">(</span><span class="n">assignedParams</span><span class="p">,</span> <span class="n">assignedRet</span><span class="p">)</span>
+
+            <span class="k">except</span> <span class="n">IncompatibleTypes</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+</div>
+<div class="viewcode-block" id="Sig.check"><a class="viewcode-back" href="../../titus.html#titus.signature.Sig.check">[docs]</a>    <span class="k">def</span> <span class="nf">check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pat</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="n">labelData</span><span class="p">,</span> <span class="n">strict</span><span class="p">,</span> <span class="nb">reversed</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">ExceptionType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Null</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroNull</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroBoolean</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroDouble</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">strict</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">reversed</span> <span class="ow">and</span> \
+                 <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">strict</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">reversed</span> <span class="ow">and</span> \
+                 <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">strict</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">reversed</span> <span class="ow">and</span> \
+                 <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroDouble</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">strict</span> <span class="ow">and</span> <span class="nb">reversed</span> <span class="ow">and</span> \
+                 <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">strict</span> <span class="ow">and</span> <span class="nb">reversed</span> <span class="ow">and</span> \
+                 <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">strict</span> <span class="ow">and</span> <span class="nb">reversed</span> <span class="ow">and</span> \
+                 <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">))</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroDouble</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroBytes</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroString</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroArray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">arg</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">labelData</span><span class="p">,</span> <span class="n">strict</span><span class="p">,</span> <span class="nb">reversed</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">arg</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">labelData</span><span class="p">,</span> <span class="n">strict</span><span class="p">,</span> <span class="nb">reversed</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Union</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+            <span class="n">found</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="n">originalLabelData</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">labelData</span><span class="p">)</span>
+            <span class="n">labelData2</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">labelData</span><span class="p">)</span>
+            <span class="n">atypesPermutations</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">permutations</span><span class="p">(</span><span class="n">arg</span><span class="o">.</span><span class="n">types</span><span class="p">)</span>
+
+            <span class="n">atypesPermutations_isEmpty</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="k">while</span> <span class="ow">not</span> <span class="n">found</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">atypesPermutations_isEmpty</span><span class="p">:</span>
+                <span class="n">available</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">types</span><span class="p">))</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">nextPermutation</span> <span class="o">=</span> <span class="n">atypesPermutations</span><span class="o">.</span><span class="n">next</span><span class="p">()</span>
+                <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+                    <span class="n">atypesPermutations_isEmpty</span> <span class="o">=</span> <span class="bp">True</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">anyfalse</span> <span class="o">=</span> <span class="bp">False</span>
+                    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">nextPermutation</span><span class="p">:</span>
+                        <span class="n">foundone</span> <span class="o">=</span> <span class="bp">False</span>
+                        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">available</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">labelData2</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span> <span class="nb">reversed</span><span class="p">):</span>
+                                <span class="k">del</span> <span class="n">available</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                                <span class="n">foundone</span> <span class="o">=</span> <span class="bp">True</span>
+                                <span class="k">break</span>
+
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">foundone</span><span class="p">:</span>
+                            <span class="n">anyfalse</span> <span class="o">=</span> <span class="bp">True</span>
+                            <span class="k">break</span>
+
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">anyfalse</span><span class="p">:</span>
+                        <span class="n">found</span> <span class="o">=</span> <span class="bp">True</span>
+
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">found</span><span class="p">:</span>
+                        <span class="n">labelData2</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">originalLabelData</span><span class="p">)</span>
+
+            <span class="n">labelData</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">labelData2</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">found</span>
+            
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Union</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="n">labelData</span><span class="p">,</span> <span class="n">strict</span><span class="p">,</span> <span class="nb">reversed</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pat</span><span class="o">.</span><span class="n">types</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Fixed</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroFixed</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">pat</span><span class="o">.</span><span class="n">fullName</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">pat</span><span class="o">.</span><span class="n">fullName</span> <span class="o">==</span> <span class="n">arg</span><span class="o">.</span><span class="n">fullName</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">pat</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="n">arg</span><span class="o">.</span><span class="n">size</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Enum</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">pat</span><span class="o">.</span><span class="n">fullName</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">pat</span><span class="o">.</span><span class="n">fullName</span> <span class="o">==</span> <span class="n">arg</span><span class="o">.</span><span class="n">fullName</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">pat</span><span class="o">.</span><span class="n">symbols</span> <span class="o">==</span> <span class="n">arg</span><span class="o">.</span><span class="n">symbols</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Record</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">pat</span><span class="o">.</span><span class="n">fullName</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">pat</span><span class="o">.</span><span class="n">fullName</span> <span class="o">==</span> <span class="n">arg</span><span class="o">.</span><span class="n">fullName</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">amap</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">arg</span><span class="o">.</span><span class="n">fields</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">amap</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                    <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">amap</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">labelData</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span> <span class="nb">reversed</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">pat</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">False</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Fcn</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">FcnType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">labelData</span><span class="p">,</span> <span class="n">strict</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span> <span class="k">for</span> <span class="n">p</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">arg</span><span class="o">.</span><span class="n">params</span><span class="p">))</span> <span class="ow">and</span> \
+                   <span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">ret</span><span class="p">,</span> <span class="n">arg</span><span class="o">.</span><span class="n">ret</span><span class="p">,</span> <span class="n">labelData</span><span class="p">,</span> <span class="n">strict</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">pat</span><span class="o">.</span><span class="n">oneOf</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">pat</span><span class="o">.</span><span class="n">oneOf</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">pat</span><span class="o">.</span><span class="n">label</span> <span class="ow">in</span> <span class="n">labelData</span><span class="p">:</span>
+                    <span class="n">labelData</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">LabelData</span><span class="p">()</span>
+                <span class="n">labelData</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">False</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">WildRecord</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">pat</span><span class="o">.</span><span class="n">label</span> <span class="ow">in</span> <span class="n">labelData</span><span class="p">:</span>
+                <span class="n">labelData</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">LabelData</span><span class="p">()</span>
+            <span class="n">labelData</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+
+            <span class="n">amap</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">arg</span><span class="o">.</span><span class="n">fields</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">minimalFields</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">amap</span><span class="o">.</span><span class="n">keys</span><span class="p">())):</span>
+                <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">check</span><span class="p">(</span><span class="n">pt</span><span class="p">,</span> <span class="n">amap</span><span class="p">[</span><span class="n">pn</span><span class="p">]</span><span class="o">.</span><span class="n">avroType</span><span class="p">,</span> <span class="n">labelData</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span> <span class="nb">reversed</span><span class="p">)</span> <span class="k">for</span> <span class="n">pn</span><span class="p">,</span> <span class="n">pt</span> <span class="ow">in</span> <span class="n">pat</span><span class="o">.</span><span class="n">minimalFields</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="bp">False</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">WildEnum</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">pat</span><span class="o">.</span><span class="n">label</span> <span class="ow">in</span> <span class="n">labelData</span><span class="p">:</span>
+                <span class="n">labelData</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">LabelData</span><span class="p">()</span>
+            <span class="n">labelData</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">WildFixed</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">pat</span><span class="o">.</span><span class="n">label</span> <span class="ow">in</span> <span class="n">labelData</span><span class="p">:</span>
+                <span class="n">labelData</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">LabelData</span><span class="p">()</span>
+            <span class="n">labelData</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">EnumFields</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">pat</span><span class="o">.</span><span class="n">label</span> <span class="ow">in</span> <span class="n">labelData</span><span class="p">:</span>
+                <span class="n">labelData</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span> <span class="o">=</span> <span class="n">LabelData</span><span class="p">()</span>
+            <span class="n">labelData</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">arg</span><span class="p">)</span>
+            <span class="n">labelData</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">wildRecord</span><span class="p">]</span><span class="o">.</span><span class="n">expectedFields</span> <span class="o">=</span> <span class="n">arg</span><span class="o">.</span><span class="n">symbols</span>
+            <span class="k">return</span> <span class="bp">True</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+</div>
+<div class="viewcode-block" id="Sig.assign"><a class="viewcode-back" href="../../titus.html#titus.signature.Sig.assign">[docs]</a>    <span class="k">def</span> <span class="nf">assign</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pat</span><span class="p">,</span> <span class="n">arg</span><span class="p">,</span> <span class="n">assignments</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Null</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroNull</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arg</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroBoolean</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arg</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroInt</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">AvroLong</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">AvroFloat</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroInt</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroLong</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroFloat</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroDouble</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="n">AvroDouble</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroBytes</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arg</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroString</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arg</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroArray</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroArray</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">mustBeAvro</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">arg</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">assignments</span><span class="p">)))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroMap</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroMap</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">mustBeAvro</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">arg</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">assignments</span><span class="p">)))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Union</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arg</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Union</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arg</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Fixed</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroFixed</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arg</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Enum</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroEnum</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arg</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Record</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">AvroRecord</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arg</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Fcn</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">arg</span><span class="p">,</span> <span class="n">FcnType</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">arg</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">assignments</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">WildRecord</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">assignments</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">WildEnum</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">assignments</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">WildFixed</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">assignments</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">EnumFields</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">assignments</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span>
+</div>
+<div class="viewcode-block" id="Sig.assignRet"><a class="viewcode-back" href="../../titus.html#titus.signature.Sig.assignRet">[docs]</a>    <span class="k">def</span> <span class="nf">assignRet</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pat</span><span class="p">,</span> <span class="n">assignments</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Null</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroNull</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroBoolean</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroInt</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroLong</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroFloat</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroDouble</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Bytes</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroBytes</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroString</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroArray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">assignRet</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">items</span><span class="p">,</span> <span class="n">assignments</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Map</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">assignRet</span><span class="p">(</span><span class="n">pat</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">assignments</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Union</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">AvroUnion</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">assignRet</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">assignments</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">pat</span><span class="o">.</span><span class="n">types</span><span class="p">])</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Fixed</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">P</span><span class="o">.</span><span class="n">toType</span><span class="p">(</span><span class="n">pat</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">P</span><span class="o">.</span><span class="n">toType</span><span class="p">(</span><span class="n">pat</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Record</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">P</span><span class="o">.</span><span class="n">toType</span><span class="p">(</span><span class="n">pat</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Fcn</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">P</span><span class="o">.</span><span class="n">toType</span><span class="p">(</span><span class="n">pat</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">assignments</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">WildRecord</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">assignments</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">WildEnum</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">assignments</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">WildFixed</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">assignments</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pat</span><span class="p">,</span> <span class="n">P</span><span class="o">.</span><span class="n">EnumFields</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">assignments</span><span class="p">[</span><span class="n">pat</span><span class="o">.</span><span class="n">label</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">pat</span><span class="p">))</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

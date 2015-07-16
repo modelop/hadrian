@@ -1,0 +1,812 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>inspector Package &mdash; Titus 0.7.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.7.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.7.1 documentation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">Titus 0.7.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="inspector-package">
+<h1>inspector Package<a class="headerlink" href="#inspector-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id1">
+<h2><tt class="xref py py-mod docutils literal"><span class="pre">inspector</span></tt> Package<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-titus.inspector"></span></div>
+<div class="section" id="module-titus.inspector.defs">
+<span id="defs-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">defs</span></tt> Module<a class="headerlink" href="#module-titus.inspector.defs" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="titus.inspector.defs.Command">
+<em class="property">class </em><tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">Command</tt><a class="reference internal" href="_modules/titus/inspector/defs.html#Command"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.Command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.defs.Command.syntaxError">
+<tt class="descname">syntaxError</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#Command.syntaxError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.Command.syntaxError" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.defs.CommandGroup">
+<em class="property">class </em><tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">CommandGroup</tt><big>(</big><em>name</em>, <em>commands</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#CommandGroup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.CommandGroup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.defs.CommandGroup.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#CommandGroup.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.CommandGroup.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.defs.CommandGroup.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#CommandGroup.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.CommandGroup.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.defs.Gadget">
+<em class="property">class </em><tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">Gadget</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#Gadget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.Gadget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="titus.inspector.defs.InspectorError">
+<em class="property">exception </em><tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">InspectorError</tt><a class="reference internal" href="_modules/titus/inspector/defs.html#InspectorError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.InspectorError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.defs.Mode">
+<em class="property">class </em><tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">Mode</tt><a class="reference internal" href="_modules/titus/inspector/defs.html#Mode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.Mode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.defs.Mode.loop">
+<tt class="descname">loop</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#Mode.loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.Mode.loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.defs.Mode.pause">
+<tt class="descname">pause</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#Mode.pause"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.Mode.pause" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.defs.Mode.resume">
+<tt class="descname">resume</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#Mode.resume"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.Mode.resume" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.defs.Model">
+<em class="property">class </em><tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">Model</tt><big>(</big><em>obj</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.inspector.defs.Model.engine">
+<tt class="descname">engine</tt><a class="reference internal" href="_modules/titus/inspector/defs.html#Model.engine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.Model.engine" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.inspector.defs.Model.engineConfig">
+<tt class="descname">engineConfig</tt><a class="reference internal" href="_modules/titus/inspector/defs.html#Model.engineConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.Model.engineConfig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.defs.Model.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#Model.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.Model.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.defs.SimpleCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">SimpleCommand</tt><big>(</big><em>name</em>, <em>action</em>, <em>minargs=None</em>, <em>maxargs=None</em>, <em>completer=None</em>, <em>help=None</em>, <em>syntax=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#SimpleCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.SimpleCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.defs.SimpleCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#SimpleCommand.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.SimpleCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.defs.SimpleCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#SimpleCommand.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.SimpleCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.defs.TabCompleter">
+<em class="property">class </em><tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">TabCompleter</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#TabCompleter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.TabCompleter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.defs.TabCompleter.complete">
+<tt class="descname">complete</tt><big>(</big><em>text</em>, <em>state</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#TabCompleter.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.TabCompleter.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.defs.do">
+<tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">do</tt><big>(</big><em>*args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#do"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.do" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.defs.exception">
+<tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">exception</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#exception"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.exception" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.defs.extaction">
+<tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">extaction</tt><big>(</big><em>args0</em>, <em>node</em>, <em>items</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#extaction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.extaction" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.defs.extcomplete">
+<tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">extcomplete</tt><big>(</big><em>node</em>, <em>items</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#extcomplete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.extcomplete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.defs.getcomplete">
+<tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">getcomplete</tt><big>(</big><em>established</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#getcomplete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.getcomplete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.defs.getwords">
+<tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">getwords</tt><big>(</big><em>text</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#getwords"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.getwords" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.defs.maybe">
+<tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">maybe</tt><big>(</big><em>action</em>, <em>exceptions</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#maybe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.maybe" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.defs.pathcomplete">
+<tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">pathcomplete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#pathcomplete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.pathcomplete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.defs.pipe">
+<tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">pipe</tt><big>(</big><em>command</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#pipe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.pipe" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.defs.pipewait">
+<tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">pipewait</tt><big>(</big><em>proc</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#pipewait"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.pipewait" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.defs.run">
+<tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">run</tt><big>(</big><em>command</em>, <em>*args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.run" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.defs.switch">
+<tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">switch</tt><big>(</big><em>*pairs</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/defs.html#switch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.switch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-titus.inspector.jsongadget">
+<span id="jsongadget-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">jsongadget</span></tt> Module<a class="headerlink" href="#module-titus.inspector.jsongadget" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="titus.inspector.jsongadget.ChangeCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.jsongadget.</tt><tt class="descname">ChangeCommand</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#ChangeCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.ChangeCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.jsongadget.ChangeCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#ChangeCommand.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.ChangeCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.jsongadget.ChangeCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#ChangeCommand.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.ChangeCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.jsongadget.CountCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.jsongadget.</tt><tt class="descname">CountCommand</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#CountCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.CountCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.jsongadget.CountCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#CountCommand.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.CountCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.jsongadget.CountCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#CountCommand.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.CountCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.jsongadget.FindCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.jsongadget.</tt><tt class="descname">FindCommand</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#FindCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.FindCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.jsongadget.FindCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#FindCommand.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.FindCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.jsongadget.FindCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#FindCommand.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.FindCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.jsongadget.IndexCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.jsongadget.</tt><tt class="descname">IndexCommand</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#IndexCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.IndexCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.jsongadget.IndexCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#IndexCommand.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.IndexCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.jsongadget.IndexCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#IndexCommand.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.IndexCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.jsongadget.JsonGadget">
+<em class="property">class </em><tt class="descclassname">titus.inspector.jsongadget.</tt><tt class="descname">JsonGadget</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#JsonGadget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.JsonGadget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Gadget" title="titus.inspector.defs.Gadget"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Gadget</span></tt></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.jsongadget.LookCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.jsongadget.</tt><tt class="descname">LookCommand</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#LookCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.LookCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.jsongadget.LookCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#LookCommand.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.LookCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.jsongadget.LookCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#LookCommand.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.LookCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.inspector.jsongadget.depthGreaterThan">
+<tt class="descclassname">titus.inspector.jsongadget.</tt><tt class="descname">depthGreaterThan</tt><big>(</big><em>obj</em>, <em>target</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/jsongadget.html#depthGreaterThan"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.depthGreaterThan" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-titus.inspector.main">
+<span id="main-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">main</span></tt> Module<a class="headerlink" href="#module-titus.inspector.main" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="titus.inspector.main.InspectorMode">
+<em class="property">class </em><tt class="descclassname">titus.inspector.main.</tt><tt class="descname">InspectorMode</tt><big>(</big><em>initialCommands</em>, <em>gadgets</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/main.html#InspectorMode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.main.InspectorMode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Mode" title="titus.inspector.defs.Mode"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Mode</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.main.InspectorMode.action">
+<tt class="descname">action</tt><big>(</big><em>text</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/main.html#InspectorMode.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.main.InspectorMode.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.main.InspectorMode.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/main.html#InspectorMode.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.main.InspectorMode.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.inspector.main.InspectorMode.historyFileName">
+<tt class="descname">historyFileName</tt><em class="property"> = 'inspector.history'</em><a class="headerlink" href="#titus.inspector.main.InspectorMode.historyFileName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-titus.inspector.parser">
+<span id="parser-module"></span><h2><a class="reference external" href="http://docs.python.org/library/parser.html#module-parser" title="(in Python v2.7)"><tt class="xref py py-mod docutils literal"><span class="pre">parser</span></tt></a> Module<a class="headerlink" href="#module-titus.inspector.parser" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="titus.inspector.parser.AndChain">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">AndChain</tt><big>(</big><em>chain</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#AndChain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.AndChain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.AndChain.regex">
+<tt class="descname">regex</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#AndChain.regex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.AndChain.regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Approx">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Approx</tt><big>(</big><em>central</em>, <em>error</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Approx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Approx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Approx.regex">
+<tt class="descname">regex</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Approx.regex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Approx.regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Ast">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Ast</tt><a class="reference internal" href="_modules/titus/inspector/parser.html#Ast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Ast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Ast.checkPartial">
+<tt class="descname">checkPartial</tt><big>(</big><em>text</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Ast.checkPartial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Ast.checkPartial" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.inspector.parser.Ast.col">
+<tt class="descname">col</tt><em class="property"> = None</em><a class="headerlink" href="#titus.inspector.parser.Ast.col" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.inspector.parser.Ast.partial">
+<tt class="descname">partial</tt><em class="property"> = False</em><a class="headerlink" href="#titus.inspector.parser.Ast.partial" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.parser.Ast.regex">
+<tt class="descname">regex</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Ast.regex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Ast.regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.parser.Ast.replacement">
+<tt class="descname">replacement</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Ast.replacement"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Ast.replacement" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.parser.Ast.value">
+<tt class="descname">value</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Ast.value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Ast.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.DotDotDot">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">DotDotDot</tt><big>(</big><em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#DotDotDot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.DotDotDot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Extract">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Extract</tt><big>(</big><em>text</em>, <em>items</em>, <em>partial</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Extract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Extract" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Extract.checkPartial">
+<tt class="descname">checkPartial</tt><big>(</big><em>text</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Extract.checkPartial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Extract.checkPartial" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.parser.Extract.strto">
+<tt class="descname">strto</tt><big>(</big><em>index</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Extract.strto"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Extract.strto" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.FilePath">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">FilePath</tt><big>(</big><em>text</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#FilePath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.FilePath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Floating">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Floating</tt><big>(</big><em>num</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Floating"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Floating" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Floating.value">
+<tt class="descname">value</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Floating.value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Floating.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Group">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Group</tt><big>(</big><em>item</em>, <em>counter</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Group"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Group.regex">
+<tt class="descname">regex</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Group.regex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Group.regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.parser.Group.replacement">
+<tt class="descname">replacement</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Group.replacement"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Group.replacement" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Integer">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Integer</tt><big>(</big><em>num</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Integer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Integer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Floating" title="titus.inspector.parser.Floating"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Floating</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Integer.value">
+<tt class="descname">value</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Integer.value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Integer.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.JsonArray">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">JsonArray</tt><big>(</big><em>items</em>, <em>partial</em>, <em>startEllipsis</em>, <em>endEllipsis</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#JsonArray"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.JsonArray" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.JsonArray.checkPartial">
+<tt class="descname">checkPartial</tt><big>(</big><em>text</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#JsonArray.checkPartial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.JsonArray.checkPartial" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.parser.JsonArray.replacement">
+<tt class="descname">replacement</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#JsonArray.replacement"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.JsonArray.replacement" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.parser.JsonArray.value">
+<tt class="descname">value</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#JsonArray.value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.JsonArray.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.JsonObject">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">JsonObject</tt><big>(</big><em>pairs</em>, <em>partial</em>, <em>ellipsis</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#JsonObject"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.JsonObject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.JsonObject.checkPartial">
+<tt class="descname">checkPartial</tt><big>(</big><em>text</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#JsonObject.checkPartial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.JsonObject.checkPartial" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.parser.JsonObject.regex">
+<tt class="descname">regex</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#JsonObject.regex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.JsonObject.regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.parser.JsonObject.replacement">
+<tt class="descname">replacement</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#JsonObject.replacement"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.JsonObject.replacement" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.parser.JsonObject.value">
+<tt class="descname">value</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#JsonObject.value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.JsonObject.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Option">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Option</tt><big>(</big><em>word</em>, <em>value</em>, <em>partial</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Option"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Option" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Option.checkPartial">
+<tt class="descname">checkPartial</tt><big>(</big><em>text</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Option.checkPartial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Option.checkPartial" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.OrChain">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">OrChain</tt><big>(</big><em>chain</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#OrChain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.OrChain" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.OrChain.regex">
+<tt class="descname">regex</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#OrChain.regex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.OrChain.regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Pair">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Pair</tt><big>(</big><em>key</em>, <em>value</em>, <em>partial</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Pair"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Pair" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Pair.checkPartial">
+<tt class="descname">checkPartial</tt><big>(</big><em>text</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Pair.checkPartial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Pair.checkPartial" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Parser">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Parser</tt><a class="reference internal" href="_modules/titus/inspector/parser.html#Parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Parser.parse">
+<tt class="descname">parse</tt><big>(</big><em>text</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Parser.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Parser.parse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="titus.inspector.parser.ParserError">
+<em class="property">exception </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">ParserError</tt><big>(</big><em>text</em>, <em>col</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#ParserError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.ParserError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.PlusOrMinus">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">PlusOrMinus</tt><big>(</big><em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#PlusOrMinus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.PlusOrMinus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Range">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Range</tt><big>(</big><em>operator</em>, <em>comparator</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Range"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Range" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Range.regex">
+<tt class="descname">regex</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Range.regex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Range.regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Regex">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Regex</tt><big>(</big><em>text</em>, <em>find</em>, <em>to</em>, <em>flags</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Regex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Regex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Regex.regex">
+<tt class="descname">regex</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Regex.regex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Regex.regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Replacement">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Replacement</tt><big>(</big><em>name</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Replacement"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Replacement" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.StartExtract">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">StartExtract</tt><big>(</big><em>text</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#StartExtract"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.StartExtract" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.String">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">String</tt><big>(</big><em>text</em>, <em>partial</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#String"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.String" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.FilePath" title="titus.inspector.parser.FilePath"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.FilePath</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.String.value">
+<tt class="descname">value</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#String.value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.String.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Switches">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Switches</tt><big>(</big><em>text</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Switches"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Switches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.FilePath" title="titus.inspector.parser.FilePath"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.FilePath</span></tt></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Underscore">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Underscore</tt><big>(</big><em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Underscore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Underscore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.Ast" title="titus.inspector.parser.Ast"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.Ast</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Underscore.regex">
+<tt class="descname">regex</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Underscore.regex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Underscore.regex" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.parser.Word">
+<em class="property">class </em><tt class="descclassname">titus.inspector.parser.</tt><tt class="descname">Word</tt><big>(</big><em>text</em>, <em>col=None</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Word"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Word" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.parser.FilePath" title="titus.inspector.parser.FilePath"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.parser.FilePath</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.parser.Word.value">
+<tt class="descname">value</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/titus/inspector/parser.html#Word.value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.parser.Word.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-titus.inspector.pfagadget">
+<span id="pfagadget-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">pfagadget</span></tt> Module<a class="headerlink" href="#module-titus.inspector.pfagadget" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="titus.inspector.pfagadget.CallsCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.pfagadget.</tt><tt class="descname">CallsCommand</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#CallsCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.CallsCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.pfagadget.CallsCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#CallsCommand.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.CallsCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.pfagadget.CallsCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#CallsCommand.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.CallsCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.pfagadget.CellsPoolsCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.pfagadget.</tt><tt class="descname">CellsPoolsCommand</tt><big>(</big><em>mode</em>, <em>which</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#CellsPoolsCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.CellsPoolsCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.pfagadget.CellsPoolsCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#CellsPoolsCommand.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.CellsPoolsCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.pfagadget.CellsPoolsCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#CellsPoolsCommand.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.CellsPoolsCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.pfagadget.InputOutputCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.pfagadget.</tt><tt class="descname">InputOutputCommand</tt><big>(</big><em>mode</em>, <em>which</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#InputOutputCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.InputOutputCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.pfagadget.InputOutputCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#InputOutputCommand.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.InputOutputCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.pfagadget.InputOutputCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#InputOutputCommand.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.InputOutputCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.pfagadget.PFAGadget">
+<em class="property">class </em><tt class="descclassname">titus.inspector.pfagadget.</tt><tt class="descname">PFAGadget</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#PFAGadget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.PFAGadget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Gadget" title="titus.inspector.defs.Gadget"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Gadget</span></tt></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.pfagadget.TypesCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.pfagadget.</tt><tt class="descname">TypesCommand</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#TypesCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.TypesCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.pfagadget.TypesCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#TypesCommand.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.TypesCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.pfagadget.TypesCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#TypesCommand.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.TypesCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.pfagadget.UserFcnsCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.pfagadget.</tt><tt class="descname">UserFcnsCommand</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#UserFcnsCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.UserFcnsCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.pfagadget.UserFcnsCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#UserFcnsCommand.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.UserFcnsCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.pfagadget.UserFcnsCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#UserFcnsCommand.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.UserFcnsCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.inspector.pfagadget.ValidCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.pfagadget.</tt><tt class="descname">ValidCommand</tt><big>(</big><em>mode</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#ValidCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.ValidCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<dl class="method">
+<dt id="titus.inspector.pfagadget.ValidCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#ValidCommand.action"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.ValidCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.pfagadget.ValidCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="reference internal" href="_modules/titus/inspector/pfagadget.html#ValidCommand.complete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.pfagadget.ValidCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">inspector Package</a><ul>
+<li><a class="reference internal" href="#id1"><tt class="docutils literal"><span class="pre">inspector</span></tt> Package</a></li>
+<li><a class="reference internal" href="#module-titus.inspector.defs"><tt class="docutils literal"><span class="pre">defs</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-titus.inspector.jsongadget"><tt class="docutils literal"><span class="pre">jsongadget</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-titus.inspector.main"><tt class="docutils literal"><span class="pre">main</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-titus.inspector.parser"><tt class="docutils literal"><span class="pre">parser</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-titus.inspector.pfagadget"><tt class="docutils literal"><span class="pre">pfagadget</span></tt> Module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/titus.inspector.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">Titus 0.7.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

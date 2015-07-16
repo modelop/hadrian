@@ -1,0 +1,1223 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>prob Package &mdash; Titus 0.7.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.7.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.7.1 documentation" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">Titus 0.7.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="prob-package">
+<h1>prob Package<a class="headerlink" href="#prob-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id1">
+<h2><tt class="xref py py-mod docutils literal"><span class="pre">prob</span></tt> Package<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-titus.lib1.prob"></span></div>
+<div class="section" id="module-titus.lib1.prob.dist">
+<span id="dist-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">dist</span></tt> Module<a class="headerlink" href="#module-titus.lib1.prob.dist" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="titus.lib1.prob.dist.BetaCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">BetaCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BetaCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BetaCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.BetaCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.betaCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.BetaCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.BetaCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503b550&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.BetaCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.BetaDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">BetaDistribution</tt><big>(</big><em>alpha</em>, <em>beta</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BetaDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BetaDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.BetaDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BetaDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BetaDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.BetaDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BetaDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BetaDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.BetaDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BetaDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BetaDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.BetaPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">BetaPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BetaPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BetaPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.BetaPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.betaPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.BetaPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.BetaPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503b390&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.BetaPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.BetaQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">BetaQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BetaQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BetaQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.BetaQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.betaQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.BetaQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.BetaQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503b710&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.BetaQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.BinomialCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">BinomialCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BinomialCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BinomialCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.BinomialCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.binomialCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.BinomialCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.BinomialCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503f090&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.BinomialCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.BinomialDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">BinomialDistribution</tt><big>(</big><em>size</em>, <em>p_success</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BinomialDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BinomialDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.BinomialDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BinomialDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BinomialDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.BinomialDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BinomialDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BinomialDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.BinomialDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BinomialDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BinomialDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.BinomialPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">BinomialPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BinomialPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BinomialPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.BinomialPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.binomialPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.BinomialPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.BinomialPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503de50&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.BinomialPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.BinomialQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">BinomialQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#BinomialQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.BinomialQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.BinomialQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.binomialQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.BinomialQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.BinomialQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503f290&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.BinomialQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.CauchyCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">CauchyCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#CauchyCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.CauchyCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.CauchyCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.cauchyCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.CauchyCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.CauchyCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503ba90&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.CauchyCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.CauchyDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">CauchyDistribution</tt><big>(</big><em>location</em>, <em>scale</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#CauchyDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.CauchyDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.CauchyDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#CauchyDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.CauchyDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.CauchyDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#CauchyDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.CauchyDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.CauchyDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#CauchyDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.CauchyDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.CauchyPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">CauchyPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#CauchyPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.CauchyPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.CauchyPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.cauchyPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.CauchyPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.CauchyPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503b8d0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.CauchyPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.CauchyQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">CauchyQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#CauchyQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.CauchyQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.CauchyQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.cauchyQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.CauchyQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.CauchyQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503bc50&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.CauchyQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.Chi2CDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">Chi2CDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#Chi2CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.Chi2CDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.Chi2CDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.chi2CDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.Chi2CDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.Chi2CDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x50395d0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.Chi2CDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.Chi2Distribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">Chi2Distribution</tt><big>(</big><em>DOF</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#Chi2Distribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.Chi2Distribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.Chi2Distribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#Chi2Distribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.Chi2Distribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.Chi2Distribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#Chi2Distribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.Chi2Distribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.Chi2Distribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#Chi2Distribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.Chi2Distribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.Chi2PDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">Chi2PDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#Chi2PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.Chi2PDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.Chi2PDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.chi2PDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.Chi2PDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.Chi2PDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5039450&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.Chi2PDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.Chi2QF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">Chi2QF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#Chi2QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.Chi2QF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.Chi2QF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.chi2QF'</em><a class="headerlink" href="#titus.lib1.prob.dist.Chi2QF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.Chi2QF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5039750&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.Chi2QF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.ExponentialCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">ExponentialCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#ExponentialCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.ExponentialCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.exponentialCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.ExponentialCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5039110&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.ExponentialDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">ExponentialDistribution</tt><big>(</big><em>rate</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#ExponentialDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.ExponentialDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#ExponentialDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.ExponentialDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#ExponentialDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.ExponentialDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#ExponentialDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.ExponentialPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">ExponentialPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#ExponentialPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.ExponentialPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.exponentialPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.ExponentialPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5037f50&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.ExponentialQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">ExponentialQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#ExponentialQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.ExponentialQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.exponentialQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.ExponentialQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x50392d0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.ExponentialQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.FCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">FCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#FCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.FCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.FCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.fCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.FCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.FCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503bfd0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.FCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.FDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">FDistribution</tt><big>(</big><em>upperDOF</em>, <em>lowerDOF</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#FDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.FDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.FDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#FDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.FDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.FDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#FDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.FDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.FDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#FDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.FDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.FPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">FPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#FPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.FPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.FPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.fPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.FPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.FPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503be10&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.FPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.FQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">FQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#FQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.FQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.FQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.fQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.FQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.FQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503d1d0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.FQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.GammaCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">GammaCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GammaCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GammaCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GammaCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.gammaCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.GammaCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GammaCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5039fd0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.GammaCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.GammaDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">GammaDistribution</tt><big>(</big><em>shape</em>, <em>scale</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GammaDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GammaDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.GammaDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GammaDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GammaDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.GammaDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GammaDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GammaDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.GammaDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GammaDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GammaDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.GammaPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">GammaPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GammaPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GammaPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GammaPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.gammaPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.GammaPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GammaPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5039e10&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.GammaPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.GammaQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">GammaQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GammaQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GammaQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GammaQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.gammaQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.GammaQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GammaQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503b1d0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.GammaQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.GaussianCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">GaussianCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GaussianCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GaussianCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GaussianCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.gaussianCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.GaussianCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GaussianCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sigs object at 0x5037a50&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.GaussianCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.GaussianDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">GaussianDistribution</tt><big>(</big><em>mu</em>, <em>sigma</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GaussianDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GaussianDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.GaussianDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GaussianDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GaussianDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.GaussianDistribution.LL">
+<tt class="descname">LL</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GaussianDistribution.LL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GaussianDistribution.LL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.GaussianDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GaussianDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GaussianDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.GaussianLL">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">GaussianLL</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GaussianLL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GaussianLL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GaussianLL.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.gaussianLL'</em><a class="headerlink" href="#titus.lib1.prob.dist.GaussianLL.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GaussianLL.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sigs object at 0x50376d0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.GaussianLL.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.GaussianQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">GaussianQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GaussianQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GaussianQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GaussianQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.gaussianQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.GaussianQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GaussianQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sigs object at 0x5037dd0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.GaussianQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.GeometricCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">GeometricCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GeometricCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GeometricCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GeometricCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.geometricCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.GeometricCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GeometricCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503fbd0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.GeometricCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.GeometricDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">GeometricDistribution</tt><big>(</big><em>p_success</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GeometricDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GeometricDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.GeometricDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GeometricDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GeometricDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.GeometricDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GeometricDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GeometricDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.GeometricDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GeometricDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GeometricDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.GeometricPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">GeometricPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GeometricPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GeometricPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GeometricPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.geometricPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.GeometricPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GeometricPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503fa10&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.GeometricPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.GeometricQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">GeometricQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#GeometricQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.GeometricQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GeometricQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.geometricQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.GeometricQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.GeometricQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503fd90&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.GeometricQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.HypergeometricCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">HypergeometricCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#HypergeometricCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.HypergeometricCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.hypergeometricCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.HypergeometricCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5040250&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.HypergeometricDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">HypergeometricDistribution</tt><big>(</big><em>n_white</em>, <em>n_black</em>, <em>n_drawn</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#HypergeometricDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.HypergeometricDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#HypergeometricDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.HypergeometricDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#HypergeometricDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.HypergeometricDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#HypergeometricDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.HypergeometricPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">HypergeometricPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#HypergeometricPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.HypergeometricPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.hypergeometricPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.HypergeometricPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503ffd0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.HypergeometricQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">HypergeometricQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#HypergeometricQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.HypergeometricQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.hypergeometricQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.HypergeometricQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5040490&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.HypergeometricQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.LognormalCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">LognormalCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#LognormalCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.LognormalCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.LognormalCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.lognormalCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.LognormalCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.LognormalCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503d5d0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.LognormalCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.LognormalDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">LognormalDistribution</tt><big>(</big><em>meanlog</em>, <em>sdlog</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#LognormalDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.LognormalDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.LognormalDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#LognormalDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.LognormalDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.LognormalDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#LognormalDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.LognormalDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.LognormalDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#LognormalDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.LognormalDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.LognormalPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">LognormalPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#LognormalPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.LognormalPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.LognormalPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.lognormalPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.LognormalPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.LognormalPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503d3d0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.LognormalPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.LognormalQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">LognormalQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#LognormalQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.LognormalQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.LognormalQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.lognormalQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.LognormalQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.LognormalQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503d7d0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.LognormalQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.NegativeBinomialCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">NegativeBinomialCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#NegativeBinomialCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.NegativeBinomialCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.negativeBinomialCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.NegativeBinomialCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5040dd0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.NegativeBinomialDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">NegativeBinomialDistribution</tt><big>(</big><em>n</em>, <em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#NegativeBinomialDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.NegativeBinomialDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#NegativeBinomialDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.NegativeBinomialDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#NegativeBinomialDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.NegativeBinomialDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#NegativeBinomialDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.NegativeBinomialPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">NegativeBinomialPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#NegativeBinomialPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.NegativeBinomialPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.negativeBinomialPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.NegativeBinomialPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5040c10&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.NegativeBinomialQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">NegativeBinomialQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#NegativeBinomialQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.NegativeBinomialQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.negativeBinomialQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.NegativeBinomialQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5040f90&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.NegativeBinomialQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.PoissonCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">PoissonCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#PoissonCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.PoissonCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.PoissonCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.poissonCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.PoissonCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.PoissonCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5039ad0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.PoissonCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.PoissonDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">PoissonDistribution</tt><big>(</big><em>lamda</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#PoissonDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.PoissonDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.PoissonDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#PoissonDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.PoissonDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.PoissonDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#PoissonDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.PoissonDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.PoissonDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#PoissonDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.PoissonDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.PoissonPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">PoissonPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#PoissonPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.PoissonPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.PoissonPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.poissonPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.PoissonPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.PoissonPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5039910&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.PoissonPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.PoissonQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">PoissonQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#PoissonQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.PoissonQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.PoissonQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.poissonQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.PoissonQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.PoissonQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5039c50&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.PoissonQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.TCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">TCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#TCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.TCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.TCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.tCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.TCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.TCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503dad0&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.TCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.TDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">TDistribution</tt><big>(</big><em>DOF</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#TDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.TDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.TDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#TDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.TDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.TDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#TDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.TDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.TDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#TDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.TDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.TPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">TPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#TPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.TPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.TPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.tPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.TPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.TPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503d950&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.TPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.TQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">TQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#TQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.TQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.TQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.tQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.TQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.TQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503dc50&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.TQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.UniformCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">UniformCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#UniformCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.UniformCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.UniformCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.uniformCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.UniformCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.UniformCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503f690&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.UniformCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.UniformDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">UniformDistribution</tt><big>(</big><em>minimum</em>, <em>maximum</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#UniformDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.UniformDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.UniformDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#UniformDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.UniformDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.UniformDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#UniformDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.UniformDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.UniformDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#UniformDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.UniformDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.UniformPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">UniformPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#UniformPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.UniformPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.UniformPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.uniformPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.UniformPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.UniformPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503f490&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.UniformPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.UniformQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">UniformQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#UniformQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.UniformQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.UniformQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.uniformQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.UniformQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.UniformQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x503f850&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.UniformQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.WeibullCDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">WeibullCDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#WeibullCDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.WeibullCDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.WeibullCDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.weibullCDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.WeibullCDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.WeibullCDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5040890&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.WeibullCDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.WeibullDistribution">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">WeibullDistribution</tt><big>(</big><em>shape</em>, <em>scale</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#WeibullDistribution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.WeibullDistribution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.lib1.prob.dist.WeibullDistribution.CDF">
+<tt class="descname">CDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#WeibullDistribution.CDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.WeibullDistribution.CDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.WeibullDistribution.PDF">
+<tt class="descname">PDF</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#WeibullDistribution.PDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.WeibullDistribution.PDF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.lib1.prob.dist.WeibullDistribution.QF">
+<tt class="descname">QF</tt><big>(</big><em>p</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#WeibullDistribution.QF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.WeibullDistribution.QF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.WeibullPDF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">WeibullPDF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#WeibullPDF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.WeibullPDF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.WeibullPDF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.weibullPDF'</em><a class="headerlink" href="#titus.lib1.prob.dist.WeibullPDF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.WeibullPDF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5040690&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.WeibullPDF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.lib1.prob.dist.WeibullQF">
+<em class="property">class </em><tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">WeibullQF</tt><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#WeibullQF"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.WeibullQF" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.html#titus.fcn.LibFcn" title="titus.fcn.LibFcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.LibFcn</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.WeibullQF.name">
+<tt class="descname">name</tt><em class="property"> = 'prob.dist.weibullQF'</em><a class="headerlink" href="#titus.lib1.prob.dist.WeibullQF.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.lib1.prob.dist.WeibullQF.sig">
+<tt class="descname">sig</tt><em class="property"> = &lt;titus.signature.Sig object at 0x5040a50&gt;</em><a class="headerlink" href="#titus.lib1.prob.dist.WeibullQF.sig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.lib1.prob.dist.provide">
+<tt class="descclassname">titus.lib1.prob.dist.</tt><tt class="descname">provide</tt><big>(</big><em>fcn</em><big>)</big><a class="reference internal" href="_modules/titus/lib1/prob/dist.html#provide"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.lib1.prob.dist.provide" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">prob Package</a><ul>
+<li><a class="reference internal" href="#id1"><tt class="docutils literal"><span class="pre">prob</span></tt> Package</a></li>
+<li><a class="reference internal" href="#module-titus.lib1.prob.dist"><tt class="docutils literal"><span class="pre">dist</span></tt> Module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/titus.lib1.prob.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="index.html">Titus 0.7.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

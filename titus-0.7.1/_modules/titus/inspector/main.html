@@ -1,0 +1,304 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.inspector.main &mdash; Titus 0.7.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.7.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.inspector.main</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">readline</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">titus.version</span>
+<span class="kn">from</span> <span class="nn">titus.inspector.defs</span> <span class="kn">import</span> <span class="o">*</span>
+
+<div class="viewcode-block" id="InspectorMode"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.main.InspectorMode">[docs]</a><span class="k">class</span> <span class="nc">InspectorMode</span><span class="p">(</span><span class="n">Mode</span><span class="p">):</span>
+    <span class="n">historyFileName</span> <span class="o">=</span> <span class="s">&quot;inspector.history&quot;</span>
+    
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">initialCommands</span><span class="p">,</span> <span class="n">gadgets</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prompt</span> <span class="o">=</span> <span class="s">&quot;PFA-Inspector&gt; &quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dirStack</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pfaFiles</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">class</span> <span class="nc">LoadCommand</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;load&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span> <span class="o">=</span> <span class="s">&quot;load &lt;file-path&gt; as &lt;name&gt;&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="s">&quot;read a PFA file into the current context, possibly naming it</span><span class="se">\n</span><span class="s">    &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+            <span class="k">def</span> <span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+                <span class="n">words</span> <span class="o">=</span> <span class="n">getcomplete</span><span class="p">(</span><span class="n">established</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">pathcomplete</span><span class="p">(</span><span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="s">&quot;as&quot;</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="p">[</span><span class="s">&quot;as &quot;</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">[]</span>
+            <span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;help&quot;</span><span class="p">):</span>
+                    <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">FilePath</span><span class="p">)</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;as&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">):</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+                    <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">]</span> <span class="o">=</span> <span class="n">Model</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">syntaxError</span><span class="p">()</span>
+
+        <span class="k">class</span> <span class="nc">RenameCommand</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;rename&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span> <span class="o">=</span> <span class="s">&quot;rename &lt;name&gt; as &lt;name&gt;&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="s">&quot;change the name of a PFA document</span><span class="se">\n</span><span class="s">    &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+            <span class="k">def</span> <span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+                <span class="n">words</span> <span class="o">=</span> <span class="n">getcomplete</span><span class="p">(</span><span class="n">established</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="s">&quot; &quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="s">&quot;as&quot;</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="p">[</span><span class="s">&quot;as &quot;</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">[]</span>
+            <span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;help&quot;</span><span class="p">):</span>
+                    <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">)</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;as&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;no PFA document named </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> in memory&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">]</span>
+                    <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">syntaxError</span><span class="p">()</span>
+
+        <span class="k">class</span> <span class="nc">DropCommand</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;drop&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span> <span class="o">=</span> <span class="s">&quot;drop &lt;name&gt;&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="s">&quot;delete a named PFA document from memory</span><span class="se">\n</span><span class="s">    &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+            <span class="k">def</span> <span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+                <span class="n">words</span> <span class="o">=</span> <span class="n">getcomplete</span><span class="p">(</span><span class="n">established</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">[]</span>
+            <span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;help&quot;</span><span class="p">):</span>
+                    <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;no PFA document named </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> in memory&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+                    <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">syntaxError</span><span class="p">()</span>
+
+        <span class="k">class</span> <span class="nc">SaveCommand</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
+            <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;save&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span> <span class="o">=</span> <span class="s">&quot;save &lt;name&gt; to &lt;file-path&gt;&quot;</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="s">&quot;save a PFA document from the current context or a named document to a file</span><span class="se">\n</span><span class="s">    &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+            <span class="k">def</span> <span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+                <span class="n">words</span> <span class="o">=</span> <span class="n">getcomplete</span><span class="p">(</span><span class="n">established</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="s">&quot; &quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">+</span> <span class="p">[</span><span class="s">&quot;to&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="s">&quot;to&quot;</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="p">[</span><span class="s">&quot;to &quot;</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="n">words</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;to&quot;</span><span class="p">):</span>
+                    <span class="k">return</span> <span class="n">pathcomplete</span><span class="p">(</span><span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">[]</span>
+            <span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;help&quot;</span><span class="p">):</span>
+                    <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span>
+                <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">)</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;to&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">FilePath</span><span class="p">):</span>
+                    <span class="n">name</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span>
+                    <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;no PFA document named </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> in memory&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">obj</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">))</span>
+                    <span class="k">except</span> <span class="ne">IOError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">syntaxError</span><span class="p">()</span>
+
+        <span class="n">commands</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">SimpleCommand</span><span class="p">(</span><span class="s">&quot;pwd&quot;</span><span class="p">,</span>
+                          <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">,</span>
+                          <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+                          <span class="n">help</span><span class="o">=</span><span class="s">&quot;print name of current/working directory&quot;</span><span class="p">,</span>
+                          <span class="n">syntax</span><span class="o">=</span><span class="s">&quot;pwd&quot;</span><span class="p">),</span>
+            <span class="n">SimpleCommand</span><span class="p">(</span><span class="s">&quot;cd&quot;</span><span class="p">,</span>
+                          <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">switch</span><span class="p">(</span>
+                              <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">x</span><span class="p">),</span>
+                              <span class="k">lambda</span><span class="p">:</span> <span class="n">do</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dirStack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()),</span> <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">expanduser</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="bp">None</span><span class="p">),</span>
+                              <span class="k">lambda</span><span class="p">:</span> <span class="n">exception</span><span class="p">(</span><span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;not a directory&quot;</span><span class="p">))),</span>
+                          <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+                          <span class="n">pathcomplete</span><span class="p">,</span>
+                          <span class="n">help</span><span class="o">=</span><span class="s">&quot;change the current/working directory to the specified path&quot;</span><span class="p">,</span>
+                          <span class="n">syntax</span><span class="o">=</span><span class="s">&quot;cd &lt;dir&gt;&quot;</span><span class="p">),</span>
+            <span class="n">SimpleCommand</span><span class="p">(</span><span class="s">&quot;back&quot;</span><span class="p">,</span>
+                          <span class="k">lambda</span><span class="p">:</span> <span class="n">maybe</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dirStack</span><span class="o">.</span><span class="n">pop</span><span class="p">()),</span> <span class="p">[(</span><span class="ne">IndexError</span><span class="p">,</span> <span class="s">&quot;no directories on stack&quot;</span><span class="p">)]),</span>
+                          <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+                          <span class="n">help</span><span class="o">=</span><span class="s">&quot;pop back to a previously visited directory&quot;</span><span class="p">,</span>
+                          <span class="n">syntax</span><span class="o">=</span><span class="s">&quot;back&quot;</span><span class="p">),</span>
+            <span class="n">SimpleCommand</span><span class="p">(</span><span class="s">&quot;ls&quot;</span><span class="p">,</span>
+                          <span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">run</span><span class="p">(</span><span class="s">&quot;ls&quot;</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(),</span>
+                          <span class="mi">0</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span>
+                          <span class="n">pathcomplete</span><span class="p">,</span>
+                          <span class="n">help</span><span class="o">=</span><span class="s">&quot;list directory contents&quot;</span><span class="p">,</span>
+                          <span class="n">syntax</span><span class="o">=</span><span class="s">&quot;same as command-line &#39;ls&#39;, including switches&quot;</span><span class="p">),</span>
+            <span class="n">LoadCommand</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+            <span class="n">SimpleCommand</span><span class="p">(</span><span class="s">&quot;list&quot;</span><span class="p">,</span>
+                          <span class="k">lambda</span><span class="p">:</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">))</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="bp">None</span><span class="p">,</span>
+                          <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+                          <span class="n">help</span><span class="o">=</span><span class="s">&quot;list the named PFA files in memory&quot;</span><span class="p">,</span>
+                          <span class="n">syntax</span><span class="o">=</span><span class="s">&quot;list&quot;</span><span class="p">),</span>
+            <span class="n">RenameCommand</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+            <span class="n">DropCommand</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span>
+            <span class="n">SaveCommand</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span>
+
+        <span class="c"># go go gadgets!</span>
+        <span class="n">commands</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">x</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">commandGroup</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">gadgets</span><span class="p">])</span>
+
+        <span class="n">commands</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SimpleCommand</span><span class="p">(</span><span class="s">&quot;exit&quot;</span><span class="p">,</span>
+                                      <span class="k">lambda</span><span class="p">:</span> <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                      <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+                                      <span class="n">help</span><span class="o">=</span><span class="s">&quot;exit the PFA-Inspector (also control-D)&quot;</span><span class="p">,</span>
+                                      <span class="n">syntax</span><span class="o">=</span><span class="s">&quot;exit&quot;</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">commandGroup</span> <span class="o">=</span> <span class="n">CommandGroup</span><span class="p">(</span><span class="bp">None</span><span class="p">,</span> <span class="n">commands</span><span class="p">)</span>
+
+        <span class="k">print</span> <span class="s">&quot;&quot;&quot;Titus PFA Inspector (version {0})</span>
+<span class="s">Type &#39;help&#39; for a list of commands.&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">titus</span><span class="o">.</span><span class="n">version</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">initialCommand</span> <span class="ow">in</span> <span class="n">initialCommands</span><span class="p">:</span>
+            <span class="k">print</span> <span class="n">initialCommand</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">action</span><span class="p">(</span><span class="n">initialCommand</span><span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">InspectorMode</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="InspectorMode.complete"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.main.InspectorMode.complete">[docs]</a>    <span class="k">def</span> <span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">commandGroup</span><span class="o">.</span><span class="n">complete</span><span class="p">(</span><span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="InspectorMode.action"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.main.InspectorMode.action">[docs]</a>    <span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">parser</span><span class="o">.</span><span class="n">ParserError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">arg</span><span class="o">.</span><span class="n">checkPartial</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+            <span class="k">except</span> <span class="n">parser</span><span class="o">.</span><span class="n">ParserError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">err</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commandGroup</span><span class="o">.</span><span class="n">action</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

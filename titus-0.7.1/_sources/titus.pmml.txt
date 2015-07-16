@@ -1,0 +1,67 @@
+pmml Package
+============
+
+:mod:`pmml` Package
+-------------------
+
+.. automodule:: titus.pmml
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`generateCode` Module
+--------------------------
+
+.. automodule:: titus.pmml.generateCode
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`reader` Module
+--------------------
+
+.. automodule:: titus.pmml.reader
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`version_3_2` Module
+-------------------------
+
+.. automodule:: titus.pmml.version_3_2
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`version_4_0` Module
+-------------------------
+
+.. automodule:: titus.pmml.version_4_0
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`version_4_1` Module
+-------------------------
+
+.. automodule:: titus.pmml.version_4_1
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`version_4_2` Module
+-------------------------
+
+.. automodule:: titus.pmml.version_4_2
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`version_independent` Module
+---------------------------------
+
+.. automodule:: titus.pmml.version_independent
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

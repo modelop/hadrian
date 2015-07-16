@@ -1,0 +1,27 @@
+stat Package
+============
+
+:mod:`stat` Package
+-------------------
+
+.. automodule:: titus.lib1.stat
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`change` Module
+--------------------
+
+.. automodule:: titus.lib1.stat.change
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`sample` Module
+--------------------
+
+.. automodule:: titus.lib1.stat.sample
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

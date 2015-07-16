@@ -1,0 +1,471 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.inspector.pfagadget &mdash; Titus 0.7.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '0.7.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.7.1 documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.inspector.pfagadget</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">StringIO</span>
+
+<span class="kn">import</span> <span class="nn">titus.producer.tools</span> <span class="kn">as</span> <span class="nn">t</span>
+<span class="kn">from</span> <span class="nn">titus.inspector.defs</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">titus.util</span> <span class="kn">import</span> <span class="n">avscToPretty</span>
+
+<div class="viewcode-block" id="ValidCommand"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.ValidCommand">[docs]</a><span class="k">class</span> <span class="nc">ValidCommand</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;valid&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span> <span class="o">=</span> <span class="s">&quot;valid &lt;name&gt;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="s">&quot;check the validity of a named PFA document</span><span class="se">\n</span><span class="s">    &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+
+<div class="viewcode-block" id="ValidCommand.complete"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.ValidCommand.complete">[docs]</a>    <span class="k">def</span> <span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="n">getcomplete</span><span class="p">(</span><span class="n">established</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="s">&quot; &quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">))</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+</div>
+<div class="viewcode-block" id="ValidCommand.action"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.ValidCommand.action">[docs]</a>    <span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;help&quot;</span><span class="p">):</span>
+            <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span>
+
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;no PFA document named </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> in memory (try &#39;load &lt;file&gt; as {1}&#39;)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">syntaxError</span><span class="p">()</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">engine</span>
+        <span class="k">print</span> <span class="s">&quot;PFA document is syntactically and semantically valid&quot;</span>
+        </div></div>
+<div class="viewcode-block" id="InputOutputCommand"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.InputOutputCommand">[docs]</a><span class="k">class</span> <span class="nc">InputOutputCommand</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">which</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">which</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span> <span class="o">=</span> <span class="n">which</span> <span class="o">+</span> <span class="s">&quot; &lt;name&gt; [pretty=true]&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="s">&quot;view the &quot;</span> <span class="o">+</span> <span class="n">which</span> <span class="o">+</span> <span class="s">&quot; schema of a named PFA document</span><span class="se">\n</span><span class="s">    &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+
+<div class="viewcode-block" id="InputOutputCommand.complete"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.InputOutputCommand.complete">[docs]</a>    <span class="k">def</span> <span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;pretty=&quot;</span><span class="p">]</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="n">getcomplete</span><span class="p">(</span><span class="n">established</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="s">&quot; &quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">words</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">partial</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">options</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">)]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+</div>
+<div class="viewcode-block" id="InputOutputCommand.action"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.InputOutputCommand.action">[docs]</a>    <span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;help&quot;</span><span class="p">):</span>
+            <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;pretty&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
+            <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Option</span><span class="p">):</span>
+                <span class="n">opt</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">]:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">options</span><span class="p">[</span><span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span><span class="p">]</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+                    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;illegal value for {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;option {0} unrecognized&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;pretty must be boolean&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;no PFA document named </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> in memory (try &#39;load &lt;file&gt; as {1}&#39;)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">]</span>
+                <span class="n">node</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">obj</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">syntaxError</span><span class="p">()</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">node</span> <span class="o">=</span> <span class="n">node</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>  <span class="c"># &quot;input&quot; or &quot;output&quot;</span>
+            <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;PFA document </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> is missing {1} section&#39;)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+                <span class="n">names</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+                    <span class="n">node</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">getAvroType</span><span class="p">(</span><span class="n">node</span><span class="p">)</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="nb">set</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="n">options</span><span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">]:</span>
+                <span class="k">print</span> <span class="n">avscToPretty</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">look</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">inlineDepth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</div></div>
+<div class="viewcode-block" id="TypesCommand"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.TypesCommand">[docs]</a><span class="k">class</span> <span class="nc">TypesCommand</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;types&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span> <span class="o">=</span> <span class="s">&quot;types &lt;name&gt; [pretty=true]&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="s">&quot;list the named types defined in a named PFA document</span><span class="se">\n</span><span class="s">    &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+
+<div class="viewcode-block" id="TypesCommand.complete"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.TypesCommand.complete">[docs]</a>    <span class="k">def</span> <span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;pretty=&quot;</span><span class="p">]</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="n">getcomplete</span><span class="p">(</span><span class="n">established</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="s">&quot; &quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">words</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">partial</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">options</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">)]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+</div>
+<div class="viewcode-block" id="TypesCommand.action"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.TypesCommand.action">[docs]</a>    <span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;help&quot;</span><span class="p">):</span>
+            <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;pretty&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
+            <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Option</span><span class="p">):</span>
+                <span class="n">opt</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">]:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">options</span><span class="p">[</span><span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span><span class="p">]</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+                    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;illegal value for {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;option {0} unrecognized&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;pretty must be boolean&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;no PFA document named </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> in memory (try &#39;load &lt;file&gt; as {1}&#39;)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">]</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">syntaxError</span><span class="p">()</span>
+
+            <span class="n">names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+                <span class="n">node</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">getAvroType</span><span class="p">(</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="nb">set</span><span class="p">())</span>
+                <span class="k">print</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&quot;:&quot;</span>
+                <span class="k">if</span> <span class="n">options</span><span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">]:</span>
+                    <span class="k">print</span> <span class="n">avscToPretty</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">t</span><span class="o">.</span><span class="n">look</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">inlineDepth</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">index</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">print</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">print</span> <span class="s">&quot;PFA document contains no named types&quot;</span>
+        </div></div>
+<div class="viewcode-block" id="UserFcnsCommand"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.UserFcnsCommand">[docs]</a><span class="k">class</span> <span class="nc">UserFcnsCommand</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;userfcns&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span> <span class="o">=</span> <span class="s">&quot;userfcns &lt;name&gt; [pretty=true]&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="s">&quot;list details about the user functions in a named PFA document</span><span class="se">\n</span><span class="s">    &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+
+<div class="viewcode-block" id="UserFcnsCommand.complete"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.UserFcnsCommand.complete">[docs]</a>    <span class="k">def</span> <span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;pretty=&quot;</span><span class="p">]</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="n">getcomplete</span><span class="p">(</span><span class="n">established</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="s">&quot; &quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">words</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">partial</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">options</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">)]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+</div>
+<div class="viewcode-block" id="UserFcnsCommand.action"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.UserFcnsCommand.action">[docs]</a>    <span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;help&quot;</span><span class="p">):</span>
+            <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;pretty&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
+            <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Option</span><span class="p">):</span>
+                <span class="n">opt</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">]:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">options</span><span class="p">[</span><span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span><span class="p">]</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+                    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;illegal value for {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;option {0} unrecognized&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;pretty must be boolean&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;no PFA document named </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> in memory (try &#39;load &lt;file&gt; as {1}&#39;)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">]</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">syntaxError</span><span class="p">()</span>
+
+            <span class="n">names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">engineConfig</span><span class="o">.</span><span class="n">fcns</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+                <span class="n">fcn</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">engineConfig</span><span class="o">.</span><span class="n">fcns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="k">print</span> <span class="s">&quot;u.&quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&quot;:&quot;</span>
+                <span class="k">print</span> <span class="s">&quot;    parameters:&quot;</span>
+                <span class="k">for</span> <span class="n">pname</span> <span class="ow">in</span> <span class="n">fcn</span><span class="o">.</span><span class="n">paramNames</span><span class="p">:</span>
+                    <span class="n">ptype</span> <span class="o">=</span> <span class="n">fcn</span><span class="o">.</span><span class="n">params</span><span class="p">[</span><span class="n">pname</span><span class="p">]</span>
+                    <span class="k">if</span> <span class="n">options</span><span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">]:</span>
+                        <span class="k">print</span> <span class="s">&quot;        &quot;</span> <span class="o">+</span> <span class="n">pname</span> <span class="o">+</span> <span class="s">&quot;: &quot;</span> <span class="o">+</span> <span class="n">avscToPretty</span><span class="p">(</span><span class="n">ptype</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="nb">set</span><span class="p">()),</span> <span class="mi">10</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">pname</span><span class="p">))</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">print</span> <span class="s">&quot;        &quot;</span> <span class="o">+</span> <span class="n">pname</span> <span class="o">+</span> <span class="s">&quot;: &quot;</span> <span class="o">+</span> <span class="n">ptype</span><span class="o">.</span><span class="n">toJson</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">options</span><span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">]:</span>
+                    <span class="k">print</span> <span class="s">&quot;    returns &quot;</span> <span class="o">+</span> <span class="n">avscToPretty</span><span class="p">(</span><span class="n">fcn</span><span class="o">.</span><span class="n">ret</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="nb">set</span><span class="p">()),</span> <span class="mi">12</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">print</span> <span class="s">&quot;    returns &quot;</span> <span class="o">+</span> <span class="n">fcn</span><span class="o">.</span><span class="n">ret</span><span class="o">.</span><span class="n">toJson</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">isRecursive</span><span class="p">(</span><span class="s">&quot;u.&quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">):</span>
+                    <span class="k">print</span> <span class="s">&quot;    recursive&quot;</span>
+                <span class="k">elif</span> <span class="n">model</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">hasRecursive</span><span class="p">(</span><span class="s">&quot;u.&quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">):</span>
+                    <span class="k">print</span> <span class="s">&quot;    can call a recursive function&quot;</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">print</span> <span class="s">&quot;    call depth: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">callDepth</span><span class="p">(</span><span class="s">&quot;u.&quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">))</span>
+                <span class="k">if</span> <span class="n">model</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">hasSideEffects</span><span class="p">(</span><span class="s">&quot;u.&quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">):</span>
+                    <span class="k">print</span> <span class="s">&quot;    can modify a cell or pool&quot;</span>
+
+                <span class="n">calledBy</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">calledBy</span><span class="p">(</span><span class="s">&quot;u.&quot;</span> <span class="o">+</span> <span class="n">name</span><span class="p">))</span>
+                <span class="k">print</span> <span class="s">&quot;    called by: &quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">calledBy</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">calledBy</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s">&quot;(none)&quot;</span>
+
+                <span class="k">if</span> <span class="n">index</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">print</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">print</span> <span class="s">&quot;PFA document contains no user functions&quot;</span>
+        </div></div>
+<div class="viewcode-block" id="CallsCommand"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.CallsCommand">[docs]</a><span class="k">class</span> <span class="nc">CallsCommand</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s">&quot;calls&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span> <span class="o">=</span> <span class="s">&quot;calls &lt;name&gt;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="s">&quot;list PFA functions called by a named PFA document</span><span class="se">\n</span><span class="s">    &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+
+<div class="viewcode-block" id="CallsCommand.complete"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.CallsCommand.complete">[docs]</a>    <span class="k">def</span> <span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="n">getcomplete</span><span class="p">(</span><span class="n">established</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="s">&quot; &quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">))</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+</div>
+<div class="viewcode-block" id="CallsCommand.action"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.CallsCommand.action">[docs]</a>    <span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;help&quot;</span><span class="p">):</span>
+            <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span>
+
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;no PFA document named </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> in memory (try &#39;load &lt;file&gt; as {1}&#39;)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">syntaxError</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">callGraph</span><span class="p">):</span>
+            <span class="k">print</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&quot;: &quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">engine</span><span class="o">.</span><span class="n">callGraph</span><span class="p">[</span><span class="n">name</span><span class="p">]))</span>
+</div></div>
+<div class="viewcode-block" id="CellsPoolsCommand"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.CellsPoolsCommand">[docs]</a><span class="k">class</span> <span class="nc">CellsPoolsCommand</span><span class="p">(</span><span class="n">Command</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">,</span> <span class="n">which</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">which</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span> <span class="o">=</span> <span class="n">which</span> <span class="o">+</span> <span class="s">&quot; &lt;name&gt; [pretty=true]&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">help</span> <span class="o">=</span> <span class="s">&quot;list details about &quot;</span> <span class="o">+</span> <span class="n">which</span> <span class="o">+</span> <span class="s">&quot; in a named PFA document</span><span class="se">\n</span><span class="s">    &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">syntax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
+
+<div class="viewcode-block" id="CellsPoolsCommand.complete"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.CellsPoolsCommand.complete">[docs]</a>    <span class="k">def</span> <span class="nf">complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">established</span><span class="p">,</span> <span class="n">active</span><span class="p">):</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">[</span><span class="s">&quot;pretty=&quot;</span><span class="p">]</span>
+        <span class="n">words</span> <span class="o">=</span> <span class="n">getcomplete</span><span class="p">(</span><span class="n">established</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">words</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="s">&quot; &quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">))</span>
+
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">words</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">partial</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">options</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">active</span><span class="p">)]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
+</div>
+<div class="viewcode-block" id="CellsPoolsCommand.action"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.CellsPoolsCommand.action">[docs]</a>    <span class="k">def</span> <span class="nf">action</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">(</span><span class="s">&quot;help&quot;</span><span class="p">):</span>
+            <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">help</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;pretty&quot;</span><span class="p">:</span> <span class="bp">True</span><span class="p">}</span>
+            <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Option</span><span class="p">):</span>
+                <span class="n">opt</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">]:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">options</span><span class="p">[</span><span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span><span class="p">]</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">value</span><span class="p">()</span>
+                    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;illegal value for {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;option {0} unrecognized&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">word</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">options</span><span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">],</span> <span class="nb">bool</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;pretty must be boolean&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">parser</span><span class="o">.</span><span class="n">Word</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="n">InspectorError</span><span class="p">(</span><span class="s">&quot;no PFA document named </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> in memory (try &#39;load &lt;file&gt; as {1}&#39;)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mode</span><span class="o">.</span><span class="n">pfaFiles</span><span class="p">[</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text</span><span class="p">]</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">syntaxError</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s">&quot;cells&quot;</span><span class="p">:</span>
+                <span class="n">node</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">engineConfig</span><span class="o">.</span><span class="n">cells</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s">&quot;pools&quot;</span><span class="p">:</span>
+                <span class="n">node</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">engineConfig</span><span class="o">.</span><span class="n">pools</span>
+
+            <span class="n">names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+                <span class="n">obj</span> <span class="o">=</span> <span class="n">node</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s">&quot;cells&quot;</span><span class="p">:</span>
+                    <span class="n">preamble</span> <span class="o">=</span> <span class="s">&quot;{0}: shared={1} rollback={2} type=&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">shared</span><span class="p">),</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">rollback</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s">&quot;pools&quot;</span><span class="p">:</span>
+                    <span class="n">preamble</span> <span class="o">=</span> <span class="s">&quot;{0}: shared={1} rollback={2} elements={3} type=&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">shared</span><span class="p">),</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">rollback</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">init</span><span class="p">)))</span>
+
+                <span class="n">ptype</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">avroType</span>
+                <span class="k">if</span> <span class="n">options</span><span class="p">[</span><span class="s">&quot;pretty&quot;</span><span class="p">]:</span>
+                    <span class="k">print</span> <span class="n">preamble</span> <span class="o">+</span> <span class="n">avscToPretty</span><span class="p">(</span><span class="n">ptype</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="nb">set</span><span class="p">()),</span> <span class="nb">len</span><span class="p">(</span><span class="n">preamble</span><span class="p">))</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">print</span> <span class="n">preamble</span> <span class="o">+</span> <span class="n">ptype</span><span class="o">.</span><span class="n">toJson</span><span class="p">()</span>
+
+                <span class="k">if</span> <span class="n">index</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">print</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">print</span> <span class="s">&quot;PFA document contains no &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+</div></div>
+<div class="viewcode-block" id="PFAGadget"><a class="viewcode-back" href="../../../titus.inspector.html#titus.inspector.pfagadget.PFAGadget">[docs]</a><span class="k">class</span> <span class="nc">PFAGadget</span><span class="p">(</span><span class="n">Gadget</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">commandGroup</span> <span class="o">=</span> <span class="n">CommandGroup</span><span class="p">(</span><span class="s">&quot;pfa&quot;</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">ValidCommand</span><span class="p">(</span><span class="n">mode</span><span class="p">),</span>
+            <span class="n">InputOutputCommand</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="s">&quot;input&quot;</span><span class="p">),</span>
+            <span class="n">InputOutputCommand</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="s">&quot;output&quot;</span><span class="p">),</span>
+            <span class="n">TypesCommand</span><span class="p">(</span><span class="n">mode</span><span class="p">),</span>
+            <span class="n">UserFcnsCommand</span><span class="p">(</span><span class="n">mode</span><span class="p">),</span>
+            <span class="n">CallsCommand</span><span class="p">(</span><span class="n">mode</span><span class="p">),</span>
+            <span class="n">CellsPoolsCommand</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="s">&quot;cells&quot;</span><span class="p">),</span>
+            <span class="n">CellsPoolsCommand</span><span class="p">(</span><span class="n">mode</span><span class="p">,</span> <span class="s">&quot;pools&quot;</span><span class="p">),</span>
+            <span class="p">])</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

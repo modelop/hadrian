@@ -1,0 +1,360 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.util &mdash; Titus 0.7.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.7.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.7.1 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.util</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="n">TYPE_ERRORS_IN_PRETTYPFA</span> <span class="o">=</span> <span class="bp">True</span>
+<div class="viewcode-block" id="ts"><a class="viewcode-back" href="../../titus.html#titus.util.ts">[docs]</a><span class="k">def</span> <span class="nf">ts</span><span class="p">(</span><span class="n">avroType</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">TYPE_ERRORS_IN_PRETTYPFA</span><span class="p">:</span>
+        <span class="n">pretty</span> <span class="o">=</span> <span class="n">avscToPretty</span><span class="p">(</span><span class="n">avroType</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="nb">set</span><span class="p">()))</span>
+        <span class="k">if</span> <span class="n">pretty</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pretty</span> <span class="o">=</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">    &quot;</span> <span class="o">+</span> <span class="n">pretty</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">    &quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span>
+        <span class="k">return</span> <span class="n">pretty</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="n">avroType</span><span class="p">)</span>
+</div>
+<span class="n">uniqueEngineNameCounter</span> <span class="o">=</span> <span class="mi">0</span>
+<div class="viewcode-block" id="uniqueEngineName"><a class="viewcode-back" href="../../titus.html#titus.util.uniqueEngineName">[docs]</a><span class="k">def</span> <span class="nf">uniqueEngineName</span><span class="p">():</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s">&quot;titus.util&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uniqueEngineNameCounter</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="s">&quot;Engine_{0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s">&quot;titus.util&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uniqueEngineNameCounter</span><span class="p">)</span>
+</div>
+<span class="n">uniqueRecordNameCounter</span> <span class="o">=</span> <span class="mi">0</span>
+<div class="viewcode-block" id="uniqueRecordName"><a class="viewcode-back" href="../../titus.html#titus.util.uniqueRecordName">[docs]</a><span class="k">def</span> <span class="nf">uniqueRecordName</span><span class="p">():</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s">&quot;titus.util&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uniqueRecordNameCounter</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="s">&quot;Record_{0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s">&quot;titus.util&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uniqueRecordNameCounter</span><span class="p">)</span>
+</div>
+<span class="n">uniqueEnumNameCounter</span> <span class="o">=</span> <span class="mi">0</span>
+<div class="viewcode-block" id="uniqueEnumName"><a class="viewcode-back" href="../../titus.html#titus.util.uniqueEnumName">[docs]</a><span class="k">def</span> <span class="nf">uniqueEnumName</span><span class="p">():</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s">&quot;titus.util&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uniqueEnumNameCounter</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="s">&quot;Enum_{0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s">&quot;titus.util&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uniqueEnumNameCounter</span><span class="p">)</span>
+</div>
+<span class="n">uniqueFixedNameCounter</span> <span class="o">=</span> <span class="mi">0</span>
+<div class="viewcode-block" id="uniqueFixedName"><a class="viewcode-back" href="../../titus.html#titus.util.uniqueFixedName">[docs]</a><span class="k">def</span> <span class="nf">uniqueFixedName</span><span class="p">():</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s">&quot;titus.util&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uniqueFixedNameCounter</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="s">&quot;Fixed_{0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="s">&quot;titus.util&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">uniqueFixedNameCounter</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="pos"><a class="viewcode-back" href="../../titus.html#titus.util.pos">[docs]</a><span class="k">def</span> <span class="nf">pos</span><span class="p">(</span><span class="n">dot</span><span class="p">,</span> <span class="n">at</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s">&quot;in{0} object from {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;&quot;</span> <span class="k">if</span> <span class="p">(</span><span class="n">dot</span> <span class="o">==</span> <span class="s">&quot;&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="s">&quot; field &quot;</span> <span class="o">+</span> <span class="n">dot</span> <span class="o">+</span> <span class="s">&quot; of&quot;</span><span class="p">,</span> <span class="n">at</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="flatten"><a class="viewcode-back" href="../../titus.html#titus.util.flatten">[docs]</a><span class="k">def</span> <span class="nf">flatten</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">item</span> <span class="k">for</span> <span class="n">sublist</span> <span class="ow">in</span> <span class="n">x</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">sublist</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="div"><a class="viewcode-back" href="../../titus.html#titus.util.div">[docs]</a><span class="k">def</span> <span class="nf">div</span><span class="p">(</span><span class="n">numer</span><span class="p">,</span> <span class="n">denom</span><span class="p">):</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">numer</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">denom</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ZeroDivisionError</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">numer</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;inf&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">numer</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;-inf&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;nan&quot;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="DynamicScope"><a class="viewcode-back" href="../../titus.html#titus.util.DynamicScope">[docs]</a><span class="k">class</span> <span class="nc">DynamicScope</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+<div class="viewcode-block" id="DynamicScope.get"><a class="viewcode-back" href="../../titus.html#titus.util.DynamicScope.get">[docs]</a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="DynamicScope.let"><a class="viewcode-back" href="../../titus.html#titus.util.DynamicScope.let">[docs]</a>    <span class="k">def</span> <span class="nf">let</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nameExpr</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">init</span> <span class="ow">in</span> <span class="n">nameExpr</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">=</span> <span class="n">init</span>
+</div>
+<div class="viewcode-block" id="DynamicScope.set"><a class="viewcode-back" href="../../titus.html#titus.util.DynamicScope.set">[docs]</a>    <span class="k">def</span> <span class="nf">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nameExpr</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">nameExpr</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">nameExpr</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">()</span>
+</div></div>
+<div class="viewcode-block" id="callfcn"><a class="viewcode-back" href="../../titus.html#titus.util.callfcn">[docs]</a><span class="k">def</span> <span class="nf">callfcn</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">fcn</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fcn</span><span class="p">,</span> <span class="s">&quot;paramNames&quot;</span><span class="p">):</span>
+        <span class="n">callScope</span> <span class="o">=</span> <span class="n">DynamicScope</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">fcn</span><span class="o">.</span><span class="n">paramNames</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
+        <span class="n">callScope</span><span class="o">.</span><span class="n">let</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">fcn</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">callScope</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">fcn</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="negativeIndex"><a class="viewcode-back" href="../../titus.html#titus.util.negativeIndex">[docs]</a><span class="k">def</span> <span class="nf">negativeIndex</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">index</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">length</span> <span class="o">+</span> <span class="n">index</span>
+</div>
+<div class="viewcode-block" id="checkRange"><a class="viewcode-back" href="../../titus.html#titus.util.checkRange">[docs]</a><span class="k">def</span> <span class="nf">checkRange</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="n">length</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;index out of range&quot;</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="startEnd"><a class="viewcode-back" href="../../titus.html#titus.util.startEnd">[docs]</a><span class="k">def</span> <span class="nf">startEnd</span><span class="p">(</span><span class="n">length</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">normStart</span> <span class="o">=</span> <span class="n">start</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">normStart</span> <span class="o">=</span> <span class="n">length</span> <span class="o">+</span> <span class="n">start</span>
+
+    <span class="k">if</span> <span class="n">normStart</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">normStart</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">normStart</span> <span class="o">&gt;</span> <span class="n">length</span><span class="p">:</span>
+        <span class="n">normStart</span> <span class="o">=</span> <span class="n">length</span>
+
+    <span class="k">if</span> <span class="n">end</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">normEnd</span> <span class="o">=</span> <span class="n">end</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">normEnd</span> <span class="o">=</span> <span class="n">length</span> <span class="o">+</span> <span class="n">end</span>
+
+    <span class="k">if</span> <span class="n">normEnd</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">normEnd</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">normEnd</span> <span class="o">&gt;</span> <span class="n">length</span><span class="p">:</span>
+        <span class="n">normEnd</span> <span class="o">=</span> <span class="n">length</span>
+    <span class="k">if</span> <span class="n">normEnd</span> <span class="o">&lt;</span> <span class="n">normStart</span><span class="p">:</span>
+        <span class="n">normEnd</span> <span class="o">=</span> <span class="n">normStart</span>
+
+    <span class="k">return</span> <span class="n">normStart</span><span class="p">,</span> <span class="n">normEnd</span>
+</div>
+<div class="viewcode-block" id="case"><a class="viewcode-back" href="../../titus.html#titus.util.case">[docs]</a><span class="k">def</span> <span class="nf">case</span><span class="p">(</span><span class="n">clazz</span><span class="p">):</span>
+    <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getargspec</span><span class="p">(</span><span class="n">clazz</span><span class="o">.</span><span class="n">__init__</span><span class="p">)</span><span class="o">.</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="s">&quot;pos&quot;</span><span class="p">]</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">clazz</span><span class="o">.</span><span class="n">__init__</span><span class="o">.</span><span class="n">__func__</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">clazz</span><span class="o">.</span><span class="n">__init__</span><span class="o">.</span><span class="n">func_code</span>
+
+    <span class="n">context</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">globals</span><span class="p">())</span>
+    <span class="n">context</span><span class="p">[</span><span class="n">clazz</span><span class="o">.</span><span class="n">__name__</span><span class="p">]</span> <span class="o">=</span> <span class="n">clazz</span>
+
+    <span class="k">if</span> <span class="s">&quot;pos&quot;</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getargspec</span><span class="p">(</span><span class="n">clazz</span><span class="o">.</span><span class="n">__init__</span><span class="p">)</span><span class="o">.</span><span class="n">args</span><span class="p">:</span>
+        <span class="n">argFields</span> <span class="o">=</span> <span class="n">fields</span> <span class="o">+</span> <span class="p">[</span><span class="s">&quot;pos=None&quot;</span><span class="p">]</span>
+        <span class="n">assignFields</span> <span class="o">=</span> <span class="n">fields</span> <span class="o">+</span> <span class="p">[</span><span class="s">&quot;pos&quot;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">argFields</span> <span class="o">=</span> <span class="n">assignFields</span> <span class="o">=</span> <span class="n">fields</span>
+
+    <span class="n">newMethods</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">exec</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">def __init__(self, {args}):</span>
+<span class="s">{assign}</span>
+<span class="s">    self._init({args})</span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">argFields</span><span class="p">),</span>
+           <span class="n">assign</span><span class="o">=</span><span class="s">&quot;</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s">&quot;    self.{0} = {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">(</span><span class="n">assignFields</span><span class="p">)])),</span>
+         <span class="n">context</span><span class="p">,</span>
+         <span class="n">newMethods</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">exec</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">def __repr__(self):</span>
+<span class="s">    return </span><span class="se">\&quot;</span><span class="s">{0}()</span><span class="se">\&quot;</span><span class="s"></span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">clazz</span><span class="o">.</span><span class="n">__name__</span><span class="p">),</span> <span class="n">context</span><span class="p">,</span> <span class="n">newMethods</span><span class="p">)</span>
+
+        <span class="k">exec</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">def __eq__(self, other):</span>
+<span class="s">    return isinstance(other, {0})</span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">clazz</span><span class="o">.</span><span class="n">__name__</span><span class="p">),</span> <span class="n">context</span><span class="p">,</span> <span class="n">newMethods</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">exec</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">def __repr__(self):</span>
+<span class="s">    return </span><span class="se">\&quot;</span><span class="s">{0}(</span><span class="se">\&quot;</span><span class="s"> + {1} + </span><span class="se">\&quot;</span><span class="s">)</span><span class="se">\&quot;</span><span class="s"></span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">clazz</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="s">&quot;+ </span><span class="se">\&quot;</span><span class="s">, </span><span class="se">\&quot;</span><span class="s"> + &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s">&quot;repr(self.&quot;</span> <span class="o">+</span> <span class="n">x</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">])),</span>
+             <span class="n">context</span><span class="p">,</span>
+             <span class="n">newMethods</span><span class="p">)</span>
+
+        <span class="k">exec</span><span class="p">(</span><span class="s">&quot;&quot;&quot;</span>
+<span class="s">def __eq__(self, other):</span>
+<span class="s">    if isinstance(other, {0}):</span>
+<span class="s">        return {1}</span>
+<span class="s">    else:</span>
+<span class="s">        return False</span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">clazz</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="s">&quot; and &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s">&quot;self.{x} == other.{x}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">])),</span>
+             <span class="n">context</span><span class="p">,</span>
+             <span class="n">newMethods</span><span class="p">)</span>
+
+    <span class="n">clazz</span><span class="o">.</span><span class="n">_init</span> <span class="o">=</span> <span class="n">clazz</span><span class="o">.</span><span class="n">__init__</span>
+    <span class="n">clazz</span><span class="o">.</span><span class="n">__init__</span> <span class="o">=</span> <span class="n">newMethods</span><span class="p">[</span><span class="s">&quot;__init__&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">clazz</span><span class="p">,</span> <span class="s">&quot;toString&quot;</span><span class="p">):</span>
+        <span class="n">clazz</span><span class="o">.</span><span class="n">__repr__</span> <span class="o">=</span> <span class="n">clazz</span><span class="o">.</span><span class="n">toString</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">clazz</span><span class="o">.</span><span class="n">__repr__</span> <span class="o">=</span> <span class="n">newMethods</span><span class="p">[</span><span class="s">&quot;__repr__&quot;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">clazz</span><span class="p">,</span> <span class="s">&quot;equals&quot;</span><span class="p">):</span>
+        <span class="n">clazz</span><span class="o">.</span><span class="n">__eq__</span> <span class="o">=</span> <span class="n">clazz</span><span class="o">.</span><span class="n">equals</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">clazz</span><span class="o">.</span><span class="n">__eq__</span> <span class="o">=</span> <span class="n">newMethods</span><span class="p">[</span><span class="s">&quot;__eq__&quot;</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">clazz</span>
+</div>
+<div class="viewcode-block" id="avscToPretty"><a class="viewcode-back" href="../../titus.html#titus.util.avscToPretty">[docs]</a><span class="k">def</span> <span class="nf">avscToPretty</span><span class="p">(</span><span class="n">avsc</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avsc</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot; &quot;</span> <span class="o">*</span> <span class="n">indent</span> <span class="o">+</span> <span class="n">avsc</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avsc</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="s">&quot;type&quot;</span> <span class="ow">in</span> <span class="n">avsc</span><span class="p">:</span>
+        <span class="n">tpe</span> <span class="o">=</span> <span class="n">avsc</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">tpe</span> <span class="o">==</span> <span class="s">&quot;function&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&quot; &quot;</span> <span class="o">*</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;fcn(&quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s">&quot;arg{}: {}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">avscToPretty</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">avsc</span><span class="p">[</span><span class="s">&quot;params&quot;</span><span class="p">]))</span> <span class="o">+</span> <span class="s">&quot; -&gt; &quot;</span> <span class="o">+</span> <span class="n">avscToPretty</span><span class="p">(</span><span class="n">avsc</span><span class="p">[</span><span class="s">&quot;ret&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+
+        <span class="k">elif</span> <span class="n">tpe</span> <span class="o">==</span> <span class="s">&quot;exception&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&quot;exception&quot;</span>
+
+        <span class="k">elif</span> <span class="n">tpe</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;null&quot;</span><span class="p">,</span> <span class="s">&quot;boolean&quot;</span><span class="p">,</span> <span class="s">&quot;int&quot;</span><span class="p">,</span> <span class="s">&quot;long&quot;</span><span class="p">,</span> <span class="s">&quot;float&quot;</span><span class="p">,</span> <span class="s">&quot;double&quot;</span><span class="p">,</span> <span class="s">&quot;bytes&quot;</span><span class="p">,</span> <span class="s">&quot;string&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s">&quot; &quot;</span> <span class="o">*</span> <span class="n">indent</span> <span class="o">+</span> <span class="n">tpe</span>
+
+        <span class="k">elif</span> <span class="n">tpe</span> <span class="o">==</span> <span class="s">&quot;array&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&quot; &quot;</span> <span class="o">*</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;array(&quot;</span> <span class="o">+</span> <span class="n">avscToPretty</span><span class="p">(</span><span class="n">avsc</span><span class="p">[</span><span class="s">&quot;items&quot;</span><span class="p">],</span> <span class="n">indent</span> <span class="o">+</span> <span class="mi">6</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+
+        <span class="k">elif</span> <span class="n">tpe</span> <span class="o">==</span> <span class="s">&quot;map&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&quot; &quot;</span> <span class="o">*</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;map(&quot;</span> <span class="o">+</span> <span class="n">avscToPretty</span><span class="p">(</span><span class="n">avsc</span><span class="p">[</span><span class="s">&quot;values&quot;</span><span class="p">],</span> <span class="n">indent</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+
+        <span class="k">elif</span> <span class="n">tpe</span> <span class="o">==</span> <span class="s">&quot;record&quot;</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">avsc</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s">&quot;namespace&quot;</span> <span class="ow">in</span> <span class="n">avsc</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">avsc</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">avsc</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot;.&quot;</span> <span class="o">+</span> <span class="n">name</span>
+            <span class="n">fields</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">avsc</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]:</span>
+                <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot; &quot;</span> <span class="o">*</span> <span class="p">(</span><span class="n">indent</span> <span class="o">+</span> <span class="mi">7</span><span class="p">)</span> <span class="o">+</span> <span class="n">f</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot;: &quot;</span> <span class="o">+</span> <span class="n">avscToPretty</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">],</span> <span class="n">indent</span> <span class="o">+</span> <span class="mi">7</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">f</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">())</span>
+            <span class="k">return</span> <span class="s">&quot; &quot;</span> <span class="o">*</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;record(&quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&quot;,</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">+</span> <span class="s">&quot;,</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">fields</span><span class="p">)</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+
+        <span class="k">elif</span> <span class="n">tpe</span> <span class="o">==</span> <span class="s">&quot;fixed&quot;</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">avsc</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s">&quot;namespace&quot;</span> <span class="ow">in</span> <span class="n">avsc</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">avsc</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">avsc</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot;.&quot;</span> <span class="o">+</span> <span class="n">name</span>
+            <span class="k">return</span> <span class="s">&quot; &quot;</span> <span class="o">*</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;fixed(&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">avsc</span><span class="p">[</span><span class="s">&quot;size&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+
+        <span class="k">elif</span> <span class="n">tpe</span> <span class="o">==</span> <span class="s">&quot;enum&quot;</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">avsc</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s">&quot;namespace&quot;</span> <span class="ow">in</span> <span class="n">avsc</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">avsc</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="n">avsc</span><span class="p">[</span><span class="s">&quot;namespace&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot;.&quot;</span> <span class="o">+</span> <span class="n">name</span>
+            <span class="k">return</span> <span class="s">&quot; &quot;</span> <span class="o">*</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;enum([&quot;</span> <span class="o">+</span> <span class="s">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">avsc</span><span class="p">[</span><span class="s">&quot;symbols&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="s">&quot;], &quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;malformed Avro schema&quot;</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">avsc</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="n">variants</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">avsc</span><span class="p">:</span>
+            <span class="n">variants</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">avscToPretty</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">indent</span> <span class="o">+</span> <span class="mi">6</span><span class="p">))</span>
+        <span class="k">return</span> <span class="s">&quot; &quot;</span> <span class="o">*</span> <span class="n">indent</span> <span class="o">+</span> <span class="s">&quot;union(&quot;</span> <span class="o">+</span> <span class="s">&quot;,</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">variants</span><span class="p">)</span><span class="o">.</span><span class="n">lstrip</span><span class="p">()</span> <span class="o">+</span> <span class="s">&quot;)&quot;</span>
+
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;malformed Avro schema&quot;</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Titus 0.7.1 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
