@@ -39,4 +39,6 @@ It also contains four envelopes for embedding PFA.
     * actor-based framework capable of complex, multi-engine workflow topologies
     * extensible configuration language
 
+See the [wiki](https://github.com/opendatagroup/hadrian/wiki) for details.
+
 They are all licensed under the Hadrian Personal Use and Evaluation License (PUEL).
