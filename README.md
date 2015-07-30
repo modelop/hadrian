@@ -3,42 +3,16 @@ Hadrian: implementations of the PFA specification
 
 **Version v.0.7.1**
 
-This repository contains four libraries for working with PFA (see http://scoringengine.org for details).
+The [Portable Format for Analytics (PFA)](http://scoringengine.org) is a specification for scoring engines: event-based processors that perform predictive or analytic calculations. It is a common language to help smooth the transition from statistical model development to large-scale and/or online production. For a model expressed as PFA to be run against data, an application is required.
 
-  * **[Hadrian](https://github.com/opendatagroup/hadrian/wiki#hadrian)** ([API](http://opendatagroup.github.io/hadrian/hadrian-0.7.1/index.html#com.opendatagroup.hadrian.jvmcompiler.PFAEngine)): complete implementation of PFA for the **JVM (Java, Scala, ...)**
-    * loads, validates, byte-compiles, and executes PFA scoring engines within a JVM
-    * tools for analyzing PFA statically and at runtime
-  * **[Titus](https://github.com/opendatagroup/hadrian/wiki#titus)** ([API](http://opendatagroup.github.io/hadrian/titus-0.7.1/)): complete implementation of PFA for **Python**
-    * loads, validates, interprets, and executes PFA scoring engines in pure Python
-    * translates PrettyPFA, Python code, and some PMML to PFA
-    * produces models using k-means and CART
-    * interactive analysis of PFA documents with the PFA Inspector script
-    * PFA development tools, such as pfachain and pfaexternalize
-  * **[Aurelius](https://github.com/opendatagroup/hadrian/wiki#aurelius)**: tools for building PFA from **R**
-    * converts a subset of the R language to PFA
-    * converts glm, glmnet, randomForest, and gbm models to PFA
-    * integrated with Titus for PFA validation and execution
-  * **[Antinous](https://github.com/opendatagroup/hadrian/wiki#antinous)**: model producer in **Jython**
-    * encapsulates arbitrary Jython code in a PFA container
-    * produces models using k-means
+Hadrian ([API](http://opendatagroup.github.io/hadrian/hadrian-0.7.1/index.html#com.opendatagroup.hadrian.jvmcompiler.PFAEngine)) is [Open Data](http://www.opendatagroup.com)'s complete implementation of PFA for the Java Virtual Machine (JVM). Hadrian is designed as a library to be embedded in applications or used as a scoring engine container. To make Hadrian immediately usable, we provide containers that allow Hadrian to be dropped into an existing workflow. Hadrian can currently be used as a [standard-input/standard-output process](https://github.com/opendatagroup/hadrian/wiki/Hadrian-Standalone), a [Hadoop map-reduce workflow](https://github.com/opendatagroup/hadrian/wiki/Hadrian-MR), an [actor-based workflow](https://github.com/opendatagroup/hadrian/wiki/Hadrian-Actors) of interacting scoring engines, or as a [servlet in a Java Servlet container](https://github.com/opendatagroup/hadrian/wiki/Hadrian-GAE), including Google App Engine.
 
-It also contains four envelopes for embedding PFA.
+Titus ([API](http://opendatagroup.github.io/hadrian/titus-0.7.1)) is Open Data's complete implementation of PFA for Python. Hadrian and Titus both execute the same scoring engines, but while Hadrian's focus is speed and portability, Titus's focus is on model development. Included with Titus are standard model producers, a [PrettyPFA](https://github.com/opendatagroup/hadrian/wiki/PrettyPFA) parser for easier editing, a [PFA-Inspector](https://github.com/opendatagroup/hadrian/wiki/PFA-Inspector) commandline for interactive analysis of a PFA document, and many other tools and scripts.
 
-  * **[hadrian-standalone](https://github.com/opendatagroup/hadrian/wiki/Hadrian-Standalone)**: runs multithreaded PFA on a command line
-    * quick, simple testing in full Hadrian (as opposed to quicker testing in Titus)
-    * may be used as a component of a shell-based workflow
-  * **[hadrian-mr](https://github.com/opendatagroup/hadrian/wiki/Hadrian-MR)**: runs PFA in Hadoop
-    * schema-matching and sanity checks before job execution
-    * built-in secondary sort semantics
-    * batch scoring with or without snapshot-as-output
-    * may be used with Antinous to produce models in Hadoop
-  * **[hadrian-gae](https://github.com/opendatagroup/hadrian/wiki/Hadrian-GAE)**: runs Hadrian on Google App Engine
-    * PFA-as-a-service
-    * backend for tutorial examples on http://scoringengine.org
-  * **[hadrian-actors](https://github.com/opendatagroup/hadrian/wiki/Hadrian-Actors)**: complex directed acyclic workflows for PFA
-    * actor-based framework capable of complex, multi-engine workflow topologies
-    * extensible configuration language
+In addition, Aurelius is an R package for producing PFA from the R programming language and Antinous is a sidecar app for building models in any environment where Hadrian can be deployed. These and other tools are included in the Hadrian repository.
 
-See the [wiki](https://github.com/opendatagroup/hadrian/wiki) for details.
+See the [Hadrian wiki](https://github.com/opendatagroup/hadrian/wiki) for more information, including [installation instructions](https://github.com/opendatagroup/hadrian/wiki/Installation) and tutorials.
 
-They are all licensed under the Hadrian Personal Use and Evaluation License (PUEL).
+Contact [licensing@opendatagroup.com](mailto:licensing@opendatagroup.com) to see how Hadrian can fit into your environment.
+
+The Roman emperor naming convention is continued from [Augustus](https://github.com/opendatagroup/augustus), Open Data's producer and consumer of the [Predictive Model Markup Language (PMML)](http://www.dmg.org).
