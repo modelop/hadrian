@@ -1,0 +1,423 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.lib1.pfamath &mdash; Titus TRUNK documentation</title>
+    
+    <link rel="stylesheet" href="../../../static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     'TRUNK',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../static/jquery.js"></script>
+    <script type="text/javascript" src="../../../static/underscore.js"></script>
+    <script type="text/javascript" src="../../../static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus TRUNK documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.lib1.pfamath</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">from</span> <span class="nn">titus.fcn</span> <span class="kn">import</span> <span class="n">Fcn</span>
+<span class="kn">from</span> <span class="nn">titus.fcn</span> <span class="kn">import</span> <span class="n">LibFcn</span>
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">Sig</span>
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">Sigs</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">titus.errors</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">titus.lib1.core</span> <span class="kn">import</span> <span class="n">checkForOverflow</span>
+<span class="kn">import</span> <span class="nn">titus.P</span> <span class="kn">as</span> <span class="nn">P</span>
+
+<span class="n">provides</span> <span class="o">=</span> <span class="p">{}</span>
+<div class="viewcode-block" id="provide"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.provide">[docs]</a><span class="k">def</span> <span class="nf">provide</span><span class="p">(</span><span class="n">fcn</span><span class="p">):</span>
+    <span class="n">provides</span><span class="p">[</span><span class="n">fcn</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fcn</span>
+</div>
+<span class="n">prefix</span> <span class="o">=</span> <span class="s">&quot;m.&quot;</span>
+
+<span class="c">#################################################################### constants (0-arity side-effect free functions)</span>
+
+<div class="viewcode-block" id="Pi"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Pi">[docs]</a><span class="k">class</span> <span class="nc">Pi</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;pi&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="Pi.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Pi.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.pi&quot;</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Pi</span><span class="p">())</span>
+
+<div class="viewcode-block" id="E"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.E">[docs]</a><span class="k">class</span> <span class="nc">E</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;e&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="E.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.E.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.e&quot;</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">e</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">E</span><span class="p">())</span>
+
+<span class="c">#################################################################### basic functions (alphabetical order)</span>
+
+<span class="n">anyNumber</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">AvroInt</span><span class="p">(),</span> <span class="n">AvroLong</span><span class="p">(),</span> <span class="n">AvroFloat</span><span class="p">(),</span> <span class="n">AvroDouble</span><span class="p">()])</span>
+
+<div class="viewcode-block" id="Abs"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Abs">[docs]</a><span class="k">class</span> <span class="nc">Abs</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;abs&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span> <span class="n">anyNumber</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">checkForOverflow</span><span class="p">(</span><span class="n">paramTypes</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Abs</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ACos"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.ACos">[docs]</a><span class="k">class</span> <span class="nc">ACos</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;acos&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">acos</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;nan&quot;</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ACos</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ASin"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.ASin">[docs]</a><span class="k">class</span> <span class="nc">ASin</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;asin&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">asin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;nan&quot;</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ASin</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ATan"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.ATan">[docs]</a><span class="k">class</span> <span class="nc">ATan</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;atan&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="ATan.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.ATan.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.atan({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">atan</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ATan</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ATan2"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.ATan2">[docs]</a><span class="k">class</span> <span class="nc">ATan2</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;atan2&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="ATan2.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.ATan2.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.atan2({0}, {1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">atan2</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ATan2</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Ceil"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Ceil">[docs]</a><span class="k">class</span> <span class="nc">Ceil</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;ceil&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="Ceil.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Ceil.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.ceil({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Ceil</span><span class="p">())</span>
+
+<div class="viewcode-block" id="CopySign"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.CopySign">[docs]</a><span class="k">class</span> <span class="nc">CopySign</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;copysign&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;mag&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">,</span> <span class="n">anyNumber</span><span class="p">)},</span> <span class="p">{</span><span class="s">&quot;sign&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Wildcard</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">mag</span><span class="p">,</span> <span class="n">sign</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">abs</span><span class="p">(</span><span class="n">mag</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">sign</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="mi">1</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">CopySign</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Cos"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Cos">[docs]</a><span class="k">class</span> <span class="nc">Cos</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;cos&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="Cos.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Cos.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.cos({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Cos</span><span class="p">())</span>
+
+<div class="viewcode-block" id="CosH"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.CosH">[docs]</a><span class="k">class</span> <span class="nc">CosH</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;cosh&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="CosH.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.CosH.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.cosh({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">cosh</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">CosH</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Exp"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Exp">[docs]</a><span class="k">class</span> <span class="nc">Exp</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;exp&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="Exp.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Exp.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.exp({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Exp</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ExpM1"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.ExpM1">[docs]</a><span class="k">class</span> <span class="nc">ExpM1</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;expm1&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="ExpM1.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.ExpM1.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;(math.exp({0}) - 1.0)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ExpM1</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Floor"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Floor">[docs]</a><span class="k">class</span> <span class="nc">Floor</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;floor&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="Floor.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Floor.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.floor({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Floor</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Hypot"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Hypot">[docs]</a><span class="k">class</span> <span class="nc">Hypot</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;hypot&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;y&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">y</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Hypot</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Ln"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Ln">[docs]</a><span class="k">class</span> <span class="nc">Ln</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;ln&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;nan&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">x</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;-inf&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Ln</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Log10"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Log10">[docs]</a><span class="k">class</span> <span class="nc">Log10</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;log10&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;nan&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">x</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;-inf&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Log10</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Log"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Log">[docs]</a><span class="k">class</span> <span class="nc">Log</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;log&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;base&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">base</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">base</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;base must be positive&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;nan&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">x</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;-inf&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">base</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Log</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Ln1p"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Ln1p">[docs]</a><span class="k">class</span> <span class="nc">Ln1p</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;ln1p&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;nan&quot;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">x</span> <span class="o">==</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;-inf&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Ln1p</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Round"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Round">[docs]</a><span class="k">class</span> <span class="nc">Round</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;round&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">())])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">checkForOverflow</span><span class="p">([</span><span class="s">&quot;long&quot;</span><span class="p">],</span> <span class="nb">long</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)))</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Round</span><span class="p">())</span>
+
+<div class="viewcode-block" id="RInt"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.RInt">[docs]</a><span class="k">class</span> <span class="nc">RInt</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;rint&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="n">up</span><span class="p">,</span> <span class="n">down</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">up</span> <span class="o">-</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">x</span> <span class="o">-</span> <span class="n">down</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">up</span>
+        <span class="k">elif</span> <span class="n">up</span> <span class="o">-</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="n">x</span> <span class="o">-</span> <span class="n">down</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">down</span>
+        <span class="k">elif</span> <span class="nb">int</span><span class="p">(</span><span class="n">up</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">up</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">down</span>
+            </div>
+<span class="n">provide</span><span class="p">(</span><span class="n">RInt</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Signum"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Signum">[docs]</a><span class="k">class</span> <span class="nc">Signum</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;signum&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">elif</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Signum</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Sin"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Sin">[docs]</a><span class="k">class</span> <span class="nc">Sin</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;sin&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="Sin.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Sin.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.sin({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Sin</span><span class="p">())</span>
+
+<div class="viewcode-block" id="SinH"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.SinH">[docs]</a><span class="k">class</span> <span class="nc">SinH</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;sinh&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="SinH.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.SinH.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.sinh({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">sinh</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">SinH</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Sqrt"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Sqrt">[docs]</a><span class="k">class</span> <span class="nc">Sqrt</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;sqrt&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="s">&quot;nan&quot;</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Sqrt</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Tan"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Tan">[docs]</a><span class="k">class</span> <span class="nc">Tan</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;tan&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="Tan.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.Tan.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.tan({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">tan</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">Tan</span><span class="p">())</span>
+
+<div class="viewcode-block" id="TanH"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.TanH">[docs]</a><span class="k">class</span> <span class="nc">TanH</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;tanh&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+<div class="viewcode-block" id="TanH.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfamath.TanH.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;math.tanh({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">TanH</span><span class="p">())</span>
+
+<span class="c">#################################################################### special functions</span>
+
+<span class="c"># class SpecialErf(LibFcn):</span>
+<span class="c">#     name = prefix + &quot;special.erf&quot;</span>
+<span class="c">#     sig = Sig([{&quot;x&quot;: P.Double()}], P.Double())</span>
+<span class="c">#     a1 =  0.254829592</span>
+<span class="c">#     a2 = -0.284496736</span>
+<span class="c">#     a3 =  1.421413741</span>
+<span class="c">#     a4 = -1.453152027</span>
+<span class="c">#     a5 =  1.061405429</span>
+<span class="c">#     p  =  0.3275911</span>
+<span class="c">#     def __call__(self, state, scope, paramTypes, x):</span>
+<span class="c">#         try:</span>
+<span class="c">#             return math.erf(x)</span>
+<span class="c">#         except AttributeError:</span>
+<span class="c">#             sign = -1.0 if x &lt; 0 else 1.0</span>
+<span class="c">#             x = abs(x)</span>
+<span class="c">#             t = 1.0 / (1.0 + x * self.p)</span>
+<span class="c">#             y = 1.0 - (((((self.a5*t + self.a4)*t + self.a3)*t + self.a2)*t + self.a1)*t * math.exp(-x**2))</span>
+<span class="c">#             return sign * y    # erf(-x) = -erf(x)</span>
+
+<span class="c"># provide(SpecialErf())</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

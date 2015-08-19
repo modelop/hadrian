@@ -1,0 +1,59 @@
+model Package
+=============
+
+:mod:`model` Package
+--------------------
+
+.. automodule:: titus.lib1.model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`cluster` Module
+---------------------
+
+.. automodule:: titus.lib1.model.cluster
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`naive` Module
+-------------------
+
+.. automodule:: titus.lib1.model.naive
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`neighbor` Module
+----------------------
+
+.. automodule:: titus.lib1.model.neighbor
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`neural` Module
+--------------------
+
+.. automodule:: titus.lib1.model.neural
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`reg` Module
+-----------------
+
+.. automodule:: titus.lib1.model.reg
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`tree` Module
+------------------
+
+.. automodule:: titus.lib1.model.tree
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

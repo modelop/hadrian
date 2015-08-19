@@ -1,0 +1,934 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.producer.cart &mdash; Titus TRUNK documentation</title>
+    
+    <link rel="stylesheet" href="../../../static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     'TRUNK',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../static/jquery.js"></script>
+    <script type="text/javascript" src="../../../static/underscore.js"></script>
+    <script type="text/javascript" src="../../../static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus TRUNK documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.producer.cart</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">LabelData</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">ForwardDeclarationParser</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroUnion</span>
+<span class="kn">import</span> <span class="nn">titus.prettypfa</span>
+
+<div class="viewcode-block" id="Dataset"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.Dataset">[docs]</a><span class="k">class</span> <span class="nc">Dataset</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Canonical format for providing a dataset to the tree-builder.</span>
+
+<span class="sd">    Constructors are __init__ and fromIterable.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Dataset.Field"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.Dataset.Field">[docs]</a>    <span class="k">class</span> <span class="nc">Field</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Represents a field of the dataset; usually created by a</span>
+<span class="sd">        Dataset constructor.</span>
+
+<span class="sd">        Dataset.Field objects may be in one of two states: Numpy and</span>
+<span class="sd">        Python.  The Dataset constructors produce Dataset.Fields in</span>
+<span class="sd">        their Numpy representation, which is required by the</span>
+<span class="sd">        tree-builder.  In the Numpy representation, categorical string</span>
+<span class="sd">        data are represented as integers from 0 to N-1, where N is the</span>
+<span class="sd">        number of unique input strings, with each distinct integer</span>
+<span class="sd">        representing a distinct input string.  Strings and integers</span>
+<span class="sd">        can be converted through the intToStr and strToInt</span>
+<span class="sd">        dictionaries, or by converting the whole array into a Pythonic</span>
+<span class="sd">        form with the toPython method.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tpe</span> <span class="o">=</span> <span class="n">t</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="s">&quot;&lt;Dataset.Field of type {0} at 0x{:08x}&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s">&quot;float&quot;</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span> <span class="k">else</span> <span class="s">&quot;str&quot;</span><span class="p">,</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+
+<div class="viewcode-block" id="Dataset.Field.add"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.Dataset.Field.add">[docs]</a>        <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="Dataset.Field.toNumpy"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.Dataset.Field.toNumpy">[docs]</a>        <span class="k">def</span> <span class="nf">toNumpy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Changes this field into a Numpy representation</span>
+<span class="sd">            *in-place* (destructively replaces the old</span>
+<span class="sd">            representation).&quot;&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="nb">basestring</span><span class="p">:</span>
+                <span class="n">unique</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">))</span>
+                <span class="n">intToStr</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="n">unique</span><span class="p">))</span>
+                <span class="n">strToInt</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unique</span><span class="p">))</span>
+                <span class="n">converted</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">):</span>
+                    <span class="n">converted</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">strToInt</span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">intToStr</span> <span class="o">=</span> <span class="n">intToStr</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">strToInt</span> <span class="o">=</span> <span class="n">strToInt</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">converted</span>
+            <span class="k">return</span> <span class="bp">self</span>
+</div>
+<div class="viewcode-block" id="Dataset.Field.select"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.Dataset.Field.select">[docs]</a>        <span class="k">def</span> <span class="nf">select</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">selection</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Creates a new Dataset.Field from this one by applying a</span>
+<span class="sd">            boolean-valued Numpy array of the same length.</span>
+
+<span class="sd">            The new Dataset.Field is independent of the old one (this</span>
+<span class="sd">            is a purely functional method).</span>
+
+<span class="sd">            Assumes that the Dataset.Field is currently in a Numpy</span>
+<span class="sd">            representation.&quot;&quot;&quot;</span>
+
+            <span class="n">out</span> <span class="o">=</span> <span class="n">Dataset</span><span class="o">.</span><span class="n">Field</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpe</span><span class="p">)</span>
+            <span class="n">out</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">selection</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&quot;intToStr&quot;</span><span class="p">):</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">intToStr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">intToStr</span>
+                <span class="n">out</span><span class="o">.</span><span class="n">strToInt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">strToInt</span>
+            <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="Dataset.Field.toPython"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.Dataset.Field.toPython">[docs]</a>        <span class="k">def</span> <span class="nf">toPython</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Changes this field into a Python representation</span>
+<span class="sd">            *in-place* (destructively replaces the old</span>
+<span class="sd">            representation).&quot;&quot;&quot;</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="nb">basestring</span><span class="p">:</span>
+                <span class="n">converter</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">x</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">intToStr</span><span class="o">.</span><span class="n">items</span><span class="p">())],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">object</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">converter</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">])</span>
+            <span class="k">return</span> <span class="bp">self</span>
+</div></div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fields</span><span class="p">,</span> <span class="n">names</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fields</span> <span class="o">=</span> <span class="n">fields</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">names</span> <span class="o">=</span> <span class="n">names</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="Dataset.fromIterable"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.Dataset.fromIterable">[docs]</a>    <span class="k">def</span> <span class="nf">fromIterable</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">iterable</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructor for Dataset that takes a Python iterable (rows)</span>
+<span class="sd">        of iterables (columns).</span>
+
+<span class="sd">        Each row must have the same number of fields with the same</span>
+<span class="sd">        types (numbers.Real versus basestring).</span>
+
+<span class="sd">        If limit is provided, stop after limit rows.  (Useful for</span>
+<span class="sd">        infinite lists, represented by generators.)</span>
+
+<span class="sd">        If names is provided, associate the given names with each</span>
+<span class="sd">        field.  If not provided, names will be var0 ... varN-1 (with</span>
+<span class="sd">        enough zero-padding that lexicographic order is numerical</span>
+<span class="sd">        order).  Names are used when writing a PFA document; they are</span>
+<span class="sd">        not used in the tree-building process.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">lineNumber</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">iterable</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">lineNumber</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">):</span>
+                        <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">Field</span><span class="p">(</span><span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">))</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+                        <span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cls</span><span class="o">.</span><span class="n">Field</span><span class="p">(</span><span class="nb">basestring</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;record type must be a real number or a string, not {0}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">word</span><span class="p">)))</span>
+                <span class="k">if</span> <span class="n">names</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">formatter</span> <span class="o">=</span> <span class="s">&quot;var{0:0</span><span class="si">%d</span><span class="s">d}&quot;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)))</span>
+                    <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">formatter</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">))]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;number of columns in dataset is not the same as the number of names&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">limit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">lineNumber</span> <span class="o">&gt;=</span> <span class="n">limit</span><span class="p">:</span>
+                <span class="k">break</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fields</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;number of columns in dataset is not the same as the first: {0} on line {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">),</span> <span class="n">lineNumber</span><span class="p">))</span>
+
+            <span class="k">for</span> <span class="n">columnNumber</span><span class="p">,</span> <span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="n">fields</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">field</span><span class="o">.</span><span class="n">tpe</span><span class="p">):</span>
+                    <span class="n">field</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">word</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;type of column {0} in dataset is not the same as the first: {1} on line {2}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">columnNumber</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">word</span><span class="p">),</span> <span class="n">lineNumber</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">cls</span><span class="p">([</span><span class="n">x</span><span class="o">.</span><span class="n">toNumpy</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fields</span><span class="p">],</span> <span class="n">names</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;&lt;Dataset with {0} fields at 0x{:08x}&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">fields</span><span class="p">),</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="TreeNode"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode">[docs]</a><span class="k">class</span> <span class="nc">TreeNode</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represents a tree node and applies the CART algorithm to build</span>
+<span class="sd">    decision and regression trees.</span>
+
+<span class="sd">    The constructors are __init__ and fromWholeDataset.</span>
+
+<span class="sd">    Tree-building is initiated by calling splitUntil(condition), where</span>
+<span class="sd">    condition(node, depth) is a user-supplied function that takes a</span>
+<span class="sd">    node (TreeNode) and depth (int) and returns boolean (True:</span>
+<span class="sd">    continue splitting; False: stop splitting).</span>
+
+<span class="sd">    The following are convenience functions that pass a standard</span>
+<span class="sd">    condition to splitUntil:</span>
+<span class="sd">    </span>
+<span class="sd">        splitComplete() splits until each unique value from the</span>
+<span class="sd">        dataset is in a separate TreeNode.</span>
+
+<span class="sd">        splitMaxDepth(maxDepth) splits until each datum is in a</span>
+<span class="sd">        separate TreeNode or until the depth of the tree is maxDepth.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="TreeNode.fromWholeDataset"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.fromWholeDataset">[docs]</a>    <span class="k">def</span> <span class="nf">fromWholeDataset</span><span class="p">(</span><span class="n">cls</span><span class="p">,</span> <span class="n">wholeDataset</span><span class="p">,</span> <span class="n">predictandName</span><span class="p">,</span> <span class="n">maxSubsetSize</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructor for a dataset that includes predictors (fields</span>
+<span class="sd">        to explicitly refer to in splits) the predictand (the field in</span>
+<span class="sd">        which we try to optimize purity) as a field in the dataset,</span>
+<span class="sd">        called out by predictandName.</span>
+
+<span class="sd">        maxSubsetSize is used to limit splitting of categorical</span>
+<span class="sd">        predictors; see categoricalEntropyGainTerm and</span>
+<span class="sd">        categoricalNVarianceGainTerm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">predictandIndex</span> <span class="o">=</span> <span class="n">wholeDataset</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">predictandName</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">(</span><span class="n">wholeDataset</span><span class="o">.</span><span class="n">fields</span><span class="p">[:</span><span class="n">predictandIndex</span><span class="p">]</span> <span class="o">+</span> <span class="n">wholeDataset</span><span class="o">.</span><span class="n">fields</span><span class="p">[(</span><span class="n">predictandIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):],</span>
+                          <span class="n">wholeDataset</span><span class="o">.</span><span class="n">names</span><span class="p">[:</span><span class="n">predictandIndex</span><span class="p">]</span> <span class="o">+</span> <span class="n">wholeDataset</span><span class="o">.</span><span class="n">names</span><span class="p">[(</span><span class="n">predictandIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):])</span>
+        <span class="n">predictand</span> <span class="o">=</span> <span class="n">wholeDataset</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">predictandIndex</span><span class="p">]</span>
+        <span class="n">maxSubsetSize</span> <span class="o">=</span> <span class="n">maxSubsetSize</span>
+        <span class="k">return</span> <span class="n">cls</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">predictand</span><span class="p">,</span> <span class="n">maxSubsetSize</span><span class="p">)</span>
+</div>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">predictand</span><span class="p">,</span> <span class="n">maxSubsetSize</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Constructor for a dataset of predictors only; the</span>
+<span class="sd">        predictand is a distinct Dataset.Field, provided separately.</span>
+
+<span class="sd">        maxSubsetSize is used to limit splitting of categorical</span>
+<span class="sd">        predictors; see categoricalEntropyGainTerm and</span>
+<span class="sd">        categoricalNVarianceGainTerm.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span> <span class="o">=</span> <span class="n">predictand</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxSubsetSize</span> <span class="o">=</span> <span class="n">maxSubsetSize</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">predictandUnique</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">predictandUnique</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">unique1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="nb">basestring</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">predictandDistribution</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">intToStr</span><span class="p">)):</span>
+                    <span class="n">frac</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="n">category</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">predictandDistribution</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">frac</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">predictandDistribution</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">intToStr</span><span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span>
+
+<div class="viewcode-block" id="TreeNode.splitComplete"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.splitComplete">[docs]</a>    <span class="k">def</span> <span class="nf">splitComplete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convenience function for building up a tree until each leaf</span>
+<span class="sd">        has only one unique value.  Calls splitUntil.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">splitUntil</span><span class="p">(</span><span class="k">lambda</span> <span class="n">node</span><span class="p">,</span> <span class="n">depth</span><span class="p">:</span> <span class="bp">True</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TreeNode.splitMaxDepth"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.splitMaxDepth">[docs]</a>    <span class="k">def</span> <span class="nf">splitMaxDepth</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">maxDepth</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Convenience function for building up trees until each leaf</span>
+<span class="sd">        has only one unique value or the depth reaches maxDepth.</span>
+<span class="sd">        Calls splitUntil.&quot;&quot;&quot;</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">splitUntil</span><span class="p">(</span><span class="k">lambda</span> <span class="n">node</span><span class="p">,</span> <span class="n">depth</span><span class="p">:</span> <span class="n">depth</span> <span class="o">&lt;</span> <span class="n">maxDepth</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TreeNode.splitUntil"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.splitUntil">[docs]</a>    <span class="k">def</span> <span class="nf">splitUntil</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">depth</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Performs a recursive tree-split, calling the user-supplied</span>
+<span class="sd">        condition(node, depth) at each new node.</span>
+
+<span class="sd">        The node provided to condition is a TreeNode, the depth is an</span>
+<span class="sd">        int, and it should return a boolean value.  It has access to</span>
+<span class="sd">        all information about the current node and its depth, and if</span>
+<span class="sd">        it returns True, the tree continues to split; if False, it</span>
+<span class="sd">        stops.</span>
+
+<span class="sd">        If the predictand is numerical (numbers.Real), the node has</span>
+<span class="sd">        attributes: datasetSize, predictandUnique, nTimesVariance, and</span>
+<span class="sd">        gain.</span>
+
+<span class="sd">        If the predictand is categorical (basestring), the node has</span>
+<span class="sd">        attributes: datasetSize, predictandDistribution, entropy, and</span>
+<span class="sd">        gain.</span>
+
+<span class="sd">        Splits are performed *in-place*.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">canSplit</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">splitOnce</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">condition</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">depth</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">passBranch</span><span class="o">.</span><span class="n">splitUntil</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">failBranch</span><span class="o">.</span><span class="n">splitUntil</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TreeNode.canSplit"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.canSplit">[docs]</a>    <span class="k">def</span> <span class="nf">canSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns False if it is not possible to split the predictand.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictandUnique</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="nb">basestring</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">count_nonzero</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictandDistribution</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span>
+</div>
+<div class="viewcode-block" id="TreeNode.score"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Returns the best score at this TreeNode, which might or might not be a leaf.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="nb">basestring</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">intToStr</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictandDistribution</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span>
+    </div>
+<div class="viewcode-block" id="TreeNode.splitOnce"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.splitOnce">[docs]</a>    <span class="k">def</span> <span class="nf">splitOnce</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Compute an optimized split in one field, adding two new</span>
+<span class="sd">        TreeNodes below this one.</span>
+
+<span class="sd">        If the predictand is numerical (numbers.Real), the split</span>
+<span class="sd">        minimizes entropy; if categorical (basestring), it minimizes</span>
+<span class="sd">        n-times-variance.&quot;&quot;&quot;</span>
+
+        <span class="c"># build a regression tree using n-times-variance as the metric to optimize</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nTimesVariance</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">data</span><span class="p">)</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">var</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">split</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fieldIndex</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">field</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="c"># for each field...</span>
+            <span class="k">for</span> <span class="n">fieldIndex</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">fields</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+                    <span class="n">gainTerm</span><span class="p">,</span> <span class="n">split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">numericalNVarianceGainTerm</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">field</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="nb">basestring</span><span class="p">:</span>
+                    <span class="n">gainTerm</span><span class="p">,</span> <span class="n">split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">categoricalNVarianceGainTerm</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxSubsetSize</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span>
+
+                <span class="c"># the gainTerm functions don&#39;t include this constant (n-times-variance of the unsplit node)</span>
+                <span class="n">gainTerm</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nTimesVariance</span>
+
+                <span class="c"># ... and keep track of the best field, best split</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">gainTerm</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">gain</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">=</span> <span class="n">gainTerm</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">split</span> <span class="o">=</span> <span class="n">split</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fieldIndex</span> <span class="o">=</span> <span class="n">fieldIndex</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">field</span> <span class="o">=</span> <span class="n">field</span>
+            
+        <span class="c"># build a classification tree using entropy as the metric to optimize</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="nb">basestring</span><span class="p">:</span>
+            <span class="c"># find the best split by maximizing entropic gain</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">entropy</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="k">for</span> <span class="n">frac</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictandDistribution</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">frac</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">entropy</span> <span class="o">-=</span> <span class="n">frac</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">frac</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">split</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">fieldIndex</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">field</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="c"># for each field...</span>
+            <span class="k">for</span> <span class="n">fieldIndex</span><span class="p">,</span> <span class="n">field</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">fields</span><span class="p">):</span>
+                <span class="c"># go to a function that finds the best choice for that field</span>
+                <span class="k">if</span> <span class="n">field</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+                    <span class="n">gainTerm</span><span class="p">,</span> <span class="n">split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">numericalEntropyGainTerm</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">field</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="nb">basestring</span><span class="p">:</span>
+                    <span class="n">gainTerm</span><span class="p">,</span> <span class="n">split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">categoricalEntropyGainTerm</span><span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxSubsetSize</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span>
+
+                <span class="c"># the gainTerm functions don&#39;t include this constant (entropy of the unsplit node)</span>
+                <span class="n">gainTerm</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entropy</span>
+
+                <span class="c"># ... and keep track of the best field, best split</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">gainTerm</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">gain</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">gain</span> <span class="o">=</span> <span class="n">gainTerm</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">split</span> <span class="o">=</span> <span class="n">split</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">fieldIndex</span> <span class="o">=</span> <span class="n">fieldIndex</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">field</span> <span class="o">=</span> <span class="n">field</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span>
+
+        <span class="c"># construct a new dataset by splitting the best field, best split</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+            <span class="n">passSelection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="o">.</span><span class="n">data</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="nb">basestring</span><span class="p">:</span>
+            <span class="n">passSelection</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">in1d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="p">)</span>
+        <span class="n">failSelection</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">passSelection</span><span class="p">)</span>
+
+        <span class="n">passDataset</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">([],</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+            <span class="n">passDataset</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">passSelection</span><span class="p">))</span>
+
+        <span class="n">failDataset</span> <span class="o">=</span> <span class="n">Dataset</span><span class="p">([],</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">names</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+            <span class="n">failDataset</span><span class="o">.</span><span class="n">fields</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">failSelection</span><span class="p">))</span>
+        
+        <span class="n">passPredictand</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">passSelection</span><span class="p">)</span>
+        <span class="n">failPredictand</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="n">failSelection</span><span class="p">)</span>
+
+        <span class="c"># create two new tree nodes, one with the data that pass the cut, the other with the data that fail</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">passBranch</span> <span class="o">=</span> <span class="n">TreeNode</span><span class="p">(</span><span class="n">passDataset</span><span class="p">,</span> <span class="n">passPredictand</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxSubsetSize</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">failBranch</span> <span class="o">=</span> <span class="n">TreeNode</span><span class="p">(</span><span class="n">failDataset</span><span class="p">,</span> <span class="n">failPredictand</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxSubsetSize</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="TreeNode.numericalEntropyGainTerm"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.numericalEntropyGainTerm">[docs]</a>    <span class="k">def</span> <span class="nf">numericalEntropyGainTerm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Split a numerical predictor in such a way that maximizes</span>
+<span class="sd">        entropic gain above and below the threshold of the split.&quot;&quot;&quot;</span>
+
+        <span class="c"># sort values so that we can use running sums (numpy.cumsum)</span>
+        <span class="n">sortedIndexes</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s">&quot;heapsort&quot;</span><span class="p">)</span>
+
+        <span class="c"># work with the predictor (values) and predictand (categories) for ascending values of the predictor</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sortedIndexes</span><span class="p">]</span>
+        <span class="n">categories</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sortedIndexes</span><span class="p">]</span>
+        
+        <span class="c"># for normalizing</span>
+        <span class="n">numInSelection</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+        <span class="n">numNotInSelection</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+
+        <span class="c"># sum over the values array using Numpy iteration</span>
+        <span class="n">selectionEntropy</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+        <span class="n">antiSelectionEntropy</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+
+        <span class="c"># sum over categories using a Python for loop</span>
+        <span class="c"># (dataset pre-processing has ensured that the N categories are integers from 0 to N-1, so xrange)</span>
+        <span class="k">for</span> <span class="n">category</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">intToStr</span><span class="p">)):</span>
+            <span class="c"># number of instances of this category for value &lt;= cut</span>
+            <span class="n">numAtAndBeforeIndex</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">categories</span> <span class="o">==</span> <span class="n">category</span><span class="p">)</span>
+
+            <span class="c"># probability of the category in the (value &lt;= cut) data subset</span>
+            <span class="n">frac</span> <span class="o">=</span> <span class="n">numAtAndBeforeIndex</span> <span class="o">/</span> <span class="n">numInSelection</span>
+
+            <span class="c"># for entropy, it is convenient to define 0*log(0) as 0, but Numpy reports it as NaN</span>
+            <span class="n">selectionEntropyTerm</span> <span class="o">=</span> <span class="n">frac</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">frac</span><span class="p">)</span>
+            <span class="n">selectionEntropyTerm</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">selectionEntropyTerm</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+            <span class="n">selectionEntropy</span> <span class="o">-=</span> <span class="n">selectionEntropyTerm</span>
+
+            <span class="c"># now do the same for the anti-selection</span>
+            <span class="n">numAtAndBeforeIndex</span> <span class="o">=</span> <span class="n">numAtAndBeforeIndex</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">numAtAndBeforeIndex</span>
+            <span class="n">frac</span> <span class="o">=</span> <span class="n">numAtAndBeforeIndex</span> <span class="o">/</span> <span class="n">numNotInSelection</span>
+            <span class="n">selectionEntropyTerm</span> <span class="o">=</span> <span class="n">frac</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">frac</span><span class="p">)</span>
+            <span class="n">selectionEntropyTerm</span><span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">selectionEntropyTerm</span><span class="p">)]</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+            <span class="n">antiSelectionEntropy</span> <span class="o">-=</span> <span class="n">selectionEntropyTerm</span>
+
+        <span class="c"># calculate gain for all possible index splits</span>
+        <span class="c"># (even if some are not unique--- it&#39;s faster to just have Numpy scan over them than to try to skip them)</span>
+        <span class="n">gains</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">numInSelection</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span><span class="p">)</span><span class="o">*</span><span class="n">selectionEntropy</span> <span class="o">-</span> <span class="p">(</span><span class="n">numNotInSelection</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span><span class="p">)</span><span class="o">*</span><span class="n">antiSelectionEntropy</span>
+
+        <span class="c"># find the highest gain, preferring larger indexes if there&#39;s a tie</span>
+        <span class="c"># (that&#39;s why we reverse the order of the list with [::-1] and then correct for the index for the reversal)</span>
+        <span class="n">maxGainIndex</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">gains</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">gains</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">gainTerm</span> <span class="o">=</span> <span class="n">gains</span><span class="p">[</span><span class="n">maxGainIndex</span><span class="p">]</span>
+
+        <span class="c"># for niceness, put the cut between the best index (assuming the cut is &quot;&lt;=&quot;) and the next one,</span>
+        <span class="c"># so that the cut could equivalently be &quot;&lt;&quot;</span>
+        <span class="c"># (the next higher should be exactly one higher because we picked the larger indexes in a tie above)</span>
+        <span class="n">nextHigher</span> <span class="o">=</span> <span class="n">maxGainIndex</span>
+        <span class="k">while</span> <span class="n">nextHigher</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">values</span><span class="p">[</span><span class="n">nextHigher</span><span class="p">]</span> <span class="o">==</span> <span class="n">values</span><span class="p">[</span><span class="n">maxGainIndex</span><span class="p">]:</span>
+            <span class="n">nextHigher</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">cutValue</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="n">maxGainIndex</span><span class="p">]</span> <span class="o">+</span> <span class="n">values</span><span class="p">[</span><span class="n">nextHigher</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
+
+        <span class="k">return</span> <span class="n">gainTerm</span><span class="p">,</span> <span class="n">cutValue</span>
+</div>
+<div class="viewcode-block" id="TreeNode.categoricalEntropyGainTerm"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.categoricalEntropyGainTerm">[docs]</a>    <span class="k">def</span> <span class="nf">categoricalEntropyGainTerm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">maxSubsetSize</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Split a categorical predictor in such a way that maximizes</span>
+<span class="sd">        entropic gain inside and outside of a subset of predictor values.</span>
+
+<span class="sd">        maxSubsetSize, if not None, limits the maximum size of the</span>
+<span class="sd">        subsets considered.  Since the number of possible subsets is</span>
+<span class="sd">        exponential in the number of unique values of the predictor,</span>
+<span class="sd">        this helps to avoid long-running searches (at the expense of</span>
+<span class="sd">        finding the best-possible split).&quot;&quot;&quot;</span>
+
+        <span class="c"># get a selection array for each category of the variable we want to use to make the prediciton</span>
+        <span class="n">numPredictorCategories</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">strToInt</span><span class="p">)</span>
+        <span class="n">predictorSelection</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span><span class="p">,</span> <span class="n">numPredictorCategories</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">bool</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">predictorCategory</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">numPredictorCategories</span><span class="p">):</span>
+            <span class="n">predictorSelection</span><span class="p">[:,</span><span class="n">predictorCategory</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="n">predictorCategory</span><span class="p">)</span>
+
+        <span class="c"># get a selection array for each category that we want to predict</span>
+        <span class="n">numPredictandCategories</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">strToInt</span><span class="p">)</span>
+        <span class="n">predictandSelection</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span><span class="p">,</span> <span class="n">numPredictandCategories</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">bool</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">predictandCategory</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">numPredictandCategories</span><span class="p">):</span>
+            <span class="n">predictandSelection</span><span class="p">[:,</span><span class="n">predictandCategory</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="n">predictandCategory</span><span class="p">)</span>
+
+        <span class="c"># combine them for all combinations of predictor category and predictand category</span>
+        <span class="c"># bitwise_and is equivalent to logical_and (for these boolean arrays) and faster</span>
+        <span class="n">numInCategory</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">bitwise_and</span><span class="p">(</span><span class="n">predictorSelection</span><span class="p">[:,</span><span class="n">i</span><span class="p">],</span> <span class="n">predictandSelection</span><span class="p">[:,</span><span class="n">j</span><span class="p">]))</span>
+                          <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">numPredictorCategories</span><span class="p">)])</span>
+                         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">numPredictandCategories</span><span class="p">)]</span>
+
+        <span class="c"># for the denominators</span>
+        <span class="n">numMarginal</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">predictorSelection</span><span class="p">[:,</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">numPredictorCategories</span><span class="p">)])</span>
+
+        <span class="c"># only consider categories that still have instances at this depth of the tree</span>
+        <span class="n">remainingPredictorCategories</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">numPredictorCategories</span><span class="p">)</span> <span class="k">if</span> <span class="n">numMarginal</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">remainingPredictandCategories</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">numPredictandCategories</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictandDistribution</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">])</span>
+
+        <span class="c"># we will iterate over (N choose k) for all k from 1 to the highest informative k (half of N, rounding up)</span>
+        <span class="c"># or a user-supplied maxSubsetSize (to avoid very long calculations)</span>
+        <span class="n">maxInformativeSubset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">remainingPredictorCategories</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">maxSubsetSize</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">maxSubsetSize</span> <span class="o">=</span> <span class="n">maxInformativeSubset</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">maxSubsetSize</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">maxSubsetSize</span><span class="p">,</span> <span class="n">maxInformativeSubset</span><span class="p">)</span>
+
+        <span class="n">bestGainTerm</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">bestCombination</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">for</span> <span class="n">howMany</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">maxSubsetSize</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="c"># itertools.combinations does (N choose k) for a specific k</span>
+            <span class="k">for</span> <span class="n">categorySet</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="n">remainingPredictorCategories</span><span class="p">,</span> <span class="n">howMany</span><span class="p">):</span>
+                <span class="n">selection</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">categorySet</span><span class="p">)</span>
+                <span class="n">antiselection</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">setdiff1d</span><span class="p">(</span><span class="n">remainingPredictorCategories</span><span class="p">,</span> <span class="n">selection</span><span class="p">,</span> <span class="n">assume_unique</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+                <span class="n">numInSelection</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">numMarginal</span><span class="p">[</span><span class="n">selection</span><span class="p">])</span>
+                <span class="n">numInAntiselection</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span> <span class="o">-</span> <span class="n">numInSelection</span>
+
+                <span class="n">selectionEntropy</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">antiSelectionEntropy</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+                <span class="k">for</span> <span class="n">predictandCategory</span> <span class="ow">in</span> <span class="n">remainingPredictandCategories</span><span class="p">:</span>
+                    <span class="c"># for the selection</span>
+                    <span class="n">numInPredictand</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">numInCategory</span><span class="p">[</span><span class="n">predictandCategory</span><span class="p">][</span><span class="n">selection</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">numInPredictand</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">frac</span> <span class="o">=</span> <span class="n">numInPredictand</span> <span class="o">/</span> <span class="n">numInSelection</span>
+                        <span class="n">selectionEntropy</span> <span class="o">-=</span> <span class="n">frac</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">frac</span><span class="p">)</span>
+
+                    <span class="c"># now for the antiselection</span>
+                    <span class="n">numInPredictand</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">numInCategory</span><span class="p">[</span><span class="n">predictandCategory</span><span class="p">][</span><span class="n">antiselection</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">numInPredictand</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">frac</span> <span class="o">=</span> <span class="n">numInPredictand</span> <span class="o">/</span> <span class="n">numInAntiselection</span>
+                        <span class="n">antiSelectionEntropy</span> <span class="o">-=</span> <span class="n">frac</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">log2</span><span class="p">(</span><span class="n">frac</span><span class="p">)</span>
+
+                <span class="c"># gainTerm is scalar, driven by a Python for loop over itertools.combinations</span>
+                <span class="n">gainTerm</span> <span class="o">=</span> <span class="o">-</span><span class="p">(</span><span class="n">numInSelection</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span><span class="p">)</span><span class="o">*</span><span class="n">selectionEntropy</span> <span class="o">-</span> <span class="p">(</span><span class="n">numInAntiselection</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span><span class="p">)</span><span class="o">*</span><span class="n">antiSelectionEntropy</span>
+
+                <span class="c"># find the best one</span>
+                <span class="k">if</span> <span class="n">bestGainTerm</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">gainTerm</span> <span class="o">&gt;</span> <span class="n">bestGainTerm</span><span class="p">:</span>
+                    <span class="n">bestGainTerm</span> <span class="o">=</span> <span class="n">gainTerm</span>
+                    <span class="n">bestCombination</span> <span class="o">=</span> <span class="n">categorySet</span>
+
+        <span class="k">return</span> <span class="n">bestGainTerm</span><span class="p">,</span> <span class="n">bestCombination</span>
+</div>
+<div class="viewcode-block" id="TreeNode.numericalNVarianceGainTerm"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.numericalNVarianceGainTerm">[docs]</a>    <span class="k">def</span> <span class="nf">numericalNVarianceGainTerm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Split a numerical predictor in such a way that maximizes</span>
+<span class="sd">        n-times-variance gain above and below the threshold of the</span>
+<span class="sd">        split.&quot;&quot;&quot;</span>
+
+        <span class="c"># sort values so that we can use running sums (numpy.cumsum)</span>
+        <span class="n">sortedIndexes</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">argsort</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">kind</span><span class="o">=</span><span class="s">&quot;heapsort&quot;</span><span class="p">)</span>
+
+        <span class="c"># work with the predictor (values) and predictand (predictands) for ascending values of the predictor</span>
+        <span class="n">values</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sortedIndexes</span><span class="p">]</span>
+        <span class="n">predictands</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">sortedIndexes</span><span class="p">]</span>
+
+        <span class="c"># compute less-than-or-equal-to sums for each index using Numpy</span>
+        <span class="n">sum1sel</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+        <span class="n">sumxsel</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">predictands</span><span class="p">)</span>
+        <span class="n">sumxxsel</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">predictands</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="c"># derive greater-than sums from the total</span>
+        <span class="n">sum1antisel</span> <span class="o">=</span> <span class="n">sum1sel</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">sum1sel</span>
+        <span class="n">sumxantisel</span> <span class="o">=</span> <span class="n">sumxsel</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">sumxsel</span>
+        <span class="n">sumxxantisel</span> <span class="o">=</span> <span class="n">sumxxsel</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">sumxxsel</span>
+
+        <span class="c"># skip the last entry (run over arrays as [:-1]) because it&#39;s the only one whose denominator is zero</span>
+        <span class="n">nTimesVarianceInSelection</span> <span class="o">=</span> <span class="n">sumxxsel</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">sumxsel</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sum1sel</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">nTimesVarianceInAntiselection</span> <span class="o">=</span> <span class="n">sumxxantisel</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">sumxantisel</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sum1antisel</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="c"># calculate gain for all possible index splits</span>
+        <span class="c"># (even if some are not unique--- it&#39;s faster to just have Numpy scan over them than to try to skip them)</span>
+        <span class="n">gains</span> <span class="o">=</span> <span class="o">-</span><span class="n">nTimesVarianceInSelection</span> <span class="o">-</span> <span class="n">nTimesVarianceInAntiselection</span>
+
+        <span class="c"># find the highest gain, preferring larger indexes if there&#39;s a tie</span>
+        <span class="c"># (that&#39;s why we reverse the order of the list with [::-1] and then correct for the index for the reversal)</span>
+        <span class="n">maxGainIndex</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">gains</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">numpy</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">gains</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">gainTerm</span> <span class="o">=</span> <span class="n">gains</span><span class="p">[</span><span class="n">maxGainIndex</span><span class="p">]</span>
+
+        <span class="c"># for niceness, put the cut between the best index (assuming the cut is &quot;&lt;=&quot;) and the next one,</span>
+        <span class="c"># so that the cut could equivalently be &quot;&lt;&quot;</span>
+        <span class="c"># (the next higher should be exactly one higher because we picked the larger indexes in a tie above)</span>
+        <span class="n">nextHigher</span> <span class="o">=</span> <span class="n">maxGainIndex</span>
+        <span class="k">while</span> <span class="n">nextHigher</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span> <span class="o">-</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">values</span><span class="p">[</span><span class="n">nextHigher</span><span class="p">]</span> <span class="o">==</span> <span class="n">values</span><span class="p">[</span><span class="n">maxGainIndex</span><span class="p">]:</span>
+            <span class="n">nextHigher</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">cutValue</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="n">maxGainIndex</span><span class="p">]</span> <span class="o">+</span> <span class="n">values</span><span class="p">[</span><span class="n">nextHigher</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
+
+        <span class="k">return</span> <span class="n">gainTerm</span><span class="p">,</span> <span class="n">cutValue</span>
+</div>
+<div class="viewcode-block" id="TreeNode.categoricalNVarianceGainTerm"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.categoricalNVarianceGainTerm">[docs]</a>    <span class="k">def</span> <span class="nf">categoricalNVarianceGainTerm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">maxSubsetSize</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Split a categorical predictor in such a way that maximizes</span>
+<span class="sd">        n-times-variance gain inside and outside of a subset of</span>
+<span class="sd">        predictor values.</span>
+
+<span class="sd">        maxSubsetSize, if not None, limits the maximum size of the</span>
+<span class="sd">        subsets considered.  Since the number of possible subsets is</span>
+<span class="sd">        exponential in the number of unique values of the predictor,</span>
+<span class="sd">        this helps to avoid long-running searches (at the expense of</span>
+<span class="sd">        finding the best-possible split).&quot;&quot;&quot;</span>
+
+        <span class="c"># find unique values of the predictor field</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">fieldUniques</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="n">fieldUniques</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">unique1d</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="c"># compute a partial sum for each unique value</span>
+        <span class="n">sum1</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fieldUniques</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+        <span class="n">sumx</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fieldUniques</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+        <span class="n">sumxx</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fieldUniques</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">fieldUniques</span><span class="p">):</span>
+            <span class="n">predictandValues</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">field</span><span class="o">.</span><span class="n">data</span> <span class="o">==</span> <span class="n">v</span><span class="p">]</span>
+            <span class="n">sum1</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">predictandValues</span><span class="p">)</span>
+            <span class="n">sumx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">predictandValues</span><span class="p">)</span>
+            <span class="n">sumxx</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">power</span><span class="p">(</span><span class="n">predictandValues</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+
+        <span class="c"># get the totals to more quickly compute antiselections</span>
+        <span class="n">sum1total</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sum1</span><span class="p">)</span>
+        <span class="n">sumxtotal</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sumx</span><span class="p">)</span>
+        <span class="n">sumxxtotal</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sumxx</span><span class="p">)</span>
+
+        <span class="c"># we will iterate over (N choose k) for all k from 1 to the highest informative k (half of N, rounding up)</span>
+        <span class="c"># or a user-supplied maxSubsetSize (to avoid very long calculations)</span>
+        <span class="n">maxInformativeSubset</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fieldUniques</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">maxSubsetSize</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">maxSubsetSize</span> <span class="o">=</span> <span class="n">maxInformativeSubset</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">maxSubsetSize</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">maxSubsetSize</span><span class="p">,</span> <span class="n">maxInformativeSubset</span><span class="p">)</span>
+
+        <span class="n">bestGainTerm</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">bestCombination</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">for</span> <span class="n">howMany</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">maxSubsetSize</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="c"># itertools.combinations does (N choose k) for a specific k</span>
+            <span class="k">for</span> <span class="n">categorySet</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">combinations</span><span class="p">(</span><span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">fieldUniques</span><span class="p">)),</span> <span class="n">howMany</span><span class="p">):</span>
+                <span class="n">selection</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">categorySet</span><span class="p">)</span>
+
+                <span class="c"># for the selection</span>
+                <span class="n">sum1sel</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sum1</span><span class="p">[</span><span class="n">selection</span><span class="p">])</span>
+                <span class="n">sumxsel</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sumx</span><span class="p">[</span><span class="n">selection</span><span class="p">])</span>
+                <span class="n">sumxxsel</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">sumxx</span><span class="p">[</span><span class="n">selection</span><span class="p">])</span>
+                <span class="n">nTimesVarianceInSelection</span> <span class="o">=</span> <span class="p">(</span><span class="n">sumxxsel</span> <span class="o">-</span> <span class="n">sumxsel</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sum1sel</span><span class="p">)</span> <span class="k">if</span> <span class="n">sum1sel</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">0.0</span>
+
+                <span class="c"># for the antiselection</span>
+                <span class="n">sum1antisel</span> <span class="o">=</span> <span class="n">sum1total</span> <span class="o">-</span> <span class="n">sum1sel</span>
+                <span class="n">sumxantisel</span> <span class="o">=</span> <span class="n">sumxtotal</span> <span class="o">-</span> <span class="n">sumxsel</span>
+                <span class="n">sumxxantisel</span> <span class="o">=</span> <span class="n">sumxxtotal</span> <span class="o">-</span> <span class="n">sumxxsel</span>
+                <span class="n">nTimesVarianceInAntiselection</span> <span class="o">=</span> <span class="p">(</span><span class="n">sumxxantisel</span> <span class="o">-</span> <span class="n">sumxantisel</span><span class="o">**</span><span class="mi">2</span><span class="o">/</span><span class="n">sum1antisel</span><span class="p">)</span> <span class="k">if</span> <span class="n">sum1antisel</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">0.0</span>
+
+                <span class="c"># gainTerm is scalar, driven by a Python for loop over itertools.combinations</span>
+                <span class="n">gainTerm</span> <span class="o">=</span> <span class="o">-</span><span class="n">nTimesVarianceInSelection</span> <span class="o">-</span> <span class="n">nTimesVarianceInAntiselection</span>
+
+                <span class="c"># find the best one</span>
+                <span class="k">if</span> <span class="n">bestGainTerm</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="n">gainTerm</span> <span class="o">&gt;</span> <span class="n">bestGainTerm</span><span class="p">:</span>
+                    <span class="n">bestGainTerm</span> <span class="o">=</span> <span class="n">gainTerm</span>
+                    <span class="n">bestCombination</span> <span class="o">=</span> <span class="n">categorySet</span>
+
+        <span class="k">return</span> <span class="n">bestGainTerm</span><span class="p">,</span> <span class="n">bestCombination</span>
+</div>
+<div class="viewcode-block" id="TreeNode.pfaValueType"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.pfaValueType">[docs]</a>    <span class="k">def</span> <span class="nf">pfaValueType</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataType</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a PFA type schema representing the comparison values.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">dataType</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;type&quot;</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span> <span class="o">!=</span> <span class="s">&quot;record&quot;</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;dataType must be a record&quot;</span><span class="p">)</span>
+
+        <span class="n">dataTypeName</span> <span class="o">=</span> <span class="n">dataType</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span>
+        <span class="n">dataFieldNames</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dataType</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">names</span><span class="p">)</span><span class="o">.</span><span class="n">issubset</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">dataFieldNames</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;dataType must be a record with at least as many fields as the ones used to train the tree&quot;</span><span class="p">)</span>
+
+        <span class="n">dataFieldTypes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">dataType</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">fieldIndex</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">names</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">field</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">])</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">fieldIndex</span><span class="p">]</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">field</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s">&quot;int&quot;</span><span class="p">,</span> <span class="s">&quot;long&quot;</span><span class="p">,</span> <span class="s">&quot;float&quot;</span><span class="p">,</span> <span class="s">&quot;double&quot;</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;dataType field </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> must be a numeric type, since this was a numeric type in the dataset training&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]))</span>
+                    <span class="n">dataFieldTypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">fieldIndex</span><span class="p">]</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="nb">basestring</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">field</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&quot;string&quot;</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;dataType field </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s"> must be a string, since this was a string in the dataset training&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">field</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]))</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxSubsetSize</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">dataFieldTypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">dataFieldTypes</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;array&quot;</span><span class="p">,</span> <span class="s">&quot;items&quot;</span><span class="p">:</span> <span class="n">field</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">]})</span>
+
+        <span class="n">asjson</span> <span class="o">=</span> <span class="p">[</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dataFieldTypes</span><span class="p">]</span>
+        <span class="n">astypes</span> <span class="o">=</span> <span class="n">ForwardDeclarationParser</span><span class="p">()</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">asjson</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">LabelData</span><span class="o">.</span><span class="n">broadestType</span><span class="p">(</span><span class="n">astypes</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+</div>
+<div class="viewcode-block" id="TreeNode.pfaScoreType"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.pfaScoreType">[docs]</a>    <span class="k">def</span> <span class="nf">pfaScoreType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&quot;double&quot;</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="nb">basestring</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s">&quot;string&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span>
+</div>
+<div class="viewcode-block" id="TreeNode.pfaType"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.pfaType">[docs]</a>    <span class="k">def</span> <span class="nf">pfaType</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataType</span><span class="p">,</span> <span class="n">treeTypeName</span><span class="p">,</span> <span class="n">nodeScores</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">datasetSize</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">predictandDistribution</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">predictandUnique</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">entropy</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">nTimesVariance</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a PFA type schema representing this tree.&quot;&quot;&quot;</span>
+
+        <span class="n">valueType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pfaValueType</span><span class="p">(</span><span class="n">dataType</span><span class="p">)</span>
+        <span class="n">scoreType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pfaScoreType</span><span class="p">()</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&quot;type&quot;</span><span class="p">,</span> <span class="s">&quot;record&quot;</span><span class="p">),</span>
+                           <span class="p">(</span><span class="s">&quot;name&quot;</span><span class="p">,</span> <span class="n">treeTypeName</span><span class="p">),</span>
+                           <span class="p">(</span><span class="s">&quot;fields&quot;</span><span class="p">,</span> <span class="p">[{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;field&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;enum&quot;</span><span class="p">,</span>
+                                                                  <span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="n">dataType</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot;Fields&quot;</span><span class="p">,</span>
+                                                                  <span class="s">&quot;symbols&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dataType</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]]}},</span>
+                                       <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;operator&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;string&quot;</span><span class="p">},</span>
+                                       <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;value&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">valueType</span><span class="o">.</span><span class="n">schema</span><span class="p">))},</span>
+                                       <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;pass&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">scoreType</span><span class="p">,</span> <span class="n">treeTypeName</span><span class="p">]},</span>
+                                       <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;fail&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">scoreType</span><span class="p">,</span> <span class="n">treeTypeName</span><span class="p">]}])])</span>
+        
+        <span class="k">if</span> <span class="n">nodeScores</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;score&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="n">scoreType</span><span class="p">})</span>
+
+        <span class="k">if</span> <span class="n">datasetSize</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;datasetSize&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;int&quot;</span><span class="p">})</span>
+
+        <span class="k">if</span> <span class="n">predictandDistribution</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">!=</span> <span class="nb">basestring</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;predictandDistribution can only be used if the predictand is a string (classification trees)&quot;</span><span class="p">)</span>
+            <span class="n">out</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;scoreDistribution&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;map&quot;</span><span class="p">,</span> <span class="s">&quot;values&quot;</span><span class="p">:</span> <span class="s">&quot;int&quot;</span><span class="p">}})</span>
+
+        <span class="k">if</span> <span class="n">predictandUnique</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;scoreValues&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;array&quot;</span><span class="p">,</span> <span class="s">&quot;items&quot;</span><span class="p">:</span> <span class="n">scoreType</span><span class="p">}})</span>
+
+        <span class="k">if</span> <span class="n">entropy</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">!=</span> <span class="nb">basestring</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;entropy can only be used if the predictand is a string (classification trees)&quot;</span><span class="p">)</span>
+            <span class="n">out</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;entropy&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;double&quot;</span><span class="p">})</span>
+
+        <span class="k">if</span> <span class="n">nTimesVariance</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">!=</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;nTimesVariance can only be used if the predictand is a number (regression trees)&quot;</span><span class="p">)</span>
+            <span class="n">out</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;nTimesVariance&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;double&quot;</span><span class="p">})</span>
+
+        <span class="k">if</span> <span class="n">gain</span><span class="p">:</span>
+            <span class="n">out</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;gain&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;double&quot;</span><span class="p">})</span>
+
+        <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="TreeNode.pfaValue"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.pfaValue">[docs]</a>    <span class="k">def</span> <span class="nf">pfaValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataType</span><span class="p">,</span> <span class="n">treeTypeName</span><span class="p">,</span> <span class="n">nodeScores</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">datasetSize</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">predictandDistribution</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">predictandUnique</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">entropy</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">nTimesVariance</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">valueType</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a PFA data structure representing this tree.&quot;&quot;&quot;</span>
+
+        <span class="n">scoreType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pfaScoreType</span><span class="p">()</span>
+            
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&quot;passBranch&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&quot;failBranch&quot;</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">scoreType</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">()}</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fieldName</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">names</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fieldIndex</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+                <span class="n">operator</span> <span class="o">=</span> <span class="s">&quot;&lt;=&quot;</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">field</span><span class="o">.</span><span class="n">tpe</span> <span class="o">==</span> <span class="nb">basestring</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxSubsetSize</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">operator</span> <span class="o">=</span> <span class="s">&quot;==&quot;</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fieldIndex</span><span class="p">]</span><span class="o">.</span><span class="n">intToStr</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">operator</span> <span class="o">=</span> <span class="s">&quot;in&quot;</span>
+                    <span class="n">value</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">fieldIndex</span><span class="p">]</span><span class="o">.</span><span class="n">intToStr</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">split</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span>
+
+            <span class="k">if</span> <span class="n">valueType</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">valueType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pfaValueType</span><span class="p">(</span><span class="n">dataType</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">valueType</span><span class="p">,</span> <span class="n">AvroUnion</span><span class="p">):</span>
+                <span class="n">specificType</span><span class="p">,</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">dataType</span><span class="p">[</span><span class="s">&quot;fields&quot;</span><span class="p">]</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">fieldName</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">specificType</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="n">specificType</span> <span class="o">=</span> <span class="n">specificType</span><span class="p">[</span><span class="s">&quot;type&quot;</span><span class="p">]</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="p">{</span><span class="n">specificType</span><span class="p">:</span> <span class="n">value</span><span class="p">}</span>
+            
+            <span class="n">passBranch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">passBranch</span><span class="o">.</span><span class="n">pfaValue</span><span class="p">(</span><span class="n">dataType</span><span class="p">,</span> <span class="n">treeTypeName</span><span class="p">,</span> <span class="n">nodeScores</span><span class="p">,</span> <span class="n">datasetSize</span><span class="p">,</span> <span class="n">predictandDistribution</span><span class="p">,</span> <span class="n">predictandUnique</span><span class="p">,</span> <span class="n">entropy</span><span class="p">,</span> <span class="n">nTimesVariance</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">valueType</span><span class="p">)</span>
+            <span class="n">failBranch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">failBranch</span><span class="o">.</span><span class="n">pfaValue</span><span class="p">(</span><span class="n">dataType</span><span class="p">,</span> <span class="n">treeTypeName</span><span class="p">,</span> <span class="n">nodeScores</span><span class="p">,</span> <span class="n">datasetSize</span><span class="p">,</span> <span class="n">predictandDistribution</span><span class="p">,</span> <span class="n">predictandUnique</span><span class="p">,</span> <span class="n">entropy</span><span class="p">,</span> <span class="n">nTimesVariance</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">valueType</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">passBranch</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">!=</span> <span class="p">[</span><span class="n">scoreType</span><span class="p">]:</span>
+                <span class="n">passBranch</span> <span class="o">=</span> <span class="p">{</span><span class="n">treeTypeName</span><span class="p">:</span> <span class="n">passBranch</span><span class="p">}</span>
+            <span class="k">if</span> <span class="n">failBranch</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">!=</span> <span class="p">[</span><span class="n">scoreType</span><span class="p">]:</span>
+                <span class="n">failBranch</span> <span class="o">=</span> <span class="p">{</span><span class="n">treeTypeName</span><span class="p">:</span> <span class="n">failBranch</span><span class="p">}</span>
+
+            <span class="n">out</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">([(</span><span class="s">&quot;field&quot;</span><span class="p">,</span> <span class="n">fieldName</span><span class="p">),</span>
+                               <span class="p">(</span><span class="s">&quot;operator&quot;</span><span class="p">,</span> <span class="n">operator</span><span class="p">),</span>
+                               <span class="p">(</span><span class="s">&quot;value&quot;</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span>
+                               <span class="p">(</span><span class="s">&quot;pass&quot;</span><span class="p">,</span> <span class="n">passBranch</span><span class="p">),</span>
+                               <span class="p">(</span><span class="s">&quot;fail&quot;</span><span class="p">,</span> <span class="n">failBranch</span><span class="p">)])</span>
+
+            <span class="k">if</span> <span class="n">nodeScores</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;score&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">datasetSize</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;datasetSize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasetSize</span>
+
+            <span class="k">if</span> <span class="n">predictandDistribution</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">!=</span> <span class="nb">basestring</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;predictandDistribution can only be used if the predictand is a string (classification trees)&quot;</span><span class="p">)</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;scoreDistribution&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="nb">sorted</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">intToStr</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictandDistribution</span><span class="p">)))</span>
+
+            <span class="k">if</span> <span class="n">predictandUnique</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&quot;predictandDistribution&quot;</span><span class="p">):</span>
+                    <span class="n">out</span><span class="p">[</span><span class="s">&quot;scoreValues&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">intToStr</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictandDistribution</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s">&quot;predictandUnique&quot;</span><span class="p">):</span>
+                    <span class="n">out</span><span class="p">[</span><span class="s">&quot;scoreValues&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predictandUnique</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span>
+
+            <span class="k">if</span> <span class="n">entropy</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">!=</span> <span class="nb">basestring</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;entropy can only be used if the predictand is a string (classification trees)&quot;</span><span class="p">)</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;entropy&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">entropy</span>
+
+            <span class="k">if</span> <span class="n">nTimesVariance</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">predictand</span><span class="o">.</span><span class="n">tpe</span> <span class="o">!=</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;nTimesVariance can only be used if the predictand is a number (regression trees)&quot;</span><span class="p">)</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;nTimesVariance&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nTimesVariance</span>
+
+            <span class="k">if</span> <span class="n">gain</span><span class="p">:</span>
+                <span class="n">out</span><span class="p">[</span><span class="s">&quot;gain&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gain</span>
+
+            <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="TreeNode.pfaDocument"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.cart.TreeNode.pfaDocument">[docs]</a>    <span class="k">def</span> <span class="nf">pfaDocument</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputType</span><span class="p">,</span> <span class="n">treeTypeName</span><span class="p">,</span> <span class="n">dataType</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">nodeScores</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">datasetSize</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">predictandDistribution</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">predictandUnique</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">entropy</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">nTimesVariance</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">gain</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a PFA document to score with this tree.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">dataType</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">dataType</span> <span class="o">=</span> <span class="n">inputType</span>
+        <span class="n">dataTypeName</span> <span class="o">=</span> <span class="n">dataType</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span>
+
+        <span class="n">scoreType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pfaScoreType</span><span class="p">()</span>
+        <span class="n">treeType</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pfaType</span><span class="p">(</span><span class="n">dataType</span><span class="p">,</span> <span class="n">treeTypeName</span><span class="p">,</span> <span class="n">nodeScores</span><span class="p">,</span> <span class="n">datasetSize</span><span class="p">,</span> <span class="n">predictandDistribution</span><span class="p">,</span> <span class="n">predictandUnique</span><span class="p">,</span> <span class="n">entropy</span><span class="p">,</span> <span class="n">nTimesVariance</span><span class="p">,</span> <span class="n">gain</span><span class="p">)</span>
+        <span class="n">treeValue</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pfaValue</span><span class="p">(</span><span class="n">dataType</span><span class="p">,</span> <span class="n">treeTypeName</span><span class="p">,</span> <span class="n">nodeScores</span><span class="p">,</span> <span class="n">datasetSize</span><span class="p">,</span> <span class="n">predictandDistribution</span><span class="p">,</span> <span class="n">predictandUnique</span><span class="p">,</span> <span class="n">entropy</span><span class="p">,</span> <span class="n">nTimesVariance</span><span class="p">,</span> <span class="n">gain</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">preprocess</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">preprocess</span> <span class="o">=</span> <span class="s">&quot;input&quot;</span>
+
+        <span class="k">return</span> <span class="n">titus</span><span class="o">.</span><span class="n">prettypfa</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="s">&#39;&#39;&#39;</span>
+<span class="s">input: &lt;&lt;inputType&gt;&gt;</span>
+<span class="s">output: &lt;&lt;scoreType&gt;&gt;</span>
+<span class="s">cells:</span>
+<span class="s">  tree(&lt;&lt;treeType&gt;&gt;) = &lt;&lt;treeValue&gt;&gt;</span>
+<span class="s">action:</span>
+<span class="s">  model.tree.simpleWalk(&lt;&lt;preprocess&gt;&gt;, tree,</span>
+<span class="s">    fcn(d: &lt;&lt;dataTypeName&gt;&gt;, t: &lt;&lt;treeTypeName&gt;&gt; -&gt; boolean)</span>
+<span class="s">      model.tree.simpleTest(d, t))</span>
+<span class="s">&#39;&#39;&#39;</span><span class="p">,</span> <span class="o">**</span><span class="nb">vars</span><span class="p">())</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,285 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.pmml.generateCode &mdash; Titus TRUNK documentation</title>
+    
+    <link rel="stylesheet" href="../../../static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     'TRUNK',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../static/jquery.js"></script>
+    <script type="text/javascript" src="../../../static/underscore.js"></script>
+    <script type="text/javascript" src="../../../static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus TRUNK documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.pmml.generateCode</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="kn">as</span> <span class="nn">etree</span>
+
+<span class="n">superset</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+<div class="viewcode-block" id="fixName"><a class="viewcode-back" href="../../../titus.pmml.html#titus.pmml.generateCode.fixName">[docs]</a><span class="k">def</span> <span class="nf">fixName</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;-&quot;</span><span class="p">,</span> <span class="s">&quot;_&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">out</span> <span class="o">==</span> <span class="s">&quot;True&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="s">&quot;AlwaysTrue&quot;</span>
+    <span class="k">elif</span> <span class="n">out</span> <span class="o">==</span> <span class="s">&quot;False&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="s">&quot;AlwaysFalse&quot;</span>
+    <span class="k">elif</span> <span class="n">out</span> <span class="o">==</span> <span class="s">&quot;from&quot;</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="s">&quot;isfrom&quot;</span>
+    <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="convert"><a class="viewcode-back" href="../../../titus.pmml.html#titus.pmml.generateCode.convert">[docs]</a><span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">xsdFileName</span><span class="p">):</span>
+    <span class="n">pmmlXsd</span> <span class="o">=</span> <span class="n">etree</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">xsdFileName</span><span class="p">)</span>
+
+    <span class="n">elements</span> <span class="o">=</span> <span class="n">pmmlXsd</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span><span class="o">.</span><span class="n">getchildren</span><span class="p">()</span>
+    <span class="n">elements</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">cmp</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">],</span> <span class="n">b</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]))</span>
+
+    <span class="n">pyFileName</span> <span class="o">=</span> <span class="n">xsdFileName</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;schemae/&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;pmml-&quot;</span><span class="p">,</span> <span class="s">&quot;version_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;-&quot;</span><span class="p">,</span> <span class="s">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;.xsd&quot;</span><span class="p">,</span> <span class="s">&quot;.py&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">pyFileName</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">raw_input</span><span class="p">(</span><span class="s">&quot;overwrite {0} (y/N)? &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pyFileName</span><span class="p">))</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s">&quot;y&quot;</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">pyFileName</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span>
+    <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;&quot;&quot;#!/usr/bin/env python</span>
+
+<span class="s"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="s"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="s"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="s"># </span>
+<span class="s"># This file is part of Hadrian.</span>
+<span class="s"># </span>
+<span class="s"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="s"># you may not use this file except in compliance with the License.</span>
+<span class="s"># You may obtain a copy of the License at</span>
+<span class="s"># </span>
+<span class="s">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="s"># </span>
+<span class="s"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="s"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="s"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="s"># See the License for the specific language governing permissions and</span>
+<span class="s"># limitations under the License.</span>
+
+<span class="s">import version_independent as ind    </span>
+
+<span class="s">namespace = &quot;{0}&quot;</span>
+
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pmmlXsd</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;targetNamespace&quot;</span><span class="p">]))</span>
+
+    <span class="n">groups</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">unresolvedCount</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="bp">True</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">elements</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">element</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s">&quot;{http://www.w3.org/2001/XMLSchema}group&quot;</span><span class="p">:</span>
+                <span class="n">children</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;ref&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">element</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s">&quot;.//{http://www.w3.org/2001/XMLSchema}element&quot;</span><span class="p">)]</span>
+                <span class="n">groups</span><span class="p">[</span><span class="n">element</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">children</span>
+
+                <span class="n">groupsWithinGroups</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;ref&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">element</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s">&quot;.//{http://www.w3.org/2001/XMLSchema}group&quot;</span><span class="p">)]</span>
+                <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groupsWithinGroups</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">groups</span><span class="p">:</span>
+                        <span class="n">groups</span><span class="p">[</span><span class="n">element</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">groups</span><span class="p">[</span><span class="n">group</span><span class="p">])</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">unresolvedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="n">unresolvedCount</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="k">break</span>
+        <span class="n">unresolvedCount</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="n">tagToClass</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">elements</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">element</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s">&quot;{http://www.w3.org/2001/XMLSchema}element&quot;</span><span class="p">:</span>
+            <span class="n">attributes</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">element</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s">&quot;.//{http://www.w3.org/2001/XMLSchema}attribute&quot;</span><span class="p">)]</span>
+            <span class="n">children</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;ref&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">element</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s">&quot;.//{http://www.w3.org/2001/XMLSchema}element&quot;</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;ref&quot;</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">element</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s">&quot;.//{http://www.w3.org/2001/XMLSchema}group&quot;</span><span class="p">)]:</span>
+                <span class="n">children</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">groups</span><span class="p">[</span><span class="n">group</span><span class="p">])</span>
+
+            <span class="n">children</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">children</span><span class="p">)))</span>
+
+            <span class="n">overlap</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">attributes</span><span class="p">)</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">children</span><span class="p">))</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">overlap</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s">&quot;overlap of subelements and attributes in {0}: {1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">],</span> <span class="n">overlap</span><span class="p">))</span>
+
+            <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;&quot;&quot;class {cls}(ind.{cls}):</span>
+<span class="s">    def __init__(self, attribs):</span>
+<span class="s">        super({cls}, self).__init__()</span>
+<span class="s">{attributes}        for key, value in attribs.items():</span>
+<span class="s">            setattr(self, key, value)</span>
+<span class="s">{children}        </span>
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cls</span><span class="o">=</span><span class="n">fixName</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]),</span>
+           <span class="n">attributes</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s">&quot;        self.{0} = None</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fixName</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">attributes</span><span class="p">),</span>
+           <span class="n">children</span><span class="o">=</span><span class="s">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s">&quot;        self.{0} = []</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">fixName</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">children</span><span class="p">)))</span>
+
+            <span class="k">if</span> <span class="n">element</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="n">fixName</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]):</span>
+                <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;&quot;&quot;    @property</span>
+<span class="s">    def tag(self):</span>
+<span class="s">        return &quot;{0}&quot;</span>
+
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]))</span>
+
+            <span class="n">tagToClass</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">element</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">],</span> <span class="n">fixName</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">])))</span>
+            <span class="n">superset</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">fixName</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;name&quot;</span><span class="p">]))</span>
+
+    <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;tagToClass = {</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">tag</span><span class="p">,</span> <span class="n">cls</span> <span class="ow">in</span> <span class="n">tagToClass</span><span class="p">:</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;    </span><span class="se">\&quot;</span><span class="s">{0}</span><span class="se">\&quot;</span><span class="s">: {1},</span><span class="se">\n</span><span class="s">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">cls</span><span class="p">))</span>
+    <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;    }</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">)</span>
+
+    <span class="n">output</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">convert</span><span class="p">(</span><span class="s">&quot;schemae/pmml-4-2.xsd&quot;</span><span class="p">)</span>
+    <span class="n">convert</span><span class="p">(</span><span class="s">&quot;schemae/pmml-4-1.xsd&quot;</span><span class="p">)</span>
+    <span class="n">convert</span><span class="p">(</span><span class="s">&quot;schemae/pmml-4-0.xsd&quot;</span><span class="p">)</span>
+    <span class="n">convert</span><span class="p">(</span><span class="s">&quot;schemae/pmml-3-2.xsd&quot;</span><span class="p">)</span>
+
+    <span class="n">pyFileName</span> <span class="o">=</span> <span class="s">&quot;version_independent.py&quot;</span>
+    <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">pyFileName</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">raw_input</span><span class="p">(</span><span class="s">&quot;overwrite {0} (y/N)? &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pyFileName</span><span class="p">))</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">!=</span> <span class="s">&quot;y&quot;</span><span class="p">:</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">pyFileName</span><span class="p">,</span> <span class="s">&quot;w&quot;</span><span class="p">)</span>
+    <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;&quot;&quot;#!/usr/bin/env python</span>
+
+<span class="s"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="s"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="s"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="s"># </span>
+<span class="s"># This file is part of Hadrian.</span>
+<span class="s"># </span>
+<span class="s"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="s"># you may not use this file except in compliance with the License.</span>
+<span class="s"># You may obtain a copy of the License at</span>
+<span class="s"># </span>
+<span class="s">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="s"># </span>
+<span class="s"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="s"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="s"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="s"># See the License for the specific language governing permissions and</span>
+<span class="s"># limitations under the License.</span>
+
+<span class="s">import json</span>
+
+<span class="s">import titus.pfaast as ast</span>
+<span class="s">from titus.datatype import AvroTypeBuilder</span>
+<span class="s">from titus.util import uniqueEngineName, uniqueRecordName, uniqueEnumName</span>
+
+<span class="s">class Context(object): pass</span>
+
+<span class="s">class PmmlBinding(object):</span>
+<span class="s">    def __init__(self):</span>
+<span class="s">        self.children = []</span>
+<span class="s">        self.text = &quot;&quot;</span>
+<span class="s">        self.pos = None</span>
+
+<span class="s">    @property</span>
+<span class="s">    def tag(self):</span>
+<span class="s">        return self.__class__.__name__</span>
+
+<span class="s">&quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">superset</span><span class="p">)):</span>
+        <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;&quot;&quot;class {cls}(PmmlBinding):</span>
+<span class="s">    def toPFA(self, options, context):</span>
+<span class="s">        raise NotImplementedError</span>
+
+<span class="s">&quot;&quot;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">cls</span><span class="o">=</span><span class="n">element</span><span class="p">))</span>
+
+    <span class="n">output</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

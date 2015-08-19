@@ -1,0 +1,117 @@
+titus Package
+=============
+
+:mod:`titus` Package
+--------------------
+
+.. automodule:: titus.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`P` Module
+---------------
+
+.. automodule:: titus.P
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`datatype` Module
+----------------------
+
+.. automodule:: titus.datatype
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`errors` Module
+--------------------
+
+.. automodule:: titus.errors
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`fcn` Module
+-----------------
+
+.. automodule:: titus.fcn
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`genpy` Module
+-------------------
+
+.. automodule:: titus.genpy
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`options` Module
+---------------------
+
+.. automodule:: titus.options
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`pfaast` Module
+--------------------
+
+.. automodule:: titus.pfaast
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`prettypfa` Module
+-----------------------
+
+.. automodule:: titus.prettypfa
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`reader` Module
+--------------------
+
+.. automodule:: titus.reader
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`signature` Module
+-----------------------
+
+.. automodule:: titus.signature
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`util` Module
+------------------
+
+.. automodule:: titus.util
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`version` Module
+---------------------
+
+.. automodule:: titus.version
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+
+    titus.inspector
+    titus.lib1
+    titus.pmml
+    titus.producer
+

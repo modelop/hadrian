@@ -1,0 +1,234 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.pmml.reader &mdash; Titus TRUNK documentation</title>
+    
+    <link rel="stylesheet" href="../../../static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     'TRUNK',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../static/jquery.js"></script>
+    <script type="text/javascript" src="../../../static/underscore.js"></script>
+    <script type="text/javascript" src="../../../static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus TRUNK documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.pmml.reader</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">gzip</span>
+<span class="kn">import</span> <span class="nn">io</span>
+<span class="kn">import</span> <span class="nn">xml.sax</span>
+<span class="kn">import</span> <span class="nn">xml.sax.handler</span>
+
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="n">AvroTypeBuilder</span>
+<span class="kn">import</span> <span class="nn">titus.pmml.version_independent</span>
+<span class="kn">import</span> <span class="nn">titus.pmml.version_3_2</span>
+<span class="kn">import</span> <span class="nn">titus.pmml.version_4_0</span>
+<span class="kn">import</span> <span class="nn">titus.pmml.version_4_1</span>
+<span class="kn">import</span> <span class="nn">titus.pmml.version_4_2</span>
+
+<div class="viewcode-block" id="PmmlContentHandler"><a class="viewcode-back" href="../../../titus.pmml.html#titus.pmml.reader.PmmlContentHandler">[docs]</a><span class="k">class</span> <span class="nc">PmmlContentHandler</span><span class="p">(</span><span class="n">xml</span><span class="o">.</span><span class="n">sax</span><span class="o">.</span><span class="n">handler</span><span class="o">.</span><span class="n">ContentHandler</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tagToClass</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="bp">None</span>
+
+<div class="viewcode-block" id="PmmlContentHandler.startElement"><a class="viewcode-back" href="../../../titus.pmml.html#titus.pmml.reader.PmmlContentHandler.startElement">[docs]</a>    <span class="k">def</span> <span class="nf">startElement</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">attrib</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s">&quot;PMML&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">setVersion</span><span class="p">(</span><span class="n">attrib</span><span class="p">[</span><span class="s">&quot;version&quot;</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;top-level element must be named PMML&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">newElement</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tagToClass</span><span class="p">[</span><span class="n">name</span><span class="p">](</span><span class="n">attrib</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="p">,</span> <span class="s">&quot;getLineNumber&quot;</span><span class="p">):</span>
+                <span class="n">newElement</span><span class="o">.</span><span class="n">pos</span> <span class="o">=</span> <span class="s">&quot;PMML line &quot;</span> <span class="o">+</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">getLineNumber</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">newElement</span><span class="p">)</span>
+                <span class="n">where</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">newElement</span><span class="o">.</span><span class="n">__class__</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">where</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">where</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">newElement</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;cannot place {0} under {1} in PMML {2}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span><span class="p">))</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">newElement</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="PmmlContentHandler.startElementNS"><a class="viewcode-back" href="../../../titus.pmml.html#titus.pmml.reader.PmmlContentHandler.startElementNS">[docs]</a>    <span class="k">def</span> <span class="nf">startElementNS</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">qname</span><span class="p">,</span> <span class="n">attrib</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;PMML&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">setVersion</span><span class="p">([</span><span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">attrib</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;version&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s">&quot;top-level element must be named PMML&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">namespace</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">startElement</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">dict</span><span class="p">((</span><span class="n">k</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">attrib</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+</div>
+<div class="viewcode-block" id="PmmlContentHandler.setVersion"><a class="viewcode-back" href="../../../titus.pmml.html#titus.pmml.reader.PmmlContentHandler.setVersion">[docs]</a>    <span class="k">def</span> <span class="nf">setVersion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">version</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">version</span> <span class="o">=</span> <span class="n">version</span>
+        <span class="k">if</span> <span class="n">version</span> <span class="o">==</span> <span class="s">&quot;3.2&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">pmml</span><span class="o">.</span><span class="n">version_3_2</span><span class="o">.</span><span class="n">namespace</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tagToClass</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">pmml</span><span class="o">.</span><span class="n">version_3_2</span><span class="o">.</span><span class="n">tagToClass</span>
+        <span class="k">elif</span> <span class="n">version</span> <span class="o">==</span> <span class="s">&quot;4.0&quot;</span> <span class="ow">or</span> <span class="n">version</span> <span class="o">==</span> <span class="s">&quot;4.0.1&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">pmml</span><span class="o">.</span><span class="n">version_4_0</span><span class="o">.</span><span class="n">namespace</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tagToClass</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">pmml</span><span class="o">.</span><span class="n">version_4_0</span><span class="o">.</span><span class="n">tagToClass</span>
+        <span class="k">elif</span> <span class="n">version</span> <span class="o">==</span> <span class="s">&quot;4.1&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">pmml</span><span class="o">.</span><span class="n">version_4_1</span><span class="o">.</span><span class="n">namespace</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tagToClass</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">pmml</span><span class="o">.</span><span class="n">version_4_1</span><span class="o">.</span><span class="n">tagToClass</span>
+        <span class="k">elif</span> <span class="n">version</span> <span class="o">==</span> <span class="s">&quot;4.2&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">namespace</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">pmml</span><span class="o">.</span><span class="n">version_4_2</span><span class="o">.</span><span class="n">namespace</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tagToClass</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">pmml</span><span class="o">.</span><span class="n">version_4_2</span><span class="o">.</span><span class="n">tagToClass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s">&quot;PMML version {0} is not supported (only 3.2, 4.0, 4.0.1, 4.1, and 4.2)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">version</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="PmmlContentHandler.characters"><a class="viewcode-back" href="../../../titus.pmml.html#titus.pmml.reader.PmmlContentHandler.characters">[docs]</a>    <span class="k">def</span> <span class="nf">characters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">text</span> <span class="o">+=</span> <span class="n">text</span>
+</div>
+<div class="viewcode-block" id="PmmlContentHandler.endElement"><a class="viewcode-back" href="../../../titus.pmml.html#titus.pmml.reader.PmmlContentHandler.endElement">[docs]</a>    <span class="k">def</span> <span class="nf">endElement</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="PmmlContentHandler.endElementNS"><a class="viewcode-back" href="../../../titus.pmml.html#titus.pmml.reader.PmmlContentHandler.endElementNS">[docs]</a>    <span class="k">def</span> <span class="nf">endElementNS</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">qname</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">name</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">namespace</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">endElement</span><span class="p">(</span><span class="n">name</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        </div></div>
+<div class="viewcode-block" id="loadPMML"><a class="viewcode-back" href="../../../titus.pmml.html#titus.pmml.reader.loadPMML">[docs]</a><span class="k">def</span> <span class="nf">loadPMML</span><span class="p">(</span><span class="n">pmmlInput</span><span class="p">,</span> <span class="n">processNamespaces</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pmmlInput</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pmmlInput</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">pmmlInput</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;</span><span class="se">\x1f\x8b</span><span class="s">&quot;</span><span class="p">:</span>
+            <span class="n">pmmlInput</span> <span class="o">=</span> <span class="n">gzip</span><span class="o">.</span><span class="n">GzipFile</span><span class="p">(</span><span class="n">fileobj</span><span class="o">=</span><span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">pmmlInput</span><span class="p">))</span>
+        <span class="k">elif</span> <span class="n">pmmlInput</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;&lt;&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pmmlInput</span><span class="p">,</span> <span class="nb">unicode</span><span class="p">):</span>
+                <span class="n">pmmlInput</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">pmmlInput</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">pmmlInput</span> <span class="o">=</span> <span class="n">io</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="nb">unicode</span><span class="p">(</span><span class="n">pmmlInput</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">pmmlInput</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">pmmlInput</span><span class="p">)</span>
+
+    <span class="n">contentHandler</span> <span class="o">=</span> <span class="n">PmmlContentHandler</span><span class="p">()</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">xml</span><span class="o">.</span><span class="n">sax</span><span class="o">.</span><span class="n">make_parser</span><span class="p">()</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">setContentHandler</span><span class="p">(</span><span class="n">contentHandler</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">processNamespaces</span><span class="p">:</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">setFeature</span><span class="p">(</span><span class="n">xml</span><span class="o">.</span><span class="n">sax</span><span class="o">.</span><span class="n">handler</span><span class="o">.</span><span class="n">feature_namespaces</span><span class="p">,</span> <span class="bp">True</span><span class="p">)</span>
+
+    <span class="n">contentHandler</span><span class="o">.</span><span class="n">parser</span> <span class="o">=</span> <span class="n">parser</span>
+
+    <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">pmmlInput</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">contentHandler</span><span class="o">.</span><span class="n">result</span>
+</div>
+<div class="viewcode-block" id="pmmlToAst"><a class="viewcode-back" href="../../../titus.pmml.html#titus.pmml.reader.pmmlToAst">[docs]</a><span class="k">def</span> <span class="nf">pmmlToAst</span><span class="p">(</span><span class="n">pmmlInput</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">options</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="n">context</span> <span class="o">=</span> <span class="n">titus</span><span class="o">.</span><span class="n">pmml</span><span class="o">.</span><span class="n">version_independent</span><span class="o">.</span><span class="n">Context</span><span class="p">()</span>
+    <span class="n">context</span><span class="o">.</span><span class="n">avroTypeBuilder</span> <span class="o">=</span> <span class="n">AvroTypeBuilder</span><span class="p">()</span>
+    
+    <span class="n">obj</span> <span class="o">=</span> <span class="n">loadPMML</span><span class="p">(</span><span class="n">pmmlInput</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&quot;reader.processNamespaces&quot;</span><span class="p">,</span> <span class="bp">False</span><span class="p">))</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">toPFA</span><span class="p">(</span><span class="n">options</span><span class="p">,</span> <span class="n">context</span><span class="p">)</span>
+
+    <span class="n">context</span><span class="o">.</span><span class="n">avroTypeBuilder</span><span class="o">.</span><span class="n">resolveTypes</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,291 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>jvmcompiler - hadrian TRUNK API - com.opendatagroup.hadrian.jvmcompiler</title>
+          <meta name="description" content="jvmcompiler - hadrian TRUNK API - com.opendatagroup.hadrian.jvmcompiler" />
+          <meta name="keywords" content="jvmcompiler hadrian TRUNK API com.opendatagroup.hadrian.jvmcompiler" />
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link href="../../../../lib/template.css" media="screen" type="text/css" rel="stylesheet" />
+      <link href="../../../../lib/diagrams.css" media="screen" type="text/css" rel="stylesheet" id="diagrams-css" />
+      <script type="text/javascript">
+         if(top === self) {
+            var url = '../../../../index.html';
+            var hash = 'com.opendatagroup.hadrian.jvmcompiler.package';
+            var anchor = window.location.hash;
+            var anchor_opt = '';
+            if (anchor.length >= 1)
+              anchor_opt = '@' + anchor.substring(1);
+            window.location.href = url + '#' + hash + anchor_opt;
+         }
+   	  </script>
+    
+        </head>
+        <body class="value">
+      <div id="definition">
+        <img src="../../../../lib/package_big.png" />
+        <p id="owner"><a href="../../../package.html" class="extype" name="com">com</a>.<a href="../../package.html" class="extype" name="com.opendatagroup">opendatagroup</a>.<a href="../package.html" class="extype" name="com.opendatagroup.hadrian">hadrian</a></p>
+        <h1>jvmcompiler</h1>
+      </div>
+
+      <h4 id="signature" class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">package</span>
+      </span>
+      <span class="symbol">
+        <span class="name">jvmcompiler</span>
+      </span>
+      </h4>
+      
+          <div id="comment" class="fullcommenttop"><div class="toggleContainer block">
+          <span class="toggle">Linear Supertypes</span>
+          <div class="superTypes hiddenContent"><span class="extype" name="scala.AnyRef">AnyRef</span>, <span class="extype" name="scala.Any">Any</span></div>
+        </div></div>
+        
+
+      <div id="mbrsel">
+        <div id="textfilter"><span class="pre"></span><span class="input"><input id="mbrsel-input" type="text" accesskey="/" /></span><span class="post"></span></div>
+        <div id="order">
+              <span class="filtertype">Ordering</span>
+              <ol>
+                
+                <li class="alpha in"><span>Alphabetic</span></li>
+                <li class="inherit out"><span>By inheritance</span></li>
+              </ol>
+            </div>
+        <div id="ancestors">
+                <span class="filtertype">Inherited<br />
+                </span>
+                <ol id="linearization">
+                  <li class="in" name="com.opendatagroup.hadrian.jvmcompiler"><span>jvmcompiler</span></li><li class="in" name="scala.AnyRef"><span>AnyRef</span></li><li class="in" name="scala.Any"><span>Any</span></li>
+                </ol>
+              </div><div id="ancestors">
+            <span class="filtertype"></span>
+            <ol>
+              <li class="hideall out"><span>Hide All</span></li>
+              <li class="showall in"><span>Show all</span></li>
+            </ol>
+            <a href="http://docs.scala-lang.org/overviews/scaladoc/usage.html#members" target="_blank">Learn more about member selection</a>
+          </div>
+        <div id="visbl">
+            <span class="filtertype">Visibility</span>
+            <ol><li class="public in"><span>Public</span></li><li class="all out"><span>All</span></li></ol>
+          </div>
+      </div>
+
+      <div id="template">
+        <div id="allMembers">
+        
+
+        <div id="types" class="types members">
+              <h3>Type Members</h3>
+              <ol><li name="com.opendatagroup.hadrian.jvmcompiler.JVMCompiler" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="JVMCompilerextendsTask"></a>
+      <a id="JVMCompiler:JVMCompiler"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a href="JVMCompiler.html"><span class="name">JVMCompiler</span></a><span class="result"> extends <a href="../ast/Task.html" class="extype" name="com.opendatagroup.hadrian.ast.Task">Task</a></span>
+      </span>
+      </h4>
+      
+    </li><li name="com.opendatagroup.hadrian.jvmcompiler.JavaCode" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="JavaCodeextendsTaskResultwithProductwithSerializable"></a>
+      <a id="JavaCode:JavaCode"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a href="JavaCode.html"><span class="name">JavaCode</span></a><span class="params">(<span name="format">format: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="contents">contents: <span class="extype" name="scala.Predef.String">String</span>*</span>)</span><span class="result"> extends <a href="../ast/TaskResult.html" class="extype" name="com.opendatagroup.hadrian.ast.TaskResult">TaskResult</a> with <span class="extype" name="scala.Product">Product</span> with <span class="extype" name="scala.Serializable">Serializable</span></span>
+      </span>
+      </h4>
+      
+    </li><li name="com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="PFAEmitEngine[INPUT&lt;:AnyRef,OUTPUT&lt;:AnyRef]extendsPFAEngine[INPUT,OUTPUT]"></a>
+      <a id="PFAEmitEngine[INPUT&lt;:AnyRef,OUTPUT&lt;:AnyRef]:PFAEmitEngine[INPUT,OUTPUT]"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">trait</span>
+      </span>
+      <span class="symbol">
+        <a href="PFAEmitEngine.html"><span class="name">PFAEmitEngine</span></a><span class="tparams">[<span name="INPUT">INPUT &lt;: <span class="extype" name="scala.AnyRef">AnyRef</span></span>, <span name="OUTPUT">OUTPUT &lt;: <span class="extype" name="scala.AnyRef">AnyRef</span></span>]</span><span class="result"> extends <a href="PFAEngine.html" class="extype" name="com.opendatagroup.hadrian.jvmcompiler.PFAEngine">PFAEngine</a>[<span class="extype" name="com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine.INPUT">INPUT</span>, <span class="extype" name="com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine.OUTPUT">OUTPUT</span>]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Interface for a <code>method</code> = emit Hadrian scoring engine (one that returns zero or more outputs for each input).</p>
+    </li><li name="com.opendatagroup.hadrian.jvmcompiler.PFAEngine" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="PFAEngine[INPUT&lt;:AnyRef,OUTPUT&lt;:AnyRef]extendsAnyRef"></a>
+      <a id="PFAEngine[INPUT&lt;:AnyRef,OUTPUT&lt;:AnyRef]:PFAEngine[INPUT,OUTPUT]"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">trait</span>
+      </span>
+      <span class="symbol">
+        <a href="PFAEngine.html"><span class="name">PFAEngine</span></a><span class="tparams">[<span name="INPUT">INPUT &lt;: <span class="extype" name="scala.AnyRef">AnyRef</span></span>, <span name="OUTPUT">OUTPUT &lt;: <span class="extype" name="scala.AnyRef">AnyRef</span></span>]</span><span class="result"> extends <span class="extype" name="scala.AnyRef">AnyRef</span></span>
+      </span>
+      </h4>
+      <p class="comment cmt">Interface for a Hadrian scoring engine.</p>
+    </li><li name="com.opendatagroup.hadrian.jvmcompiler.PFAEngineBase" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="PFAEngineBaseextendsAnyRef"></a>
+      <a id="PFAEngineBase:PFAEngineBase"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier">abstract </span>
+        <span class="kind">class</span>
+      </span>
+      <span class="symbol">
+        <a href="PFAEngineBase.html"><span class="name">PFAEngineBase</span></a><span class="result"> extends <span class="extype" name="scala.AnyRef">AnyRef</span></span>
+      </span>
+      </h4>
+      
+    </li><li name="com.opendatagroup.hadrian.jvmcompiler.PFAFoldEngine" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="PFAFoldEngine[INPUT&lt;:AnyRef,OUTPUT&lt;:AnyRef]extendsPFAEngine[INPUT,OUTPUT]"></a>
+      <a id="PFAFoldEngine[INPUT&lt;:AnyRef,OUTPUT&lt;:AnyRef]:PFAFoldEngine[INPUT,OUTPUT]"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">trait</span>
+      </span>
+      <span class="symbol">
+        <a href="PFAFoldEngine.html"><span class="name">PFAFoldEngine</span></a><span class="tparams">[<span name="INPUT">INPUT &lt;: <span class="extype" name="scala.AnyRef">AnyRef</span></span>, <span name="OUTPUT">OUTPUT &lt;: <span class="extype" name="scala.AnyRef">AnyRef</span></span>]</span><span class="result"> extends <a href="PFAEngine.html" class="extype" name="com.opendatagroup.hadrian.jvmcompiler.PFAEngine">PFAEngine</a>[<span class="extype" name="com.opendatagroup.hadrian.jvmcompiler.PFAFoldEngine.INPUT">INPUT</span>, <span class="extype" name="com.opendatagroup.hadrian.jvmcompiler.PFAFoldEngine.OUTPUT">OUTPUT</span>]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Interface for a <code>method</code> = fold Hadrian scoring engine (one that accumulates a tally).</p>
+    </li><li name="com.opendatagroup.hadrian.jvmcompiler.PFAMapEngine" visbl="pub" data-isabs="true" fullComment="no" group="Ungrouped">
+      <a id="PFAMapEngine[INPUT&lt;:AnyRef,OUTPUT&lt;:AnyRef]extendsPFAEngine[INPUT,OUTPUT]"></a>
+      <a id="PFAMapEngine[INPUT&lt;:AnyRef,OUTPUT&lt;:AnyRef]:PFAMapEngine[INPUT,OUTPUT]"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">trait</span>
+      </span>
+      <span class="symbol">
+        <a href="PFAMapEngine.html"><span class="name">PFAMapEngine</span></a><span class="tparams">[<span name="INPUT">INPUT &lt;: <span class="extype" name="scala.AnyRef">AnyRef</span></span>, <span name="OUTPUT">OUTPUT &lt;: <span class="extype" name="scala.AnyRef">AnyRef</span></span>]</span><span class="result"> extends <a href="PFAEngine.html" class="extype" name="com.opendatagroup.hadrian.jvmcompiler.PFAEngine">PFAEngine</a>[<span class="extype" name="com.opendatagroup.hadrian.jvmcompiler.PFAMapEngine.INPUT">INPUT</span>, <span class="extype" name="com.opendatagroup.hadrian.jvmcompiler.PFAMapEngine.OUTPUT">OUTPUT</span>]</span>
+      </span>
+      </h4>
+      <p class="comment cmt">Interface for a <code>method</code> = map Hadrian scoring engine (one that returns one output for each input).</p>
+    </li></ol>
+            </div>
+
+        
+
+        <div id="values" class="values members">
+              <h3>Value Members</h3>
+              <ol><li name="com.opendatagroup.hadrian.jvmcompiler.JVMNameMangle" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="JVMNameMangle"></a>
+      <a id="JVMNameMangle:JVMNameMangle"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="package$$JVMNameMangle$.html"><span class="name">JVMNameMangle</span></a>
+      </span>
+      </h4>
+      
+    </li><li name="com.opendatagroup.hadrian.jvmcompiler.PFAEngine" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="PFAEngine"></a>
+      <a id="PFAEngine:PFAEngine"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="PFAEngine$.html"><span class="name">PFAEngine</span></a>
+      </span>
+      </h4>
+      <p class="comment cmt">Companion object for Hadrian scoring engines: defines &quot;static&quot; methods.</p>
+    </li><li name="com.opendatagroup.hadrian.jvmcompiler.W" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="W"></a>
+      <a id="W:W"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">object</span>
+      </span>
+      <span class="symbol">
+        <a href="W$.html"><span class="name">W</span></a>
+      </span>
+      </h4>
+      
+    </li><li name="com.opendatagroup.hadrian.jvmcompiler.package#javaSchema" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="javaSchema(avroType:com.opendatagroup.hadrian.datatype.AvroType,construct:Boolean):String"></a>
+      <a id="javaSchema(AvroType,Boolean):String"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">javaSchema</span><span class="params">(<span name="avroType">avroType: <a href="../datatype/AvroType.html" class="extype" name="com.opendatagroup.hadrian.datatype.AvroType">AvroType</a></span>, <span name="construct">construct: <span class="extype" name="scala.Boolean">Boolean</span></span>)</span><span class="result">: <span class="extype" name="scala.Predef.String">String</span></span>
+      </span>
+      </h4>
+      
+    </li><li name="com.opendatagroup.hadrian.jvmcompiler.package#javaType" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="javaType(avroType:com.opendatagroup.hadrian.datatype.AvroType,boxed:Boolean,qualified:Boolean,generic:Boolean):String"></a>
+      <a id="javaType(AvroType,Boolean,Boolean,Boolean):String"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">javaType</span><span class="params">(<span name="avroType">avroType: <a href="../datatype/AvroType.html" class="extype" name="com.opendatagroup.hadrian.datatype.AvroType">AvroType</a></span>, <span name="boxed">boxed: <span class="extype" name="scala.Boolean">Boolean</span></span>, <span name="qualified">qualified: <span class="extype" name="scala.Boolean">Boolean</span></span>, <span name="generic">generic: <span class="extype" name="scala.Boolean">Boolean</span></span>)</span><span class="result">: <span class="extype" name="scala.Predef.String">String</span></span>
+      </span>
+      </h4>
+      
+    </li><li name="com.opendatagroup.hadrian.jvmcompiler.package#lineNumbers" visbl="pub" data-isabs="false" fullComment="no" group="Ungrouped">
+      <a id="lineNumbers(src:String):String"></a>
+      <a id="lineNumbers(String):String"></a>
+      <h4 class="signature">
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">lineNumbers</span><span class="params">(<span name="src">src: <span class="extype" name="scala.Predef.String">String</span></span>)</span><span class="result">: <span class="extype" name="scala.Predef.String">String</span></span>
+      </span>
+      </h4>
+      
+    </li></ol>
+            </div>
+
+        
+
+        
+        </div>
+
+        <div id="inheritedMembers">
+        <div class="parent" name="scala.AnyRef">
+              <h3>Inherited from <span class="extype" name="scala.AnyRef">AnyRef</span></h3>
+            </div><div class="parent" name="scala.Any">
+              <h3>Inherited from <span class="extype" name="scala.Any">Any</span></h3>
+            </div>
+        
+        </div>
+
+        <div id="groupedMembers">
+        <div class="group" name="Ungrouped">
+              <h3>Ungrouped</h3>
+              
+            </div>
+        </div>
+
+      </div>
+
+      <div id="tooltip"></div>
+
+      <div id="footer">  </div>
+      <script defer="defer" type="text/javascript" id="jquery-js" src="../../../../lib/jquery.js"></script><script defer="defer" type="text/javascript" id="jquery-ui-js" src="../../../../lib/jquery-ui.js"></script><script defer="defer" type="text/javascript" id="tools-tooltip-js" src="../../../../lib/tools.tooltip.js"></script><script defer="defer" type="text/javascript" id="template-js" src="../../../../lib/template.js"></script>
+    </body>
+      </html>

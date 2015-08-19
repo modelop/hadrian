@@ -1,0 +1,401 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.lib1.pfatime &mdash; Titus TRUNK documentation</title>
+    
+    <link rel="stylesheet" href="../../../static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     'TRUNK',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../static/jquery.js"></script>
+    <script type="text/javascript" src="../../../static/underscore.js"></script>
+    <script type="text/javascript" src="../../../static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus TRUNK documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.lib1.pfatime</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c"># -*- coding: utf-8 -*-</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c">#</span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c">#</span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c">#</span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c">#</span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">from</span> <span class="nn">titus.fcn</span> <span class="kn">import</span> <span class="n">Fcn</span>
+<span class="kn">from</span> <span class="nn">titus.fcn</span> <span class="kn">import</span> <span class="n">LibFcn</span>
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">Sig</span>
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">Sigs</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">titus.errors</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">titus.util</span> <span class="kn">import</span> <span class="n">callfcn</span><span class="p">,</span> <span class="n">negativeIndex</span><span class="p">,</span> <span class="n">checkRange</span><span class="p">,</span> <span class="n">startEnd</span>
+<span class="kn">import</span> <span class="nn">titus.P</span> <span class="kn">as</span> <span class="nn">P</span>
+
+<span class="kn">import</span> <span class="nn">datetime</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="n">provides</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="k">def</span> <span class="nf">provide</span><span class="p">(</span><span class="n">fcn</span><span class="p">):</span>
+<div class="viewcode-block" id="provide"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.provide">[docs]</a>    <span class="n">provides</span><span class="p">[</span><span class="n">fcn</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fcn</span>
+<span class="n">prefix</span> <span class="o">=</span> <span class="s">&quot;time.&quot;</span></div>
+
+<span class="c">############################################################# Year ################</span>
+<span class="k">class</span> <span class="nc">Year</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="Year"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.Year">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;year&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">year</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">Year</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# MonthOfYear ################</span>
+<span class="k">class</span> <span class="nc">MonthOfYear</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="MonthOfYear"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.MonthOfYear">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;monthOfYear&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">MonthOfYear</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# DayOfYear ################</span>
+<span class="k">class</span> <span class="nc">DayOfYear</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="DayOfYear"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.DayOfYear">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;dayOfYear&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">timetuple</span><span class="p">()</span><span class="o">.</span><span class="n">tm_yday</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">DayOfYear</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# DayOfMonth ################</span>
+<span class="k">class</span> <span class="nc">DayOfMonth</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="DayOfMonth"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.DayOfMonth">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;dayOfMonth&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">day</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">DayOfMonth</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# DayOfWeek ################</span>
+<span class="k">class</span> <span class="nc">DayOfWeek</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="DayOfWeek"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.DayOfWeek">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;dayOfWeek&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">DayOfWeek</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# HourOfDay ################</span>
+<span class="k">class</span> <span class="nc">HourOfDay</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="HourOfDay"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.HourOfDay">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;hourOfDay&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">hour</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">HourOfDay</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# MinuteOfHour ################</span>
+<span class="k">class</span> <span class="nc">MinuteOfHour</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="MinuteOfHour"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.MinuteOfHour">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;minuteOfHour&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">minute</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">MinuteOfHour</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# SecondOfMinute ################</span>
+<span class="k">class</span> <span class="nc">SecondOfMinute</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="SecondOfMinute"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.SecondOfMinute">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;secondOfMinute&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">dt</span><span class="o">.</span><span class="n">second</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">SecondOfMinute</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# MakeTimestamp ################</span>
+<span class="k">class</span> <span class="nc">MakeTimestamp</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="MakeTimestamp"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.MakeTimestamp">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;makeTimestamp&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;year&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;month&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;day&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span>
+               <span class="p">{</span><span class="s">&quot;hour&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;minute&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;second&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span>
+               <span class="p">{</span><span class="s">&quot;millisecond&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="p">,</span> <span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">millisecond</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">microsecond</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">millisecond</span><span class="o">*</span><span class="mf">1000.0</span><span class="p">))</span>
+            <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="p">,</span> <span class="n">hour</span><span class="p">,</span> <span class="n">minute</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">microsecond</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">dt</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="mi">1970</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">1</span><span class="p">))</span><span class="o">.</span><span class="n">total_seconds</span><span class="p">()</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&#39;timestamp undefined for given parameters&#39;</span><span class="p">)</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">MakeTimestamp</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# IsSecondOfMinute ################</span>
+<span class="k">class</span> <span class="nc">IsSecondOfMinute</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="IsSecondOfMinute"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.IsSecondOfMinute">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;isSecondOfMinute&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;low&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;high&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">low</span> <span class="o">&gt;=</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&#39;bad time range&#39;</span><span class="p">)</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">second</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">second</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">second</span> <span class="o">&gt;=</span> <span class="n">low</span> <span class="ow">and</span> <span class="n">second</span> <span class="o">&lt;</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">IsSecondOfMinute</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# IsMinuteOfHour ################</span>
+<span class="k">class</span> <span class="nc">IsMinuteOfHour</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="IsMinuteOfHour"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.IsMinuteOfHour">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;isMinuteOfHour&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;low&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;high&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">low</span> <span class="o">&gt;=</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&#39;bad time range&#39;</span><span class="p">)</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">minute</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">minute</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">minute</span> <span class="o">&gt;=</span> <span class="n">low</span> <span class="ow">and</span> <span class="n">minute</span> <span class="o">&lt;</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">IsMinuteOfHour</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# IsHourOfDay ################</span>
+<span class="k">class</span> <span class="nc">IsHourOfDay</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="IsHourOfDay"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.IsHourOfDay">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;isHourOfDay&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;low&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;high&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">low</span> <span class="o">&gt;=</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&#39;bad time range&#39;</span><span class="p">)</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">hour</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">hour</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">hour</span> <span class="o">&gt;=</span> <span class="n">low</span> <span class="ow">and</span> <span class="n">hour</span> <span class="o">&lt;</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">IsHourOfDay</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# IsDayOfWeek ################</span>
+<span class="k">class</span> <span class="nc">IsDayOfWeek</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="IsDayOfWeek"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.IsDayOfWeek">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;isDayOfWeek&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;low&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;high&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">low</span> <span class="o">&gt;=</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&#39;bad time range&#39;</span><span class="p">)</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">day</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">day</span> <span class="o">&gt;=</span> <span class="n">low</span> <span class="ow">and</span> <span class="n">day</span> <span class="o">&lt;</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">IsDayOfWeek</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# IsDayOfMonth ################</span>
+<span class="k">class</span> <span class="nc">IsDayOfMonth</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="IsDayOfMonth"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.IsDayOfMonth">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;isDayOfMonth&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;low&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;high&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">low</span> <span class="o">&gt;=</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&#39;bad time range&#39;</span><span class="p">)</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">day</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">day</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">day</span> <span class="o">&gt;=</span> <span class="n">low</span> <span class="ow">and</span> <span class="n">day</span> <span class="o">&lt;</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">IsDayOfMonth</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# IsMonthOfYear ################</span>
+<span class="k">class</span> <span class="nc">IsMonthOfYear</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="IsMonthOfYear"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.IsMonthOfYear">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;isMonthOfYear&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;low&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;high&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">low</span> <span class="o">&gt;=</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&#39;bad time range&#39;</span><span class="p">)</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">month</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">month</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">month</span> <span class="o">&gt;=</span> <span class="n">low</span> <span class="ow">and</span> <span class="n">month</span> <span class="o">&lt;</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">IsMonthOfYear</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# IsDayOfYear ################</span>
+<span class="k">class</span> <span class="nc">IsDayOfYear</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="IsDayOfYear"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.IsDayOfYear">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;isDayOfYear&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;low&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;high&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">):</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">low</span> <span class="o">&gt;=</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&#39;bad time range&#39;</span><span class="p">)</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">timetuple</span><span class="p">()</span>
+        <span class="n">day</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">tm_yday</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">day</span> <span class="o">&gt;=</span> <span class="n">low</span> <span class="ow">and</span> <span class="n">day</span> <span class="o">&lt;</span> <span class="n">high</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">IsDayOfYear</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# IsWeekend ################</span>
+<span class="k">class</span> <span class="nc">IsWeekend</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="IsWeekend"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.IsWeekend">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;isWeekend&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">day</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">day</span> <span class="o">==</span> <span class="mi">5</span> <span class="ow">or</span> <span class="n">day</span> <span class="o">==</span> <span class="mi">6</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">IsWeekend</span><span class="p">())</span></div>
+
+
+<span class="c">############################################################# IsWorkHours ################</span>
+<span class="k">class</span> <span class="nc">IsWorkHours</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="IsWorkHours"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.IsWorkHours">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;isWorkHours&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">day</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span>
+        <span class="n">hour</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">hour</span>
+        <span class="k">if</span> <span class="p">((</span><span class="n">day</span> <span class="o">!=</span> <span class="mi">5</span> <span class="ow">or</span> <span class="n">day</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">hour</span> <span class="o">&gt;=</span> <span class="mi">9</span> <span class="ow">and</span> <span class="n">hour</span> <span class="o">&lt;</span> <span class="mi">17</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">IsWorkHours</span><span class="p">())</span></div>
+
+<span class="c">############################################################# IsNonWorkHours ################</span>
+<span class="k">class</span> <span class="nc">IsNonWorkHours</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="IsNonWorkHours"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.IsNonWorkHours">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;isNonWorkHours&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcfromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+        <span class="n">day</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">weekday</span><span class="p">()</span>
+        <span class="n">hour</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">hour</span>
+        <span class="k">if</span> <span class="p">((</span><span class="n">day</span> <span class="o">!=</span> <span class="mi">5</span> <span class="ow">or</span> <span class="n">day</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">hour</span> <span class="o">&gt;=</span> <span class="mi">9</span> <span class="ow">and</span> <span class="n">hour</span> <span class="o">&lt;</span> <span class="mi">17</span><span class="p">)):</span>
+            <span class="k">return</span> <span class="bp">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">IsNonWorkHours</span><span class="p">())</span></div>
+
+<span class="c">############################################################# FromUTCToLocal ################</span>
+<span class="k">class</span> <span class="nc">FromUTCToLocal</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="FromUTCToLocal"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.FromUTCToLocal">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;fromUTCToLocal&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;offset&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">offset</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span> <span class="o">+</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">offset</span><span class="o">*</span><span class="mi">3600000</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">mktime</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">timetuple</span><span class="p">())</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">FromUTCToLocal</span><span class="p">())</span></div>
+
+<span class="c">############################################################# FromLocalToUTC ################</span>
+<span class="k">class</span> <span class="nc">FromLocalToUTC</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+<div class="viewcode-block" id="FromLocalToUTC"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.pfatime.FromLocalToUTC">[docs]</a>    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;fromLocalToUTC&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;ts&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;offset&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span>  <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">offset</span><span class="p">):</span>
+        <span class="n">dt</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">timedelta</span><span class="p">(</span><span class="n">milliseconds</span><span class="o">=</span><span class="nb">round</span><span class="p">(</span><span class="n">offset</span><span class="o">*</span><span class="mi">3600000</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">mktime</span><span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">timetuple</span><span class="p">())</span>
+<span class="n">provide</span><span class="p">(</span><span class="n">FromLocalToUTC</span><span class="p">())</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

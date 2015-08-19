@@ -1,0 +1,180 @@
+lib1 Package
+============
+
+:mod:`lib1` Package
+-------------------
+
+.. automodule:: titus.lib1
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`array` Module
+-------------------
+
+.. automodule:: titus.lib1.array
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`bytes` Module
+-------------------
+
+.. automodule:: titus.lib1.bytes
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`cast` Module
+------------------
+
+.. automodule:: titus.lib1.cast
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`core` Module
+------------------
+
+.. automodule:: titus.lib1.core
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`enum` Module
+------------------
+
+.. automodule:: titus.lib1.enum
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`fixed` Module
+-------------------
+
+.. automodule:: titus.lib1.fixed
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`impute` Module
+--------------------
+
+.. automodule:: titus.lib1.impute
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`interp` Module
+--------------------
+
+.. automodule:: titus.lib1.interp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`la` Module
+----------------
+
+.. automodule:: titus.lib1.la
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`link` Module
+------------------
+
+.. automodule:: titus.lib1.link
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`map` Module
+-----------------
+
+.. automodule:: titus.lib1.map
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`metric` Module
+--------------------
+
+.. automodule:: titus.lib1.metric
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`parse` Module
+-------------------
+
+.. automodule:: titus.lib1.parse
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`pfamath` Module
+---------------------
+
+.. automodule:: titus.lib1.pfamath
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`pfastring` Module
+-----------------------
+
+.. automodule:: titus.lib1.pfastring
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`pfatest` Module
+---------------------
+
+.. automodule:: titus.lib1.pfatest
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`pfatime` Module
+---------------------
+
+.. automodule:: titus.lib1.pfatime
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`rand` Module
+------------------
+
+.. automodule:: titus.lib1.rand
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`regex` Module
+-------------------
+
+.. automodule:: titus.lib1.regex
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`spec` Module
+------------------
+
+.. automodule:: titus.lib1.spec
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+
+    titus.lib1.model
+    titus.lib1.prob
+    titus.lib1.stat
+

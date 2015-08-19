@@ -1,0 +1,562 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.producer.kmeans &mdash; Titus TRUNK documentation</title>
+    
+    <link rel="stylesheet" href="../../../static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     'TRUNK',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../static/jquery.js"></script>
+    <script type="text/javascript" src="../../../static/underscore.js"></script>
+    <script type="text/javascript" src="../../../static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus TRUNK documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.producer.kmeans</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span>
+
+<span class="kn">from</span> <span class="nn">titus.producer.transformation</span> <span class="kn">import</span> <span class="n">Transformation</span>
+<span class="kn">import</span> <span class="nn">titus.prettypfa</span>
+
+<span class="c">### metrics are nested objects like Euclidean(AbsDiff()), and they may</span>
+<span class="c">### be user-defined.  They mirror the metrics and similarity functions</span>
+<span class="c">### available in PFA.</span>
+
+<span class="c">### interfaces</span>
+
+<span class="k">def</span> <span class="nf">_NotImplementedError</span><span class="p">():</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+<div class="viewcode-block" id="Similarity"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.Similarity">[docs]</a><span class="k">class</span> <span class="nc">Similarity</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">:</span> <span class="n">_NotImplementedError</span><span class="p">()</span>
+<div class="viewcode-block" id="Similarity.pfa"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.Similarity.pfa">[docs]</a>    <span class="k">def</span> <span class="nf">pfa</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+<div class="viewcode-block" id="Metric"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.Metric">[docs]</a><span class="k">class</span> <span class="nc">Metric</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">:</span> <span class="n">_NotImplementedError</span><span class="p">()</span>
+<div class="viewcode-block" id="Metric.pfa"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.Metric.pfa">[docs]</a>    <span class="k">def</span> <span class="nf">pfa</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+
+<span class="c">### similarity</span>
+</div></div>
+<div class="viewcode-block" id="AbsDiff"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.AbsDiff">[docs]</a><span class="k">class</span> <span class="nc">AbsDiff</span><span class="p">(</span><span class="n">Similarity</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">dataset</span> <span class="o">-</span> <span class="n">cluster</span><span class="p">)</span>
+<div class="viewcode-block" id="AbsDiff.pfa"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.AbsDiff.pfa">[docs]</a>    <span class="k">def</span> <span class="nf">pfa</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&quot;fcn&quot;</span><span class="p">:</span> <span class="s">&quot;metric.absDiff&quot;</span><span class="p">}</span>
+</div></div>
+<div class="viewcode-block" id="GaussianSimilarity"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.GaussianSimilarity">[docs]</a><span class="k">class</span> <span class="nc">GaussianSimilarity</span><span class="p">(</span><span class="n">Similarity</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sigma</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">numpy</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">numpy</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">dataset</span> <span class="o">-</span> <span class="n">cluster</span><span class="p">)</span> <span class="o">/</span> <span class="n">sigma</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span> <span class="o">=</span> <span class="n">sigma</span>
+<div class="viewcode-block" id="GaussianSimilarity.pfa"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.GaussianSimilarity.pfa">[docs]</a>    <span class="k">def</span> <span class="nf">pfa</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="s">&quot;similarityX&quot;</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="s">&quot;similarityY&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&quot;params&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="n">x</span><span class="p">:</span> <span class="s">&quot;double&quot;</span><span class="p">},</span> <span class="p">{</span><span class="n">y</span><span class="p">:</span> <span class="s">&quot;double&quot;</span><span class="p">}],</span>
+                <span class="s">&quot;ret&quot;</span><span class="p">:</span> <span class="s">&quot;double&quot;</span><span class="p">,</span>
+                <span class="s">&quot;do&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;metric.gaussianSimilarity&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigma</span><span class="p">]}}</span>
+
+<span class="c">### metrics</span>
+</div></div>
+<div class="viewcode-block" id="Euclidean"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.Euclidean">[docs]</a><span class="k">class</span> <span class="nc">Euclidean</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">similarity</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">similarity</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span> <span class="o">=</span> <span class="n">similarity</span>
+<div class="viewcode-block" id="Euclidean.pfa"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.Euclidean.pfa">[docs]</a>    <span class="k">def</span> <span class="nf">pfa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&quot;metric.euclidean&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="o">.</span><span class="n">pfa</span><span class="p">(),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">]}</span>
+</div></div>
+<div class="viewcode-block" id="SquaredEuclidean"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.SquaredEuclidean">[docs]</a><span class="k">class</span> <span class="nc">SquaredEuclidean</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">similarity</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">similarity</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span> <span class="o">=</span> <span class="n">similarity</span>
+<div class="viewcode-block" id="SquaredEuclidean.pfa"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.SquaredEuclidean.pfa">[docs]</a>    <span class="k">def</span> <span class="nf">pfa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="s">&quot;metricX&quot;</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="s">&quot;metricY&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&quot;metric.squaredEuclidean&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="o">.</span><span class="n">pfa</span><span class="p">(),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">]}</span>
+</div></div>
+<div class="viewcode-block" id="Chebyshev"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.Chebyshev">[docs]</a><span class="k">class</span> <span class="nc">Chebyshev</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">similarity</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">similarity</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span> <span class="o">=</span> <span class="n">similarity</span>
+<div class="viewcode-block" id="Chebyshev.pfa"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.Chebyshev.pfa">[docs]</a>    <span class="k">def</span> <span class="nf">pfa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="s">&quot;metricX&quot;</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="s">&quot;metricY&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&quot;metric.chebyshev&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="o">.</span><span class="n">pfa</span><span class="p">(),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">]}</span>
+</div></div>
+<div class="viewcode-block" id="Taxicab"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.Taxicab">[docs]</a><span class="k">class</span> <span class="nc">Taxicab</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">similarity</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">similarity</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span> <span class="o">=</span> <span class="n">similarity</span>
+<div class="viewcode-block" id="Taxicab.pfa"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.Taxicab.pfa">[docs]</a>    <span class="k">def</span> <span class="nf">pfa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="s">&quot;metricX&quot;</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="s">&quot;metricY&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&quot;metric.taxicab&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="o">.</span><span class="n">pfa</span><span class="p">(),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">]}</span>
+</div></div>
+<div class="viewcode-block" id="Minkowski"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.Minkowski">[docs]</a><span class="k">class</span> <span class="nc">Minkowski</span><span class="p">(</span><span class="n">Metric</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">similarity</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">calculate</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">similarity</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">),</span> <span class="n">p</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="mf">1.0</span><span class="o">/</span><span class="n">p</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">similarity</span> <span class="o">=</span> <span class="n">similarity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">p</span> <span class="o">=</span> <span class="n">p</span>
+<div class="viewcode-block" id="Minkowski.pfa"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.Minkowski.pfa">[docs]</a>    <span class="k">def</span> <span class="nf">pfa</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="s">&quot;metricX&quot;</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="s">&quot;metricY&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s">&quot;metric.minkowski&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">similarity</span><span class="o">.</span><span class="n">pfa</span><span class="p">(),</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="p">]}</span>
+
+<span class="c">### stopping conditions are functions that take iterationNumber (int),</span>
+<span class="c"># corrections (Python list of Numpy arrays), datasetSize (int) and</span>
+<span class="c"># return bool (continue iterating if True)</span>
+
+<span class="c">### they may be user-defined or constructed from these functions like</span>
+<span class="c"># whileall(printChange(&quot;6.4f&quot;), halfChange(0.001), clusterJumped()) to</span>
+<span class="c"># print iteration data, stop when at least half change by less than</span>
+<span class="c"># 0.001, and keep going if one jumped</span>
+</div></div>
+<div class="viewcode-block" id="printValue"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.printValue">[docs]</a><span class="k">def</span> <span class="nf">printValue</span><span class="p">(</span><span class="n">format</span><span class="o">=</span><span class="s">&quot;g&quot;</span><span class="p">):</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;ready&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">}</span>
+    <span class="k">def</span> <span class="nf">out</span><span class="p">(</span><span class="n">iterationNumber</span><span class="p">,</span> <span class="n">corrections</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">datasetSize</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">state</span><span class="p">[</span><span class="s">&quot;ready&quot;</span><span class="p">]:</span>
+            <span class="n">state</span><span class="p">[</span><span class="s">&quot;j&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;{:5s} (jump)&quot;</span>
+            <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">state</span><span class="p">[</span><span class="s">&quot;n&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;{0:5s}&quot;</span> <span class="o">+</span> <span class="s">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s">&quot; {</span><span class="si">%d</span><span class="s">:</span><span class="si">%s</span><span class="s">}&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">format</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)))</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="s">&quot;n&quot;</span> <span class="ow">in</span> <span class="n">state</span><span class="p">:</span>
+                <span class="n">state</span><span class="p">[</span><span class="s">&quot;ready&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">print</span> <span class="s">&quot;iter  values&quot;</span>
+            <span class="k">print</span> <span class="s">&quot;----------------------------------&quot;</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">it</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">iterationNumber</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">it</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">print</span> <span class="n">state</span><span class="p">[</span><span class="s">&quot;j&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">it</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">print</span> <span class="n">state</span><span class="p">[</span><span class="s">&quot;n&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="o">*</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">True</span>
+    <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="printChange"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.printChange">[docs]</a><span class="k">def</span> <span class="nf">printChange</span><span class="p">(</span><span class="n">format</span><span class="o">=</span><span class="s">&quot;g&quot;</span><span class="p">):</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="s">&quot;ready&quot;</span><span class="p">:</span> <span class="bp">False</span><span class="p">}</span>
+    <span class="k">def</span> <span class="nf">out</span><span class="p">(</span><span class="n">iterationNumber</span><span class="p">,</span> <span class="n">corrections</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">datasetSize</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">state</span><span class="p">[</span><span class="s">&quot;ready&quot;</span><span class="p">]:</span>
+            <span class="n">state</span><span class="p">[</span><span class="s">&quot;j&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;{:5s} (jump)&quot;</span>
+            <span class="k">for</span> <span class="n">corr</span> <span class="ow">in</span> <span class="n">corrections</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">corr</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                    <span class="n">state</span><span class="p">[</span><span class="s">&quot;n&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;{0:5s}&quot;</span> <span class="o">+</span> <span class="s">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">((</span><span class="s">&quot; {</span><span class="si">%d</span><span class="s">:</span><span class="si">%s</span><span class="s">}&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">format</span><span class="p">))</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">corr</span><span class="p">)))</span>
+                    <span class="k">break</span>
+            <span class="k">if</span> <span class="s">&quot;n&quot;</span> <span class="ow">in</span> <span class="n">state</span><span class="p">:</span>
+                <span class="n">state</span><span class="p">[</span><span class="s">&quot;ready&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">print</span> <span class="s">&quot;iter  changes&quot;</span>
+            <span class="k">print</span> <span class="s">&quot;----------------------------------&quot;</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">corr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">corrections</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">it</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">iterationNumber</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">it</span> <span class="o">=</span> <span class="s">&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">corr</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="k">print</span> <span class="n">state</span><span class="p">[</span><span class="s">&quot;j&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">it</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">print</span> <span class="n">state</span><span class="p">[</span><span class="s">&quot;n&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="o">*</span><span class="n">corr</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">True</span>
+    <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="clusterJumped"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.clusterJumped">[docs]</a><span class="k">def</span> <span class="nf">clusterJumped</span><span class="p">():</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="n">iterationNumber</span><span class="p">,</span> <span class="n">corrections</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">datasetSize</span><span class="p">:</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">corrections</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="maxIterations"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.maxIterations">[docs]</a><span class="k">def</span> <span class="nf">maxIterations</span><span class="p">(</span><span class="n">number</span><span class="p">):</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="n">iterationNumber</span><span class="p">,</span> <span class="n">corrections</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">datasetSize</span><span class="p">:</span> <span class="n">iterationNumber</span> <span class="o">&lt;</span> <span class="n">number</span>
+</div>
+<div class="viewcode-block" id="allChange"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.allChange">[docs]</a><span class="k">def</span> <span class="nf">allChange</span><span class="p">(</span><span class="n">threshold</span><span class="p">):</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="n">iterationNumber</span><span class="p">,</span> <span class="n">corrections</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">datasetSize</span><span class="p">:</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">((</span><span class="n">numpy</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">corrections</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="halfChange"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.halfChange">[docs]</a><span class="k">def</span> <span class="nf">halfChange</span><span class="p">(</span><span class="n">threshold</span><span class="p">):</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="n">iterationNumber</span><span class="p">,</span> <span class="n">corrections</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">datasetSize</span><span class="p">:</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">([(</span><span class="n">numpy</span><span class="o">.</span><span class="n">absolute</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">corrections</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span> <span class="o">/</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">corrections</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span> <span class="o">&lt;</span> <span class="mf">0.5</span>
+</div>
+<div class="viewcode-block" id="whileall"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.whileall">[docs]</a><span class="k">def</span> <span class="nf">whileall</span><span class="p">(</span><span class="o">*</span><span class="n">conditions</span><span class="p">):</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">conditions</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="whileany"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.whileany">[docs]</a><span class="k">def</span> <span class="nf">whileany</span><span class="p">(</span><span class="o">*</span><span class="n">conditions</span><span class="p">):</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="nb">any</span><span class="p">(</span><span class="n">x</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">conditions</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="moving"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.moving">[docs]</a><span class="k">def</span> <span class="nf">moving</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">whileall</span><span class="p">(</span><span class="n">clusterJumped</span><span class="p">(),</span> <span class="n">allChange</span><span class="p">(</span><span class="mf">1e-15</span><span class="p">))</span>
+
+<span class="c">### the KMeans class</span>
+</div>
+<div class="viewcode-block" id="KMeans"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.KMeans">[docs]</a><span class="k">class</span> <span class="nc">KMeans</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Represents a k-means optimization by storing a dataset and</span>
+<span class="sd">    performing all operations *in-place*.</span>
+
+<span class="sd">    Usually, you would construct the object, possibly stepup, then</span>
+<span class="sd">    optimize and export to pfaDocument.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">numberOfClusters</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="n">Euclidean</span><span class="p">(</span><span class="n">AbsDiff</span><span class="p">()),</span> <span class="n">minPointsInCluster</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">maxPointsForClustering</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Construct a KMeans object, initializing cluster centers to</span>
+<span class="sd">        unique, random points from the dataset.</span>
+
+<span class="sd">        numberOfClusters is an integer number of clusters (the &quot;k&quot; in</span>
+<span class="sd">        k-means).</span>
+
+<span class="sd">        dataset is a two-dimensional Numpy array: dataset.shape[0] is</span>
+<span class="sd">        the number of records (rows), dataset.shape[1] is the number</span>
+<span class="sd">        of dimensions for each point (columns).</span>
+
+<span class="sd">        weights may be None or an array of shape (dataset.shape[0],).</span>
+<span class="sd">        Used to raise or lower significance of individual points (0</span>
+<span class="sd">        means ignore datapoint, 1 means take it as usual).</span>
+
+<span class="sd">        metric is a Metric object, such as Euclidean(AbsDiff()).</span>
+
+<span class="sd">        minPointsInCluster is None or a minimum number of points</span>
+<span class="sd">        before jumping (choosing a random point for a cluster during</span>
+<span class="sd">        optimization).</span>
+
+<span class="sd">        maxPointsForClustering is None or a maximum number of points</span>
+<span class="sd">        in an optimization (if dataset.shape[0] exceeds this amount, a</span>
+<span class="sd">        random subset is chosen).&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;dataset must be two-dimensional: dataset.shape[0] is the number of records (rows), dataset.shape[1] is the number of dimensions (columns)&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span>
+        <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">weights</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],):</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;weights must have as many records as the dataset and must be one dimensional&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">weights</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="n">metric</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">flattenedView</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">((</span><span class="n">numpy</span><span class="o">.</span><span class="n">void</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">itemsize</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])))</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">indexes</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">flattenedView</span><span class="p">,</span> <span class="n">return_index</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">uniques</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">[</span><span class="n">indexes</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">uniques</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">uniques</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">numberOfClusters</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;the number of unique records in the dataset ({0} in this case) must be strictly greater than numberOfClusters ({1})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">uniques</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">numberOfClusters</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">numberOfClusters</span> <span class="o">=</span> <span class="n">numberOfClusters</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">numberOfClusters</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">newCluster</span><span class="p">())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">minPointsInCluster</span> <span class="o">=</span> <span class="n">minPointsInCluster</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">maxPointsForClustering</span> <span class="o">=</span> <span class="n">maxPointsForClustering</span>
+
+<div class="viewcode-block" id="KMeans.randomPoint"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.KMeans.randomPoint">[docs]</a>    <span class="k">def</span> <span class="nf">randomPoint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Pick a random point from the dataset.&quot;&quot;&quot;</span>
+        <span class="c"># make sure to copy it, so there are no hidden connections between dataset and clusters</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">uniques</span><span class="p">[</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">uniques</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),:]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</div>
+<div class="viewcode-block" id="KMeans.newCluster"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.KMeans.newCluster">[docs]</a>    <span class="k">def</span> <span class="nf">newCluster</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Pick a random point from the dataset and ensure that it is different from all other cluster centers.&quot;&quot;&quot;</span>
+        <span class="n">newCluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">randomPoint</span><span class="p">()</span>
+        <span class="k">while</span> <span class="nb">any</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">newCluster</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">):</span>
+            <span class="n">newCluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">randomPoint</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">newCluster</span>
+</div>
+<div class="viewcode-block" id="KMeans.randomSubset"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.KMeans.randomSubset">[docs]</a>    <span class="k">def</span> <span class="nf">randomSubset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">subsetSize</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Return a (dataset, weights) that are randomly chosen to</span>
+<span class="sd">        have subsetSize records.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">subsetSize</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">numberOfClusters</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;subsetSize must be strictly greater than the numberOfClusters&quot;</span><span class="p">)</span>
+
+        <span class="n">indexes</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="nb">xrange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">subsetSize</span><span class="p">)</span>
+        <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">[</span><span class="n">indexes</span><span class="p">,:]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">indexes</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">weights</span>
+</div>
+<div class="viewcode-block" id="KMeans.closestCluster"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.KMeans.closestCluster">[docs]</a>    <span class="k">def</span> <span class="nf">closestCluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Identify the closest cluster to each element in the</span>
+<span class="sd">        dataset.</span>
+
+<span class="sd">        Return value is an array of integers corresponding to the</span>
+<span class="sd">        indexes of the closest cluster for each datum.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span>
+        <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span>
+
+        <span class="c"># distanceToCenter is the result of applying the metric to each point in the dataset, for each cluster</span>
+        <span class="c"># distanceToCenter.shape[0] is the number of records, distanceToCenter.shape[1] is the number of clusters</span>
+
+        <span class="n">distanceToCenter</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">dataset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">numberOfClusters</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">numpy</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="nb">float</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">clusterIndex</span><span class="p">,</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">):</span>
+            <span class="n">distanceToCenter</span><span class="p">[:,</span> <span class="n">clusterIndex</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">calculate</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">cluster</span><span class="p">)</span>
+
+        <span class="c"># indexOfClosestCluster is the cluster classification for each point in the dataset</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">distanceToCenter</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="KMeans.iterate"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.KMeans.iterate">[docs]</a>    <span class="k">def</span> <span class="nf">iterate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">iterationNumber</span><span class="p">,</span> <span class="n">condition</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Perform one iteration step (in-place; modifies</span>
+<span class="sd">        self.clusters).</span>
+
+<span class="sd">        The dataset and weights are passed in so that this may be used</span>
+<span class="sd">        with subsets.</span>
+
+<span class="sd">        The return value is the result of condition(iterationNumber,</span>
+<span class="sd">        corrections, values, dataset.shape[0]).&quot;&quot;&quot;</span>
+
+        <span class="n">indexOfClosestCluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">closestCluster</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+
+        <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">corrections</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">clusterIndex</span><span class="p">,</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">):</span>
+            <span class="c"># select by cluster classification</span>
+            <span class="n">selection</span> <span class="o">=</span> <span class="p">(</span><span class="n">indexOfClosestCluster</span> <span class="o">==</span> <span class="n">clusterIndex</span><span class="p">)</span>
+            <span class="n">residuals</span> <span class="o">=</span> <span class="p">(</span><span class="n">dataset</span> <span class="o">-</span> <span class="n">cluster</span><span class="p">)[</span><span class="n">selection</span><span class="p">]</span>
+
+            <span class="c"># weights scale the residuals</span>
+            <span class="k">if</span> <span class="n">weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">residuals</span> <span class="o">*=</span> <span class="n">weights</span><span class="p">[</span><span class="n">selection</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">minPointsInCluster</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">minPointsInCluster</span><span class="p">:</span>
+                <span class="c"># too few points in this cluster; jump to a new random point</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="n">clusterIndex</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">newCluster</span><span class="p">()</span>
+                <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+                <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c"># compute the mean of the displacements of points associated with this cluster</span>
+                <span class="c"># (note that the similarity metric used here is the trivial one, possibly different from the classification metric)</span>
+                <span class="n">correction</span> <span class="o">=</span> <span class="n">residuals</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                <span class="n">numpy</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">cluster</span><span class="p">,</span> <span class="n">correction</span><span class="p">,</span> <span class="n">cluster</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">numpy</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="c"># mean of a component is NaN or Inf, possibly because of zero points in the cluster</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="n">clusterIndex</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">newCluster</span><span class="p">()</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+                    <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c"># good step: correction is not None</span>
+                    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span>
+                    <span class="n">corrections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">correction</span><span class="p">)</span>
+
+        <span class="c"># call user-supplied test for continuation</span>
+        <span class="k">return</span> <span class="n">condition</span><span class="p">(</span><span class="n">iterationNumber</span><span class="p">,</span> <span class="n">corrections</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</div>
+<div class="viewcode-block" id="KMeans.stepup"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.KMeans.stepup">[docs]</a>    <span class="k">def</span> <span class="nf">stepup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">,</span> <span class="n">base</span><span class="o">=</span><span class="mi">2</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Optimize the cluster set in successively larger subsets of</span>
+<span class="sd">        the dataset.  (This can be viewed as a cluster seeding</span>
+<span class="sd">        technique.)</span>
+
+<span class="sd">        If randomly seeded, optimizing the whole dataset can be slow</span>
+<span class="sd">        to converge: a long time per iteration times many iterations.</span>
+
+<span class="sd">        Optimizing a random subset takes as many iterations, but the</span>
+<span class="sd">        time per iteration is short.  However, the final cluster</span>
+<span class="sd">        centers are only approximate.</span>
+
+<span class="sd">        Optimizing the whole dataset with approximate cluster starting</span>
+<span class="sd">        points takes a long time per iteration but fewer iterations.</span>
+
+<span class="sd">        This procedure runs the k-means optimization technique on</span>
+<span class="sd">        random subsets with exponentially increasing sizes from the</span>
+<span class="sd">        smallest base**x that is larger than minPointsInCluster (or</span>
+<span class="sd">        numberOfClusters) to the largest base**x that is a subset of</span>
+<span class="sd">        the whole dataset.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">minPointsInCluster</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">minPointsInCluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">numberOfClusters</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">minPointsInCluster</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">numberOfClusters</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">minPointsInCluster</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxPointsForClustering</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">maxPointsForClustering</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">maxPointsForClustering</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxPointsForClustering</span>
+
+        <span class="n">trialSizes</span> <span class="o">=</span> <span class="p">[</span><span class="n">base</span><span class="o">**</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">maxPointsForClustering</span><span class="p">,</span> <span class="n">base</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">base</span><span class="o">**</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">minPointsInCluster</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">trialSize</span> <span class="ow">in</span> <span class="n">trialSizes</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">randomSubset</span><span class="p">(</span><span class="n">trialSize</span><span class="p">)</span>
+            
+            <span class="n">iterationNumber</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterate</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">iterationNumber</span><span class="p">,</span> <span class="n">condition</span><span class="p">):</span>
+                <span class="n">iterationNumber</span> <span class="o">+=</span> <span class="mi">1</span>
+</div>
+<div class="viewcode-block" id="KMeans.optimize"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.KMeans.optimize">[docs]</a>    <span class="k">def</span> <span class="nf">optimize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Run a standard k-means (Lloyd&#39;s algorithm) on the dataset,</span>
+<span class="sd">        changing the clusters *in-place*.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">maxPointsForClustering</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dataset</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">randomSubset</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">maxPointsForClustering</span><span class="p">)</span>
+
+        <span class="n">iterationNumber</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterate</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">iterationNumber</span><span class="p">,</span> <span class="n">condition</span><span class="p">):</span>
+            <span class="n">iterationNumber</span> <span class="o">+=</span> <span class="mi">1</span>
+</div>
+<div class="viewcode-block" id="KMeans.centers"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.KMeans.centers">[docs]</a>    <span class="k">def</span> <span class="nf">centers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Get the cluster centers as a sorted Python list (canonical form).&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">sort</span><span class="p">:</span>
+            <span class="n">centers</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">centers</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">centers</span>
+</div>
+<div class="viewcode-block" id="KMeans.pfaType"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.KMeans.pfaType">[docs]</a>    <span class="k">def</span> <span class="nf">pfaType</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusterTypeName</span><span class="p">,</span> <span class="n">idType</span><span class="o">=</span><span class="s">&quot;string&quot;</span><span class="p">,</span> <span class="n">centerComponentType</span><span class="o">=</span><span class="s">&quot;double&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a PFA type schema representing this cluster set.&quot;&quot;&quot;</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;array&quot;</span><span class="p">,</span>
+                <span class="s">&quot;items&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;record&quot;</span><span class="p">,</span>
+                          <span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="n">clusterTypeName</span><span class="p">,</span>
+                          <span class="s">&quot;fields&quot;</span><span class="p">:</span> <span class="p">[{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;center&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="s">&quot;array&quot;</span><span class="p">,</span> <span class="s">&quot;items&quot;</span><span class="p">:</span> <span class="n">centerComponentType</span><span class="p">}},</span>
+                                     <span class="p">{</span><span class="s">&quot;name&quot;</span><span class="p">:</span> <span class="s">&quot;id&quot;</span><span class="p">,</span> <span class="s">&quot;type&quot;</span><span class="p">:</span> <span class="n">idType</span><span class="p">}]}}</span>
+            </div>
+<div class="viewcode-block" id="KMeans.pfaValue"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.KMeans.pfaValue">[docs]</a>    <span class="k">def</span> <span class="nf">pfaValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">populations</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a PFA data structure representing this cluster set.&quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">numberOfClusters</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s">&quot;ids should be a list with length equal to the number of clusters&quot;</span><span class="p">)</span>
+
+        <span class="n">out</span> <span class="o">=</span> <span class="p">[{</span><span class="s">&quot;center&quot;</span><span class="p">:</span> <span class="n">x</span><span class="p">}</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">centers</span><span class="p">(</span><span class="n">sort</span><span class="o">=</span><span class="bp">False</span><span class="p">)]</span>
+
+        <span class="k">if</span> <span class="n">populations</span><span class="p">:</span>
+            <span class="n">indexOfClosestCluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">closestCluster</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">clusterIndex</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">)):</span>
+                <span class="n">out</span><span class="p">[</span><span class="n">clusterIndex</span><span class="p">][</span><span class="s">&quot;population&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">indexOfClosestCluster</span> <span class="o">==</span> <span class="n">clusterIndex</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">sort</span><span class="p">:</span>
+            <span class="n">indexes</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">)),</span> <span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="nb">cmp</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">list</span><span class="p">(</span><span class="n">b</span><span class="p">[</span><span class="mi">1</span><span class="p">])))]</span>
+            <span class="n">out</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">object</span><span class="p">)[</span><span class="n">indexes</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="n">idi</span><span class="p">,</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">out</span><span class="p">):</span>
+            <span class="n">cluster</span><span class="p">[</span><span class="s">&quot;id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">idi</span>
+
+        <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="KMeans.pfaDocument"><a class="viewcode-back" href="../../../titus.producer.html#titus.producer.kmeans.KMeans.pfaDocument">[docs]</a>    <span class="k">def</span> <span class="nf">pfaDocument</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusterTypeName</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">populations</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">sort</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">preprocess</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">idType</span><span class="o">=</span><span class="s">&quot;string&quot;</span><span class="p">,</span> <span class="n">dataComponentType</span><span class="o">=</span><span class="s">&quot;double&quot;</span><span class="p">,</span> <span class="n">centerComponentType</span><span class="o">=</span><span class="s">&quot;double&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Create a PFA document to score with this cluster set.&quot;&quot;&quot;</span>
+
+        <span class="n">clusters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pfaValue</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">populations</span><span class="p">,</span> <span class="n">sort</span><span class="p">)</span>
+        <span class="n">metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric</span><span class="o">.</span><span class="n">pfa</span><span class="p">(</span><span class="s">&quot;datum&quot;</span><span class="p">,</span> <span class="s">&quot;clusterCenter&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">preprocess</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">preprocess</span> <span class="o">=</span> <span class="s">&quot;input&quot;</span>
+
+        <span class="k">return</span> <span class="n">titus</span><span class="o">.</span><span class="n">prettypfa</span><span class="o">.</span><span class="n">jsonNode</span><span class="p">(</span><span class="s">&#39;&#39;&#39;</span>
+<span class="s">types:</span>
+<span class="s">  ClusterType = record(&lt;&lt;clusterTypeName&gt;&gt;,</span>
+<span class="s">    id: &lt;&lt;idType&gt;&gt;,</span>
+<span class="s">    center: array(&lt;&lt;centerComponentType&gt;&gt;))</span>
+<span class="s">input: array(&lt;&lt;dataComponentType&gt;&gt;)</span>
+<span class="s">output: &lt;&lt;idType&gt;&gt;</span>
+<span class="s">cells:</span>
+<span class="s">  clusters(array(ClusterType)) = &lt;&lt;clusters&gt;&gt;</span>
+<span class="s">action:</span>
+<span class="s">  model.cluster.closest(&lt;&lt;preprocess&gt;&gt;, clusters,</span>
+<span class="s">    fcn(datum: array(&lt;&lt;dataComponentType&gt;&gt;),</span>
+<span class="s">        clusterCenter: array(&lt;&lt;centerComponentType&gt;&gt;) -&gt; double)</span>
+<span class="s">      &lt;&lt;metric&gt;&gt;)[&quot;id&quot;]</span>
+<span class="s">&#39;&#39;&#39;</span><span class="p">,</span> <span class="o">**</span><span class="nb">vars</span><span class="p">())</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

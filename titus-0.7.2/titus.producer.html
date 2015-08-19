@@ -1,0 +1,1042 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>producer Package &mdash; Titus TRUNK documentation</title>
+    
+    <link rel="stylesheet" href="static/default.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     'TRUNK',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus TRUNK documentation" href="index.html" />
+    <link rel="up" title="titus Package" href="titus.html" />
+    <link rel="prev" title="pmml Package" href="titus.pmml.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="titus.pmml.html" title="pmml Package"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="titus.html" accesskey="U">titus Package</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="producer-package">
+<h1>producer Package<a class="headerlink" href="#producer-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id1">
+<h2><tt class="xref py py-mod docutils literal"><span class="pre">producer</span></tt> Package<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-titus.producer"></span></div>
+<div class="section" id="module-titus.producer.cart">
+<span id="cart-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">cart</span></tt> Module<a class="headerlink" href="#module-titus.producer.cart" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="titus.producer.cart.Dataset">
+<em class="property">class </em><tt class="descclassname">titus.producer.cart.</tt><tt class="descname">Dataset</tt><big>(</big><em>fields</em>, <em>names</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#Dataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.Dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Canonical format for providing a dataset to the tree-builder.</p>
+<p>Constructors are __init__ and fromIterable.</p>
+<dl class="class">
+<dt id="titus.producer.cart.Dataset.Field">
+<em class="property">class </em><tt class="descname">Field</tt><big>(</big><em>t</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#Dataset.Field"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.Dataset.Field" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Represents a field of the dataset; usually created by a
+Dataset constructor.</p>
+<p>Dataset.Field objects may be in one of two states: Numpy and
+Python.  The Dataset constructors produce Dataset.Fields in
+their Numpy representation, which is required by the
+tree-builder.  In the Numpy representation, categorical string
+data are represented as integers from 0 to N-1, where N is the
+number of unique input strings, with each distinct integer
+representing a distinct input string.  Strings and integers
+can be converted through the intToStr and strToInt
+dictionaries, or by converting the whole array into a Pythonic
+form with the toPython method.</p>
+<dl class="method">
+<dt id="titus.producer.cart.Dataset.Field.add">
+<tt class="descname">add</tt><big>(</big><em>v</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#Dataset.Field.add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.Dataset.Field.add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.Dataset.Field.select">
+<tt class="descname">select</tt><big>(</big><em>selection</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#Dataset.Field.select"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.Dataset.Field.select" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a new Dataset.Field from this one by applying a
+boolean-valued Numpy array of the same length.</p>
+<p>The new Dataset.Field is independent of the old one (this
+is a purely functional method).</p>
+<p>Assumes that the Dataset.Field is currently in a Numpy
+representation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.Dataset.Field.toNumpy">
+<tt class="descname">toNumpy</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#Dataset.Field.toNumpy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.Dataset.Field.toNumpy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Changes this field into a Numpy representation
+<em>in-place</em> (destructively replaces the old
+representation).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.Dataset.Field.toPython">
+<tt class="descname">toPython</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#Dataset.Field.toPython"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.Dataset.Field.toPython" title="Permalink to this definition">¶</a></dt>
+<dd><p>Changes this field into a Python representation
+<em>in-place</em> (destructively replaces the old
+representation).</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="titus.producer.cart.Dataset.fromIterable">
+<em class="property">classmethod </em><tt class="descclassname">Dataset.</tt><tt class="descname">fromIterable</tt><big>(</big><em>iterable</em>, <em>limit=None</em>, <em>names=None</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#Dataset.fromIterable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.Dataset.fromIterable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for Dataset that takes a Python iterable (rows)
+of iterables (columns).</p>
+<p>Each row must have the same number of fields with the same
+types (numbers.Real versus basestring).</p>
+<p>If limit is provided, stop after limit rows.  (Useful for
+infinite lists, represented by generators.)</p>
+<p>If names is provided, associate the given names with each
+field.  If not provided, names will be var0 ... varN-1 (with
+enough zero-padding that lexicographic order is numerical
+order).  Names are used when writing a PFA document; they are
+not used in the tree-building process.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.cart.TreeNode">
+<em class="property">class </em><tt class="descclassname">titus.producer.cart.</tt><tt class="descname">TreeNode</tt><big>(</big><em>dataset</em>, <em>predictand</em>, <em>maxSubsetSize=None</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Represents a tree node and applies the CART algorithm to build
+decision and regression trees.</p>
+<p>The constructors are __init__ and fromWholeDataset.</p>
+<p>Tree-building is initiated by calling splitUntil(condition), where
+condition(node, depth) is a user-supplied function that takes a
+node (TreeNode) and depth (int) and returns boolean (True:
+continue splitting; False: stop splitting).</p>
+<p>The following are convenience functions that pass a standard
+condition to splitUntil:</p>
+<blockquote>
+<div><p>splitComplete() splits until each unique value from the
+dataset is in a separate TreeNode.</p>
+<p>splitMaxDepth(maxDepth) splits until each datum is in a
+separate TreeNode or until the depth of the tree is maxDepth.</p>
+</div></blockquote>
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.canSplit">
+<tt class="descname">canSplit</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.canSplit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.canSplit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns False if it is not possible to split the predictand.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.categoricalEntropyGainTerm">
+<tt class="descname">categoricalEntropyGainTerm</tt><big>(</big><em>field</em>, <em>maxSubsetSize=None</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.categoricalEntropyGainTerm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.categoricalEntropyGainTerm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split a categorical predictor in such a way that maximizes
+entropic gain inside and outside of a subset of predictor values.</p>
+<p>maxSubsetSize, if not None, limits the maximum size of the
+subsets considered.  Since the number of possible subsets is
+exponential in the number of unique values of the predictor,
+this helps to avoid long-running searches (at the expense of
+finding the best-possible split).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.categoricalNVarianceGainTerm">
+<tt class="descname">categoricalNVarianceGainTerm</tt><big>(</big><em>field</em>, <em>maxSubsetSize=None</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.categoricalNVarianceGainTerm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.categoricalNVarianceGainTerm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split a categorical predictor in such a way that maximizes
+n-times-variance gain inside and outside of a subset of
+predictor values.</p>
+<p>maxSubsetSize, if not None, limits the maximum size of the
+subsets considered.  Since the number of possible subsets is
+exponential in the number of unique values of the predictor,
+this helps to avoid long-running searches (at the expense of
+finding the best-possible split).</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="titus.producer.cart.TreeNode.fromWholeDataset">
+<em class="property">classmethod </em><tt class="descname">fromWholeDataset</tt><big>(</big><em>wholeDataset</em>, <em>predictandName</em>, <em>maxSubsetSize=None</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.fromWholeDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.fromWholeDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for a dataset that includes predictors (fields
+to explicitly refer to in splits) the predictand (the field in
+which we try to optimize purity) as a field in the dataset,
+called out by predictandName.</p>
+<p>maxSubsetSize is used to limit splitting of categorical
+predictors; see categoricalEntropyGainTerm and
+categoricalNVarianceGainTerm.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.numericalEntropyGainTerm">
+<tt class="descname">numericalEntropyGainTerm</tt><big>(</big><em>field</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.numericalEntropyGainTerm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.numericalEntropyGainTerm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split a numerical predictor in such a way that maximizes
+entropic gain above and below the threshold of the split.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.numericalNVarianceGainTerm">
+<tt class="descname">numericalNVarianceGainTerm</tt><big>(</big><em>field</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.numericalNVarianceGainTerm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.numericalNVarianceGainTerm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split a numerical predictor in such a way that maximizes
+n-times-variance gain above and below the threshold of the
+split.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.pfaDocument">
+<tt class="descname">pfaDocument</tt><big>(</big><em>inputType</em>, <em>treeTypeName</em>, <em>dataType=None</em>, <em>preprocess=None</em>, <em>nodeScores=False</em>, <em>datasetSize=False</em>, <em>predictandDistribution=False</em>, <em>predictandUnique=False</em>, <em>entropy=False</em>, <em>nTimesVariance=False</em>, <em>gain=False</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.pfaDocument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.pfaDocument" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a PFA document to score with this tree.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.pfaScoreType">
+<tt class="descname">pfaScoreType</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.pfaScoreType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.pfaScoreType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.pfaType">
+<tt class="descname">pfaType</tt><big>(</big><em>dataType</em>, <em>treeTypeName</em>, <em>nodeScores=False</em>, <em>datasetSize=False</em>, <em>predictandDistribution=False</em>, <em>predictandUnique=False</em>, <em>entropy=False</em>, <em>nTimesVariance=False</em>, <em>gain=False</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.pfaType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.pfaType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a PFA type schema representing this tree.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.pfaValue">
+<tt class="descname">pfaValue</tt><big>(</big><em>dataType</em>, <em>treeTypeName</em>, <em>nodeScores=False</em>, <em>datasetSize=False</em>, <em>predictandDistribution=False</em>, <em>predictandUnique=False</em>, <em>entropy=False</em>, <em>nTimesVariance=False</em>, <em>gain=False</em>, <em>valueType=None</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.pfaValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.pfaValue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a PFA data structure representing this tree.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.pfaValueType">
+<tt class="descname">pfaValueType</tt><big>(</big><em>dataType</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.pfaValueType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.pfaValueType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a PFA type schema representing the comparison values.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.score">
+<tt class="descname">score</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the best score at this TreeNode, which might or might not be a leaf.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.splitComplete">
+<tt class="descname">splitComplete</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.splitComplete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.splitComplete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function for building up a tree until each leaf
+has only one unique value.  Calls splitUntil.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.splitMaxDepth">
+<tt class="descname">splitMaxDepth</tt><big>(</big><em>maxDepth</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.splitMaxDepth"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.splitMaxDepth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function for building up trees until each leaf
+has only one unique value or the depth reaches maxDepth.
+Calls splitUntil.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.splitOnce">
+<tt class="descname">splitOnce</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.splitOnce"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.splitOnce" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute an optimized split in one field, adding two new
+TreeNodes below this one.</p>
+<p>If the predictand is numerical (numbers.Real), the split
+minimizes entropy; if categorical (basestring), it minimizes
+n-times-variance.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.splitUntil">
+<tt class="descname">splitUntil</tt><big>(</big><em>condition</em>, <em>depth=1</em><big>)</big><a class="reference internal" href="modules/titus/producer/cart.html#TreeNode.splitUntil"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode.splitUntil" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a recursive tree-split, calling the user-supplied
+condition(node, depth) at each new node.</p>
+<p>The node provided to condition is a TreeNode, the depth is an
+int, and it should return a boolean value.  It has access to
+all information about the current node and its depth, and if
+it returns True, the tree continues to split; if False, it
+stops.</p>
+<p>If the predictand is numerical (numbers.Real), the node has
+attributes: datasetSize, predictandUnique, nTimesVariance, and
+gain.</p>
+<p>If the predictand is categorical (basestring), the node has
+attributes: datasetSize, predictandDistribution, entropy, and
+gain.</p>
+<p>Splits are performed <em>in-place</em>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-titus.producer.chain">
+<span id="chain-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">chain</span></tt> Module<a class="headerlink" href="#module-titus.producer.chain" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="titus.producer.chain.PFAChainError">
+<em class="property">exception </em><tt class="descclassname">titus.producer.chain.</tt><tt class="descname">PFAChainError</tt><a class="reference internal" href="modules/titus/producer/chain.html#PFAChainError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.chain.PFAChainError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.chain.ast">
+<tt class="descclassname">titus.producer.chain.</tt><tt class="descname">ast</tt><big>(</big><em>pfas</em>, <em>check=True</em>, <em>name=None</em>, <em>randseed=None</em>, <em>doc=None</em>, <em>version=None</em>, <em>metadata={}</em>, <em>options={}</em>, <em>tryYaml=False</em>, <em>verbose=False</em><big>)</big><a class="reference internal" href="modules/titus/producer/chain.html#ast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.chain.ast" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.chain.engine">
+<tt class="descclassname">titus.producer.chain.</tt><tt class="descname">engine</tt><big>(</big><em>pfas</em>, <em>name=None</em>, <em>randseed=None</em>, <em>doc=None</em>, <em>version=None</em>, <em>metadata={}</em>, <em>options={}</em>, <em>tryYaml=False</em>, <em>verbose=False</em>, <em>sharedState=None</em>, <em>multiplicity=1</em>, <em>style='pure'</em>, <em>debug=False</em><big>)</big><a class="reference internal" href="modules/titus/producer/chain.html#engine"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.chain.engine" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.chain.json">
+<tt class="descclassname">titus.producer.chain.</tt><tt class="descname">json</tt><big>(</big><em>pfas</em>, <em>lineNumbers=True</em>, <em>check=True</em>, <em>name=None</em>, <em>randseed=None</em>, <em>doc=None</em>, <em>version=None</em>, <em>metadata={}</em>, <em>options={}</em>, <em>tryYaml=False</em>, <em>verbose=False</em><big>)</big><a class="reference internal" href="modules/titus/producer/chain.html#json"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.chain.json" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.chain.jsonNode">
+<tt class="descclassname">titus.producer.chain.</tt><tt class="descname">jsonNode</tt><big>(</big><em>pfas</em>, <em>lineNumbers=True</em>, <em>check=True</em>, <em>name=None</em>, <em>randseed=None</em>, <em>doc=None</em>, <em>version=None</em>, <em>metadata={}</em>, <em>options={}</em>, <em>tryYaml=False</em>, <em>verbose=False</em><big>)</big><a class="reference internal" href="modules/titus/producer/chain.html#jsonNode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.chain.jsonNode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-titus.producer.expression">
+<span id="expression-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">expression</span></tt> Module<a class="headerlink" href="#module-titus.producer.expression" title="Permalink to this headline">¶</a></h2>
+<dl class="exception">
+<dt id="titus.producer.expression.PythonToPfaException">
+<em class="property">exception </em><tt class="descclassname">titus.producer.expression.</tt><tt class="descname">PythonToPfaException</tt><a class="reference internal" href="modules/titus/producer/expression.html#PythonToPfaException"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.expression.PythonToPfaException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">exceptions.Exception</span></tt></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.expression.fcn">
+<tt class="descclassname">titus.producer.expression.</tt><tt class="descname">fcn</tt><big>(</big><em>params</em>, <em>ret</em>, <em>expr</em>, <em>subs=None</em>, <em>cells=None</em>, <em>pools=None</em>, <em>options=None</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="modules/titus/producer/expression.html#fcn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.expression.fcn" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.expression.pfa">
+<tt class="descclassname">titus.producer.expression.</tt><tt class="descname">pfa</tt><big>(</big><em>expr</em>, <em>subs=None</em>, <em>symbols=None</em>, <em>cells=None</em>, <em>pools=None</em>, <em>options=None</em>, <em>**kwds</em><big>)</big><a class="reference internal" href="modules/titus/producer/expression.html#pfa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.expression.pfa" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-titus.producer.kmeans">
+<span id="kmeans-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">kmeans</span></tt> Module<a class="headerlink" href="#module-titus.producer.kmeans" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="titus.producer.kmeans.AbsDiff">
+<em class="property">class </em><tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">AbsDiff</tt><a class="reference internal" href="modules/titus/producer/kmeans.html#AbsDiff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.AbsDiff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.kmeans.Similarity" title="titus.producer.kmeans.Similarity"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.kmeans.Similarity</span></tt></a></p>
+<dl class="method">
+<dt id="titus.producer.kmeans.AbsDiff.pfa">
+<tt class="descname">pfa</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#AbsDiff.pfa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.AbsDiff.pfa" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.kmeans.Chebyshev">
+<em class="property">class </em><tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">Chebyshev</tt><big>(</big><em>similarity</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#Chebyshev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.Chebyshev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.kmeans.Metric" title="titus.producer.kmeans.Metric"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.kmeans.Metric</span></tt></a></p>
+<dl class="method">
+<dt id="titus.producer.kmeans.Chebyshev.pfa">
+<tt class="descname">pfa</tt><big>(</big><em>x</em>, <em>y</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#Chebyshev.pfa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.Chebyshev.pfa" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.kmeans.Euclidean">
+<em class="property">class </em><tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">Euclidean</tt><big>(</big><em>similarity</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#Euclidean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.Euclidean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.kmeans.Metric" title="titus.producer.kmeans.Metric"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.kmeans.Metric</span></tt></a></p>
+<dl class="method">
+<dt id="titus.producer.kmeans.Euclidean.pfa">
+<tt class="descname">pfa</tt><big>(</big><em>x</em>, <em>y</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#Euclidean.pfa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.Euclidean.pfa" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.kmeans.GaussianSimilarity">
+<em class="property">class </em><tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">GaussianSimilarity</tt><big>(</big><em>sigma</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#GaussianSimilarity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.GaussianSimilarity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.kmeans.Similarity" title="titus.producer.kmeans.Similarity"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.kmeans.Similarity</span></tt></a></p>
+<dl class="method">
+<dt id="titus.producer.kmeans.GaussianSimilarity.pfa">
+<tt class="descname">pfa</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#GaussianSimilarity.pfa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.GaussianSimilarity.pfa" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.kmeans.KMeans">
+<em class="property">class </em><tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">KMeans</tt><big>(</big><em>numberOfClusters</em>, <em>dataset</em>, <em>weights=None</em>, <em>metric=&lt;titus.producer.kmeans.Euclidean object at 0x11314f10&gt;</em>, <em>minPointsInCluster=None</em>, <em>maxPointsForClustering=None</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#KMeans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.KMeans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Represents a k-means optimization by storing a dataset and
+performing all operations <em>in-place</em>.</p>
+<p>Usually, you would construct the object, possibly stepup, then
+optimize and export to pfaDocument.</p>
+<dl class="method">
+<dt id="titus.producer.kmeans.KMeans.centers">
+<tt class="descname">centers</tt><big>(</big><em>sort=True</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#KMeans.centers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.KMeans.centers" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the cluster centers as a sorted Python list (canonical form).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.kmeans.KMeans.closestCluster">
+<tt class="descname">closestCluster</tt><big>(</big><em>dataset=None</em>, <em>weights=None</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#KMeans.closestCluster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.KMeans.closestCluster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identify the closest cluster to each element in the
+dataset.</p>
+<p>Return value is an array of integers corresponding to the
+indexes of the closest cluster for each datum.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.kmeans.KMeans.iterate">
+<tt class="descname">iterate</tt><big>(</big><em>dataset</em>, <em>weights</em>, <em>iterationNumber</em>, <em>condition</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#KMeans.iterate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.KMeans.iterate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform one iteration step (in-place; modifies
+self.clusters).</p>
+<p>The dataset and weights are passed in so that this may be used
+with subsets.</p>
+<p>The return value is the result of condition(iterationNumber,
+corrections, values, dataset.shape[0]).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.kmeans.KMeans.newCluster">
+<tt class="descname">newCluster</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#KMeans.newCluster"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.KMeans.newCluster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pick a random point from the dataset and ensure that it is different from all other cluster centers.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.kmeans.KMeans.optimize">
+<tt class="descname">optimize</tt><big>(</big><em>condition</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#KMeans.optimize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.KMeans.optimize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run a standard k-means (Lloyd&#8217;s algorithm) on the dataset,
+changing the clusters <em>in-place</em>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.kmeans.KMeans.pfaDocument">
+<tt class="descname">pfaDocument</tt><big>(</big><em>clusterTypeName</em>, <em>ids</em>, <em>populations=False</em>, <em>sort=True</em>, <em>preprocess=None</em>, <em>idType='string'</em>, <em>dataComponentType='double'</em>, <em>centerComponentType='double'</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#KMeans.pfaDocument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.KMeans.pfaDocument" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a PFA document to score with this cluster set.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.kmeans.KMeans.pfaType">
+<tt class="descname">pfaType</tt><big>(</big><em>clusterTypeName</em>, <em>idType='string'</em>, <em>centerComponentType='double'</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#KMeans.pfaType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.KMeans.pfaType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a PFA type schema representing this cluster set.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.kmeans.KMeans.pfaValue">
+<tt class="descname">pfaValue</tt><big>(</big><em>ids</em>, <em>populations=False</em>, <em>sort=True</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#KMeans.pfaValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.KMeans.pfaValue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a PFA data structure representing this cluster set.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.kmeans.KMeans.randomPoint">
+<tt class="descname">randomPoint</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#KMeans.randomPoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.KMeans.randomPoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pick a random point from the dataset.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.kmeans.KMeans.randomSubset">
+<tt class="descname">randomSubset</tt><big>(</big><em>subsetSize</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#KMeans.randomSubset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.KMeans.randomSubset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a (dataset, weights) that are randomly chosen to
+have subsetSize records.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.kmeans.KMeans.stepup">
+<tt class="descname">stepup</tt><big>(</big><em>condition</em>, <em>base=2</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#KMeans.stepup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.KMeans.stepup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Optimize the cluster set in successively larger subsets of
+the dataset.  (This can be viewed as a cluster seeding
+technique.)</p>
+<p>If randomly seeded, optimizing the whole dataset can be slow
+to converge: a long time per iteration times many iterations.</p>
+<p>Optimizing a random subset takes as many iterations, but the
+time per iteration is short.  However, the final cluster
+centers are only approximate.</p>
+<p>Optimizing the whole dataset with approximate cluster starting
+points takes a long time per iteration but fewer iterations.</p>
+<p>This procedure runs the k-means optimization technique on
+random subsets with exponentially increasing sizes from the
+smallest base**x that is larger than minPointsInCluster (or
+numberOfClusters) to the largest base**x that is a subset of
+the whole dataset.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.kmeans.Metric">
+<em class="property">class </em><tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">Metric</tt><a class="reference internal" href="modules/titus/producer/kmeans.html#Metric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.Metric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.producer.kmeans.Metric.pfa">
+<tt class="descname">pfa</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#Metric.pfa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.Metric.pfa" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.kmeans.Minkowski">
+<em class="property">class </em><tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">Minkowski</tt><big>(</big><em>similarity</em>, <em>p</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#Minkowski"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.Minkowski" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.kmeans.Metric" title="titus.producer.kmeans.Metric"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.kmeans.Metric</span></tt></a></p>
+<dl class="method">
+<dt id="titus.producer.kmeans.Minkowski.pfa">
+<tt class="descname">pfa</tt><big>(</big><em>x</em>, <em>y</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#Minkowski.pfa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.Minkowski.pfa" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.kmeans.Similarity">
+<em class="property">class </em><tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">Similarity</tt><a class="reference internal" href="modules/titus/producer/kmeans.html#Similarity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.Similarity" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="method">
+<dt id="titus.producer.kmeans.Similarity.pfa">
+<tt class="descname">pfa</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#Similarity.pfa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.Similarity.pfa" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.kmeans.SquaredEuclidean">
+<em class="property">class </em><tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">SquaredEuclidean</tt><big>(</big><em>similarity</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#SquaredEuclidean"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.SquaredEuclidean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.kmeans.Metric" title="titus.producer.kmeans.Metric"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.kmeans.Metric</span></tt></a></p>
+<dl class="method">
+<dt id="titus.producer.kmeans.SquaredEuclidean.pfa">
+<tt class="descname">pfa</tt><big>(</big><em>x</em>, <em>y</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#SquaredEuclidean.pfa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.SquaredEuclidean.pfa" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.kmeans.Taxicab">
+<em class="property">class </em><tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">Taxicab</tt><big>(</big><em>similarity</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#Taxicab"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.Taxicab" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.kmeans.Metric" title="titus.producer.kmeans.Metric"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.kmeans.Metric</span></tt></a></p>
+<dl class="method">
+<dt id="titus.producer.kmeans.Taxicab.pfa">
+<tt class="descname">pfa</tt><big>(</big><em>x</em>, <em>y</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#Taxicab.pfa"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.Taxicab.pfa" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.kmeans.allChange">
+<tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">allChange</tt><big>(</big><em>threshold</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#allChange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.allChange" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.kmeans.clusterJumped">
+<tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">clusterJumped</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#clusterJumped"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.clusterJumped" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.kmeans.halfChange">
+<tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">halfChange</tt><big>(</big><em>threshold</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#halfChange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.halfChange" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.kmeans.maxIterations">
+<tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">maxIterations</tt><big>(</big><em>number</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#maxIterations"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.maxIterations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.kmeans.moving">
+<tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">moving</tt><big>(</big><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#moving"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.moving" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.kmeans.printChange">
+<tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">printChange</tt><big>(</big><em>format='g'</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#printChange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.printChange" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.kmeans.printValue">
+<tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">printValue</tt><big>(</big><em>format='g'</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#printValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.printValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.kmeans.whileall">
+<tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">whileall</tt><big>(</big><em>*conditions</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#whileall"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.whileall" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.kmeans.whileany">
+<tt class="descclassname">titus.producer.kmeans.</tt><tt class="descname">whileany</tt><big>(</big><em>*conditions</em><big>)</big><a class="reference internal" href="modules/titus/producer/kmeans.html#whileany"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.kmeans.whileany" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-titus.producer.tools">
+<span id="tools-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">tools</span></tt> Module<a class="headerlink" href="#module-titus.producer.tools" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="titus.producer.tools.And">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">And</tt><big>(</big><em>*alternatives</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#And"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.And" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Match every one of several alternatives.</p>
+<p>If any alternatives have substitutions, the last substitution is returned.</p>
+<dl class="method">
+<dt id="titus.producer.tools.And.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#And.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.And.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.Any">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">Any</tt><big>(</big><em>*types</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Any"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Any" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Match any expression or any expression with one of several given types.</p>
+<dl class="method">
+<dt id="titus.producer.tools.Any.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Any.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Any.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.Approx">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">Approx</tt><big>(</big><em>central</em>, <em>error</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Approx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Approx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Match a number within a given range.</p>
+<dl class="method">
+<dt id="titus.producer.tools.Approx.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Approx.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Approx.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.End">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">End</tt><big>(</big><em>*array</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#End"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.End" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Match a list that ends with the given elements.</p>
+<dl class="method">
+<dt id="titus.producer.tools.End.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#End.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.End.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.GE">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">GE</tt><big>(</big><em>value</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#GE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.GE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Match a number if it is greater than or equal to some value.</p>
+<dl class="method">
+<dt id="titus.producer.tools.GE.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#GE.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.GE.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.GT">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">GT</tt><big>(</big><em>value</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#GT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.GT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Match a number if it is greater than some value.</p>
+<dl class="method">
+<dt id="titus.producer.tools.GT.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#GT.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.GT.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.Group">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">Group</tt><big>(</big><em>**kwds</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Group"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Tag a subexpression with a name so that it can be found later.</p>
+<dl class="method">
+<dt id="titus.producer.tools.Group.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Group.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Group.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.LE">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">LE</tt><big>(</big><em>value</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#LE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.LE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Match a number if it is less than or equal to some value.</p>
+<dl class="method">
+<dt id="titus.producer.tools.LE.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#LE.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.LE.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.LT">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">LT</tt><big>(</big><em>value</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#LT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.LT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Match a number if it is less than some value.</p>
+<dl class="method">
+<dt id="titus.producer.tools.LT.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#LT.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.LT.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.Match">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">Match</tt><big>(</big><em>original</em>, <em>modified</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Match"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Match" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Represents an expression matched by a regular expression.</p>
+<p>original is a copy of the expression, identical to the original subexpression.
+modified is a copy of the expression with RegEx substitutions.
+groups is a dictionary of modified subexpressions.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.Matcher">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">Matcher</tt><a class="reference internal" href="modules/titus/producer/tools.html#Matcher"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Matcher" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Base class of regular expression patterns (other than literal JSON expressions).</p>
+<dl class="method">
+<dt id="titus.producer.tools.Matcher.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Matcher.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Matcher.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.Min">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">Min</tt><big>(</big><em>**obj</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Min"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Min" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Match a dictionary that has at least the given key-value pairs.</p>
+<dl class="method">
+<dt id="titus.producer.tools.Min.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Min.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Min.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.Or">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">Or</tt><big>(</big><em>*alternatives</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Or"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Or" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Match at least one of several alternatives.</p>
+<p>If any alternatives have substitutions, the first matching substitution is returned.</p>
+<dl class="method">
+<dt id="titus.producer.tools.Or.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Or.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Or.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.RegEx">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">RegEx</tt><big>(</big><em>pattern</em>, <em>to=None</em>, <em>flags=None</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#RegEx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.RegEx" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Match a string with a regular expression.</p>
+<p>If &#8216;to&#8217; is given, this provides a substitution (using 1, 2, etc. variables).
+The &#8216;flags&#8217; are iLmsux, corresponding to Python regular expression flags.</p>
+<dl class="method">
+<dt id="titus.producer.tools.RegEx.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#RegEx.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.RegEx.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.producer.tools.Start">
+<em class="property">class </em><tt class="descclassname">titus.producer.tools.</tt><tt class="descname">Start</tt><big>(</big><em>*array</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#titus.producer.tools.Matcher" title="titus.producer.tools.Matcher"><tt class="xref py py-class docutils literal"><span class="pre">titus.producer.tools.Matcher</span></tt></a></p>
+<p>Match a list that starts with the given elements.</p>
+<dl class="method">
+<dt id="titus.producer.tools.Start.getmatch">
+<tt class="descname">getmatch</tt><big>(</big><em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#Start.getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.Start.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.assign">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">assign</tt><big>(</big><em>expr</em>, <em>index</em>, <em>to</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#assign"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.assign" title="Permalink to this definition">¶</a></dt>
+<dd><p>Destructively (in-place) replace a subexpression at a given index with another expression.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.assignAt">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">assignAt</tt><big>(</big><em>pattern</em>, <em>expr</em>, <em>to</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#assignAt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.assignAt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Destructively (in-place) replace subexpressions that match a regular expression pattern.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.assigned">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">assigned</tt><big>(</big><em>expr</em>, <em>index</em>, <em>to</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#assigned"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.assigned" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a copy of expr with a replaced subexpression, leaving the original intact.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.assignedAt">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">assignedAt</tt><big>(</big><em>pattern</em>, <em>expr</em>, <em>to</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#assignedAt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.assignedAt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a copy of expr with replaced subexpressions at points that match a regular expression pattern.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.contains">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">contains</tt><big>(</big><em>pattern</em>, <em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#contains"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.contains" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return True if the pattern is found; False otherwise.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.count">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">count</tt><big>(</big><em>pattern</em>, <em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#count"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.count" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the number of matches.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.findAllCopy">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">findAllCopy</tt><big>(</big><em>pattern</em>, <em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#findAllCopy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.findAllCopy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a generator to yield copies of the matching subexpressions.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.findAllRef">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">findAllRef</tt><big>(</big><em>pattern</em>, <em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#findAllRef"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.findAllRef" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a generator to yield references to matching subexpressions within the original structure (for in-place modifications).</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.findCopy">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">findCopy</tt><big>(</big><em>pattern</em>, <em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#findCopy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.findCopy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a copy of the matching subexpression or None if there is no match.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.findRef">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">findRef</tt><big>(</big><em>pattern</em>, <em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#findRef"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.findRef" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a reference to the matching subexpression within the original structure (for in-place modifications) or None if there is no match.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.get">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">get</tt><big>(</big><em>expr</em>, <em>index</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get a subexpression from the root expr and index.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.getmatch">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">getmatch</tt><big>(</big><em>pattern</em>, <em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#getmatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.getmatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generic function to match a regular expression pattern to a haystack expression.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.index">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">index</tt><big>(</big><em>pattern</em>, <em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return an index or None if there is no match.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.indexes">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">indexes</tt><big>(</big><em>pattern</em>, <em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#indexes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.indexes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a generator to yield matching indexes.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.look">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">look</tt><big>(</big><em>expr</em>, <em>maxDepth=8</em>, <em>inlineDepth=2</em>, <em>indexWidth=30</em>, <em>dropAt=True</em>, <em>stream=&lt;open file '&lt;stdout&gt;'</em>, <em>mode 'w' at 0x2afc5d303150&gt;</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#look"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.look" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print a JSON object on the screen in a readable way.</p>
+<p>maxDepth: maximum depth to show before printing ellipsis (...)
+inlineDepth: maximum depth to show on a single line
+indexWidth: width (in characters) of the index column on the left
+dropAt: don&#8217;t show &#8220;&#64;&#8221; keys
+stream: allows the output to be sent to a file or stream.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.remove">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">remove</tt><big>(</big><em>expr</em>, <em>index</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#remove"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.remove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Destructively (in-place) remove a subexpression at a given index.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.removed">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">removed</tt><big>(</big><em>expr</em>, <em>index</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#removed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.removed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a copy of expr with a subexpression removed at a given index.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.search">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">search</tt><big>(</big><em>pattern</em>, <em>haystack</em>, <em>result=()</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a generator to yield matches as (index, Match) pairs.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.searchFirst">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">searchFirst</tt><big>(</big><em>pattern</em>, <em>haystack</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#searchFirst"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.searchFirst" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a (index, Match) pair or None if there is no match.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.splitIndex">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">splitIndex</tt><big>(</big><em>index</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#splitIndex"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.splitIndex" title="Permalink to this definition">¶</a></dt>
+<dd><p>Normalize a casual index like &#8220;one, two, 3,four&#8221; to canonical form like [&#8220;one&#8221;, &#8220;two&#8221;, 3, &#8220;four&#8221;].</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="titus.producer.tools.uniqueSymbols">
+<tt class="descclassname">titus.producer.tools.</tt><tt class="descname">uniqueSymbols</tt><big>(</big><em>expr</em>, <em>toavoid</em>, <em>tr=None</em><big>)</big><a class="reference internal" href="modules/titus/producer/tools.html#uniqueSymbols"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.tools.uniqueSymbols" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+<div class="section" id="module-titus.producer.transformation">
+<span id="transformation-module"></span><h2><tt class="xref py py-mod docutils literal"><span class="pre">transformation</span></tt> Module<a class="headerlink" href="#module-titus.producer.transformation" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="titus.producer.transformation.Transformation">
+<em class="property">class </em><tt class="descclassname">titus.producer.transformation.</tt><tt class="descname">Transformation</tt><big>(</big><em>*indexed</em>, <em>**named</em><big>)</big><a class="reference internal" href="modules/titus/producer/transformation.html#Transformation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.transformation.Transformation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<dl class="attribute">
+<dt id="titus.producer.transformation.Transformation.constants">
+<tt class="descname">constants</tt><em class="property"> = {'m.pi': 'math.pi', 'm.e': 'math.e'}</em><a class="headerlink" href="#titus.producer.transformation.Transformation.constants" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.transformation.Transformation.expr">
+<tt class="descname">expr</tt><big>(</big><em>name='_0'</em>, <em>subs={}</em>, <em>**subs2</em><big>)</big><a class="reference internal" href="modules/titus/producer/transformation.html#Transformation.expr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.transformation.Transformation.expr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return PFA for one expression from the transformation.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="titus.producer.transformation.Transformation.findFields">
+<em class="property">static </em><tt class="descname">findFields</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="modules/titus/producer/transformation.html#Transformation.findFields"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.transformation.Transformation.findFields" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.producer.transformation.Transformation.functions">
+<tt class="descname">functions</tt><em class="property"> = {'!': 'numpy.logical_not', 'm.cos': 'numpy.cos', '&gt;=': 'numpy.greater_equal', '^^': 'numpy.logical_xor', '%%': 'numpy.remainder', '||': 'numpy.logical_or', '&lt;=': 'numpy.less_equal', 'm.acos': 'numpy.arccos', 'm.hypot': 'numpy.hypot', 'm.tan': 'numpy.tan', 'm.exp': 'numpy.exp', '**': 'numpy.power', 'm.floor': 'numpy.floor', 'm.log10': 'numpy.log10', 'm.rint': 'numpy.rint', 'm.round': 'numpy.round', '!=': 'numpy.not_equal', 'm.atan': 'numpy.arctan', '&amp;&amp;': 'numpy.logical_and', 'm.tanh': 'numpy.tanh', 'm.expm1': 'numpy.expm1', '%': 'numpy.mod', 'm.cosh': 'numpy.cosh', '+': 'numpy.add', '*': 'numpy.multiply', '-': 'numpy.subtract', 'm.asin': 'numpy.arcsin', '/': 'numpy.true_divide', 'm.ln': 'numpy.log', 'u-': 'numpy.negative', '==': 'numpy.equal', 'm.abs': 'numpy.absolute', 'm.ceil': 'numpy.ceil', 'm.sinh': 'numpy.sinh', 'm.sqrt': 'numpy.sqrt', 'm.sin': 'numpy.sin', 'm.copysign': 'numpy.copysign', 'm.atan2': 'numpy.arctan2', '&lt;': 'numpy.less', '&gt;': 'numpy.greater'}</em><a class="headerlink" href="#titus.producer.transformation.Transformation.functions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="titus.producer.transformation.Transformation.interpret">
+<em class="property">static </em><tt class="descname">interpret</tt><big>(</big><em>x</em><big>)</big><a class="reference internal" href="modules/titus/producer/transformation.html#Transformation.interpret"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.transformation.Transformation.interpret" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.transformation.Transformation.let">
+<tt class="descname">let</tt><big>(</big><em>subs={}</em>, <em>**subs2</em><big>)</big><a class="reference internal" href="modules/titus/producer/transformation.html#Transformation.let"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.transformation.Transformation.let" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a PFA &#8216;let&#8217; expression for this transformation.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="titus.producer.transformation.Transformation.namespace">
+<tt class="descname">namespace</tt><em class="property"> = {'numpy': &lt;module 'numpy' from '/usr/lib/python2.7/dist-packages/numpy/__init__.pyc'&gt;, 'math': &lt;module 'math' (built-in)&gt;}</em><a class="headerlink" href="#titus.producer.transformation.Transformation.namespace" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.transformation.Transformation.new">
+<tt class="descname">new</tt><big>(</big><em>avroType</em>, <em>subs={}</em>, <em>**subs2</em><big>)</big><a class="reference internal" href="modules/titus/producer/transformation.html#Transformation.new"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.transformation.Transformation.new" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a PFA &#8216;new&#8217; expression for this transformation.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="titus.producer.transformation.Transformation.replace">
+<em class="property">static </em><tt class="descname">replace</tt><big>(</big><em>x</em>, <em>subs</em><big>)</big><a class="reference internal" href="modules/titus/producer/transformation.html#Transformation.replace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.transformation.Transformation.replace" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="titus.producer.transformation.Transformation.toNumpyExpr">
+<em class="property">static </em><tt class="descname">toNumpyExpr</tt><big>(</big><em>ast</em><big>)</big><a class="reference internal" href="modules/titus/producer/transformation.html#Transformation.toNumpyExpr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.transformation.Transformation.toNumpyExpr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.transformation.Transformation.transform">
+<tt class="descname">transform</tt><big>(</big><em>dataset</em>, <em>fieldNames=None</em><big>)</big><a class="reference internal" href="modules/titus/producer/transformation.html#Transformation.transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.transformation.Transformation.transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a transformed Numpy dataset (leaving the original intact).</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">producer Package</a><ul>
+<li><a class="reference internal" href="#id1"><tt class="docutils literal"><span class="pre">producer</span></tt> Package</a></li>
+<li><a class="reference internal" href="#module-titus.producer.cart"><tt class="docutils literal"><span class="pre">cart</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-titus.producer.chain"><tt class="docutils literal"><span class="pre">chain</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-titus.producer.expression"><tt class="docutils literal"><span class="pre">expression</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-titus.producer.kmeans"><tt class="docutils literal"><span class="pre">kmeans</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-titus.producer.tools"><tt class="docutils literal"><span class="pre">tools</span></tt> Module</a></li>
+<li><a class="reference internal" href="#module-titus.producer.transformation"><tt class="docutils literal"><span class="pre">transformation</span></tt> Module</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="titus.pmml.html"
+                        title="previous chapter">pmml Package</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="sources/titus.producer.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="titus.pmml.html" title="pmml Package"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="titus.html" >titus Package</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

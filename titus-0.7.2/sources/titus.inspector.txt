@@ -1,0 +1,51 @@
+inspector Package
+=================
+
+:mod:`inspector` Package
+------------------------
+
+.. automodule:: titus.inspector
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`defs` Module
+------------------
+
+.. automodule:: titus.inspector.defs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`jsongadget` Module
+------------------------
+
+.. automodule:: titus.inspector.jsongadget
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`main` Module
+------------------
+
+.. automodule:: titus.inspector.main
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`parser` Module
+--------------------
+
+.. automodule:: titus.inspector.parser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`pfagadget` Module
+-----------------------
+
+.. automodule:: titus.inspector.pfagadget
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

@@ -1,0 +1,19 @@
+prob Package
+============
+
+:mod:`prob` Package
+-------------------
+
+.. automodule:: titus.lib1.prob
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`dist` Module
+------------------
+
+.. automodule:: titus.lib1.prob.dist
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

@@ -1,0 +1,59 @@
+producer Package
+================
+
+:mod:`producer` Package
+-----------------------
+
+.. automodule:: titus.producer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`cart` Module
+------------------
+
+.. automodule:: titus.producer.cart
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`chain` Module
+-------------------
+
+.. automodule:: titus.producer.chain
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`expression` Module
+------------------------
+
+.. automodule:: titus.producer.expression
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`kmeans` Module
+--------------------
+
+.. automodule:: titus.producer.kmeans
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`tools` Module
+-------------------
+
+.. automodule:: titus.producer.tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`transformation` Module
+----------------------------
+
+.. automodule:: titus.producer.transformation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

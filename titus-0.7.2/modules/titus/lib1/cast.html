@@ -1,0 +1,312 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.lib1.cast &mdash; Titus TRUNK documentation</title>
+    
+    <link rel="stylesheet" href="../../../static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../../static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     'TRUNK',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../static/jquery.js"></script>
+    <script type="text/javascript" src="../../../static/underscore.js"></script>
+    <script type="text/javascript" src="../../../static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus TRUNK documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for titus.lib1.cast</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+
+<span class="c"># Copyright (C) 2014  Open Data (&quot;Open Data&quot; refers to</span>
+<span class="c"># one or more of the following companies: Open Data Partners LLC,</span>
+<span class="c"># Open Data Research LLC, or Open Data Capital LLC.)</span>
+<span class="c"># </span>
+<span class="c"># This file is part of Hadrian.</span>
+<span class="c"># </span>
+<span class="c"># Licensed under the Hadrian Personal Use and Evaluation License (PUEL);</span>
+<span class="c"># you may not use this file except in compliance with the License.</span>
+<span class="c"># You may obtain a copy of the License at</span>
+<span class="c"># </span>
+<span class="c">#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE</span>
+<span class="c"># </span>
+<span class="c"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c"># See the License for the specific language governing permissions and</span>
+<span class="c"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">from</span> <span class="nn">titus.fcn</span> <span class="kn">import</span> <span class="n">Fcn</span>
+<span class="kn">from</span> <span class="nn">titus.fcn</span> <span class="kn">import</span> <span class="n">LibFcn</span>
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">Sig</span>
+<span class="kn">from</span> <span class="nn">titus.signature</span> <span class="kn">import</span> <span class="n">Sigs</span>
+<span class="kn">from</span> <span class="nn">titus.datatype</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">titus.errors</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">titus.lib1.core</span> <span class="kn">import</span> <span class="n">INT_MIN_VALUE</span>
+<span class="kn">from</span> <span class="nn">titus.lib1.core</span> <span class="kn">import</span> <span class="n">INT_MAX_VALUE</span>
+<span class="kn">from</span> <span class="nn">titus.lib1.core</span> <span class="kn">import</span> <span class="n">LONG_MIN_VALUE</span>
+<span class="kn">from</span> <span class="nn">titus.lib1.core</span> <span class="kn">import</span> <span class="n">LONG_MAX_VALUE</span>
+<span class="kn">from</span> <span class="nn">titus.lib1.core</span> <span class="kn">import</span> <span class="n">FLOAT_MIN_VALUE</span>
+<span class="kn">from</span> <span class="nn">titus.lib1.core</span> <span class="kn">import</span> <span class="n">FLOAT_MAX_VALUE</span>
+<span class="kn">from</span> <span class="nn">titus.lib1.core</span> <span class="kn">import</span> <span class="n">DOUBLE_MIN_VALUE</span>
+<span class="kn">from</span> <span class="nn">titus.lib1.core</span> <span class="kn">import</span> <span class="n">DOUBLE_MAX_VALUE</span>
+<span class="kn">import</span> <span class="nn">titus.P</span> <span class="kn">as</span> <span class="nn">P</span>
+
+<span class="n">provides</span> <span class="o">=</span> <span class="p">{}</span>
+<div class="viewcode-block" id="provide"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.provide">[docs]</a><span class="k">def</span> <span class="nf">provide</span><span class="p">(</span><span class="n">fcn</span><span class="p">):</span>
+    <span class="n">provides</span><span class="p">[</span><span class="n">fcn</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">fcn</span>
+</div>
+<span class="n">prefix</span> <span class="o">=</span> <span class="s">&quot;cast.&quot;</span>
+
+<span class="c">#################################################################### wrap-around arithmetic</span>
+
+<div class="viewcode-block" id="bitsToMax"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.bitsToMax">[docs]</a><span class="k">def</span> <span class="nf">bitsToMax</span><span class="p">(</span><span class="n">x</span><span class="p">):</span> <span class="k">return</span> <span class="mi">2</span><span class="o">**</span><span class="n">x</span>
+</div>
+<div class="viewcode-block" id="doUnsigned"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.doUnsigned">[docs]</a><span class="k">def</span> <span class="nf">doUnsigned</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bits</span><span class="p">):</span>
+    <span class="n">maximum</span> <span class="o">=</span> <span class="n">bitsToMax</span><span class="p">(</span><span class="n">bits</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="n">maximum</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">/</span> <span class="n">maximum</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="n">y</span> <span class="o">%</span> <span class="n">maximum</span>
+</div>
+<div class="viewcode-block" id="ToSigned"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.ToSigned">[docs]</a><span class="k">class</span> <span class="nc">ToSigned</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;signed&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;bits&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">bits</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">bits</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="ow">or</span> <span class="n">bits</span> <span class="o">&gt;</span> <span class="mi">64</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;unrepresentable unsigned number&quot;</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">doUnsigned</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bits</span><span class="p">)</span>
+        <span class="n">maximum</span> <span class="o">=</span> <span class="n">bitsToMax</span><span class="p">(</span><span class="n">bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">y</span> <span class="o">&gt;</span> <span class="n">maximum</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">y</span> <span class="o">-</span> <span class="mi">2</span><span class="o">*</span><span class="n">maximum</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">y</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ToSigned</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ToUnsigned"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.ToUnsigned">[docs]</a><span class="k">class</span> <span class="nc">ToUnsigned</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;unsigned&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;bits&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">())</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">bits</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">bits</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">bits</span> <span class="o">&gt;</span> <span class="mi">63</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">PFARuntimeException</span><span class="p">(</span><span class="s">&quot;unrepresentable unsigned number&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">doUnsigned</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bits</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ToUnsigned</span><span class="p">())</span>
+
+<span class="c">#################################################################### number precisions</span>
+
+<div class="viewcode-block" id="ToInt"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.ToInt">[docs]</a><span class="k">class</span> <span class="nc">ToInt</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;int&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())])</span>
+<div class="viewcode-block" id="ToInt.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.ToInt.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;int({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ToInt</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ToLong"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.ToLong">[docs]</a><span class="k">class</span> <span class="nc">ToLong</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;long&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">())])</span>
+<div class="viewcode-block" id="ToLong.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.ToLong.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;int({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ToLong</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ToFloat"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.ToFloat">[docs]</a><span class="k">class</span> <span class="nc">ToFloat</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;float&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">())])</span>
+<div class="viewcode-block" id="ToFloat.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.ToFloat.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;float({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ToFloat</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ToDouble"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.ToDouble">[docs]</a><span class="k">class</span> <span class="nc">ToDouble</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;double&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())])</span>
+<div class="viewcode-block" id="ToDouble.genpy"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.ToDouble.genpy">[docs]</a>    <span class="k">def</span> <span class="nf">genpy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s">&quot;float({0})&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">ToDouble</span><span class="p">())</span>
+
+<span class="c">#################################################################### fanouts</span>
+
+<div class="viewcode-block" id="fanoutEnum"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.fanoutEnum">[docs]</a><span class="k">def</span> <span class="nf">fanoutEnum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">symbols</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">x</span> <span class="o">==</span> <span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">symbols</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="fanoutString"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.fanoutString">[docs]</a><span class="k">def</span> <span class="nf">fanoutString</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dictionary</span><span class="p">,</span> <span class="n">outOfRange</span><span class="p">):</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="o">==</span> <span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">dictionary</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">outOfRange</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">out</span> <span class="o">+</span> <span class="p">[</span><span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dictionary</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="fanoutInt"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.fanoutInt">[docs]</a><span class="k">def</span> <span class="nf">fanoutInt</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">minimum</span><span class="p">,</span> <span class="n">maximum</span><span class="p">,</span> <span class="n">outOfRange</span><span class="p">):</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="o">==</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">minimum</span><span class="p">,</span> <span class="n">maximum</span><span class="p">)]</span>
+    <span class="k">if</span> <span class="n">outOfRange</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">out</span> <span class="o">+</span> <span class="p">[</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">minimum</span> <span class="ow">or</span> <span class="n">x</span> <span class="o">&gt;=</span> <span class="n">maximum</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">out</span>
+</div>
+<div class="viewcode-block" id="FanoutBoolean"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.FanoutBoolean">[docs]</a><span class="k">class</span> <span class="nc">FanoutBoolean</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;fanoutBoolean&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">WildEnum</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;dictionary&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">())},</span> <span class="p">{</span><span class="s">&quot;outOfRange&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;minimum&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;maximum&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;outOfRange&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">fanoutEnum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&quot;symbols&quot;</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">fanoutString</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">fanoutInt</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">FanoutBoolean</span><span class="p">())</span>
+
+<div class="viewcode-block" id="FanoutInt"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.FanoutInt">[docs]</a><span class="k">class</span> <span class="nc">FanoutInt</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;fanoutInt&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">WildEnum</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;dictionary&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">())},</span> <span class="p">{</span><span class="s">&quot;outOfRange&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;minimum&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;maximum&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;outOfRange&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mi">1</span> <span class="k">if</span> <span class="n">y</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fanoutEnum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&quot;symbols&quot;</span><span class="p">])]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mi">1</span> <span class="k">if</span> <span class="n">y</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fanoutString</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mi">1</span> <span class="k">if</span> <span class="n">y</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fanoutInt</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">FanoutInt</span><span class="p">())</span>
+
+<div class="viewcode-block" id="FanoutLong"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.FanoutLong">[docs]</a><span class="k">class</span> <span class="nc">FanoutLong</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;fanoutLong&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">WildEnum</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;dictionary&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">())},</span> <span class="p">{</span><span class="s">&quot;outOfRange&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;minimum&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;maximum&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;outOfRange&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Long</span><span class="p">()))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mi">1</span> <span class="k">if</span> <span class="n">y</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fanoutEnum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&quot;symbols&quot;</span><span class="p">])]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mi">1</span> <span class="k">if</span> <span class="n">y</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fanoutString</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mi">1</span> <span class="k">if</span> <span class="n">y</span> <span class="k">else</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fanoutInt</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">FanoutLong</span><span class="p">())</span>
+
+<div class="viewcode-block" id="FanoutFloat"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.FanoutFloat">[docs]</a><span class="k">class</span> <span class="nc">FanoutFloat</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;fanoutFloat&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">WildEnum</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;dictionary&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">())},</span> <span class="p">{</span><span class="s">&quot;outOfRange&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;minimum&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;maximum&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;outOfRange&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Float</span><span class="p">()))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">y</span> <span class="k">else</span> <span class="mf">0.0</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fanoutEnum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&quot;symbols&quot;</span><span class="p">])]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">y</span> <span class="k">else</span> <span class="mf">0.0</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fanoutString</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">y</span> <span class="k">else</span> <span class="mf">0.0</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fanoutInt</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">FanoutFloat</span><span class="p">())</span>
+
+<div class="viewcode-block" id="FanoutDouble"><a class="viewcode-back" href="../../../titus.lib1.html#titus.lib1.cast.FanoutDouble">[docs]</a><span class="k">class</span> <span class="nc">FanoutDouble</span><span class="p">(</span><span class="n">LibFcn</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s">&quot;fanoutDouble&quot;</span>
+    <span class="n">sig</span> <span class="o">=</span> <span class="n">Sigs</span><span class="p">([</span><span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">WildEnum</span><span class="p">(</span><span class="s">&quot;A&quot;</span><span class="p">)}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;dictionary&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">String</span><span class="p">())},</span> <span class="p">{</span><span class="s">&quot;outOfRange&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">())),</span>
+                <span class="n">Sig</span><span class="p">([{</span><span class="s">&quot;x&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;minimum&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;maximum&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Int</span><span class="p">()},</span> <span class="p">{</span><span class="s">&quot;outOfRange&quot;</span><span class="p">:</span> <span class="n">P</span><span class="o">.</span><span class="n">Boolean</span><span class="p">()}],</span> <span class="n">P</span><span class="o">.</span><span class="n">Array</span><span class="p">(</span><span class="n">P</span><span class="o">.</span><span class="n">Double</span><span class="p">()))])</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">scope</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">y</span> <span class="k">else</span> <span class="mf">0.0</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fanoutEnum</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">paramTypes</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s">&quot;symbols&quot;</span><span class="p">])]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">y</span> <span class="k">else</span> <span class="mf">0.0</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fanoutString</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">])]</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[</span><span class="mf">1.0</span> <span class="k">if</span> <span class="n">y</span> <span class="k">else</span> <span class="mf">0.0</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">fanoutInt</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span></div>
+<span class="n">provide</span><span class="p">(</span><span class="n">FanoutDouble</span><span class="p">())</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../../index.html">Titus TRUNK documentation</a> &raquo;</li>
+          <li><a href="../../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
