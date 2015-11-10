@@ -332,4 +332,100 @@
 
   * Fixed ImportError on initialization if clib is not found (Titus).
 
+**After tag v0.6.11:**
+
+  * Added rand.histogram function to select items with a distribution (Hadrian, Titus, and PFA).
+
+  * Added model.reg.linearVariance to propagate uncertainties through a linear fit (Hadrian, Titus, and PFA).
+
+**After tag v0.7.0 (which is v0.6.12):**
+
+  * Added Antinous project, which wraps Jython in the PFAEngine interface so that Python can substitute PFA in Hadrian.  The compile order is now: hadrian-core -> antinous -> hadrian-implementations/*
+
+  * Fixed bugs in Titus's handling of externalized models (Titus).
+
+  * Fixed bug in resolving unions of multiple record types when translating data (Hadrian).
+
+  * Added Naive Bayes, Neural Nets (Hadrian, Titus, and PFA).
+
+  * Moved link functions to a new library and added a few (Hadrian, Titus, and PFA).
+
+  * Added a.ntile for arbitrary percentiles and a.logsumexp to avoid roundoff error (Hadrian, Titus, and PFA).
+
+  * New JSON output function for R that writes JSON files without building a string in memory (Aurelius).
+
+  * Added model.tree.missingWalk (Hadrian, Titus, and PFA).
+
+  * Added gbm conversion library to Aurelius.
+
+**After tag v0.7.1:**
+
+  * Fixed a bug in Java byte array --> Jython string (Antinous).
+
+  * Added CSV input and output to Hadrian products (Hadrian, Antinous, Hadrian-Standalone).
+
+  * Fixed two bugs that made Antinous KMeans converge too slowly and added KMeans results options (Antinous).
+
+  * Changed Antinous KMeans policy for too few unique points: now it creates a model with a cluster centered on every point and sets a tooFewUniquePoints() flag (Antinous).
+
+**After tag v0.7.1-1:**
+
+  * Added pfarandom script to Titus for generating PFA that makes random data for testing (Titus).
+
+  * Added docstrings for PFAEngine (Hadrian and Titus).
+
+  * Added pfasize script (Titus).
+
+  * Changed time.* signatures to accept timezone string as a parameter (Hadrian, Titus, and PFA).
+
+  * Changed default value of foreach's seq to true (Hadrian, Titus, and PFA).
+
+  * Changed EngineOptions to allow (and ignore) unrecognized options (Hadrian, Titus, and PFA).
+
+  * Added deprecation mechanism and tested with rand.uuid -> rand.uuid4 (Hadrian, Titus, and PFA).
+
+  * Renamed (moved) model.reg.residual, pull, mahalanobis, updateChi2, reducedChi2, and chi2Prob to test.* (Hadrian, Titus, and PFA).
+
+  * Added pool-del special form for removing an item from a pool (Hadrian, Titus, and PFA). Note: no PrettyPFA equivalent yet.
+
+  * Renamed "lib1" directory to "lib" in Hadrian and Titus (finally!).
+
+  * Added histogram-friendly signatures to model.naive.multinomial and model.naive.bernoulli (Hadrian, Titus, and PFA).
+
+  * Added stat.sample.fillCounter (Hadrian, Titus, and PFA).
+
+  * Added a simpler stat.change.zValue signature (Hadrian, Titus, and PFA).
+
+  * Added a.zipmap, a.zipmapWithIndex, map.zipmap, map.zipmapWithKey (Hadrian, Titus, and PFA).
+
+  * Added map.argmax* and map.argmin* (Hadrian, Titus, and PFA).
+
+  * Added cast.avro, cast.json (Hadrian, Titus, and PFA).
+
+  * Added model.tree.simpleTree (Hadrian, Titus, and PFA).
+
+  * Added interp.bin (Hadrian, Titus, and PFA).
+
+  * Added Kleene logic (Hadrian, Titus, and PFA). Want a Kleene xor?
+
+  * Added SVN library (Hadrian, Titus, and PFA).
+
+  * Added signatures to model.cluster.* that can accept a metric over strings and removed the array-based ones because the new signature is a generalization of the old, completely backward-compatible (Hadrian, Titus, and PFA).
+
+  * Added 'pfa externalize' and 'pfa internalize' commands to pfainspector (Titus).
+
+  * Added regular expression check to switch between URL and plain fileName in cell/pool init with source=json (Hadrian, Titus, and PFA).
+
+  * Extended model.reg.linear and model.reg.linearVariance to interpret map-indexed matrices as sparse to be consistent with la.* (Hadrian, Titus, and PFA).
+
+  * Pushed locator-mark derived line numbers through to library functions so that runtime errors can be annotated with source line numbers (Hadrian).
+
+  * Added integer error codes to all library runtime errors (Hadrian, Titus, and PFA).
+
+  * Added implementation-independent coverage tests for all functions in the library (PFA).
+
+  * Added interp.gaussianProcess for interpolation (Hadrian, Titus, and PFA).
+
+  * Added s.int and deprecated integer signature of s.number, so that s.number can be labeled unstable without affecting s.int (Hadrian, Titus, and PFA).
+
 **Future:**
