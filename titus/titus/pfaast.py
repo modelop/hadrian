@@ -23,35 +23,37 @@ import json
 import re
 from collections import OrderedDict
 
-import titus.lib1.array
-import titus.lib1.bytes
-import titus.lib1.cast
-import titus.lib1.core
-import titus.lib1.enum
-import titus.lib1.fixed
-import titus.lib1.impute
-import titus.lib1.interp
-import titus.lib1.la
-import titus.lib1.link
-import titus.lib1.map
-import titus.lib1.metric
-import titus.lib1.pfamath
-import titus.lib1.parse
-import titus.lib1.pfastring
-import titus.lib1.pfatest
-import titus.lib1.pfatime
-import titus.lib1.prob.dist
-import titus.lib1.regex
-import titus.lib1.rand
-import titus.lib1.spec
-import titus.lib1.stat.change
-import titus.lib1.stat.sample
-import titus.lib1.model.cluster
-import titus.lib1.model.naive
-import titus.lib1.model.neighbor
-import titus.lib1.model.neural
-import titus.lib1.model.tree
-import titus.lib1.model.reg
+import titus.lib.core
+import titus.lib.pfamath
+import titus.lib.spec
+import titus.lib.link
+import titus.lib.kernel
+import titus.lib.la
+import titus.lib.metric
+import titus.lib.rand
+import titus.lib.pfastring
+import titus.lib.regex
+import titus.lib.parse
+import titus.lib.cast
+import titus.lib.array
+import titus.lib.map
+import titus.lib.bytes
+import titus.lib.fixed
+import titus.lib.enum
+import titus.lib.pfatime
+import titus.lib.impute
+import titus.lib.interp
+import titus.lib.prob.dist
+import titus.lib.stat.pfatest
+import titus.lib.stat.sample
+import titus.lib.stat.change
+import titus.lib.model.reg
+import titus.lib.model.tree
+import titus.lib.model.cluster
+import titus.lib.model.neighbor
+import titus.lib.model.naive
+import titus.lib.model.neural
+import titus.lib.model.svm
 
 import titus.P as P
 import titus.util
@@ -61,13 +63,30 @@ from titus.fcn import Fcn
 from titus.signature import IncompatibleTypes
 from titus.signature import LabelData
 from titus.signature import Sig
+from titus.signature import PFAVersion
 from titus.datatype import *
 import titus.options
 from titus.util import ts
 
 ############################################################ utils
 
-def inferType(expr, symbols=None, cells=None, pools=None, fcns=None):
+def inferType(expr, symbols=None, cells=None, pools=None, fcns=None, version=PFAVersion(0, 0, 0)):
+    """Utility function to infer the type of a given expression.
+
+    :type expr: titus.pfaast.Expression
+    :param expr: expression to examine
+    :type symbols: dict from symbol name to titus.datatype.AvroType
+    :param symbols: data types of variables used in the expression
+    :type cells: dict from cell name to titus.datatype.AvroType
+    :param cells: data types of cells used in the expression
+    :type pools: dict from pool name to titus.datatype.AvroType
+    :param pools: data types of pools used in the expression
+    :type fcns: dict from function name to titus.fcn.Fcn
+    :param fcns: functions used in the expression
+    :rtype: titus.datatype.AvroType
+    :return: data type of the expression's return value
+    """
+
     if symbols is None:
         symbols = {}
     if cells is None:
@@ -81,16 +100,38 @@ def inferType(expr, symbols=None, cells=None, pools=None, fcns=None):
     functionTable = FunctionTable.blank()
     functionTable.functions.update(fcns)
 
-    context, result = expr.walk(NoTask(), symbolTable, functionTable, titus.options.EngineOptions(None, None))
+    context, result = expr.walk(NoTask(), symbolTable, functionTable, titus.options.EngineOptions(None, None), version)
     return context.retType
 
 ############################################################ symbols
 
 def validSymbolName(test):
+    """Determine if a symbol name is valid.
+
+    :type test: string
+    :param test: symbol (variable) name to check
+    :rtype: bool
+    :return: ``True`` if valid; ``False`` otherwise
+    """
     return re.match("^[A-Za-z_][A-Za-z0-9_]*$", test) is not None
 
 class SymbolTable(object):
+    """Represents the symbols (variables) and their data types in a lexical scope."""
+
     def __init__(self, parent, symbols, cells, pools, sealedAbove, sealedWithin):
+        """:type parent: titus.pfaast.SymbolTable or ``None``
+        :param parent: enclosing scope; symbol lookup defers to the parent scope if not found here
+        :type symbols: dict from symbol name to titus.datatype.AvroType
+        :param symbols: initial symbol names and their types
+        :type cells: dict from cell name to titus.datatype.AvroType
+        :param cells: initial cell names and their types
+        :type pools: dict from pool name to titus.datatype.AvroType
+        :param pools: initial pool names and their types
+        :type sealedAbove: bool
+        :param sealedAbove: if ``True``, symbols in the parent scope cannot be modified (but can be accessed); if ``False``, this scope does not restrict access (but a parent might)
+        :type sealedWithin: bool
+        :param sealedWithin: if ``True``, new symbols cannot be created in this scope
+        """
         self.parent = parent
         self.symbols = symbols
         self.cells = cells
@@ -99,18 +140,39 @@ class SymbolTable(object):
         self.sealedWithin = sealedWithin
 
     def getLocal(self, name):
+        """Get a symbol's type specifically from *this* scope.
+
+        :type name: string
+        :param name: name of the symbol
+        :rtype: titus.datatype.AvroType or ``None``
+        :return: the symbol's type if defined in *this* scope, ``None`` otherwise
+        """
         if name in self.symbols:
             return self.symbols[name]
         else:
             return None
 
     def getAbove(self, name):
+        """Get a symbol's type specifically from a *parent's* scope, not this one.
+
+        :type name: string
+        :param name: name of the symbol
+        :rtype: titus.datatype.AvroType or ``None``
+        :return: the symbol's type if defined in a *parent's* scope, ``None`` otherwise
+        """
         if self.parent is None:
             return None
         else:
             return self.parent.get(name)
 
     def get(self, name):
+        """Get a symbol's type from this scope or a parent's.
+
+        :type name: string
+        :param name: name of the symbol
+        :rtype: titus.datatype.AvroType or ``None``
+        :return: the symbol's type if defined, ``None`` otherwise
+        """
         out = self.getLocal(name)
         if out is None:
             return self.getAbove(name)
@@ -118,6 +180,13 @@ class SymbolTable(object):
             return out
 
     def __call__(self, name):
+        """Get a symbol's type from this scope or a parent's and raise a ``KeyError`` if not defined
+
+        :type name: string
+        :param name: name of the symbol
+        :rtype: titus.datatype.AvroType
+        :return: the symbol's type if defined, raise a ``KeyError`` otherwise
+        """
         out = self.get(name)
         if out is None:
             raise KeyError("no symbol named \"{0}\"".format(name))
@@ -125,6 +194,13 @@ class SymbolTable(object):
             return out
 
     def writable(self, name):
+        """Determine if a symbol can be modified in this scope.
+
+        :type name: string
+        :param name: name of the symbol
+        :rtype: bool
+        :return: ``True`` if the symbol can be modified; ``False`` otherwise
+        """
         if self.sealedWithin:
             return False
         else:
@@ -140,9 +216,25 @@ class SymbolTable(object):
                         return self.parent.writable(name)
 
     def put(self, name, avroType):
+        """Create or overwrite a symbol's type in the table.
+
+        :type name: string
+        :param name: name of the symbol
+        :type avroType: titus.datatype.AvroType
+        :param avroType: the data type to associate with this symbol
+        :rtype: ``None``
+        :return: nothing; changes table in-place
+        """
         self.symbols[name] = avroType
 
     def cell(self, name):
+        """Get a cell's type from this scope or a parent's.
+
+        :type name: string
+        :param name: name of the cell
+        :rtype: titus.datatype.AvroType or ``None``
+        :return: the cell's type if defined, ``None`` otherwise
+        """
         if name in self.cells:
             return self.cells[name]
         elif self.parent is not None:
@@ -151,6 +243,13 @@ class SymbolTable(object):
             return None
 
     def pool(self, name):
+        """Get a pool's type from this scope or a parent's.
+
+        :type name: string
+        :param name: name of the pool
+        :rtype: titus.datatype.AvroType or ``None``
+        :return: the pool's type if defined, ``None`` otherwise
+        """
         if name in self.pools:
             return self.pools[name]
         elif self.parent is not None:
@@ -159,14 +258,33 @@ class SymbolTable(object):
             return None
         
     def newScope(self, sealedAbove, sealedWithin):
+        """Create a new scope with this as parent.
+
+        :type sealedAbove: bool
+        :param sealedAbove: if ``True``, symbols in the parent scope cannot be modified (but can be accessed); if ``False``, this scope does not restrict access (but a parent might)
+        :type sealedWithin: bool
+        :param sealedWithin: if ``True``, new symbols cannot be created in this scope
+        :rtype: titus.pfaast.SymbolTable
+        :return: a new scope, linked to this one
+        """
         return SymbolTable(self, {}, {}, {}, sealedAbove, sealedWithin)
 
     @property
     def inThisScope(self):
+        """All symbols (and their types) that are defined in this scope (*not* in any parents).
+
+        :rtype: dict from symbol name to titus.datatype.AvroType
+        :return: symbols and their types
+        """
         return self.symbols
 
     @property
     def allInScope(self):
+        """All symbols (and their types) that are defined in this scope and all parents.
+
+        :rtype: dict from symbol name to titus.datatype.AvroType
+        :return: symbols and their types
+        """
         if self.parent is None:
             out = {}
         else:
@@ -177,106 +295,212 @@ class SymbolTable(object):
 
     @staticmethod
     def blank():
+        """Create a blank symbol table.
+
+        :rtype: titus.pfaast.SymbolTable
+        :return: a symbol table containing nothing
+        """
         SymbolTable(None, {}, {}, {}, True, False)
 
 ############################################################ functions
 
 def validFunctionName(test):
+    """Determine if a function name is valid.
+
+    :type test: string
+    :param test: function name to check
+    :rtype: bool
+    :return: ``True`` if valid; ``False`` otherwise
+    """
     return re.match("^[A-Za-z_]([A-Za-z0-9_]|\\.[A-Za-z][A-Za-z0-9_]*)*$", test) is not None
 
 class UserFcn(Fcn):
+    """Represents a user-defined function."""
     def __init__(self, name, sig):
+        """:type name: string
+        :param name: name of the function
+        :type sig: titus.signature.Sig
+        :param sig: function signature (note that titus.signature.Sigs is not allowed for user-defined functions)
+        """
         self.name = name
         self.sig = sig
 
-    def genpy(self, paramTypes, args):
+    def genpy(self, paramTypes, args, pos=None):
+        """Generate an executable Python string for this function; usually ```call(state, DynamicScope(None), self.f["function name"], {arguments...})```."""
         parNames = [x.keys()[0] for x in self.sig.params]
         return "call(state, DynamicScope(None), self.f[" + repr(self.name) + "], {" + ", ".join([repr(k) + ": " + v for k, v in zip(parNames, args)]) + "})"
 
     @staticmethod
     def fromFcnDef(n, fcnDef):
+        """Create an executable function object from an abstract syntax tree of a function definition.
+
+        :type n: string
+        :param n: name of the new function
+        :type fcnDef: titus.pfaast.FcnDef
+        :param fcnDef: the abstract syntax tree function definition
+        :rtype: titus.pfaast.UserFcn
+        :return: the executable function
+        """
         return UserFcn(n, Sig([{t.keys()[0]: P.fromType(t.values()[0])} for t in fcnDef.params], P.fromType(fcnDef.ret)))
 
 class EmitFcn(Fcn):
+    """The special ``emit`` function."""
+
     def __init__(self, outputType):
+        """:type outputType: titus.datatype.AvroType
+        :param outputType: output type of the PFA document, which is also the signature of the ``emit`` function
+        """
         self.sig = Sig([{"output": P.fromType(outputType)}], P.Null())
 
-    def genpy(self, paramTypes, args):
+    def genpy(self, paramTypes, args, pos=None):
+        """Generate an executable Python string for this function; usually ``self.f["emit"].engine.emit(argument)``."""
         return "self.f[\"emit\"].engine.emit(" + args[0] + ")"
 
 class FunctionTable(object):
+    """Represents a table of all accessible PFA function names, such as library functions, user-defined functions, and possibly emit."""
+
     def __init__(self, functions):
+        """:type functions: dict from function name to titus.fcn.Fcn
+        :param functions: function lookup table
+        """
         self.functions = functions
 
     @staticmethod
     def blank():
-        functions = {}
-        functions.update(titus.lib1.array.provides)
-        functions.update(titus.lib1.bytes.provides)
-        functions.update(titus.lib1.cast.provides)
-        functions.update(titus.lib1.core.provides)
-        functions.update(titus.lib1.enum.provides)
-        functions.update(titus.lib1.fixed.provides)
-        functions.update(titus.lib1.impute.provides)
-        functions.update(titus.lib1.interp.provides)
-        functions.update(titus.lib1.la.provides)
-        functions.update(titus.lib1.link.provides)
-        functions.update(titus.lib1.map.provides)
-        functions.update(titus.lib1.metric.provides)
-        functions.update(titus.lib1.pfamath.provides)
-        functions.update(titus.lib1.parse.provides)
-        functions.update(titus.lib1.prob.dist.provides)
-        functions.update(titus.lib1.pfastring.provides)
-        functions.update(titus.lib1.rand.provides)
-        functions.update(titus.lib1.regex.provides)
-        functions.update(titus.lib1.spec.provides)
-        functions.update(titus.lib1.stat.change.provides)
-        functions.update(titus.lib1.stat.sample.provides)
-        functions.update(titus.lib1.pfatest.provides)
-        functions.update(titus.lib1.pfatime.provides)
-        functions.update(titus.lib1.model.tree.provides)
-        functions.update(titus.lib1.model.cluster.provides)
-        functions.update(titus.lib1.model.naive.provides)
-        functions.update(titus.lib1.model.neighbor.provides)
-        functions.update(titus.lib1.model.neural.provides)
-        functions.update(titus.lib1.model.reg.provides)
+        """Create a function table containing nothing but library functions.
 
-        # TODO: functions.update(titus.lib1.other.provides)...
+        This is where all the PFA library modules are enumerated.
+        """
+
+        functions = {}
+        functions.update(titus.lib.core.provides)
+        functions.update(titus.lib.pfamath.provides)
+        functions.update(titus.lib.spec.provides)
+        functions.update(titus.lib.link.provides)
+        functions.update(titus.lib.kernel.provides)
+        functions.update(titus.lib.la.provides)
+        functions.update(titus.lib.metric.provides)
+        functions.update(titus.lib.rand.provides)
+        functions.update(titus.lib.pfastring.provides)
+        functions.update(titus.lib.regex.provides)
+        functions.update(titus.lib.parse.provides)
+        functions.update(titus.lib.cast.provides)
+        functions.update(titus.lib.array.provides)
+        functions.update(titus.lib.map.provides)
+        functions.update(titus.lib.bytes.provides)
+        functions.update(titus.lib.fixed.provides)
+        functions.update(titus.lib.enum.provides)
+        functions.update(titus.lib.pfatime.provides)
+        functions.update(titus.lib.impute.provides)
+        functions.update(titus.lib.interp.provides)
+        functions.update(titus.lib.prob.dist.provides)
+        functions.update(titus.lib.stat.pfatest.provides)
+        functions.update(titus.lib.stat.sample.provides)
+        functions.update(titus.lib.stat.change.provides)
+        functions.update(titus.lib.model.reg.provides)
+        functions.update(titus.lib.model.tree.provides)
+        functions.update(titus.lib.model.cluster.provides)
+        functions.update(titus.lib.model.neighbor.provides)
+        functions.update(titus.lib.model.naive.provides)
+        functions.update(titus.lib.model.neural.provides)
+        functions.update(titus.lib.model.svm.provides)
+
+        # TODO: functions.update(titus.lib.other.provides)...
 
         return FunctionTable(functions)
 
 ############################################################ type-checking and transforming ASTs
 
-class AstContext(object): pass
+class AstContext(object):
+    """Trait for titus.pfaast.Ast context classes."""
+    pass
+
 class ArgumentContext(AstContext):
+    """Subtrait for context classes of titus.pfaast.Argument."""
     def calls(self):
         raise NotImplementedError
+
 class ExpressionContext(ArgumentContext):
+    """Subtrait for context classes of titus.pfaast.Expression."""
     def retType(self):
         raise NotImplementedError
+
 class FcnContext(ArgumentContext):
+    """Subtrait for context classes of titus.pfaast.FcnDef."""
     def fcnType(self):
         raise NotImplementedError
-class TaskResult(object): pass
+
+class TaskResult(object):
+    """Trait for result of a generic task, passed to titus.pfaast.Ast ``walk``."""
+    pass
 
 class Task(object):
+    """Trait for a generic task, passed to titus.pfaast.Ast ``walk``."""
     def __call__(self, astContext, engineOptions, resoledType=None):
+        """Perform a task from context generated by a titus.pfaast.Ast ``walk``.
+
+        :type astContext: titus.pfaast.AstContext
+        :param astContext: data about the titus.pfaast.Ast node after type-checking
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type resolvedType: titus.datatype.AvroType or ``None``
+        :param resolvedType: ?
+        :rtype: titus.pfaast.TaskResult
+        :return: the result of this task
+        """
         raise NotImplementedError
 
 class NoTask(Task):
-    class EmptyResult(TaskResult): pass
+    """Concrete titus.pfaast.Task that does nothing, used for type-checking without producing an engine."""
+
+    class EmptyResult(TaskResult):
+        """Concrete titus.pfaast.TaskResult that contains no result."""
+        pass
+
     def __call__(self, astContext, engineOptions, resolvedType=None):
+        """Do nothing.
+
+        :type astContext: titus.pfaast.AstContext
+        :param astContext: data about the titus.pfaast.Ast node after type-checking
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type resolvedType: titus.datatype.AvroType or ``None``
+        :param resolvedType: ?
+        :rtype: titus.pfaast.NoTask.EmptyResult
+        :return: empty result object
+        """
         return self.EmptyResult()
 
-def check(engineConfig):
+def check(engineConfig, version):
+    """Check a PFA abstract syntax tree for semantic errors using a titus.pfaast.NoTask to avoid unnecessary work.
+
+    Raises an exception if the document is not valid.
+
+    :type engineConfig: titus.pfaast.EngineConfig
+    :param engineConfig: abstract syntax tree for a complete PFA document
+    :type version: titus.signature.PFAVersion
+    :param version: PFA version in which to interpret the document
+    :rtype: ``None``
+    :return: nothing if the PFA document is valid; raises an exception otherwise
+    """
     engineConfig.walk(NoTask(),
                       SymbolTable.blank(),
                       FunctionTable.blank(),
-                      titus.options.EngineOptions(engineConfig.options, None))
+                      titus.options.EngineOptions(engineConfig.options, None),
+                      version)
 
-def isValid(engineConfig):
+def isValid(engineConfig, version):
+    """Check a PFA abstract syntax tree for semantic errors using a titus.pfaast.NoTask to avoid unnecessary work.
+
+    :type engineConfig: titus.pfaast.EngineConfig
+    :param engineConfig: abstract syntax tree for a complete PFA document
+    :type version: titus.signature.PFAVersion
+    :param version: PFA version in which to interpret the document
+    :rtype: bool
+    :return: ``True`` if the PFA document is valid; ``False`` otherwise
+    """
     try:
-        check(engineConfig)
+        check(engineConfig, version)
     except (PFASyntaxException, PFASemanticException, PFAInitializationException):
         return False
     else:
@@ -285,38 +509,119 @@ def isValid(engineConfig):
 ############################################################ AST nodes
 
 class Ast(object):
+    """Abstract base class for a PFA abstract syntax tree."""
+
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         if pf.isDefinedAt(self):
             return [pf(self)]
         else:
             return []
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
             return self
 
-    def walk(self, task, symbolTable=None, functionTable=None, engineOptions=None):
-        if symbolTable is None and functionTable is None and engineOptions is None:
-            self.walk(task, SymbolTable.blank(), FunctionTable.blank(), titus.options.EngineOptions(None, None))
-        else:
-            raise NotImplementedError
+    def walk(self, task, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: task to perform
+        :type version: titus.signature.PFAVersion
+        :param version: PFA language version in which to interpret this PFA
+        """
+        self.walk(task, SymbolTable.blank(), FunctionTable.blank(), titus.options.EngineOptions(None, None), version)
+
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
+        raise NotImplementedError
 
     def toJson(self, lineNumbers=True):
+        """Serialize this abstract syntax tree as a JSON string.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks at the beginning of each JSON object
+        :rtype: string
+        :return: JSON string
+        """
         return json.dumps(self.jsonNode(lineNumbers, set()))
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         raise NotImplementedError
 
     def startDict(self, lineNumbers):
+        """Helper function to build a Pythonized JSON object.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include the locator mark
+        :rtype: ``OrderedDict``
+        :return: an empty Pythonized JSON object or one containing only the locator mark
+        """
         if lineNumbers and self.pos is not None:
             return OrderedDict({"@": self.pos})
         else:
             return OrderedDict()
 
 class Subs(Ast):
+    """Represents an unresolved substitution in the abstract syntax tree.
+
+    PrettyPFA can make substitutions with ``<<French quotes>>``.
+
+    A PFA document is not valid if it contains any unresolved substitutions.
+    """
+
     def __init__(self, name, lineno=None):
+        """:type name: string
+        :param name: key for substitution
+        :type lineno: integer or ``None``
+        :param lineno: line number
+        """
         self.name = name
         self.pos = "Substitution at line " + str(lineno)
         self.lineno = lineno
@@ -325,32 +630,39 @@ class Subs(Ast):
         self.context = None
 
     def asExpr(self, state):
+        """Mini-AST method for representing as an expression."""
         self.context = "expr"
         return self
 
     def asType(self, state):
+        """Mini-AST method for representing as a type."""
         self.context = "type"
         return self
 
-    def walk(self, task, symbolTable=None, functionTable=None, engineOptions=None):
+    def walk(self, task, version):
+        """Raises a syntax exception because unresolved substitutions are not allowed in valid PFA."""
         raise PFASyntaxException("Unresolved substitution \"{0}\"".format(self.name), self.pos)
 
     def toJson(self, lineNumbers=True):
+        """Raises a syntax exception because unresolved substitutions are not allowed in valid PFA."""
         raise PFASyntaxException("Unresolved substitution \"{0}\"".format(self.name), self.pos)
 
     def jsonNode(self, lineNumbers, memo):
+        """Inserts ``self`` into the Pythonized JSON, which would make it unserializable."""
         return self
 
     def __repr__(self):
         return "<<" + self.name + ">>"
         
 class Method(object):
+    """PFA execution method may be "map", "emit", or "fold"."""
     MAP = "map"
     EMIT = "emit"
     FOLD = "fold"
 
 @titus.util.case
 class EngineConfig(Ast):
+    """Abstract syntax tree for a whole PFA document."""
     def __init__(self,
                  name,
                  method,
@@ -370,6 +682,43 @@ class EngineConfig(Ast):
                  metadata,
                  options,
                  pos=None):
+        """:type name: string
+        :param name: name of the PFA engine (may be auto-generated)
+        :type method: titus.pfaast.Method string
+        :param method: execution method ("map", "emit", or "fold")
+        :type inputPlaceholder: titus.datatype.AvroPlaceholder
+        :param inputPlaceholder: input type as a placeholder (so it can exist before type resolution)
+        :type outputPlaceholder: titus.datatype.AvroPlaceholder
+        :param outputPlaceholder: output type as a placeholder (so it can exist before type resolution)
+        :type begin: list of titus.pfaast.Expression
+        :param begin: ``begin`` algorithm
+        :type action: list of titus.pfaast.Expression
+        :param action: ``action`` algorithm
+        :type end: list of titus.pfaast.Expression
+        :param end: ``end`` algorithm
+        :type fcns: dict of titus.pfaast.FcnDef
+        :param fcns: user-defined functions
+        :type zero: string or ``None``
+        :param zero: initial value for "fold" ``tally``
+        :type merge: list of titus.pfaast.Expression or ``None``
+        :param merge: ``merge`` algorithm for "fold"
+        :type cells: dict of titus.pfaast.Cell
+        :param cells: ``cell`` definitions
+        :type pools: dict of titus.pfaast.Pool
+        :param pools: ``pool`` definitions
+        :type randseed: integer or ``None``
+        :param randseed: random number seed
+        :type doc: string or ``None``
+        :param doc: optional documentation string
+        :type version: integer or ``None``
+        :param version: optional version number
+        :type metadata: dict of string
+        :param metadata: computer-readable documentation
+        :type options: dict of Pythonized JSON
+        :param options: implementation options
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
 
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
@@ -474,13 +823,24 @@ class EngineConfig(Ast):
 
     @property
     def input(self):
+        """Input type after type resolution (titus.datatype.AvroType)."""
         return self.inputPlaceholder.avroType
 
     @property
     def output(self):
+        """Output type after type resolution (titus.datatype.AvroType)."""
         return self.outputPlaceholder.avroType
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(EngineConfig, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.begin) + \
                titus.util.flatten(x.collect(pf) for x in self.action) + \
@@ -490,6 +850,15 @@ class EngineConfig(Ast):
                titus.util.flatten(x.collect(pf) for x in self.pools.values())
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -512,7 +881,24 @@ class EngineConfig(Ast):
                                 self.options,
                                 self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, pfaVersion):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         topWrapper = SymbolTable(symbolTable, {}, self.cells, self.pools, True, False)
 
         userFunctions = {}
@@ -533,7 +919,7 @@ class EngineConfig(Ast):
         for fname, fcnDef in self.fcns.items():
             ufname = "u." + fname
             scope = topWrapper.newScope(True, False)
-            fcnContext, fcnResult = fcnDef.walk(task, scope, withUserFunctions, engineOptions)
+            fcnContext, fcnResult = fcnDef.walk(task, scope, withUserFunctions, engineOptions, pfaVersion)
             userFcnContexts.append((ufname, fcnContext))
 
         beginScopeWrapper = topWrapper.newScope(True, False)
@@ -544,7 +930,7 @@ class EngineConfig(Ast):
         beginScopeWrapper.put("metadata", AvroMap(AvroString()))
         beginScope = beginScopeWrapper.newScope(True, False)
 
-        beginContextResults = [x.walk(task, beginScope, withUserFunctions, engineOptions) for x in self.begin]
+        beginContextResults = [x.walk(task, beginScope, withUserFunctions, engineOptions, pfaVersion) for x in self.begin]
         beginResults = [x[1] for x in beginContextResults]
         beginCalls = set(titus.util.flatten([x[0].calls for x in beginContextResults]))
 
@@ -559,7 +945,7 @@ class EngineConfig(Ast):
             mergeScopeWrapper.put("metadata", AvroMap(AvroString()))
             mergeScope = mergeScopeWrapper.newScope(True, False)
 
-            mergeContextResults = [x.walk(task, mergeScope, withUserFunctions, engineOptions) for x in self.merge]
+            mergeContextResults = [x.walk(task, mergeScope, withUserFunctions, engineOptions, pfaVersion) for x in self.merge]
             mergeCalls = set(titus.util.flatten([x[0].calls for x in mergeContextResults]))
 
             if not self.output.accepts(mergeContextResults[-1][0].retType):
@@ -585,7 +971,7 @@ class EngineConfig(Ast):
         endScopeWrapper.put("actionsFinished", AvroLong())
         endScope = endScopeWrapper.newScope(True, False)
 
-        endContextResults = [x.walk(task, endScope, withUserFunctions, engineOptions) for x in self.end]
+        endContextResults = [x.walk(task, endScope, withUserFunctions, engineOptions, pfaVersion) for x in self.end]
         endResults = [x[1] for x in endContextResults]
         endCalls = set(titus.util.flatten([x[0].calls for x in endContextResults]))
 
@@ -600,7 +986,7 @@ class EngineConfig(Ast):
         actionScopeWrapper.put("actionsFinished", AvroLong())
         actionScope = actionScopeWrapper.newScope(True, False)
 
-        actionContextResults = [x.walk(task, actionScope, withUserFunctions, engineOptions) for x in self.action]
+        actionContextResults = [x.walk(task, actionScope, withUserFunctions, engineOptions, pfaVersion) for x in self.action]
         actionCalls = set(titus.util.flatten([x[0].calls for x in actionContextResults]))
 
         if self.method == Method.MAP or self.method == Method.FOLD:
@@ -636,6 +1022,15 @@ class EngineConfig(Ast):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["name"] = self.name
         out["input"] = self.inputPlaceholder.jsonNode(memo)
@@ -706,13 +1101,30 @@ class EngineConfig(Ast):
                      parser): pass
 
 class CellPoolSource(object):
+    """Source methods for cells and pools."""
     EMBEDDED = "embedded"
     JSON = "json"
     AVRO = "avro"
 
 @titus.util.case
 class Cell(Ast):
+    """Abstract syntax tree for a ``cell`` definition."""
+
     def __init__(self, avroPlaceholder, init, shared, rollback, source, pos=None):
+        """:type avroPlaceholder: titus.datatype.AvroPlaceholder
+        :param avroPlaceholder: cell type as a placeholder (so it can exist before type resolution)
+        :type init: string or callable
+        :param init: serialized JSON string containing initial data or a function that produces it (from an external file, usually)
+        :type shared: bool
+        :param shared: if ``True``, this cell shares data with all others in the same titus.genpy.SharedState
+        :type rollback: bool
+        :param rollback: if ``True``, this cell rolls back its value when it encounters an exception
+        :type source: titus.pfaast.CellPoolSource string
+        :param source: value of cell's ``source`` field
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -744,7 +1156,24 @@ class Cell(Ast):
     def avroType(self):
         return self.avroPlaceholder.avroType
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         context = self.Context()
         return context, task(context, engineOptions)
 
@@ -756,6 +1185,15 @@ class Cell(Ast):
             return json.loads(self.init)
         
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["type"] = self.avroPlaceholder.jsonNode(memo)
         out["init"] = self.initJsonNode
@@ -771,7 +1209,22 @@ class Cell(Ast):
 
 @titus.util.case
 class Pool(Ast):
+    """Abstract syntax tree for a ``pool`` definition."""
+
     def __init__(self, avroPlaceholder, init, shared, rollback, source, pos=None):
+        """:type avroPlaceholder: titus.datatype.AvroPlaceholder
+        :param avroPlaceholder: pool type as a placeholder (so it can exist before type resolution)
+        :type init: string or callable
+        :param init: serialized JSON string containing initial data or a function that produces it (from an external file, usually)
+        :type shared: bool
+        :param shared: if ``True``, this pool shares data with all others in the same titus.genpy.SharedState
+        :type rollback: bool
+        :param rollback: if ``True``, this pool rolls back its value when it encounters an exception
+        :type source: titus.pfaast.CellPoolSource string
+        :param source: value of pool's ``source`` field
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -803,7 +1256,24 @@ class Pool(Ast):
     def avroType(self):
         return self.avroPlaceholder.avroType
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         context = self.Context()
         return context, task(context, engineOptions)
 
@@ -815,6 +1285,15 @@ class Pool(Ast):
             return OrderedDict((k, json.loads(v)) for k, v in self.init.items())
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["type"] = self.avroPlaceholder.jsonNode(memo)
         out["init"] = self.initJsonNode
@@ -828,30 +1307,66 @@ class Pool(Ast):
     class Context(AstContext):
         def __init__(self): pass
 
-class Argument(Ast): pass
-class Expression(Argument): pass
-class LiteralValue(Expression): pass
+class Argument(Ast):
+    """Trait for all function arguments, which can be expressions or function references."""
+    pass
 
-class PathIndex(object): pass
+class Expression(Argument):
+    """Trait for all PFA expressions, which resolve to Avro-typed values."""
+    pass
+
+class LiteralValue(Expression):
+    """Trait for all PFA literal values, which are known constants at compile-time."""
+    pass
+
+class PathIndex(object):
+    """Trait for path index elements, which can be used in ``attr``, ``cell``, and ``pool`` ``path`` arrays."""
+    pass
+
 @titus.util.case
 class ArrayIndex(PathIndex):
+    """Array indexes, which are concrete titus.pfaast.PathIndex elements that dereference arrays (expressions of ``int`` type)."""
     def __init__(self, i, t): pass
+
 @titus.util.case
 class MapIndex(PathIndex):
+    """Map indexes, which are concrete titus.pfaast.PathIndex elements that dereference maps (expressions of ``string`` type)."""
     def __init__(self, k, t): pass
+
 @titus.util.case
 class RecordIndex(PathIndex):
+    """Record indexes, which are concrete titus.pfaast.PathIndex elements that dereference records (literal ``string`` expressions)."""
     def __init__(self, f, t): pass
 
 class HasPath(object):
-    def walkPath(self, avroType, task, symbolTable, functionTable, engineOptions):
+    """Mixin for titus.pfaast.Ast classes that have paths (``attr``, ``cell``, ``pool``)."""
+
+    def walkPath(self, avroType, task, symbolTable, functionTable, engineOptions, version):
+        """Dereference a ``path``, checking all types along the way.
+
+        :type avroType: titus.datatype.AvroType
+        :param avroType: data type of the base expression or cell/pool
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on each expression in the path
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.datatype.AvroType, set of strings, list of titus.pfaast.PathIndex)
+        :return: (type of dereferenced object, functions called, path indexes)
+        """
+
         calls = set()
         scope = symbolTable.newScope(True, True)
         walkingType = avroType
 
         pathIndexes = []
         for indexIndex, expr in enumerate(self.path):
-            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions)
+            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions, version)
             calls = calls.union(exprContext.calls)
             
             if isinstance(walkingType, AvroArray):
@@ -893,7 +1408,18 @@ class HasPath(object):
 
 @titus.util.case
 class FcnDef(Argument):
+    """Abstract syntax tree for a function definition."""
+
     def __init__(self, paramsPlaceholder, retPlaceholder, body, pos=None):
+        """:type paramsPlaceholder: list of {string: titus.datatype.AvroPlaceholder} singletons
+        :param paramsPlaceholder: function parameter types as placeholders (so they can exist before type resolution)
+        :type retPlaceholder: titus.datatype.AvroPlaceholder
+        :param retPlaceholder: return type as a placeholder (so it can exist before type resolution)
+        :type body: list of titus.pfaast.Expression
+        :param body: expressions to evaluate
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -911,25 +1437,47 @@ class FcnDef(Argument):
 
     @property
     def paramNames(self):
+        """Names of the parameters (list of strings)."""
         return [t.keys()[0] for t in self.paramsPlaceholder]
 
     @property
     def params(self):
+        """Resolved parameter types (list of {string: titus.datatype.AvroType} singletons)."""
         return [{t.keys()[0]: t.values()[0].avroType} for t in self.paramsPlaceholder]
 
     @property
     def paramsDict(self):
+        """Resolved parameter types as an unordered dictionary (dict of titus.datatype.AvroType)."""
         return dict((t.keys()[0], t.values()[0].avroType) for t in self.paramsPlaceholder)
 
     @property
     def ret(self):
+        """Resolved return type (titus.datatype.AvroType)."""
         return self.retPlaceholder.avroType
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(FcnDef, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -938,7 +1486,24 @@ class FcnDef(Argument):
                           [x.replace(pf) for x in self.body],
                           self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         if len(self.paramsPlaceholder) > 22:
             raise PFASemanticException("function can have at most 22 parameters", self.pos)
 
@@ -948,7 +1513,7 @@ class FcnDef(Argument):
                 raise PFASemanticException("\"{0}\" is not a valid parameter name".format(name), self.pos)
             scope.put(name, avroType)
 
-        results = [x.walk(task, scope, functionTable, engineOptions) for x in self.body]
+        results = [x.walk(task, scope, functionTable, engineOptions, version) for x in self.body]
 
         inferredRetType = results[-1][0].retType
         if not isinstance(inferredRetType, ExceptionType) and not self.ret.accepts(inferredRetType):
@@ -958,6 +1523,15 @@ class FcnDef(Argument):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["params"] = [{x.keys()[0]: x.values()[0].jsonNode(memo)} for x in self.paramsPlaceholder]
         out["ret"] = self.retPlaceholder.jsonNode(memo)
@@ -970,31 +1544,73 @@ class FcnDef(Argument):
 
 @titus.util.case
 class FcnRef(Argument):
+    """Abstract syntax tree for a function reference."""
+
     def __init__(self, name, pos=None):
+        """:type name: string
+        :param name: name of the function to reference
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(name, basestring):
             raise PFASyntaxException("\"name\" must be a string", pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         fcn = functionTable.functions.get(self.name, None)
         if fcn is None:
             raise PFASemanticException("unknown function \"{0}\" (be sure to include \"u.\" to reference user functions)".format(self.name), self.pos)
 
+        fcnsig = None
+        if isinstance(fcn.sig, Sig) and (fcn.sig.lifespan.current(version) or fcn.sig.lifespan.deprecated(version)):
+            fcnsig = fcn.sig
+        elif isinstance(fcn.sig, Sigs):
+            fcnsigs = [x for x in fcn.sig.cases if x.lifespan.current(version) or x.lifespan.deprecated(version)]
+            if len(fcnsigs) == 1:
+                fcnsig = fcnsigs[0]
+        if fcnsig is None:
+            raise PFASemanticException("only one-signature functions without generics can be referenced (wrap \"{0}\" in a function definition with the desired signature)".format(self.name), self.pos)
+        fcn.deprecationWarning(fcnsig, version)
+
         try:
-            if isinstance(fcn.sig, Sig):
-                params, ret = fcn.sig.params, fcn.sig.ret
-                fcnType = FcnType([P.toType(p.values()[0]) for p in params], P.mustBeAvro(P.toType(ret)))
-            else:
-                raise IncompatibleTypes()
+            params, ret = fcnsig.params, fcnsig.ret
+            fcnType = FcnType([P.toType(p.values()[0]) for p in params], P.mustBeAvro(P.toType(ret)))
         except IncompatibleTypes:
-            raise PFASemanticException("only one-signature functions without constraints can be referenced (wrap \"{0}\" in a function definition with the desired signature)".format(self.name), self.pos)
+            raise PFASemanticException("only one-signature functions without generics can be referenced (wrap \"{0}\" in a function definition with the desired signature)".format(self.name), self.pos)
 
         context = FcnRef.Context(fcnType, set([self.name]), fcn)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["fcn"] = self.name
         return out
@@ -1005,7 +1621,17 @@ class FcnRef(Argument):
 
 @titus.util.case
 class FcnRefFill(Argument):
+    """Abstract syntax tree for a function reference with partial application."""
+
     def __init__(self, name, fill, pos=None):
+        """:type name: string
+        :param name: name of function to reference
+        :type fill: dict from parameter names to titus.pfaast.Argument
+        :param fill: parameters to partially apply
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+        
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1019,10 +1645,28 @@ class FcnRefFill(Argument):
             raise PFASyntaxException("\"fill\" must contain at least one parameter name-argument mapping", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(FcnRefFill, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.fill.values())
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -1030,7 +1674,24 @@ class FcnRefFill(Argument):
                               dict((k, v.replace(pf)) for k, v in self.fill.items()),
                               self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set([self.name])
 
         fcn = functionTable.functions.get(self.name, None)
@@ -1040,7 +1701,7 @@ class FcnRefFill(Argument):
         fillScope = symbolTable.newScope(True, True)
         argTypeResult = {}
         for name, arg in self.fill.items():
-            argCtx, argRes = arg.walk(task, fillScope, functionTable, engineOptions)
+            argCtx, argRes = arg.walk(task, fillScope, functionTable, engineOptions, version)
 
             calls = calls.union(argCtx.calls)
 
@@ -1051,19 +1712,27 @@ class FcnRefFill(Argument):
             else:
                 raise Exception
 
+        fcnsig = None
+        if isinstance(fcn.sig, Sig) and (fcn.sig.lifespan.current(version) or fcn.sig.lifespan.deprecated(version)):
+            fcnsig = fcn.sig
+        elif isinstance(fcn.sig, Sigs):
+            fcnsigs = [x for x in fcn.sig.cases if x.lifespan.current(version) or x.lifespan.deprecated(version)]
+            if len(fcnsigs) == 1:
+                fcnsig = fcnsigs[0]
+        if fcnsig is None:
+            raise PFASemanticException("only one-signature functions without generics can be referenced (wrap \"{0}\" in a function definition with the desired signature)".format(self.name), self.pos)
+        fcn.deprecationWarning(fcnsig, version)
+
         try:
-            if isinstance(fcn.sig, Sig):
-                params, ret = fcn.sig.params, fcn.sig.ret
+            params, ret = fcnsig.params, fcnsig.ret
 
-                originalParamNames = [x.keys()[0] for x in params]
-                fillNames = set(argTypeResult.keys())
+            originalParamNames = [x.keys()[0] for x in params]
+            fillNames = set(argTypeResult.keys())
 
-                if not fillNames.issubset(set(originalParamNames)):
-                    raise PFASemanticException("fill argument names (\"{0}\") are not a subset of function \"{1}\" parameter names (\"{2}\")".format("\", \"".join(sorted(fillNames)), self.name, "\", \"".join(originalParamNames)), self.pos)
+            if not fillNames.issubset(set(originalParamNames)):
+                raise PFASemanticException("fill argument names (\"{0}\") are not a subset of function \"{1}\" parameter names (\"{2}\")".format("\", \"".join(sorted(fillNames)), self.name, "\", \"".join(originalParamNames)), self.pos)
 
-                fcnType = FcnType([P.mustBeAvro(P.toType(p.values()[0])) for p in params if p.keys()[0] not in fillNames], P.mustBeAvro(P.toType(ret)))
-            else:
-                raise IncompatibleTypes()
+            fcnType = FcnType([P.mustBeAvro(P.toType(p.values()[0])) for p in params if p.keys()[0] not in fillNames], P.mustBeAvro(P.toType(ret)))
         except IncompatibleTypes:
             raise PFASemanticException("only one-signature functions without constraints can be referenced (wrap \"{0}\" in a function definition with the desired signature)".format(self.name), self.pos)
 
@@ -1071,6 +1740,15 @@ class FcnRefFill(Argument):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["fcn"] = self.name
         out["fill"] = OrderedDict((k, v.jsonNode(lineNumbers, memo)) for k, v in self.fill.items())
@@ -1082,7 +1760,17 @@ class FcnRefFill(Argument):
 
 @titus.util.case
 class CallUserFcn(Expression):
+    """Abstract syntax tree for calling a user-defined function; choice of function determined at runtime."""
+
     def __init__(self, name, args, pos=None):
+        """:type name: titus.pfaast.Expression
+        :param name: resolves to an enum type with each enum specifying a user-defined function
+        :type args: list of titus.pfaast.Expression
+        :param args: arguments to pass to the chosen function
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1093,11 +1781,29 @@ class CallUserFcn(Expression):
             raise PFASyntaxException("\"args\" must be a list of Expressions", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(CallUserFcn, self).collect(pf) + \
                self.name.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.args)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -1105,9 +1811,26 @@ class CallUserFcn(Expression):
                                [x.replace(pf) for x in self.args],
                                self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         nameScope = symbolTable.newScope(True, True)
-        nameContext, nameResult = self.name.walk(task, nameScope, functionTable, engineOptions)
+        nameContext, nameResult = self.name.walk(task, nameScope, functionTable, engineOptions, version)
         if isinstance(nameContext.retType, AvroEnum):
             fcnNames = nameContext.retType.symbols
         else:
@@ -1115,7 +1838,7 @@ class CallUserFcn(Expression):
         nameToNum = dict((x, i) for i, x in enumerate(fcnNames))
 
         scope = symbolTable.newScope(True, True)
-        argResults = [x.walk(task, scope, functionTable, engineOptions) for x in self.args]
+        argResults = [x.walk(task, scope, functionTable, engineOptions, version) for x in self.args]
 
         calls = set("u." + x for x in fcnNames)
         argTypes = []
@@ -1136,9 +1859,11 @@ class CallUserFcn(Expression):
                 raise PFASemanticException("unknown function \"{0}\" in enumeration type".format(n), self.pos)
             if not isinstance(fcn, UserFcn):
                 raise PFASemanticException("function \"{0}\" is not a user function".format(n), self.pos)
-            sigres = fcn.sig.accepts(argTypes)
+            sigres = fcn.sig.accepts(argTypes, version)
             if sigres is not None:
-                paramTypes, retType = sigres
+                sig, paramTypes, retType = sigres
+                fcn.deprecationWarning(sig, version)
+
                 nameToFcn[n] = fcn
                 nameToParamTypes[n] = paramTypes
                 nameToRetTypes[n] = retType
@@ -1155,6 +1880,15 @@ class CallUserFcn(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["call"] = self.name.jsonNode(lineNumbers, memo)
         out["args"] = [x.jsonNode(lineNumbers, memo) for x in self.args]
@@ -1166,7 +1900,17 @@ class CallUserFcn(Expression):
 
 @titus.util.case
 class Call(Expression):
+    """Abstract syntax tree for a function call."""
+
     def __init__(self, name, args, pos=None):
+        """:type name: string
+        :param name: name of the function to call
+        :type args: list of titus.pfaast.Expression
+        :param args: arguments to pass to the function
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1177,10 +1921,28 @@ class Call(Expression):
             raise PFASyntaxException("\"args\" must be a list of Arguments", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(Call, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.args)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -1188,13 +1950,30 @@ class Call(Expression):
                         [x.replace(pf) for x in self.args],
                         self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         fcn = functionTable.functions.get(self.name, None)
         if fcn is None:
             raise PFASemanticException("unknown function \"{0}\" (be sure to include \"u.\" to reference user functions)".format(self.name), self.pos)
 
         scope = symbolTable.newScope(True, True)
-        argResults = [x.walk(task, scope, functionTable, engineOptions) for x in self.args]
+        argResults = [x.walk(task, scope, functionTable, engineOptions, version) for x in self.args]
 
         calls = set([self.name])
         argTypes = []
@@ -1212,9 +1991,10 @@ class Call(Expression):
                 calls = calls.union(ctx.calls)
                 argTypes.append(ctx.fcnType)
 
-        sigres = fcn.sig.accepts(argTypes)
+        sigres = fcn.sig.accepts(argTypes, version)
         if sigres is not None:
-            paramTypes, retType = sigres
+            sig, paramTypes, retType = sigres
+            fcn.deprecationWarning(sig, version)
 
             argContexts = [x[0] for x in argResults]
             argTaskResults = [x[1] for x in argResults]
@@ -1224,7 +2004,7 @@ class Call(Expression):
             #     if isinstance(a, FcnRef):
             #         argTaskResults[i] = task(argContexts[i], engineOptions, paramTypes[i])
 
-            context = self.Context(retType, calls, fcn, argTaskResults, argContexts, paramTypes)
+            context = self.Context(retType, calls, fcn, argTaskResults, argContexts, paramTypes, self.pos)
 
         else:
             raise PFASemanticException("parameters of function \"{0}\" do not accept [{1}]".format(self.name, ",".join(map(ts, argTypes))), self.pos)
@@ -1232,30 +2012,73 @@ class Call(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out[self.name] = [x.jsonNode(lineNumbers, memo) for x in self.args]
         return out
 
     @titus.util.case
     class Context(ExpressionContext):
-        def __init__(self, retType, calls, fcn, args, argContexts, paramTypes): pass
+        def __init__(self, retType, calls, fcn, args, argContexts, paramTypes, pos): pass
 
 @titus.util.case
 class Ref(Expression):
+    """Abstract syntax tree for a variable (symbol) reference."""
+
     def __init__(self, name, pos=None):
+        """:type name: string
+        :param name: variable (symbol) to reference
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(name, basestring):
             raise PFASyntaxException("\"name\" must be a string", pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         if symbolTable.get(self.name) is None:
             raise PFASemanticException("unknown symbol \"{0}\"".format(self.name), self.pos)
         context = self.Context(symbolTable(self.name), set(), self.name)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         return self.name
 
     @titus.util.case
@@ -1264,15 +2087,46 @@ class Ref(Expression):
 
 @titus.util.case
 class LiteralNull(LiteralValue):
+    """Abstract syntax tree for a literal ``null``."""
+
     def __init__(self, pos=None):
+        """:type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         context = self.Context(AvroNull(), set([self.desc]))
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         return None
 
     desc = "(null)"
@@ -1283,18 +2137,51 @@ class LiteralNull(LiteralValue):
 
 @titus.util.case
 class LiteralBoolean(LiteralValue):
+    """Abstract syntax tree for a literal ``true`` or ``false``."""
+
     def __init__(self, value, pos=None):
+        """:type value: bool
+        :param value: ``True`` or ``False``
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(value, bool):
             raise PFASyntaxException("\"value\" must be boolean", pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         context = self.Context(AvroBoolean(), set([self.desc]), self.value)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         return self.value
 
     desc = "(boolean)"
@@ -1305,18 +2192,51 @@ class LiteralBoolean(LiteralValue):
 
 @titus.util.case
 class LiteralInt(LiteralValue):
+    """Abstract syntax tree for a literal integer."""
+
     def __init__(self, value, pos=None):
+        """:type value: integer
+        :param value: value
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(value, (int, long)):
             raise PFASyntaxException("\"value\" must be an int", pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         context = self.Context(AvroInt(), set([self.desc]), self.value)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         return self.value
 
     desc = "(int)"
@@ -1327,18 +2247,51 @@ class LiteralInt(LiteralValue):
 
 @titus.util.case
 class LiteralLong(LiteralValue):
+    """Abstract syntax tree for a literal long."""
+
     def __init__(self, value, pos=None):
+        """:type value: integer
+        :param value: value
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(value, (int, long)):
             raise PFASyntaxException("\"value\" must be an int", pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         context = self.Context(AvroLong(), set([self.desc]), self.value)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["long"] = self.value
         return out
@@ -1351,18 +2304,51 @@ class LiteralLong(LiteralValue):
 
 @titus.util.case
 class LiteralFloat(LiteralValue):
+    """Abstract syntax tree for a literal float."""
+
     def __init__(self, value, pos=None):
+        """:type value: number
+        :param value: value
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(value, (int, long, float)):
             raise PFASyntaxException("\"value\" must be a number", pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         context = self.Context(AvroFloat(), set([self.desc]), self.value)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["float"] = self.value
         return out
@@ -1375,18 +2361,51 @@ class LiteralFloat(LiteralValue):
 
 @titus.util.case
 class LiteralDouble(LiteralValue):
+    """Abstract syntax tree for a literal double."""
+
     def __init__(self, value, pos=None):
+        """:type value: number
+        :param value: value
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(value, (int, long, float)):
             raise PFASyntaxException("\"value\" must be a number", pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         context = self.Context(AvroDouble(), set([self.desc]), self.value)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         return self.value
 
     desc = "(double)"
@@ -1397,18 +2416,51 @@ class LiteralDouble(LiteralValue):
 
 @titus.util.case
 class LiteralString(LiteralValue):
+    """Abstract syntax tree for a literal string."""
+
     def __init__(self, value, pos=None):
+        """:type value: string
+        :param value: value
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(value, basestring):
             raise PFASyntaxException("\"value\" must be a string", pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         context = self.Context(AvroString(), set([self.desc]), self.value)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["string"] = self.value
         return out
@@ -1421,18 +2473,51 @@ class LiteralString(LiteralValue):
 
 @titus.util.case
 class LiteralBase64(LiteralValue):
+    """Abstract syntax tree for a literal base-64 encoded binary."""
+
     def __init__(self, value, pos=None):
+        """:type value: raw binary string
+        :param value: already base-64 decoded value
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(value, basestring):
             raise PFASyntaxException("\"value\" must be a string", pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         context = self.Context(AvroBytes(), set([self.desc]), self.value)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["base64"] = base64.b64encode(self.value)
         return out
@@ -1445,7 +2530,16 @@ class LiteralBase64(LiteralValue):
 
 @titus.util.case
 class Literal(LiteralValue):
+    """Abstract syntax tree for an arbitrary literal value."""
+
     def __init__(self, avroPlaceholder, value, pos=None):
+        """:type avroPlaceholder: titus.datatype.AvroPlaceholder
+        :param avroPlaceholder: data type as a placeholder (so it can exist before type resolution)
+        :type value: JSON string
+        :param value: literal value encoded as a JSON string
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1463,13 +2557,40 @@ class Literal(LiteralValue):
 
     @property
     def avroType(self):
+        """Resolved data type (titus.datatype.AvroType)."""
         return self.avroPlaceholder.avroType
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         context = self.Context(self.avroType, set([self.desc]), self.value)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["type"] = self.avroPlaceholder.jsonNode(memo)
         out["value"] = json.loads(self.value)
@@ -1483,7 +2604,17 @@ class Literal(LiteralValue):
 
 @titus.util.case
 class NewObject(Expression):
+    """Abstract syntax tree for a new map or record expression."""
+
     def __init__(self, fields, avroPlaceholder, pos=None):
+        """:type fields: dict from field names to titus.pfaast.Expression
+        :param fields: values to fill
+        :type avroPlaceholder: titus.datatype.AvroPlaceholder
+        :param avroPlaceholder: map or record type as a placeholder (so it can exist before type resolution)
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1501,13 +2632,32 @@ class NewObject(Expression):
 
     @property
     def avroType(self):
+        """Resolved map or record type (titus.datatype.AvroType)."""
         return self.avroPlaceholder.avroType
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(NewObject, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.fields.values())
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -1515,13 +2665,30 @@ class NewObject(Expression):
                              self.avroPlaceholder,
                              self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
 
         fieldNameTypeExpr = []
         scope = symbolTable.newScope(True, True)
         for name, expr in self.fields.items():
-            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions)
+            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions, version)
             calls = calls.union(exprContext.calls)
             fieldNameTypeExpr.append((name, exprContext.retType, exprResult))
 
@@ -1548,6 +2715,15 @@ class NewObject(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["type"] = self.avroPlaceholder.jsonNode(memo)
         out["new"] = OrderedDict((k, v.jsonNode(lineNumbers, memo)) for k, v in self.fields.items())
@@ -1561,7 +2737,17 @@ class NewObject(Expression):
 
 @titus.util.case
 class NewArray(Expression):
+    """Abstract syntax tree for a new array expression."""
+
     def __init__(self, items, avroPlaceholder, pos=None):
+        """:type items: list of titus.pfaast.Expression
+        :param items: items to fill
+        :type avroPlaceholder: titus.datatype.AvroPlaceholder
+        :param avroPlaceholder: array type as a placeholder (so it can exist before type resolution)
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1579,13 +2765,32 @@ class NewArray(Expression):
 
     @property
     def avroType(self):
+        """Resolved array type (titus.datatype.AvroType)."""
         return self.avroPlaceholder.avroType
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(NewArray, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.items)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -1593,13 +2798,30 @@ class NewArray(Expression):
                             self.avroPlaceholder,
                             self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
 
         scope = symbolTable.newScope(True, True)
         itemTypeExpr = []
         for expr in self.items:
-            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions)
+            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions, version)
             calls = calls.union(exprContext.calls)
             itemTypeExpr.append((exprContext.retType, exprResult))
 
@@ -1615,6 +2837,15 @@ class NewArray(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["type"] = self.avroPlaceholder.jsonNode(memo)
         out["new"] = [x.jsonNode(lineNumbers, memo) for x in self.items]
@@ -1628,7 +2859,15 @@ class NewArray(Expression):
 
 @titus.util.case
 class Do(Expression):
+    """Abstract syntax tree for a ``do`` block."""
+
     def __init__(self, body, pos=None):
+        """:type body: list of titus.pfaast.Expression
+        :param body: expressions to evaluate
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1639,19 +2878,54 @@ class Do(Expression):
             raise PFASyntaxException("\"do\" block must contain at least one expression", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(Do, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
             return Do([x.replace(pf) for x in self.body],
                       self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         scope = symbolTable.newScope(False, False)
-        results = [x.walk(task, scope, functionTable, engineOptions) for x in self.body]
+        results = [x.walk(task, scope, functionTable, engineOptions, version) for x in self.body]
 
         inferredType = results[-1][0].retType
         if isinstance(inferredType, ExceptionType):
@@ -1661,6 +2935,15 @@ class Do(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["do"] = [x.jsonNode(lineNumbers, memo) for x in self.body]
         return out
@@ -1673,7 +2956,15 @@ class Do(Expression):
 
 @titus.util.case
 class Let(Expression):
+    """Abstract syntax tree for a ``let`` variable declaration."""
+
     def __init__(self, values, pos=None):
+        """:type values: dict from variable (symbol) name to titus.pfaast.Expression
+        :param values: new variables and their initial values
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1684,17 +2975,52 @@ class Let(Expression):
             raise PFASyntaxException("\"let\" must contain at least one declaration", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(Let, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.values.values())
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
             return Let(dict((k, v.replace(pf)) for k, v in self.values.items()),
                        self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         if symbolTable.sealedWithin:
             raise PFASemanticException("new variable bindings are forbidden in this scope, but you can wrap your expression with \"do\" to make temporary variables", self.pos)
 
@@ -1711,7 +3037,7 @@ class Let(Expression):
                 raise PFASemanticException("\"{0}\" is not a valid symbol name".format(name), self.pos)
 
             scope = symbolTable.newScope(True, True)
-            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions)
+            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions, version)
             calls = calls.union(exprContext.calls)
 
             if isinstance(exprContext.retType, ExceptionType):
@@ -1728,6 +3054,15 @@ class Let(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["let"] = OrderedDict((k, v.jsonNode(lineNumbers, memo)) for k, v in self.values.items())
         return out
@@ -1740,7 +3075,15 @@ class Let(Expression):
 
 @titus.util.case
 class SetVar(Expression):
+    """Abstract syntax tree for a ``set`` variable update."""
+
     def __init__(self, values, pos=None):
+        """:type values: dict from variable (symbol) name to titus.pfaast.Expression
+        :param values: variables and their updated values
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1751,17 +3094,52 @@ class SetVar(Expression):
             raise PFASyntaxException("\"set\" must contain at least one assignment", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(SetVar, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.values.values())
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
             return SetVar(dict((k, v.replace(pf)) for k, v in self.values.items()),
                           self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
 
         nameTypeExpr = []
@@ -1772,7 +3150,7 @@ class SetVar(Expression):
                 raise PFASemanticException("symbol \"{0}\" belongs to a sealed enclosing scope; it cannot be modified within this block)".format(name), self.pos)
 
             scope = symbolTable.newScope(True, True)
-            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions)
+            exprContext, exprResult = expr.walk(task, scope, functionTable, engineOptions, version)
             calls = calls.union(exprContext.calls)
 
             if not symbolTable(name).accepts(exprContext.retType):
@@ -1784,6 +3162,15 @@ class SetVar(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["set"] = OrderedDict((k, v.jsonNode(lineNumbers, memo)) for k, v in self.values.items())
         return out
@@ -1796,7 +3183,17 @@ class SetVar(Expression):
 
 @titus.util.case
 class AttrGet(Expression, HasPath):
+    """Abstract syntax tree for an ``attr`` array, map, record extraction."""
+
     def __init__(self, expr, path, pos=None):
+        """:type expr: titus.pfaast.Expression
+        :param expr: base object to extract from
+        :type path: list of titus.pfaast.Expression
+        :param path: array, map, and record indexes to extract from the base object
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1810,11 +3207,29 @@ class AttrGet(Expression, HasPath):
             raise PFASyntaxException("attr path must have at least one key", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(AttrGet, self).collect(pf) + \
                self.expr.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -1822,18 +3237,44 @@ class AttrGet(Expression, HasPath):
                            [x.replace(pf) for x in self.path],
                            self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         exprScope = symbolTable.newScope(True, True)
-        exprContext, exprResult = self.expr.walk(task, exprScope, functionTable, engineOptions)
+        exprContext, exprResult = self.expr.walk(task, exprScope, functionTable, engineOptions, version)
 
         if not isinstance(exprContext.retType, (AvroArray, AvroMap, AvroRecord)):
             raise PFASemanticException("expression is not an array, map, or record", self.pos)
 
-        retType, calls, pathResult = self.walkPath(exprContext.retType, task, symbolTable, functionTable, engineOptions)
-        context = self.Context(retType, calls.union(set([self.desc])), exprResult, exprContext.retType, pathResult)
+        retType, calls, pathResult = self.walkPath(exprContext.retType, task, symbolTable, functionTable, engineOptions, version)
+        context = self.Context(retType, calls.union(set([self.desc])), exprResult, exprContext.retType, pathResult, self.pos)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["attr"] = self.expr.jsonNode(lineNumbers, memo)
         out["path"] = [x.jsonNode(lineNumbers, memo) for x in self.path]
@@ -1843,11 +3284,23 @@ class AttrGet(Expression, HasPath):
 
     @titus.util.case
     class Context(ExpressionContext):
-        def __init__(self, retType, calls, expr, exprType, path): pass
+        def __init__(self, retType, calls, expr, exprType, path, pos): pass
 
 @titus.util.case
 class AttrTo(Expression, HasPath):
+    """Abstract syntax tree for an ``attr-to`` update."""
+
     def __init__(self, expr, path, to, pos=None):
+        """:type expr: titus.pfaast.Expression
+        :param expr: base object to extract from
+        :type path: list of titus.pfaast.Expression
+        :param path: array, map, and record indexes to extract from the base object
+        :type to: titus.pfaast.Argument
+        :param to: expression for a replacement object or function reference to use as an updator
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1864,12 +3317,30 @@ class AttrTo(Expression, HasPath):
             raise PFASyntaxException("attr path must have at least one key", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(AttrTo, self).collect(pf) + \
                self.expr.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path) + \
                self.to.collect(pf)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -1878,40 +3349,66 @@ class AttrTo(Expression, HasPath):
                           self.to.replace(pf),
                           self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         exprScope = symbolTable.newScope(True, True)
-        exprContext, exprResult = self.expr.walk(task, exprScope, functionTable, engineOptions)
+        exprContext, exprResult = self.expr.walk(task, exprScope, functionTable, engineOptions, version)
 
         if not isinstance(exprContext.retType, (AvroArray, AvroMap, AvroRecord)):
             raise PFASemanticException("expression is not an array, map, or record", self.pos)
 
-        setType, calls, pathResult = self.walkPath(exprContext.retType, task, symbolTable, functionTable, engineOptions)
+        setType, calls, pathResult = self.walkPath(exprContext.retType, task, symbolTable, functionTable, engineOptions, version)
 
-        toContext, toResult = self.to.walk(task, symbolTable, functionTable, engineOptions)
+        toContext, toResult = self.to.walk(task, symbolTable, functionTable, engineOptions, version)
 
         if isinstance(toContext, ExpressionContext):
             if not setType.accepts(toContext.retType):
                 raise PFASemanticException("attr-and-path has type {0} but attempting to assign with type {1}".format(ts(setType), ts(toContext.retType)), self.pos)
-            context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, toResult, toContext.retType)
+            context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, toResult, toContext.retType, self.pos)
 
         elif isinstance(toContext, FcnDef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("attr-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
-            context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, toResult, toContext.fcnType)
+            context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, toResult, toContext.fcnType, self.pos)
 
         elif isinstance(toContext, FcnRef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("attr-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
-            context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType)   # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
+            context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, self.pos)   # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
         elif isinstance(toContext, FcnRefFill.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("attr-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
-            context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType)   # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
+            context = self.Context(exprContext.retType, calls.union(toContext.calls).union(set([self.desc])), exprResult, exprContext.retType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, self.pos)   # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
         return context, task(context, engineOptions)
         
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["attr"] = self.expr.jsonNode(lineNumbers, memo)
         out["path"] = [x.jsonNode(lineNumbers, memo) for x in self.path]
@@ -1922,11 +3419,20 @@ class AttrTo(Expression, HasPath):
 
     @titus.util.case
     class Context(ExpressionContext):
-        def __init__(self, retType, calls, expr, exprType, setType, path, to, toType): pass
+        def __init__(self, retType, calls, expr, exprType, setType, path, to, toType, pos): pass
 
 @titus.util.case
 class CellGet(Expression, HasPath):
+    """Abstract syntax tree for a ``cell`` reference or extraction."""
+
     def __init__(self, cell, path, pos=None):
+        """:type cell: string
+        :param cell: cell name
+        :type path: list of titus.pfaast.Expression
+        :param path: array, map, and record indexes to extract from the cell
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1937,10 +3443,28 @@ class CellGet(Expression, HasPath):
             raise PFASyntaxException("\"path\" must be a list of Expressions", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(CellGet, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -1948,17 +3472,43 @@ class CellGet(Expression, HasPath):
                            [x.replace(pf) for x in self.path],
                            self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         c = symbolTable.cell(self.cell)
         if c is None:
             raise PFASemanticException("no cell named \"{0}\"".format(self.cell), self.pos)
         cellType, shared = c.avroType, c.shared
 
-        retType, calls, pathResult = self.walkPath(cellType, task, symbolTable, functionTable, engineOptions)
-        context = self.Context(retType, calls.union(set([self.desc])), self.cell, cellType, pathResult, shared)
+        retType, calls, pathResult = self.walkPath(cellType, task, symbolTable, functionTable, engineOptions, version)
+        context = self.Context(retType, calls.union(set([self.desc])), self.cell, cellType, pathResult, shared, self.pos)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["cell"] = self.cell
         if len(self.path) > 0:
@@ -1969,11 +3519,23 @@ class CellGet(Expression, HasPath):
 
     @titus.util.case
     class Context(ExpressionContext):
-        def __init__(self, retType, calls, cell, cellType, path, shared): pass
+        def __init__(self, retType, calls, cell, cellType, path, shared, pos): pass
 
 @titus.util.case
 class CellTo(Expression, HasPath):
+    """Abstract syntax tree for a ``cell-to`` update."""
+
     def __init__(self, cell, path, to, pos=None):
+        """:type cell: string
+        :param cell: cell name
+        :type path: list of titus.pfaast.Expression
+        :param path: array, map, and record indexes to extract from the cell
+        :type to: titus.pfaast.Argument
+        :param to: expression for a replacement object or function reference to use as an updator
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -1987,11 +3549,29 @@ class CellTo(Expression, HasPath):
             raise PFASyntaxException("\"to\" must be an Argument", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(CellTo, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path) + \
                self.to.collect(pf)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2000,39 +3580,65 @@ class CellTo(Expression, HasPath):
                           self.to.replace(pf),
                           self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         c = symbolTable.cell(self.cell)
         if c is None:
             raise PFASemanticException("no cell named \"{0}\"".format(self.cell), self.pos)
         cellType, shared = c.avroType, c.shared
 
-        setType, calls, pathResult = self.walkPath(cellType, task, symbolTable, functionTable, engineOptions)
+        setType, calls, pathResult = self.walkPath(cellType, task, symbolTable, functionTable, engineOptions, version)
 
-        toContext, toResult = self.to.walk(task, symbolTable, functionTable, engineOptions)
+        toContext, toResult = self.to.walk(task, symbolTable, functionTable, engineOptions, version)
 
         if isinstance(toContext, ExpressionContext):
             if not setType.accepts(toContext.retType):
                 raise PFASemanticException("cell-and-path has type {0} but attempting to assign with type {1}".format(ts(setType), ts(toContext.retType)), self.pos)
-            context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, toResult, toContext.retType, shared)
+            context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, toResult, toContext.retType, shared, self.pos)
 
         elif isinstance(toContext, FcnDef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("cell-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
-            context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, toResult, toContext.fcnType, shared)
+            context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, toResult, toContext.fcnType, shared, self.pos)
 
         elif isinstance(toContext, FcnRef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("cell-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
-            context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, shared)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
+            context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, shared, self.pos)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
         elif isinstance(toContext, FcnRefFill.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("cell-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
-            context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, shared)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
+            context = self.Context(cellType, calls.union(toContext.calls).union(set([self.desc])), self.cell, cellType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, shared, self.pos)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["cell"] = self.cell
         if len(self.path) > 0:
@@ -2044,11 +3650,20 @@ class CellTo(Expression, HasPath):
 
     @titus.util.case
     class Context(ExpressionContext):
-        def __init__(self, retType, calls, cell, cellType, setType, path, to, toType, shared): pass
+        def __init__(self, retType, calls, cell, cellType, setType, path, to, toType, shared, pos): pass
 
 @titus.util.case
 class PoolGet(Expression, HasPath):
+    """Abstract syntax tree for a ``pool`` reference or extraction."""
+
     def __init__(self, pool, path, pos=None):
+        """:type pool: string
+        :param pool: pool name
+        :type path: list of titus.pfaast.Expression
+        :param path: array, map, and record indexes to extract from the pool
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2062,10 +3677,28 @@ class PoolGet(Expression, HasPath):
             raise PFASyntaxException("pool path must have at least one key", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(PoolGet, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2073,17 +3706,43 @@ class PoolGet(Expression, HasPath):
                            [x.replace(pf) for x in self.path],
                            self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         p = symbolTable.pool(self.pool)
         if p is None:
             raise PFASemanticException("no pool named \"{0}\"".format(self.pool), self.pos)
         poolType, shared = p.avroType, p.shared
 
-        retType, calls, pathResult = self.walkPath(AvroMap(poolType), task, symbolTable, functionTable, engineOptions)
-        context = self.Context(retType, calls.union(set([self.desc])), self.pool, pathResult, shared)
+        retType, calls, pathResult = self.walkPath(AvroMap(poolType), task, symbolTable, functionTable, engineOptions, version)
+        context = self.Context(retType, calls.union(set([self.desc])), self.pool, pathResult, shared, self.pos)
         return context, task(context, engineOptions)
         
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["pool"] = self.pool
         out["path"] = [x.jsonNode(lineNumbers, memo) for x in self.path]
@@ -2093,11 +3752,25 @@ class PoolGet(Expression, HasPath):
 
     @titus.util.case
     class Context(ExpressionContext):
-        def __init__(self, retType, calls, pool, path, shared): pass
+        def __init__(self, retType, calls, pool, path, shared, pos): pass
 
 @titus.util.case
 class PoolTo(Expression, HasPath):
+    """Abstract syntax tree for a ``pool-to`` update."""
+
     def __init__(self, pool, path, to, init, pos=None):
+        """:type pool: string
+        :param pool: pool name
+        :type path: list of titus.pfaast.Expression
+        :param path: array, map, and record indexes to extract from the pool
+        :type to: titus.pfaast.Argument
+        :param to: expression for a replacement object or function reference to use as an updator
+        :type init: titus.pfaast.Expression
+        :param init: initial value provided in case the desired pool item is empty
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2117,12 +3790,30 @@ class PoolTo(Expression, HasPath):
             raise PFASyntaxException("pool path must have at least one key", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(PoolTo, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.path) + \
                self.to.collect(pf) + \
                self.init.collect(pf)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2132,17 +3823,34 @@ class PoolTo(Expression, HasPath):
                           self.init.replace(pf),
                           self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         p = symbolTable.pool(self.pool)
         if p is None:
             raise PFASemanticException("no pool named \"{0}\"".format(self.pool), self.pos)
         poolType, shared = p.avroType, p.shared
 
-        setType, calls, pathResult = self.walkPath(AvroMap(poolType), task, symbolTable, functionTable, engineOptions)
+        setType, calls, pathResult = self.walkPath(AvroMap(poolType), task, symbolTable, functionTable, engineOptions, version)
 
-        toContext, toResult = self.to.walk(task, symbolTable, functionTable, engineOptions)
+        toContext, toResult = self.to.walk(task, symbolTable, functionTable, engineOptions, version)
 
-        initContext, initResult = self.init.walk(task, symbolTable, functionTable, engineOptions)
+        initContext, initResult = self.init.walk(task, symbolTable, functionTable, engineOptions, version)
 
         if not poolType.accepts(initContext.retType):
             raise PFASemanticException("pool has type {0} but attempting to init with type {1}".format(ts(poolType), ts(initContext.retType)), self.pos)
@@ -2150,26 +3858,35 @@ class PoolTo(Expression, HasPath):
         if isinstance(toContext, ExpressionContext):
             if not setType.accepts(toContext.retType):
                 raise PFASemanticException("pool-and-path has type {0} but attempting to assign with type {1}".format(ts(setType), ts(toContext.retType)), self.pos)
-            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, toResult, toContext.retType, initResult, shared)
+            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, toResult, toContext.retType, initResult, shared, self.pos)
 
         elif isinstance(toContext, FcnDef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("pool-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
-            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, toResult, toContext.fcnType, initResult, shared)
+            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, toResult, toContext.fcnType, initResult, shared, self.pos)
 
         elif isinstance(toContext, FcnRef.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("pool-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
-            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, initResult, shared)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
+            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, initResult, shared, self.pos)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
         elif isinstance(toContext, FcnRefFill.Context):
             if not FcnType([setType], setType).accepts(toContext.fcnType):
                 raise PFASemanticException("pool-and-path has type {0} but attempting to assign with a function of type {1}".format(ts(setType), ts(toContext.fcnType)), self.pos)
-            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, initResult, shared)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
+            context = self.Context(poolType, calls.union(toContext.calls).union(set([self.desc])), self.pool, poolType, setType, pathResult, task(toContext, engineOptions), toContext.fcnType, initResult, shared, self.pos)  # Two-parameter task?  task(toContext, engineOptions, toContext.fcnType)
 
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["pool"] = self.pool
         out["path"] = [x.jsonNode(lineNumbers, memo) for x in self.path]
@@ -2182,11 +3899,126 @@ class PoolTo(Expression, HasPath):
 
     @titus.util.case
     class Context(ExpressionContext):
-        def __init__(self, retType, calls, pool, poolType, setType, path, to, toType, init, shared): pass
+        def __init__(self, retType, calls, pool, poolType, setType, path, to, toType, init, shared, pos): pass
+
+@titus.util.case
+class PoolDel(Expression):
+    """Abstract syntax tree for a ``pool-del`` removal."""
+
+    def __init__(self, pool, dell, pos=None):
+        """:type pool: string
+        :param pool: pool name
+        :type dell: titus.pfaast.Expression
+        :param dell: item to delete
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
+        if not isinstance(pos, basestring) and not pos is None:
+            raise PFASyntaxException("\"pos\" must be a string or None", None)
+
+        if not isinstance(pool, basestring):
+            raise PFASyntaxException("\"pool\" must be a string", pos)
+
+        if not isinstance(dell, Expression):
+            raise PFASyntaxException("\"dell\" must be an Expression", pos)
+
+    def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
+        return super(PoolDel, self).collect(pf) + \
+               self.dell.collect(pf)
+
+    def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
+        if pf.isDefinedAt(self):
+            return pf(self)
+        else:
+            return PoolDel(self.pool, self.dell.replace(pf), self.pos)
+
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
+        p = symbolTable.pool(self.pool)
+        if p is None:
+            raise PFASemanticException("no pool named \"{0}\"".format(self.pool), self.pos)
+        shared = p.shared
+
+        delContext, delResult = self.dell.walk(task, symbolTable, functionTable, engineOptions, version)
+        if not AvroString().accepts(delContext.retType):
+            raise PFASemanticException("\"pool-del\" expression should evaluate to a string, but is {0}".format(delContext.retType), self.pos)
+
+        calls = delContext.calls.union(set([self.desc]))
+
+        context = PoolDel.Context(AvroNull(), calls, self.pool, delResult, shared)
+        return context, task(context, engineOptions)
+
+    def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
+        out = self.startDict(lineNumbers)
+        out["pool"] = self.pool
+        out["del"] = self.dell.jsonNode(lineNumbers, memo)
+        return out
+
+    desc = "pool-del"
+
+    @titus.util.case
+    class Context(ExpressionContext):
+        def __init__(self, retType, calls, pool, dell, shared): pass
 
 @titus.util.case
 class If(Expression):
+    """Abstract syntax tree for an ``if`` branch."""
+
     def __init__(self, predicate, thenClause, elseClause, pos=None):
+        """:type predicate: titus.pfaast.Expression
+        :param predicate: test expression that evaluates to ``boolean``
+        :type thenClause: list of titus.pfaast.Expression
+        :param thenClause: expressions to evaluate if the ``predicate`` evaluates to ``true``
+        :type elseClause: list of titus.pfaast.Expression or ``None``
+        :param elseClause: expressions to evaluate if present and the ``predicate`` evaluates to ``false``
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2206,12 +4038,30 @@ class If(Expression):
             raise PFASyntaxException("\"else\" clause must contain at least one expression", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(If, self).collect(pf) + \
                self.predicate.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.thenClause) + \
                (titus.util.flatten(x.collect(pf) for x in self.elseClause) if self.elseClause is not None else [])
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2220,24 +4070,41 @@ class If(Expression):
                       [x.replace(pf) for x in self.elseClause] if self.elseClause is not None else None,
                       self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
 
         predScope = symbolTable.newScope(True, True)
-        predContext, predResult = self.predicate.walk(task, predScope, functionTable, engineOptions)
+        predContext, predResult = self.predicate.walk(task, predScope, functionTable, engineOptions, version)
         if not AvroBoolean().accepts(predContext.retType):
             raise PFASemanticException("\"if\" predicate should be boolean, but is " + ts(predContext.retType), self.pos)
         calls = calls.union(predContext.calls)
 
         thenScope = symbolTable.newScope(False, False)
-        thenResults = [x.walk(task, thenScope, functionTable, engineOptions) for x in self.thenClause]
+        thenResults = [x.walk(task, thenScope, functionTable, engineOptions, version) for x in self.thenClause]
         for exprCtx, exprRes in thenResults:
             calls = calls.union(exprCtx.calls)
 
         if self.elseClause is not None:
             elseScope = symbolTable.newScope(False, False)
 
-            elseResults = [x.walk(task, elseScope, functionTable, engineOptions) for x in self.elseClause]
+            elseResults = [x.walk(task, elseScope, functionTable, engineOptions, version) for x in self.elseClause]
             for exprCtx, exprRes in elseResults:
                 calls = calls.union(exprCtx.calls)
 
@@ -2259,6 +4126,15 @@ class If(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["if"] = self.predicate.jsonNode(lineNumbers, memo)
         out["then"] = [x.jsonNode(lineNumbers, memo) for x in self.thenClause]
@@ -2274,7 +4150,16 @@ class If(Expression):
 
 @titus.util.case
 class Cond(Expression):
+    """Abstract syntax tree for a ``cond`` branch."""
+
     def __init__(self, ifthens, elseClause, pos=None):
+        """:type ifthens: list of titus.pfaast.If
+        :param ifthens: if-then pairs without else clauses
+        :type elseClause: list of titus.pfaast.Expression or ``None``
+        :param elseClause: expressions to evaluate if present and all if-then predicates evaluate to ``false``
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2295,11 +4180,29 @@ class Cond(Expression):
             raise PFASyntaxException("\"else\" clause must contain at least one expression", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(Cond, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.ifthens) + \
                (titus.util.flatten(x.collect(pf) for x in self.elseClause) if self.elseClause is not None else [])
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2307,7 +4210,24 @@ class Cond(Expression):
                         [x.replace(pf) for x in self.elseClause] if self.elseClause is not None else None,
                         self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
 
         walkBlocks = []
@@ -2317,13 +4237,13 @@ class Cond(Expression):
             ifpos = ifthen.pos
 
             predScope = symbolTable.newScope(True, True)
-            predContext, predResult = predicate.walk(task, predScope, functionTable, engineOptions)
+            predContext, predResult = predicate.walk(task, predScope, functionTable, engineOptions, version)
             if not AvroBoolean().accepts(predContext.retType):
                 raise PFASemanticException("\"if\" predicate should be boolean, but is " + ts(predContext.retType), ifpos)
             calls = calls.union(predContext.calls)
 
             thenScope = symbolTable.newScope(False, False)
-            thenResults = [x.walk(task, thenScope, functionTable, engineOptions) for x in thenClause]
+            thenResults = [x.walk(task, thenScope, functionTable, engineOptions, version) for x in thenClause]
             for exprCtx, exprRes in thenResults:
                 calls = calls.union(exprCtx.calls)
 
@@ -2332,7 +4252,7 @@ class Cond(Expression):
         if self.elseClause is not None:
             elseScope = symbolTable.newScope(False, False)
 
-            elseResults = [x.walk(task, elseScope, functionTable, engineOptions) for x in self.elseClause]
+            elseResults = [x.walk(task, elseScope, functionTable, engineOptions, version) for x in self.elseClause]
             for exprCtx, exprRes in elseResults:
                 calls = calls.union(exprCtx.calls)
 
@@ -2354,6 +4274,15 @@ class Cond(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["cond"] = [x.jsonNode(lineNumbers, memo) for x in self.ifthens]
         if self.elseClause is not None:
@@ -2372,7 +4301,17 @@ class Cond(Expression):
 
 @titus.util.case
 class While(Expression):
+    """Abstract syntax tree for a ``while`` loop."""
+
     def __init__(self, predicate, body, pos=None):
+        """:type predicate: titus.pfaast.Expression
+        :param predicate: test expression that evaluates to ``boolean``
+        :type body: list of titus.pfaast.Expression
+        :param body: expressions to evaluate while ``predicate`` evaluates to ``true``
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2383,11 +4322,29 @@ class While(Expression):
             raise PFASyntaxException("\"body\" must be XXX", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(While, self).collect(pf) + \
                self.predicate.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2395,17 +4352,34 @@ class While(Expression):
                          [x.replace(pf) for x in self.body],
                          self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
         loopScope = symbolTable.newScope(False, False)
         predScope = loopScope.newScope(True, True)
 
-        predContext, predResult = self.predicate.walk(task, predScope, functionTable, engineOptions)
+        predContext, predResult = self.predicate.walk(task, predScope, functionTable, engineOptions, version)
         if not AvroBoolean().accepts(predContext.retType):
             raise PFASemanticException("\"while\" predicate should be boolean, but is " + ts(predContext.retType), self.pos)
         calls = calls.union(predContext.calls)
 
-        loopResults = [x.walk(task, loopScope, functionTable, engineOptions) for x in self.body]
+        loopResults = [x.walk(task, loopScope, functionTable, engineOptions, version) for x in self.body]
         for exprCtx, exprRes in loopResults:
             calls = calls.union(exprCtx.calls)
 
@@ -2413,6 +4387,15 @@ class While(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["while"] = self.predicate.jsonNode(lineNumbers, memo)
         out["do"] = [x.jsonNode(lineNumbers, memo) for x in self.body]
@@ -2426,7 +4409,17 @@ class While(Expression):
 
 @titus.util.case
 class DoUntil(Expression):
+    """Abstract syntax tree for a ``do-until`` post-test loop."""
+
     def __init__(self, body, predicate, pos=None):
+        """:type body: list of titus.pfaast.Expression
+        :param body: expressions to evaluate until ``predicate`` evaluates to ``true``
+        :type predicate: titus.pfaast.Expression
+        :param predicate: test expression that evaluates to ``boolean``
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2437,11 +4430,29 @@ class DoUntil(Expression):
             raise PFASyntaxException("\"predicate\" must be an Expression", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(DoUntil, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body) + \
                self.predicate.collect(pf)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2449,16 +4460,33 @@ class DoUntil(Expression):
                            self.predicate.replace(pf),
                            self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
         loopScope = symbolTable.newScope(False, False)
         predScope = loopScope.newScope(True, True)
 
-        loopResults = [x.walk(task, loopScope, functionTable, engineOptions) for x in self.body]
+        loopResults = [x.walk(task, loopScope, functionTable, engineOptions, version) for x in self.body]
         for exprCtx, exprRes in loopResults:
             calls = calls.union(exprCtx.calls)
 
-        predContext, predResult = self.predicate.walk(task, predScope, functionTable, engineOptions)
+        predContext, predResult = self.predicate.walk(task, predScope, functionTable, engineOptions, version)
         if not AvroBoolean().accepts(predContext.retType):
             raise PFASemanticException("\"until\" predicate should be boolean, but is " + ts(predContext.retType), self.pos)
         calls = calls.union(predContext.calls)
@@ -2467,6 +4495,15 @@ class DoUntil(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["do"] = [x.jsonNode(lineNumbers, memo) for x in self.body]
         out["until"] = self.predicate.jsonNode(lineNumbers, memo)
@@ -2480,7 +4517,21 @@ class DoUntil(Expression):
 
 @titus.util.case
 class For(Expression):
+    """Abstract syntax tree for a ``for`` loop."""
+
     def __init__(self, init, predicate, step, body, pos=None):
+        """:type init: dict from new variable names to titus.pfaast.Expression
+        :param init: initial values for the dummy variables
+        :type predicate: titus.pfaast.Expression
+        :param predicate: test expression that evaluates to ``boolean``
+        :type step: dict from variable names to titus.pfaast.Expression
+        :param step: update expressions for the dummy variables
+        :type body: list of titus.pfaast.Expression
+        :param body: expressions to evaluate while ``predicate`` evaluates to ``true``
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2506,6 +4557,15 @@ class For(Expression):
             raise PFASyntaxException("\"do\" must contain at least one statement", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(For, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.init.values()) + \
                self.predicate.collect(pf) + \
@@ -2513,6 +4573,15 @@ class For(Expression):
                titus.util.flatten(x.collect(pf) for x in self.body)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2522,7 +4591,24 @@ class For(Expression):
                        [x.replace(pf) for x in self.body],
                        self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
         loopScope = symbolTable.newScope(False, False)
 
@@ -2537,7 +4623,7 @@ class For(Expression):
                 raise PFASemanticException("\"{0}\" is not a valid symbol name".format(name), self.pos)
 
             initScope = loopScope.newScope(True, True)
-            exprContext, exprResult = expr.walk(task, initScope, functionTable, engineOptions)
+            exprContext, exprResult = expr.walk(task, initScope, functionTable, engineOptions, version)
             calls = calls.union(exprContext.calls)
 
             newSymbols[name] = exprContext.retType
@@ -2548,7 +4634,7 @@ class For(Expression):
             loopScope.put(name, avroType)
 
         predicateScope = loopScope.newScope(True, True)
-        predicateContext, predicateResult = self.predicate.walk(task, predicateScope, functionTable, engineOptions)
+        predicateContext, predicateResult = self.predicate.walk(task, predicateScope, functionTable, engineOptions, version)
         if not AvroBoolean().accepts(predicateContext.retType):
             raise PFASemanticException("predicate should be boolean, but is " + ts(predicateContext.retType), self.pos)
         calls = calls.union(predicateContext.calls)
@@ -2561,7 +4647,7 @@ class For(Expression):
                 raise PFASemanticException("symbol \"{0}\" belongs to a sealed enclosing scope; it cannot be modified within this block".format(name), self.pos)
 
             stepScope = loopScope.newScope(True, True)
-            exprContext, exprResult = expr.walk(task, stepScope, functionTable, engineOptions)
+            exprContext, exprResult = expr.walk(task, stepScope, functionTable, engineOptions, version)
             calls = calls.union(exprContext.calls)
 
             if not loopScope(name).accepts(exprContext.retType):
@@ -2570,7 +4656,7 @@ class For(Expression):
             stepNameTypeExpr.append((name, loopScope(name), exprResult))
 
         bodyScope = loopScope.newScope(False, False)
-        bodyResults = [x.walk(task, bodyScope, functionTable, engineOptions) for x in self.body]
+        bodyResults = [x.walk(task, bodyScope, functionTable, engineOptions, version) for x in self.body]
         for exprCtx, exprRes in bodyResults:
             calls = calls.union(exprCtx.calls)
 
@@ -2578,6 +4664,15 @@ class For(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["for"] = OrderedDict((k, v.jsonNode(lineNumbers, memo)) for k, v in self.init.items())
         out["while"] = self.predicate.jsonNode(lineNumbers, memo)
@@ -2593,7 +4688,21 @@ class For(Expression):
 
 @titus.util.case
 class Foreach(Expression):
+    """Abstract syntax tree for a ``foreach`` loop."""
+
     def __init__(self, name, array, body, seq, pos=None):
+        """:type name: string
+        :param name: new variable name for array items
+        :type array: titus.pfaast.Expression
+        :param array: expression that evaluates to an array
+        :type body: list of titus.pfaast.Expression
+        :param body: expressions to evaluate for each item of the array
+        :type seq: bool
+        :param seq: if ``False``, seal the scope from above and allow implementations to parallelize (Titus doesn't)
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2613,11 +4722,29 @@ class Foreach(Expression):
             raise PFASyntaxException("\"do\" must contain at least one statement", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(Foreach, self).collect(pf) + \
                self.array.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2627,7 +4754,24 @@ class Foreach(Expression):
                            self.seq,
                            self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
         loopScope = symbolTable.newScope(not self.seq, False)
 
@@ -2638,7 +4782,7 @@ class Foreach(Expression):
             raise PFASemanticException("\"{0}\" is not a valid symbol name".format(self.name), self.pos)
 
         objScope = loopScope.newScope(True, True)
-        objContext, objResult = self.array.walk(task, objScope, functionTable, engineOptions)
+        objContext, objResult = self.array.walk(task, objScope, functionTable, engineOptions, version)
         calls = calls.union(objContext.calls)
 
         if not isinstance(objContext.retType, AvroArray):
@@ -2648,7 +4792,7 @@ class Foreach(Expression):
         loopScope.put(self.name, elementType)
 
         bodyScope = loopScope.newScope(False, False)
-        bodyResults = [x.walk(task, bodyScope, functionTable, engineOptions) for x in self.body]
+        bodyResults = [x.walk(task, bodyScope, functionTable, engineOptions, version) for x in self.body]
         for exprCtx, exprRes in bodyResults:
             calls = calls.union(exprCtx.calls)
 
@@ -2656,6 +4800,15 @@ class Foreach(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["foreach"] = self.name
         out["in"] = self.array.jsonNode(lineNumbers, memo)
@@ -2671,7 +4824,21 @@ class Foreach(Expression):
 
 @titus.util.case
 class Forkeyval(Expression):
+    """Abstract syntax tree for ``forkey-forval`` loops."""
+
     def __init__(self, forkey, forval, map, body, pos=None):
+        """:type forkey: string
+        :param forkey: new variable name for map keys
+        :type forval: string
+        :param forval: new variable name for map values
+        :type map: titus.pfaast.Expression
+        :param map: expression that evaluates to a map
+        :type body: list of titus.pfaast.Expression
+        :param body: expressions to evaluate for each item of the array
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2691,11 +4858,29 @@ class Forkeyval(Expression):
             raise PFASyntaxException("\"do\" must contain at least one statement", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(Forkeyval, self).collect(pf) + \
                self.map.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2705,7 +4890,24 @@ class Forkeyval(Expression):
                              [x.replace(pf) for x in self.body],
                              self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
         loopScope = symbolTable.newScope(False, False)
 
@@ -2720,7 +4922,7 @@ class Forkeyval(Expression):
             raise PFASemanticException("\"{0}\" is not a valid symbol name".format(self.forval), self.pos)
 
         objScope = loopScope.newScope(True, True)
-        objContext, objResult = self.map.walk(task, objScope, functionTable, engineOptions)
+        objContext, objResult = self.map.walk(task, objScope, functionTable, engineOptions, version)
         calls = calls.union(objContext.calls)
 
         if not isinstance(objContext.retType, AvroMap):
@@ -2731,7 +4933,7 @@ class Forkeyval(Expression):
         loopScope.put(self.forval, elementType)
 
         bodyScope = loopScope.newScope(False, False)
-        bodyResults = [x.walk(task, bodyScope, functionTable, engineOptions) for x in self.body]
+        bodyResults = [x.walk(task, bodyScope, functionTable, engineOptions, version) for x in self.body]
         for exprCtx, exprRes in bodyResults:
             calls = calls.union(exprCtx.calls)
 
@@ -2739,6 +4941,15 @@ class Forkeyval(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["forkey"] = self.forkey
         out["forval"] = self.forval
@@ -2754,7 +4965,19 @@ class Forkeyval(Expression):
 
 @titus.util.case
 class CastCase(Ast):
+    """Abstract syntax tree for one ``case`` of a ``cast-case`` block."""
+
     def __init__(self, avroPlaceholder, named, body, pos=None):
+        """:type avroPlaceholder: titus.datatype.AvroPlaceholder
+        :param avroPlaceholder: subtype cast as a placeholder (so it can exist before type resolution)
+        :type named: string
+        :param named: new variable name to hold the casted value
+        :type body: list of titus.pfaast.Expression
+        :param body: expressions to evaluate if casting to this subtype is possible
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2775,13 +4998,32 @@ class CastCase(Ast):
 
     @property
     def avroType(self):
+        """Resolved subtype (titus.datatype.AvroType)."""
         return self.avroPlaceholder.avroType
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(CastCase, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.body)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2790,15 +5032,41 @@ class CastCase(Ast):
                             [x.replace(pf) for x in self.body],
                             self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         scope = symbolTable.newScope(False, False)
         scope.put(self.named, self.avroType)
 
-        results = [x.walk(task, scope, functionTable, engineOptions) for x in self.body]
+        results = [x.walk(task, scope, functionTable, engineOptions, version) for x in self.body]
         context = self.Context(results[-1][0].retType, self.named, self.avroType, set(titus.util.flatten([x[0].calls for x in results])), scope.inThisScope, [x[1] for x in results])
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["as"] = self.avroPlaceholder.jsonNode(memo)
         out["named"] = self.named
@@ -2811,7 +5079,19 @@ class CastCase(Ast):
 
 @titus.util.case
 class CastBlock(Expression):
+    """Abstract syntax tree for a ``cast-case`` block."""
+
     def __init__(self, expr, castCases, partial, pos=None):
+        """:type expr: titus.pfaast.Expression
+        :param expr: expression to cast
+        :type castCases: list of titus.pfaast.CastCase
+        :param castCases: subtype cases to attempt to cast
+        :type partial: bool
+        :param partial: if ``True``, allow subtype cases to not fully cover the expression type
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2825,11 +5105,29 @@ class CastBlock(Expression):
             raise PFASyntaxException("\"partial\" must be boolean", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(CastBlock, self).collect(pf) + \
                self.expr.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.castCases)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2838,11 +5136,28 @@ class CastBlock(Expression):
                              self.partial,
                              self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
 
         exprScope = symbolTable.newScope(True, True)
-        exprContext, exprResult = self.expr.walk(task, exprScope, functionTable, engineOptions)
+        exprContext, exprResult = self.expr.walk(task, exprScope, functionTable, engineOptions, version)
         calls = calls.union(exprContext.calls)
 
         exprType = exprContext.retType
@@ -2853,7 +5168,7 @@ class CastBlock(Expression):
             if not exprType.accepts(t):
                 raise PFASemanticException("\"cast\" of expression with type {0} can never satisfy case {1}".format(ts(exprType), ts(t)), self.pos)
 
-        cases = [x.walk(task, symbolTable, functionTable, engineOptions) for x in self.castCases]
+        cases = [x.walk(task, symbolTable, functionTable, engineOptions, version) for x in self.castCases]
         for castCtx, castRes in cases:
             calls = calls.union(castCtx.calls)
 
@@ -2879,6 +5194,15 @@ class CastBlock(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["cast"] = self.expr.jsonNode(lineNumbers, memo)
         out["cases"] = [x.jsonNode(lineNumbers, memo) for x in self.castCases]
@@ -2893,7 +5217,17 @@ class CastBlock(Expression):
 
 @titus.util.case
 class Upcast(Expression):
+    """Abstract syntax tree for an ``upcast``."""
+
     def __init__(self, expr, avroPlaceholder, pos=None):
+        """:type expr: titus.pfaast.Expression
+        :param expr: expression to up-cast
+        :type avroPlaceholder: titus.datatype.AvroPlaceholder
+        :param avroPlaceholder: supertype as a placeholder (so it can exist before type resolution)
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2905,13 +5239,32 @@ class Upcast(Expression):
 
     @property
     def avroType(self):
+        """Resolved supertype (titus.datatype.AvroType)."""
         return self.avroPlaceholder.avroType
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(Upcast, self).collect(pf) + \
                self.expr.collect(pf)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2919,17 +5272,43 @@ class Upcast(Expression):
                           self.avroPlaceholder,
                           self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         scope = symbolTable.newScope(True, True)
-        exprContext, exprResult = self.expr.walk(task, scope, functionTable, engineOptions)
+        exprContext, exprResult = self.expr.walk(task, scope, functionTable, engineOptions, version)
 
         if not self.avroType.accepts(exprContext.retType):
             raise PFASemanticException("expression results in {0}; cannot expand (\"upcast\") to {1}".format(ts(exprContext.retType), ts(self.avroType)), self.pos)
 
-        context = self.Context(self.avroType, exprContext.calls.union(set([self.desc])), exprResult)
+        context = self.Context(self.avroType, exprContext.calls.union(set([self.desc])), exprResult, exprContext.retType)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["upcast"] = self.expr.jsonNode(lineNumbers, memo)
         out["as"] = self.avroPlaceholder.jsonNode(memo)
@@ -2939,11 +5318,23 @@ class Upcast(Expression):
 
     @titus.util.case
     class Context(ExpressionContext):
-        def __init__(self, retType, calls, expr): pass
+        def __init__(self, retType, calls, expr, originalType): pass
 
 @titus.util.case
 class IfNotNull(Expression):
+    """Abstract syntax tree for an ``ifnotnull`` block."""
+
     def __init__(self, exprs, thenClause, elseClause, pos=None):
+        """:type exprs: dict from new variable names to titus.pfaast.Expression
+        :param exprs: variables to check for ``null``
+        :type thenClause: list of titus.pfaast.Expression
+        :param thenClause: expressions to evaluate if all variables are not ``null``
+        :type elseClause: list of titus.pfaast.Expression or ``None``
+        :param elseClause: expressions to evaluate if present and any variable is ``null``
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -2966,12 +5357,30 @@ class IfNotNull(Expression):
             raise PFASyntaxException("\"else\" clause must contain at least one expression", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(IfNotNull, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.exprs.values()) + \
                titus.util.flatten(x.collect(pf) for x in self.thenClause) + \
                (titus.util.flatten(x.collect(pf) for x in self.elseClause) if self.elseClause is not None else [])
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -2980,7 +5389,24 @@ class IfNotNull(Expression):
                              [x.replace(pf) for x in self.elseClause] if self.elseClause is not None else None,
                              self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
 
         exprArgsScope = symbolTable.newScope(True, True)
@@ -2991,7 +5417,7 @@ class IfNotNull(Expression):
             if not validSymbolName(name):
                 raise PFASemanticException("\"{0}\" is not a valid symbol name".format(name), self.pos)
 
-            exprCtx, exprRes = expr.walk(task, exprArgsScope, functionTable, engineOptions)
+            exprCtx, exprRes = expr.walk(task, exprArgsScope, functionTable, engineOptions, version)
 
             avroType = None
             if isinstance(exprCtx.retType, AvroUnion) and any(isinstance(x, AvroNull) for x in exprCtx.retType.types):
@@ -3010,14 +5436,14 @@ class IfNotNull(Expression):
             symbolTypeResult.append((name, avroType, exprRes))
 
         thenScope = assignmentScope.newScope(False, False)
-        thenResults = [x.walk(task, thenScope, functionTable, engineOptions) for x in self.thenClause]
+        thenResults = [x.walk(task, thenScope, functionTable, engineOptions, version) for x in self.thenClause]
         for exprCtx, exprRes in thenResults:
             calls = calls.union(exprCtx.calls)
 
         if self.elseClause is not None:
             elseScope = symbolTable.newScope(False, False)
 
-            elseResults = [x.walk(task, elseScope, functionTable, engineOptions) for x in self.elseClause]
+            elseResults = [x.walk(task, elseScope, functionTable, engineOptions, version) for x in self.elseClause]
             for exprCtx, exprRes in elseResults:
                 calls = calls.union(exprCtx.calls)
 
@@ -3036,6 +5462,15 @@ class IfNotNull(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         jsonExprs = {}
         for name, expr in self.exprs.items():
@@ -3053,6 +5488,8 @@ class IfNotNull(Expression):
         def __init__(self, retType, calls, symbolTypeResult, thenSymbols, thenClause, elseSymbols, elseClause): pass
 
 class BinaryFormatter(object):
+    """Helper class for ``pack`` and ``unpack`` that checks format strings."""
+
     formatPad = re.compile("""\s*(pad)\s*""")
     formatBoolean = re.compile("""\s*(boolean)\s*""")
     formatByte = re.compile("""\s*(byte|int8)\s*""")
@@ -3070,10 +5507,13 @@ class BinaryFormatter(object):
     formatToNull = re.compile("""\s*(null\s*)?terminated\s*""")
     formatPrefixed = re.compile("""\s*(length\s*)?prefixed\s*""")
     
-    class Declare(object): pass
+    class Declare(object):
+        """Trait for binary format declaration."""
+        pass
 
     @titus.util.case
     class DeclarePad(Declare):
+        """Binary format declaration for a padded byte."""
         def __init__(self, value): pass
         avroType = AvroNull()
         def __str__(self):
@@ -3081,6 +5521,7 @@ class BinaryFormatter(object):
 
     @titus.util.case
     class DeclareBoolean(Declare):
+        """Binary format declaration for a boolean byte."""
         def __init__(self, value): pass
         avroType = AvroBoolean()
         def __str__(self):
@@ -3088,6 +5529,7 @@ class BinaryFormatter(object):
 
     @titus.util.case
     class DeclareByte(Declare):
+        """Binary format declaration for an integer byte."""
         def __init__(self, value, unsigned): pass
         avroType = AvroInt()
         def __str__(self):
@@ -3098,6 +5540,7 @@ class BinaryFormatter(object):
 
     @titus.util.case
     class DeclareShort(Declare):
+        """Binary format declaration for a short (16-bit) integer."""
         def __init__(self, value, littleEndian, unsigned): pass
         avroType = AvroInt()
         def __str__(self):
@@ -3114,6 +5557,7 @@ class BinaryFormatter(object):
 
     @titus.util.case
     class DeclareInt(Declare):
+        """Binary format declaration for a regular (32-bit) integer."""
         def __init__(self, value, littleEndian, unsigned): pass
         @property
         def avroType(self):
@@ -3135,6 +5579,7 @@ class BinaryFormatter(object):
 
     @titus.util.case
     class DeclareLong(Declare):
+        """Binary format declaration for a long (64-bit) integer."""
         def __init__(self, value, littleEndian, unsigned): pass
         @property
         def avroType(self):
@@ -3156,6 +5601,7 @@ class BinaryFormatter(object):
 
     @titus.util.case
     class DeclareFloat(Declare):
+        """Binary format declaration for a single-precision (32-bit) floating point number."""
         def __init__(self, value, littleEndian): pass
         avroType = AvroFloat()
         def __str__(self):
@@ -3166,6 +5612,7 @@ class BinaryFormatter(object):
 
     @titus.util.case
     class DeclareDouble(Declare):
+        """Binary format declaration for a double-precision (64-bit) floating point number."""
         def __init__(self, value, littleEndian): pass
         avroType = AvroDouble()
         def __str__(self):
@@ -3176,6 +5623,7 @@ class BinaryFormatter(object):
 
     @titus.util.case
     class DeclareRaw(Declare):
+        """Binary format declaration for arbitrary-width raw data."""
         def __init__(self, value): pass
         avroType = AvroBytes()
         def __str__(self):
@@ -3183,6 +5631,7 @@ class BinaryFormatter(object):
 
     @titus.util.case
     class DeclareRawSize(Declare):
+        """Binary format declaration for fixed-width raw data."""
         def __init__(self, value, size): pass
         avroType = AvroBytes()
         def __str__(self):
@@ -3190,6 +5639,7 @@ class BinaryFormatter(object):
 
     @titus.util.case
     class DeclareToNull(Declare):
+        """Binary format declaration for null-terminated raw data."""
         def __init__(self, value): pass
         avroType = AvroBytes()
         def __str__(self):
@@ -3197,6 +5647,7 @@ class BinaryFormatter(object):
 
     @titus.util.case
     class DeclarePrefixed(Declare):
+        """Binary format declaration for length-prefixed raw data."""
         def __init__(self, value): pass
         avroType = AvroBytes()
         def __str__(self):
@@ -3204,6 +5655,20 @@ class BinaryFormatter(object):
 
     @staticmethod
     def formatToDeclare(value, f, pos, output):
+        """Convert a format string to a titus.pfaast.BinaryFormatter.Declare object.
+
+        :type value: titus.pfaast.TaskResult
+        :param value: task result, usually Python code in a string, passed to the format declarer
+        :type f: string
+        :param f: format string
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark for error messages
+        :type output: bool
+        :param output: ``True`` for ``pack``, ``False`` for ``unpack``
+        :rtype: titus.pfaast.BinaryFormatter.Declare subclass
+        :return: format declarer
+        """
+
         if re.match(BinaryFormatter.formatPad, f):             return BinaryFormatter.DeclarePad(value)
         elif re.match(BinaryFormatter.formatBoolean, f):       return BinaryFormatter.DeclareBoolean(value)
         elif re.match(BinaryFormatter.formatByte, f):          return BinaryFormatter.DeclareByte(value, False)
@@ -3229,7 +5694,15 @@ class BinaryFormatter(object):
 
 @titus.util.case
 class Pack(Expression):
+    """Abstract syntax tree for a ``pack`` construct."""
+
     def __init__(self, exprs, pos=None):
+        """:type exprs: list of (string, titus.pfaast.Expression)
+        :param exprs: (format, expression) pairs
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -3240,21 +5713,56 @@ class Pack(Expression):
             raise PFASyntaxException("\"pack\" must contain at least one format-expression mapping", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(Pack, self).collect(pf) + \
                titus.util.flatten(v.collect(pf) for k, v in self.exprs)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
             return Pack([(k, v.replace(pf)) for k, v in self.exprs], self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
 
         exprsDeclareRes = []
         for f, expr in self.exprs:
-            exprCtx, exprRes = expr.walk(task, symbolTable.newScope(True, True), functionTable, engineOptions)
+            exprCtx, exprRes = expr.walk(task, symbolTable.newScope(True, True), functionTable, engineOptions, version)
 
             declare = BinaryFormatter.formatToDeclare(exprRes, f, self.pos, True)
 
@@ -3264,10 +5772,19 @@ class Pack(Expression):
 
             exprsDeclareRes.append(declare)
 
-        context = self.Context(AvroBytes(), calls.union(set([self.desc])), exprsDeclareRes)
+        context = self.Context(AvroBytes(), calls.union(set([self.desc])), exprsDeclareRes, self.pos)
         return (context, task(context, engineOptions))
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["pack"] = []
         for f, expr in self.exprs:
@@ -3278,11 +5795,25 @@ class Pack(Expression):
 
     @titus.util.case
     class Context(ExpressionContext):
-        def __init__(self, retType, calls, exprsDeclareRes): pass
+        def __init__(self, retType, calls, exprsDeclareRes, pos): pass
 
 @titus.util.case
 class Unpack(Expression):
+    """Abstract syntax tree for the ``unpack`` construct."""
+
     def __init__(self, bytes, format, thenClause, elseClause, pos=None):
+        """:type bytes: titus.pfaast.Expression
+        :param bytes: expression that evaluates to a ``bytes`` object
+        :type format: list of (string, string)
+        :param format: (new variable name, formatter) pairs
+        :type thenClause: list of titus.pfaast.Expression
+        :param thenClause: expressions to evaluate if the ``bytes`` matches the format
+        :type elseClause: list of titus.pfaast.Expression or ``None``
+        :param elseClause: expressions to evaluate if present and the ``bytes`` does not match the format
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -3308,12 +5839,30 @@ class Unpack(Expression):
             raise PFASyntaxException("\"else\" clause must contain at least one expression", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(Unpack, self).collect(pf) + \
                self.bytes.collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.thenClause) + \
                (titus.util.flatten(x.collect(pf) for x in self.elseClause) if self.elseClause is not None else [])
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -3323,13 +5872,30 @@ class Unpack(Expression):
                           [x.replace(pf) for x in self.elseClause] if self.elseClause is not None else None,
                           self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         calls = set()
         
         bytesScope = symbolTable.newScope(True, True)
         assignmentScope = symbolTable.newScope(False, False)
 
-        bytesCtx, bytesRes = self.bytes.walk(task, bytesScope, functionTable, engineOptions)
+        bytesCtx, bytesRes = self.bytes.walk(task, bytesScope, functionTable, engineOptions, version)
         if not isinstance(bytesCtx.retType, AvroBytes):
             raise PFASemanticException("\"unpack\" expression must be a bytes object", self.pos)
         calls = calls.union(bytesCtx.calls)
@@ -3346,14 +5912,14 @@ class Unpack(Expression):
             assignmentScope.put(s, formatter[-1].avroType)
 
         thenScope = assignmentScope.newScope(False, False)
-        thenResults = [x.walk(task, thenScope, functionTable, engineOptions) for x in self.thenClause]
+        thenResults = [x.walk(task, thenScope, functionTable, engineOptions, version) for x in self.thenClause]
         for exprCtx, exprRes in thenResults:
             calls = calls.union(exprCtx.calls)
 
         if self.elseClause is not None:
             elseScope = symbolTable.newScope(False, False)
 
-            elseResults = [x.walk(task, elseScope, functionTable, engineOptions) for x in self.elseClause]
+            elseResults = [x.walk(task, elseScope, functionTable, engineOptions, version) for x in self.elseClause]
             for exprCtx, exprRes in elseResults:
                 calls = calls.union(exprCtx.calls)
 
@@ -3372,6 +5938,15 @@ class Unpack(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["unpack"] = self.bytes.jsonNode(lineNumbers, memo)
         out["format"] = []
@@ -3390,18 +5965,52 @@ class Unpack(Expression):
         
 @titus.util.case
 class Doc(Expression):
+    """Abstract syntax tree for inline documentation."""
+
     def __init__(self, comment, pos=None):
+        """:type comment: string
+        :param comment: inline documentation
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(comment, basestring):
             raise PFASyntaxException("\"comment\" must be a string", pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         context = self.Context(AvroNull(), set([self.desc]))
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["doc"] = self.comment
         return out
@@ -3414,21 +6023,57 @@ class Doc(Expression):
 
 @titus.util.case
 class Error(Expression):
+    """Abstract syntax tree for a user-defined error."""
+
     def __init__(self, message, code, pos=None):
+        """:type message: string
+        :param message: error message
+        :type code: integer or ``None``
+        :param code: optional error code
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(message, basestring):
             raise PFASyntaxException("\"message\" must be a string", pos)
 
-        if not isinstance(code, (int, long)) and not code is None:
-            raise PFASyntaxException("\"code\" must be an int or None", pos)
+        if (not isinstance(code, (int, long)) and not code is None) or not code < 0:
+            raise PFASyntaxException("\"code\" must be a negative int or None", pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
-        context = self.Context(ExceptionType(), set([self.desc]), self.message, self.code)
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
+        context = self.Context(ExceptionType(), set([self.desc]), self.message, self.code, self.pos)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["error"] = self.message
         if self.code is not None:
@@ -3439,25 +6084,53 @@ class Error(Expression):
 
     @titus.util.case
     class Context(ExpressionContext):
-        def __init__(self, retType, calls, message, code): pass
+        def __init__(self, retType, calls, message, code, pos): pass
 
 @titus.util.case
 class Try(Expression):
+    """Abstract syntax tree for a ``try`` form."""
+
     def __init__(self, exprs, filter, pos=None):
+        """:type exprs: list of titus.pfaast.Expression
+        :param exprs: expressions to evaluate that might raise an exception
+        :type filter: ``None`` or a list of strings and integers
+        :param filter: optional filter for error messages
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(exprs, (list, tuple)) or not all(isinstance(x, Expression) for x in exprs):
             raise PFASyntaxException("\"exprs\" must be a list of Expressions", pos)
 
-        if (not isinstance(filter, (list, tuple)) or not all(isinstance(x, basestring) for x in filter)) and not filter is None:
-            raise PFASyntaxException("\"filter\" must be a list of strings or None", pos)
+        if (not isinstance(filter, (list, tuple)) or not all(isinstance(x, (basestring, int, long)) for x in filter)) and not filter is None:
+            raise PFASyntaxException("\"filter\" must be a list of strings and integers or None", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(Try, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.exprs)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -3465,9 +6138,26 @@ class Try(Expression):
                        self.filter,
                        self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         scope = symbolTable.newScope(True, True)
-        results = [x.walk(task, scope, functionTable, engineOptions) for x in self.exprs]
+        results = [x.walk(task, scope, functionTable, engineOptions, version) for x in self.exprs]
 
         exprType = results[-1][0].retType
         if isinstance(exprType, ExceptionType):
@@ -3485,6 +6175,15 @@ class Try(Expression):
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["try"] = [x.jsonNode(lineNumbers, memo) for x in self.exprs]
         if self.filter is not None:
@@ -3499,7 +6198,17 @@ class Try(Expression):
 
 @titus.util.case
 class Log(Expression):
+    """Abstract syntax tree for log messages."""
+
     def __init__(self, exprs, namespace, pos=None):
+        """:type exprs: list of titus.pfaast.Expression
+        :param exprs: expressions to print to the log
+        :type namespace: string or ``None``
+        :param namespace: optional namespace string
+        :type pos: string or ``None``
+        :param pos: source file location from the locator mark
+        """
+
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
@@ -3510,10 +6219,28 @@ class Log(Expression):
             raise PFASyntaxException("\"namespace\" must be a string or None", pos)
 
     def collect(self, pf):
+        """Walk over tree applying a partial function, returning a list of results in its domain.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning anything
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: list of function results
+        :return: a result for each abstract syntax tree node in the ``pf`` function's domain
+        """
         return super(Log, self).collect(pf) + \
                titus.util.flatten(x.collect(pf) for x in self.exprs)
 
     def replace(self, pf):
+        """Walk over tree applying a partial function, returning a transformed copy of the tree.
+
+        :type pf: callable with ``isDefinedAt`` method
+        :param pf: partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast
+        :type pf.isDefinedAt: callable
+        :param pf.isDefinedAt: domain that takes any titus.pfaast.Ast as an argument, returning ``True`` if this item is in the domain, ``False`` otherwise
+        :rtype: new titus.pfaast.Ast tree
+        :return: tree with nodes in the ``pf`` function's domain transformed; everything else left as-is
+        """
         if pf.isDefinedAt(self):
             return pf(self)
         else:
@@ -3521,13 +6248,39 @@ class Log(Expression):
                        self.namespace,
                        self.pos)
 
-    def walk(self, task, symbolTable, functionTable, engineOptions):
+    def walk(self, task, symbolTable, functionTable, engineOptions, version):
+        """Walk over tree applying a titus.pfaast.Task while checking for semantic errors.
+
+        This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.
+
+        :type task: titus.pfaast.Task
+        :param task: generic task to perform on this abstract syntax tree node's context
+        :type symbolTable: titus.pfaast.SymbolTable
+        :param symbolTable: used to look up symbols, cells, and pools
+        :type functionTable: titus.pfaast.FunctionTable
+        :param functionTable: used to look up functions
+        :type engineOptions: titus.options.EngineOptions
+        :param engineOptions: implementation options
+        :type version: titus.signature.PFAVersion
+        :param version: version of the PFA language in which to interpret this PFA
+        :rtype: (titus.pfaast.AstContext, titus.pfaast.TaskResult)
+        :return: (information about this abstract syntax tree node after type-checking, result of the generic task)
+        """
         scope = symbolTable.newScope(True, True)
-        results = [x.walk(task, scope, functionTable, engineOptions) for x in self.exprs]
+        results = [x.walk(task, scope, functionTable, engineOptions, version) for x in self.exprs]
         context = self.Context(AvroNull(), set(titus.util.flatten([x[0].calls for x in results])).union(set([self.desc])), scope.inThisScope, results, self.namespace)
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
+        """Convert this abstract syntax tree to Pythonized JSON.
+
+        :type lineNumbers: bool
+        :param lineNumbers: if ``True``, include locator marks in each JSON object
+        :type memo: set of string
+        :param memo: used to avoid recursion; provide an empty set if unsure
+        :rtype: Pythonized JSON
+        :return: JSON representation
+        """
         out = self.startDict(lineNumbers)
         out["log"] = [x.jsonNode(lineNumbers, memo) for x in self.exprs]
         if self.namespace is not None:

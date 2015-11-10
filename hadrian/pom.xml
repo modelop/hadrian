@@ -27,7 +27,7 @@ limitations under the License.
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian</artifactId>
-  <version>0.7.1</version>
+  <version>0.8.1</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -37,6 +37,15 @@ limitations under the License.
       <distribution>repo</distribution>
     </license>
   </licenses>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <groupId>org.scala-tools</groupId>
+        <artifactId>maven-scala-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </reporting>
 
   <properties>
     <maven.compiler.source>1.7</maven.compiler.source>
@@ -91,6 +100,12 @@ limitations under the License.
     </dependency>
 
     <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-csv</artifactId>
+      <version>1.1</version>
+    </dependency>
+
+    <dependency>
       <groupId>org.codehaus.janino</groupId>
       <artifactId>commons-compiler</artifactId>
       <version>2.7.4</version>
@@ -117,7 +132,7 @@ limitations under the License.
     <dependency>
         <groupId>joda-time</groupId>
         <artifactId>joda-time</artifactId>
-        <version>2.7</version>
+        <version>2.8.2</version>   <!-- brings in tzdata version 2015f -->
     </dependency>
 
     <dependency>
@@ -208,47 +223,50 @@ limitations under the License.
 <tagsToInclude>
     AstToJson
     Data
+    DataType
+    DumpState
     JsonToAst
     JVMCompilation
+    MakeDocs
+    Memory
+    MultiThreaded
     RandomJson
     Shared
     SignatureMatch
-    DataType
-    DumpState
     TypeCheck
     Yaml
-    MultiThreaded
-    Memory
-    MakeDocsLatex
-    Lib1Array
-    Lib1Bytes
-    Lib1Cast
-    Lib1Core
-    Lib1Enum
-    Lib1Fixed
-    Lib1Impute
-    Lib1Interp
-    Lib1LA
-    Lib1Link
-    Lib1Map
-    Lib1Math
-    Lib1Metric
-    Lib1Parse
-    Lib1Rand
-    Lib1Regex
-    Lib1Spec
-    Lib1String
-    Lib1Test
-    Lib1Time
-    Lib1ProbDist
-    Lib1StatChange
-    Lib1StatSample
-    Lib1ModelCluster
-    Lib1ModelNaive
-    Lib1ModelNeighbor
-    Lib1ModelNeural
-    Lib1ModelReg
-    Lib1ModelTree
+    LibArray
+    LibBytes
+    LibCast
+    LibCore
+    LibEnum
+    LibFixed
+    LibImpute
+    LibInterp
+    LibKernel
+    LibLA
+    LibLink
+    LibMap
+    LibMath
+    LibMetric
+    LibParse
+    LibRand
+    LibRegex
+    LibSpec
+    LibString
+    LibTime
+    LibProbDist
+    LibStatTest
+    LibStatSample
+    LibStatChange
+    LibModelReg
+    LibModelTree
+    LibModelCluster
+    LibModelNeighbor
+    LibModelNaive
+    LibModelNeural
+    LibModelSvm
+
 </tagsToInclude>
 
 <tagsToExclude>

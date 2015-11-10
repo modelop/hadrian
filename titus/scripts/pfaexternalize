@@ -82,7 +82,7 @@ def doMap(parser, writer, stack, extractCells, extractPools, progress):
                 file = open(fileName, "w")
                 subwriter = file.write
                 writer(json.dumps(fileName))
-                writer(', source: "json"')
+                writer(', "source": "json"')
 
             elif len(stack) == 2 and stack[0] == "pools" and key == "init" and stack[1] in extractPools:
                 fileName = extractPools[stack[1]]
@@ -90,7 +90,7 @@ def doMap(parser, writer, stack, extractCells, extractPools, progress):
                 file = open(fileName, "w")
                 subwriter = file.write
                 writer(json.dumps(fileName))
-                writer(', source: "json"')
+                writer(', "source": "json"')
 
             else:
                 file = None
@@ -118,7 +118,7 @@ class ProgressTrait(object):
         pass
     @staticmethod
     def twoSigFigs(x):
-        return round(x, -2*int(math.floor(math.log10(x))))
+        return round(x, 1 - int(math.floor(math.log10(x))))
 
 class ProgressMessages(ProgressTrait):
     def __init__(self, verbose):

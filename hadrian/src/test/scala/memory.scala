@@ -142,7 +142,7 @@ action:
   - let:
       rec:
         type: SimpleRecord
-        new: {x: input, y: input, z: {s.number: input}}
+        new: {x: input, y: input, z: {s.int: input}}
   - cell: one
     to: rec
   - cell: two
@@ -152,14 +152,14 @@ action:
   - cell: four
     to: {a.append: [{cell: two}, input]}
   - pool: five
-    path: [{s.number: input}]
+    path: [{s.int: input}]
     to:
       params: [{old: SimpleRecord}]
       ret: SimpleRecord
       do: rec
     init: rec
   - pool: six
-    path: [{s.number: input}]
+    path: [{s.int: input}]
     to:
       params: [{old: {type: array, items: int}}]
       ret: {type: array, items: int}
@@ -168,14 +168,14 @@ action:
       type: {type: array, items: int}
       value: []
   - pool: seven
-    path: [{s.number: input}]
+    path: [{s.int: input}]
     to:
       params: [{old: SimpleRecord}]
       ret: SimpleRecord
       do: rec
     init: rec
   - pool: eight
-    path: [{s.number: input}]
+    path: [{s.int: input}]
     to:
       params: [{old: {type: array, items: int}}]
       ret: {type: array, items: int}

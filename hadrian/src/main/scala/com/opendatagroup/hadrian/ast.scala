@@ -25,6 +25,8 @@ import scala.collection.JavaConversions._
 import scala.language.postfixOps
 import scala.runtime.ScalaRunTime
 
+import org.apache.commons.lang3.StringEscapeUtils
+
 import org.apache.avro.Schema
 import org.apache.avro.file.DataFileStream
 
@@ -63,6 +65,7 @@ import com.opendatagroup.hadrian.signature.P
 import com.opendatagroup.hadrian.signature.Sig
 import com.opendatagroup.hadrian.signature.Signature
 import com.opendatagroup.hadrian.signature.Sigs
+import com.opendatagroup.hadrian.signature.PFAVersion
 
 import com.opendatagroup.hadrian.datatype.Type
 import com.opendatagroup.hadrian.datatype.FcnType
@@ -111,12 +114,13 @@ package object ast {
     symbols: Map[String, AvroType] = Map[String, AvroType](),
     cells: Map[String, Cell] = Map[String, Cell](),
     pools: Map[String, Pool] = Map[String, Pool](),
-    fcns: Map[String, UserFcn] = Map[String, UserFcn]()): AvroType = {
+    fcns: Map[String, UserFcn] = Map[String, UserFcn](),
+    version: PFAVersion = PFAVersion(0, 0, 0)): AvroType = {
 
     val symbolTable = SymbolTable(None, mutable.Map[String, AvroType](symbols.toSeq: _*), cells, pools, true, false)
     val functionTable = FunctionTable(FunctionTable.blank.functions ++ fcns)
 
-    val (context, result) = expr.walk(NoTask, symbolTable, functionTable, new EngineOptions(Map[String, JsonNode](), Map[String, JsonNode]()))
+    val (context, result) = expr.walk(NoTask, symbolTable, functionTable, new EngineOptions(Map[String, JsonNode](), Map[String, JsonNode]()), version)
     context.asInstanceOf[ExpressionContext].retType
   }
 }
@@ -203,14 +207,31 @@ package ast {
       case (j, t: AvroType) => W.wrapExpr(j.toString, t, boxed)
       case (j, t) => j.toString
     }
+
+    def deprecationWarning(sig: Sig, version: PFAVersion) {}
   }
 
   trait LibFcn extends Fcn {
     def name: String
     def doc: scala.xml.Elem
-    def javaRef(fcnType: FcnType): JavaCode = JavaCode(this.getClass.getName + ".MODULE$")
+    def errcodeBase: Int
+    def javaRef(fcnType: FcnType): JavaCode = JavaCode("(new " + this.getClass.getName + "(" + posToJava + "))")
     def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("%s.apply(%s)", javaRef(FcnType(argContext collect {case x: ExpressionContext => x.retType}, retType)).toString, wrapArgs(args, paramTypes, true))
+    def pos: Option[String]
+    def posToJava: String = pos match {
+      case None => "scala.Option.apply((String)null)"
+      case Some(x) => "scala.Option.apply(\"" + StringEscapeUtils.escapeJava(x) + "\")"
+    }
+    override def deprecationWarning(sig: Sig, version: PFAVersion) {
+      if (sig.lifespan.deprecated(version)) {
+        val contingency = sig.lifespan.contingency match {
+          case Some(x) => "; " + x
+          case None => ""
+        }
+        System.err.println(s"WARNING: $name$sig is deprecated in PFA $version, will be removed in PFA ${sig.lifespan.death.get}$contingency")
+      }
+    }
   }
 
   case class UserFcn(name: String, sig: Sig) extends Fcn {
@@ -234,36 +255,38 @@ package ast {
   case class FunctionTable(functions: Map[String, Fcn])
   object FunctionTable {
     def blank = new FunctionTable(
-      lib1.array.provides ++
-      lib1.bytes.provides ++
-      lib1.cast.provides ++
-      lib1.core.provides ++
-      lib1.enum.provides ++
-      lib1.fixed.provides ++
-      lib1.impute.provides ++
-      lib1.interp.provides ++
-      lib1.la.provides ++
-      lib1.link.provides ++
-      lib1.map.provides ++
-      lib1.math.provides ++
-      lib1.metric.provides ++
-      lib1.parse.provides ++
-      lib1.prob.dist.provides ++
-      lib1.rand.provides ++
-      lib1.regex.provides ++
-      lib1.spec.provides ++
-      lib1.string.provides ++
-      lib1.test.provides ++
-      lib1.stat.change.provides ++
-      lib1.stat.sample.provides ++
-      lib1.time.provides ++
-      lib1.model.cluster.provides ++
-      lib1.model.naive.provides ++
-      lib1.model.neighbor.provides ++
-      lib1.model.neural.provides ++
-      lib1.model.reg.provides ++
-      lib1.model.tree.provides
-    )  // TODO: ++ lib1.other.provides ++ lib1.stillother.provides
+      lib.core.provides ++
+      lib.math.provides ++
+      lib.spec.provides ++
+      lib.link.provides ++
+      lib.kernel.provides ++
+      lib.la.provides ++
+      lib.metric.provides ++
+      lib.rand.provides ++
+      lib.string.provides ++
+      lib.regex.provides ++
+      lib.parse.provides ++
+      lib.cast.provides ++
+      lib.array.provides ++
+      lib.map.provides ++
+      lib.bytes.provides ++
+      lib.fixed.provides ++
+      lib.enum.provides ++
+      lib.time.provides ++
+      lib.impute.provides ++
+      lib.interp.provides ++
+      lib.prob.dist.provides ++
+      lib.stat.test.provides ++
+      lib.stat.sample.provides ++
+      lib.stat.change.provides ++
+      lib.model.reg.provides ++
+      lib.model.tree.provides ++
+      lib.model.cluster.provides ++
+      lib.model.neighbor.provides ++
+      lib.model.naive.provides ++
+      lib.model.neural.provides ++
+      lib.model.svm.provides
+    )  // TODO: ++ lib.other.provides ++ lib.stillother.provides
   }
 
   //////////////////////////////////////////////////////////// type-checking and transforming ASTs
@@ -300,8 +323,8 @@ package ast {
     def replace(pf: PartialFunction[Ast, Ast]): Ast =
       if (pf.isDefinedAt(this)) pf.apply(this) else this
 
-    def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult)
-    def walk(task: Task): TaskResult = walk(task, SymbolTable.blank, FunctionTable.blank, new EngineOptions(Map[String, JsonNode](), Map[String, JsonNode]()))._2
+    def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult)
+    def walk(task: Task, version: PFAVersion): TaskResult = walk(task, SymbolTable.blank, FunctionTable.blank, new EngineOptions(Map[String, JsonNode](), Map[String, JsonNode]()), version)._2
 
     def toJson(lineNumbers: Boolean = true) = convertToJson(jsonNode(lineNumbers, mutable.Set[String]()))
     def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode
@@ -394,7 +417,7 @@ package ast {
     if (merge != None  &&  merge.get.size < 1)
       throw new PFASyntaxException("\"merge\" must contain least one expression", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, pfaVersion: PFAVersion): (AstContext, TaskResult) = {
       val topWrapper = SymbolTable(Some(symbolTable), mutable.Map[String, AvroType](), cells, pools, true, false)
 
       val userFunctions = mutable.Map[String, Fcn]()
@@ -417,7 +440,7 @@ package ast {
         for ((fname, fcnDef) <- fcns) yield {
           val ufname = "u." + fname
           val scope = topWrapper.newScope(true, false)
-          val (fcnContext: FcnDef.Context, _) = fcnDef.walk(task, scope, withUserFunctions, engineOptions)
+          val (fcnContext: FcnDef.Context, _) = fcnDef.walk(task, scope, withUserFunctions, engineOptions, pfaVersion)
           (ufname, fcnContext)
         }
 
@@ -429,7 +452,7 @@ package ast {
       val beginScope = beginScopeWrapper.newScope(true, false)
 
       val beginContextResults: Seq[(ExpressionContext, TaskResult)] =
-        begin.map(_.walk(task, beginScope, withUserFunctions, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+        begin.map(_.walk(task, beginScope, withUserFunctions, engineOptions, pfaVersion)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       val beginResults = beginContextResults map {_._2}
       val beginCalls = beginContextResults.map(_._1.calls).flatten.toSet
 
@@ -443,7 +466,7 @@ package ast {
         mergeScopeWrapper.put("metadata", AvroMap(AvroString()))
         val mergeScope = mergeScopeWrapper.newScope(true, false)
 
-        val mergeContextResults: Seq[(ExpressionContext, TaskResult)] = unwrappedMerge.map(_.walk(task, mergeScope, withUserFunctions, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+        val mergeContextResults: Seq[(ExpressionContext, TaskResult)] = unwrappedMerge.map(_.walk(task, mergeScope, withUserFunctions, engineOptions, pfaVersion)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
         val mergeCalls = mergeContextResults.map(_._1.calls).flatten.toSet
 
         if (!output.accepts(mergeContextResults.last._1.retType))
@@ -467,7 +490,7 @@ package ast {
       val endScope = endScopeWrapper.newScope(true, false)
 
       val endContextResults: Seq[(ExpressionContext, TaskResult)] =
-        end.map(_.walk(task, endScope, withUserFunctions, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+        end.map(_.walk(task, endScope, withUserFunctions, engineOptions, pfaVersion)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       val endResults = endContextResults map {_._2}
       val endCalls = endContextResults.map(_._1.calls).flatten.toSet
 
@@ -481,7 +504,7 @@ package ast {
       actionScopeWrapper.put("actionsFinished", AvroLong())
       val actionScope = actionScopeWrapper.newScope(true, false)
 
-      val actionContextResults: Seq[(ExpressionContext, TaskResult)] = action.map(_.walk(task, actionScope, withUserFunctions, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val actionContextResults: Seq[(ExpressionContext, TaskResult)] = action.map(_.walk(task, actionScope, withUserFunctions, engineOptions, pfaVersion)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       val actionCalls = actionContextResults.map(_._1.calls).flatten.toSet
 
       if (method == Method.MAP  ||  method == Method.FOLD) {
@@ -920,7 +943,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode((avroPlaceholder.toString, this.init.jsonNode, shared, rollback, source))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val context = Cell.Context()
       (context, task(context, engineOptions))
     }
@@ -963,7 +986,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode((avroPlaceholder.toString, this.init.jsonNode, shared, rollback, source))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val context = Pool.Context()
       (context, task(context, engineOptions))
     }
@@ -1001,14 +1024,14 @@ package ast {
     def path: Seq[Expression]
     def pos: Option[String]
 
-    def walkPath(avroType: AvroType, task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AvroType, Set[String], Seq[PathIndex]) = {
+    def walkPath(avroType: AvroType, task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AvroType, Set[String], Seq[PathIndex]) = {
       val calls = mutable.Set[String]()
       val scope = symbolTable.newScope(true, true)
       var walkingType = avroType
 
       val pathIndexes =
         for ((expr, indexIndex) <- path.zipWithIndex) yield {
-          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions)
+          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions, version)
           calls ++= exprContext.calls
 
           (walkingType, exprContext.retType) match {
@@ -1068,7 +1091,7 @@ package ast {
     if (body.size < 1)
       throw new PFASyntaxException("function's \"do\" list must contain least one expression", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       if (paramsPlaceholder.size > 22)
         throw new PFASemanticException("function can have at most 22 parameters", pos)
 
@@ -1079,7 +1102,7 @@ package ast {
         scope.put(name, avroType)
       }
 
-      val results: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, scope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val results: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, scope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
 
       val inferredRetType = results.last._1.retType
       if (!inferredRetType.isInstanceOf[ExceptionType]  &&  !ret.accepts(inferredRetType))
@@ -1123,22 +1146,33 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1[String](name))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val fcn = functionTable.functions.get(name) match {
         case Some(x) => x
         case None => throw new PFASemanticException("unknown function \"%s\" (be sure to include \"u.\" to reference user functions)".format(name), pos)
       }
 
-      val fcnType =
+      val fcnType = {
+        val fcnsig = fcn.sig match {
+          case x: Sig if (x.lifespan.current(version)  ||  x.lifespan.deprecated(version)) => x
+          case x: Sigs =>
+            x.cases filter {y: Sig => y.lifespan.current(version)  ||  y.lifespan.deprecated(version)} match {
+              case Seq(y) => y
+              case _ => throw new PFASemanticException("only one-signature functions without generics can be referenced (wrap \"%s\" in a function definition with the desired signature)".format(name), pos)
+            }
+          case _ => throw new PFASemanticException("only one-signature functions without generics can be referenced (wrap \"%s\" in a function definition with the desired signature)".format(name), pos)
+        }
+        fcn.deprecationWarning(fcnsig, version)
+        val params = fcnsig.params
+        val ret = fcnsig.ret
+
         try {
-          fcn.sig match {
-            case Sig(params, ret) => FcnType(params map {case (k, p) => P.toType(p)}, P.mustBeAvro(P.toType(ret)))
-            case _ => throw new IncompatibleTypes("")
-          }
+          FcnType(params map {case (k, p) => P.toType(p)}, P.mustBeAvro(P.toType(ret)))
         }
         catch {
           case err: IncompatibleTypes => throw new PFASemanticException("only one-signature functions without generics can be referenced (wrap \"%s\" in a function definition with the desired signature)".format(name), pos)
         }
+      }
 
       val context = FcnRef.Context(fcnType, Set(name), fcn)
       (context, task(context, engineOptions))
@@ -1179,7 +1213,7 @@ package ast {
     if (fill.size < 1)
       throw new PFASyntaxException("\"fill\" must contain at least one parameter name-argument mapping", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set(name)
 
       val fcn = functionTable.functions.get(name) match {
@@ -1189,7 +1223,7 @@ package ast {
 
       val fillScope = symbolTable.newScope(true, true)
       val argTypeResult: Map[String, (Type, TaskResult)] = fill map {case (name, arg) =>
-        val (argCtx: ArgumentContext, argRes: TaskResult) = arg.walk(task, fillScope, functionTable, engineOptions)
+        val (argCtx: ArgumentContext, argRes: TaskResult) = arg.walk(task, fillScope, functionTable, engineOptions, version)
 
         calls ++= argCtx.calls
 
@@ -1199,26 +1233,35 @@ package ast {
         }
       }
 
-      val (fcnType, originalParamNames) =
-        try {
-          fcn.sig match {
-            case Sig(params, ret) => {
-              val originalParamNames = params map {_._1}
-              val fillNames = argTypeResult.keySet
-
-              if (!fillNames.subsetOf(originalParamNames.toSet))
-                throw new PFASemanticException("fill argument names (\"%s\") are not a subset of function \"%s\" parameter names (\"%s\")".format(fillNames.toSeq.sorted.mkString("\", \""), name, originalParamNames.mkString("\", \"")), pos)
-
-              val fcnType = FcnType(params filter {case (k, p) => !fillNames.contains(k)} map {case (k, p) => P.mustBeAvro(P.toType(p))}, P.mustBeAvro(P.toType(ret)))
-
-              (fcnType, originalParamNames)
+      val (fcnType, originalParamNames) = {
+        val fcnsig = fcn.sig match {
+          case x: Sig if (x.lifespan.current(version)  ||  x.lifespan.deprecated(version)) => x
+          case x: Sigs =>
+            x.cases filter {y: Sig => y.lifespan.current(version)  ||  y.lifespan.deprecated(version)} match {
+              case Seq(y) => y
+              case _ => throw new PFASemanticException("only one-signature functions without generics can be referenced (wrap \"%s\" in a function definition with the desired signature)".format(name), pos)
             }
-            case _ => throw new IncompatibleTypes("")
-          }
+          case _ => throw new PFASemanticException("only one-signature functions without generics can be referenced (wrap \"%s\" in a function definition with the desired signature)".format(name), pos)
+        }
+        fcn.deprecationWarning(fcnsig, version)
+        val params = fcnsig.params
+        val ret = fcnsig.ret
+
+        try {
+          val originalParamNames = params map {_._1}
+          val fillNames = argTypeResult.keySet
+
+          if (!fillNames.subsetOf(originalParamNames.toSet))
+            throw new PFASemanticException("fill argument names (\"%s\") are not a subset of function \"%s\" parameter names (\"%s\")".format(fillNames.toSeq.sorted.mkString("\", \""), name, originalParamNames.mkString("\", \"")), pos)
+
+          val fcnType = FcnType(params filter {case (k, p) => !fillNames.contains(k)} map {case (k, p) => P.mustBeAvro(P.toType(p))}, P.mustBeAvro(P.toType(ret)))
+
+          (fcnType, originalParamNames)
         }
         catch {
           case err: IncompatibleTypes => throw new PFASemanticException("only one-signature functions without generics can be referenced (wrap \"%s\" in a function definition with the desired signature)".format(name), pos)
         }
+      }
 
       val context = FcnRefFill.Context(fcnType, calls.toSet, fcn, originalParamNames, argTypeResult)
       (context, task(context, engineOptions))
@@ -1261,9 +1304,9 @@ package ast {
                     args.map(_.replace(pf).asInstanceOf[Expression]),
                     pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val nameScope = symbolTable.newScope(true, true)
-      val (nameContext: ExpressionContext, nameResult) = name.walk(task, nameScope, functionTable, engineOptions)
+      val (nameContext: ExpressionContext, nameResult) = name.walk(task, nameScope, functionTable, engineOptions, version)
       val fcnNames = nameContext.retType match {
         case x: AvroEnum => x.symbols
         case _ => throw new PFASemanticException("\"call\" name should be an enum, but is " + nameContext.retType, pos)
@@ -1271,7 +1314,7 @@ package ast {
       val nameToNum = fcnNames map {x => (x, nameContext.retType.schema.getEnumOrdinal(x))} toMap
 
       val scope = symbolTable.newScope(true, true)
-      val argResults: Seq[(ExpressionContext, TaskResult)] = args.map(_.walk(task, scope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val argResults: Seq[(ExpressionContext, TaskResult)] = args.map(_.walk(task, scope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
 
       val calls = mutable.Set[String]((fcnNames map {"u." + _}): _*)
       val argTypes: Seq[AvroType] =
@@ -1290,8 +1333,9 @@ package ast {
           case Some(x) => throw new PFASemanticException("function \"%s\" is not a user function".format(n), pos)
           case None => throw new PFASemanticException("unknown function \"%s\" in enumeration type".format(n), pos)
         }
-        fcn.sig.accepts(argTypes) match {
-          case Some((paramTypes, retType)) => {
+        fcn.sig.accepts(argTypes, version) match {
+          case Some((sig, paramTypes, retType)) => {
+            fcn.deprecationWarning(sig, version)
             nameToFcn(n) = fcn
             nameToParamTypes(n) = paramTypes
             nameToRetTypes(n) = retType
@@ -1351,14 +1395,14 @@ package ast {
              args.map(_.replace(pf).asInstanceOf[Argument]),
              pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val fcn = functionTable.functions.get(name) match {
         case Some(x) => x
         case None => throw new PFASemanticException("unknown function \"%s\" (be sure to include \"u.\" to reference user functions)".format(name), pos)
       }
 
       val scope = symbolTable.newScope(true, true)
-      val argResults: Seq[(AstContext, TaskResult)] = args.map(_.walk(task, scope, functionTable, engineOptions))
+      val argResults: Seq[(AstContext, TaskResult)] = args.map(_.walk(task, scope, functionTable, engineOptions, version))
 
       val calls = mutable.Set[String](name)
       val argTypes: Seq[Type] =
@@ -1372,8 +1416,10 @@ package ast {
         }
 
       val context =
-        fcn.sig.accepts(argTypes) match {
-          case Some((paramTypes, retType)) => {
+        fcn.sig.accepts(argTypes, version) match {
+          case Some((sig, paramTypes, retType)) => {
+            fcn.deprecationWarning(sig, version)
+
             val argContexts = argResults map { _._1 }
             val argTaskResults = argResults map { _._2 } toArray
 
@@ -1414,7 +1460,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1[String](name))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       if (symbolTable.get(name) == None)
         throw new PFASemanticException("unknown symbol \"%s\"".format(name), pos)
       val context = Ref.Context(symbolTable(name), Set[String](), name)
@@ -1434,7 +1480,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1[Null](null))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val context = LiteralNull.Context(AvroNull(), Set[String](LiteralNull.desc))
       (context, task(context, engineOptions))
     }
@@ -1453,7 +1499,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1[Boolean](value))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val context = LiteralBoolean.Context(AvroBoolean(), Set[String](LiteralBoolean.desc), value)
       (context, task(context, engineOptions))
     }
@@ -1472,7 +1518,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1[Int](value))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val context = LiteralInt.Context(AvroInt(), Set[String](LiteralInt.desc), value)
       (context, task(context, engineOptions))
     }
@@ -1491,7 +1537,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1[Long](value))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val context = LiteralLong.Context(AvroLong(), Set[String](LiteralLong.desc), value)
       (context, task(context, engineOptions))
     }
@@ -1518,7 +1564,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1[Float](value))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val context = LiteralFloat.Context(AvroFloat(), Set[String](LiteralFloat.desc), value)
       (context, task(context, engineOptions))
     }
@@ -1542,7 +1588,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1[Double](value))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val context = LiteralDouble.Context(AvroDouble(), Set[String](LiteralDouble.desc), value)
       (context, task(context, engineOptions))
     }
@@ -1561,7 +1607,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1[String](value))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val context = LiteralString.Context(AvroString(), Set[String](LiteralString.desc), value)
       (context, task(context, engineOptions))
     }
@@ -1585,7 +1631,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1[Array[Byte]](value))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val context = LiteralBase64.Context(AvroBytes(), Set[String](LiteralBase64.desc), value)
       (context, task(context, engineOptions))
     }
@@ -1613,7 +1659,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode((avroPlaceholder.toString, convertFromJson(value)))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val context = Literal.Context(avroType, Set[String](Literal.desc), value)
       (context, task(context, engineOptions))
     }
@@ -1654,13 +1700,13 @@ package ast {
                   avroPlaceholder,
                   pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
 
       val scope = symbolTable.newScope(true, true)
       val fieldNameTypeExpr: Seq[(String, AvroType, TaskResult)] =
         for ((name, expr) <- fields.toList) yield {
-          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions)
+          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions, version)
           calls ++= exprContext.calls
           (name, exprContext.retType, exprResult)
         }
@@ -1730,13 +1776,13 @@ package ast {
                  avroPlaceholder,
                  pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
 
       val scope = symbolTable.newScope(true, true)
       val itemTypeExpr: Seq[(AvroType, TaskResult)] =
         for (expr <- items) yield {
-          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions)
+          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions, version)
           calls ++= exprContext.calls
           (exprContext.retType, exprResult)
         }
@@ -1793,9 +1839,9 @@ package ast {
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" block must contain at least one expression", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val scope = symbolTable.newScope(false, false)
-      val results: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, scope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val results: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, scope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
 
       val inferredType =
         if (results.last._1.retType.isInstanceOf[ExceptionType])
@@ -1845,7 +1891,7 @@ package ast {
     if (values.size < 1)
       throw new PFASyntaxException("\"let\" must contain at least one declaration", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       if (symbolTable.sealedWithin)
         throw new PFASemanticException("new variable bindings are forbidden in this scope, but you can wrap your expression with \"do\" to make temporary variables", pos)
 
@@ -1862,7 +1908,7 @@ package ast {
             throw new PFASemanticException("\"%s\" is not a valid symbol name".format(name), pos)
 
           val scope = symbolTable.newScope(true, true)
-          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions)
+          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions, version)
           calls ++= exprContext.calls
 
           if (exprContext.retType.isInstanceOf[ExceptionType])
@@ -1919,7 +1965,7 @@ package ast {
     if (values.size < 1)
       throw new PFASyntaxException("\"set\" must contain at least one assignment", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
 
       val nameTypeExpr: Seq[(String, AvroType, TaskResult)] =
@@ -1930,7 +1976,7 @@ package ast {
             throw new PFASemanticException("symbol \"%s\" belongs to a sealed enclosing scope; it cannot be modified within this block)".format(name), pos)
 
           val scope = symbolTable.newScope(true, true)
-          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions)
+          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions, version)
           calls ++= exprContext.calls
 
           if (!symbolTable(name).accepts(exprContext.retType))
@@ -1984,18 +2030,18 @@ package ast {
     if (path.size < 1)
       throw new PFASyntaxException("attr path must have at least one key", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val exprScope = symbolTable.newScope(true, true)
 
-      val (exprContext: ExpressionContext, exprResult) = expr.walk(task, exprScope, functionTable, engineOptions)
+      val (exprContext: ExpressionContext, exprResult) = expr.walk(task, exprScope, functionTable, engineOptions, version)
 
       exprContext.retType match {
         case _: AvroArray | _: AvroMap | _: AvroRecord =>
         case _ => throw new PFASemanticException("expression is not an array, map, or record", pos)
       }
 
-      val (retType, calls, pathResult) = walkPath(exprContext.retType, task, symbolTable, functionTable, engineOptions)
-      val context = AttrGet.Context(retType, calls + AttrGet.desc, exprResult, exprContext.retType, pathResult)
+      val (retType, calls, pathResult) = walkPath(exprContext.retType, task, symbolTable, functionTable, engineOptions, version)
+      val context = AttrGet.Context(retType, calls + AttrGet.desc, exprResult, exprContext.retType, pathResult, pos)
       (context, task(context, engineOptions))
     }
 
@@ -2014,7 +2060,7 @@ package ast {
   }
   object AttrGet {
     val desc = "attr"
-    case class Context(retType: AvroType, calls: Set[String], expr: TaskResult, exprType: AvroType, path: Seq[PathIndex]) extends ExpressionContext
+    case class Context(retType: AvroType, calls: Set[String], expr: TaskResult, exprType: AvroType, path: Seq[PathIndex], pos: Option[String]) extends ExpressionContext
   }
 
   case class AttrTo(expr: Expression, path: Seq[Expression], to: Argument, pos: Option[String] = None) extends Expression with HasPath {
@@ -2042,44 +2088,44 @@ package ast {
     if (path.size < 1)
       throw new PFASyntaxException("attr path must have at least one key", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val exprScope = symbolTable.newScope(true, true)
 
-      val (exprContext: ExpressionContext, exprResult) = expr.walk(task, exprScope, functionTable, engineOptions)
+      val (exprContext: ExpressionContext, exprResult) = expr.walk(task, exprScope, functionTable, engineOptions, version)
 
       exprContext.retType match {
         case _: AvroArray | _: AvroMap | _: AvroRecord =>
         case _ => throw new PFASemanticException("expression is not an array, map, or record", pos)
       }
 
-      val (setType, calls, pathResult) = walkPath(exprContext.retType, task, symbolTable, functionTable, engineOptions)
+      val (setType, calls, pathResult) = walkPath(exprContext.retType, task, symbolTable, functionTable, engineOptions, version)
 
-      val (toContext, toResult) = to.walk(task, symbolTable, functionTable, engineOptions)
+      val (toContext, toResult) = to.walk(task, symbolTable, functionTable, engineOptions, version)
 
       val context =
         toContext match {
           case toCtx: ExpressionContext => {
             if (!setType.accepts(toCtx.retType))
               throw new PFASemanticException("attr-and-path has type %s but attempting to assign with type %s".format(setType.toString, toCtx.retType.toString), pos)
-            AttrTo.Context(exprContext.retType, calls ++ toCtx.calls + AttrTo.desc, exprResult, exprContext.retType, setType, pathResult, toResult, toCtx.retType)
+            AttrTo.Context(exprContext.retType, calls ++ toCtx.calls + AttrTo.desc, exprResult, exprContext.retType, setType, pathResult, toResult, toCtx.retType, pos)
           }
 
           case FcnDef.Context(fcnType, fcnCalls, _, _, _, _, _) => {
             if (!FcnType(List(setType), setType).accepts(fcnType))
               throw new PFASemanticException("attr-and-path has type %s but attempting to assign with a function of type %s".format(setType.toString, fcnType.toString), pos)
-            AttrTo.Context(exprContext.retType, calls ++ fcnCalls + AttrTo.desc, exprResult, exprContext.retType, setType, pathResult, toResult, fcnType)
+            AttrTo.Context(exprContext.retType, calls ++ fcnCalls + AttrTo.desc, exprResult, exprContext.retType, setType, pathResult, toResult, fcnType, pos)
           }
 
           case FcnRef.Context(fcnType, fcnCalls, _) => {
             if (!FcnType(List(setType), setType).accepts(fcnType))
               throw new PFASemanticException("attr-and-path has type %s but attempting to assign with a function of type %s".format(setType.toString, fcnType.toString), pos)
-            AttrTo.Context(exprContext.retType, calls ++ fcnCalls + AttrTo.desc, exprResult, exprContext.retType, setType, pathResult, task(toContext, engineOptions, Some(fcnType)), fcnType)
+            AttrTo.Context(exprContext.retType, calls ++ fcnCalls + AttrTo.desc, exprResult, exprContext.retType, setType, pathResult, task(toContext, engineOptions, Some(fcnType)), fcnType, pos)
           }
 
           case FcnRefFill.Context(fcnType, fcnCalls, _, _, _) => {
             if (!FcnType(List(setType), setType).accepts(fcnType))
               throw new PFASemanticException("attr-and-path has type %s but attempting to assign with a function of type %s".format(setType.toString, fcnType.toString), pos)
-            AttrTo.Context(exprContext.retType, calls ++ fcnCalls + AttrTo.desc, exprResult, exprContext.retType, setType, pathResult, task(toContext, engineOptions, Some(fcnType)), fcnType)
+            AttrTo.Context(exprContext.retType, calls ++ fcnCalls + AttrTo.desc, exprResult, exprContext.retType, setType, pathResult, task(toContext, engineOptions, Some(fcnType)), fcnType, pos)
           }
         }
       (context, task(context, engineOptions))
@@ -2101,7 +2147,7 @@ package ast {
   }
   object AttrTo {
     val desc = "attr-to"
-    case class Context(retType: AvroType, calls: Set[String], expr: TaskResult, exprType: AvroType, setType: AvroType, path: Seq[PathIndex], to: TaskResult, toType: Type) extends ExpressionContext
+    case class Context(retType: AvroType, calls: Set[String], expr: TaskResult, exprType: AvroType, setType: AvroType, path: Seq[PathIndex], to: TaskResult, toType: Type, pos: Option[String]) extends ExpressionContext
   }
 
   case class CellGet(cell: String, path: Seq[Expression], pos: Option[String] = None) extends Expression with HasPath {
@@ -2123,14 +2169,14 @@ package ast {
                 path.map(_.replace(pf).asInstanceOf[Expression]),
                 pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val (cellType, shared) = symbolTable.cell(cell) match {
         case Some(x) => (x.avroType, x.shared)
         case None => throw new PFASemanticException("no cell named \"%s\"".format(cell), pos)
       }
 
-      val (retType, calls, pathResult) = walkPath(cellType, task, symbolTable, functionTable, engineOptions)
-      val context = CellGet.Context(retType, calls + CellGet.desc, cell, cellType, pathResult, shared)
+      val (retType, calls, pathResult) = walkPath(cellType, task, symbolTable, functionTable, engineOptions, version)
+      val context = CellGet.Context(retType, calls + CellGet.desc, cell, cellType, pathResult, shared, pos)
       (context, task(context, engineOptions))
     }
 
@@ -2151,7 +2197,7 @@ package ast {
   }
   object CellGet {
     val desc = "cell"
-    case class Context(retType: AvroType, calls: Set[String], cell: String, cellType: AvroType, path: Seq[PathIndex], shared: Boolean) extends ExpressionContext
+    case class Context(retType: AvroType, calls: Set[String], cell: String, cellType: AvroType, path: Seq[PathIndex], shared: Boolean, pos: Option[String]) extends ExpressionContext
   }
 
   case class CellTo(cell: String, path: Seq[Expression], to: Argument, pos: Option[String] = None) extends Expression with HasPath {
@@ -2175,40 +2221,40 @@ package ast {
                to.replace(pf).asInstanceOf[Argument],
                pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val (cellType, shared) = symbolTable.cell(cell) match {
         case Some(x) => (x.avroType, x.shared)
         case None => throw new PFASemanticException("no cell named \"%s\"".format(cell), pos)
       }
 
-      val (setType, calls, pathResult) = walkPath(cellType, task, symbolTable, functionTable, engineOptions)
+      val (setType, calls, pathResult) = walkPath(cellType, task, symbolTable, functionTable, engineOptions, version)
 
-      val (toContext, toResult) = to.walk(task, symbolTable, functionTable, engineOptions)
+      val (toContext, toResult) = to.walk(task, symbolTable, functionTable, engineOptions, version)
 
       val context =
         toContext match {
           case toCtx: ExpressionContext => {
             if (!setType.accepts(toCtx.retType))
               throw new PFASemanticException("cell-and-path has type %s but attempting to assign with type %s".format(setType.toString, toCtx.retType.toString), pos)
-            CellTo.Context(cellType, calls ++ toCtx.calls + CellTo.desc, cell, cellType, setType, pathResult, toResult, toCtx.retType, shared)
+            CellTo.Context(cellType, calls ++ toCtx.calls + CellTo.desc, cell, cellType, setType, pathResult, toResult, toCtx.retType, shared, pos)
           }
 
           case FcnDef.Context(fcnType, fcnCalls, _, _, _, _, _) => {
             if (!FcnType(List(setType), setType).accepts(fcnType))
               throw new PFASemanticException("cell-and-path has type %s but attempting to assign with a function of type %s".format(setType.toString, fcnType.toString), pos)
-            CellTo.Context(cellType, calls ++ fcnCalls + CellTo.desc, cell, cellType, setType, pathResult, toResult, fcnType, shared)
+            CellTo.Context(cellType, calls ++ fcnCalls + CellTo.desc, cell, cellType, setType, pathResult, toResult, fcnType, shared, pos)
           }
 
           case FcnRef.Context(fcnType, fcnCalls, _) => {
             if (!FcnType(List(setType), setType).accepts(fcnType))
               throw new PFASemanticException("cell-and-path has type %s but attempting to assign with a function of type %s".format(setType.toString, fcnType.toString), pos)
-            CellTo.Context(cellType, calls ++ fcnCalls + CellTo.desc, cell, cellType, setType, pathResult, task(toContext, engineOptions, Some(fcnType)), fcnType, shared)
+            CellTo.Context(cellType, calls ++ fcnCalls + CellTo.desc, cell, cellType, setType, pathResult, task(toContext, engineOptions, Some(fcnType)), fcnType, shared, pos)
           }
 
           case FcnRefFill.Context(fcnType, fcnCalls, _, _, _) => {
             if (!FcnType(List(setType), setType).accepts(fcnType))
               throw new PFASemanticException("cell-and-path has type %s but attempting to assign with a function of type %s".format(setType.toString, fcnType.toString), pos)
-            CellTo.Context(cellType, calls ++ fcnCalls + CellTo.desc, cell, cellType, setType, pathResult, task(toContext, engineOptions, Some(fcnType)), fcnType, shared)
+            CellTo.Context(cellType, calls ++ fcnCalls + CellTo.desc, cell, cellType, setType, pathResult, task(toContext, engineOptions, Some(fcnType)), fcnType, shared, pos)
           }
         }
       (context, task(context, engineOptions))
@@ -2232,7 +2278,7 @@ package ast {
   }
   object CellTo {
     val desc = "cell-to"
-    case class Context(retType: AvroType, calls: Set[String], cell: String, cellType: AvroType, setType: AvroType, path: Seq[PathIndex], to: TaskResult, toType: Type, shared: Boolean) extends ExpressionContext
+    case class Context(retType: AvroType, calls: Set[String], cell: String, cellType: AvroType, setType: AvroType, path: Seq[PathIndex], to: TaskResult, toType: Type, shared: Boolean, pos: Option[String]) extends ExpressionContext
   }
 
   case class PoolGet(pool: String, path: Seq[Expression], pos: Option[String] = None) extends Expression with HasPath {
@@ -2257,14 +2303,14 @@ package ast {
     if (path.size < 1)
       throw new PFASyntaxException("pool path must have at least one key", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val (poolType, shared) = symbolTable.pool(pool) match {
         case Some(x) => (x.avroType, x.shared)
         case None => throw new PFASemanticException("no pool named \"%s\"".format(pool), pos)
       }
 
-      val (retType, calls, pathResult) = walkPath(AvroMap(poolType), task, symbolTable, functionTable, engineOptions)
-      val context = PoolGet.Context(retType, calls + PoolGet.desc, pool, pathResult, shared)
+      val (retType, calls, pathResult) = walkPath(AvroMap(poolType), task, symbolTable, functionTable, engineOptions, version)
+      val context = PoolGet.Context(retType, calls + PoolGet.desc, pool, pathResult, shared, pos)
       (context, task(context, engineOptions))
     }
 
@@ -2283,7 +2329,7 @@ package ast {
   }
   object PoolGet {
     val desc = "pool"
-    case class Context(retType: AvroType, calls: Set[String], pool: String, path: Seq[PathIndex], shared: Boolean) extends ExpressionContext
+    case class Context(retType: AvroType, calls: Set[String], pool: String, path: Seq[PathIndex], shared: Boolean, pos: Option[String]) extends ExpressionContext
   }
 
   case class PoolTo(pool: String, path: Seq[Expression], to: Argument, init: Expression, pos: Option[String] = None) extends Expression with HasPath {
@@ -2312,17 +2358,17 @@ package ast {
     if (path.size < 1)
       throw new PFASyntaxException("pool path must have at least one key", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val (poolType, shared) = symbolTable.pool(pool) match {
         case Some(x) => (x.avroType, x.shared)
         case None => throw new PFASemanticException("no pool named \"%s\"".format(pool), pos)
       }
 
-      val (setType, calls, pathResult) = walkPath(AvroMap(poolType), task, symbolTable, functionTable, engineOptions)
+      val (setType, calls, pathResult) = walkPath(AvroMap(poolType), task, symbolTable, functionTable, engineOptions, version)
 
-      val (toContext, toResult) = to.walk(task, symbolTable, functionTable, engineOptions)
+      val (toContext, toResult) = to.walk(task, symbolTable, functionTable, engineOptions, version)
 
-      val (initContext: ExpressionContext, initResult) = init.walk(task, symbolTable, functionTable, engineOptions)
+      val (initContext: ExpressionContext, initResult) = init.walk(task, symbolTable, functionTable, engineOptions, version)
       if (!poolType.accepts(initContext.retType))
         throw new PFASemanticException("pool has type %s but attempting to init with type %s".format(poolType.toString, initContext.retType.toString), pos)
 
@@ -2331,25 +2377,25 @@ package ast {
           case toCtx: ExpressionContext => {
             if (!setType.accepts(toCtx.retType))
               throw new PFASemanticException("pool-and-path has type %s but attempting to assign with type %s".format(setType.toString, toCtx.retType.toString), pos)
-            PoolTo.Context(poolType, calls ++ toCtx.calls + PoolTo.desc, pool, poolType, setType, pathResult, toResult, toCtx.retType, initResult, shared)
+            PoolTo.Context(poolType, calls ++ toCtx.calls + PoolTo.desc, pool, poolType, setType, pathResult, toResult, toCtx.retType, initResult, shared, pos)
           }
 
           case FcnDef.Context(fcnType, fcnCalls, _, _, _, _, _) => {
             if (!FcnType(List(setType), setType).accepts(fcnType))
               throw new PFASemanticException("pool-and-path has type %s but attempting to assign with a function of type %s".format(setType.toString, fcnType.toString), pos)
-            PoolTo.Context(poolType, calls ++ fcnCalls + PoolTo.desc, pool, poolType, setType, pathResult, toResult, fcnType, initResult, shared)
+            PoolTo.Context(poolType, calls ++ fcnCalls + PoolTo.desc, pool, poolType, setType, pathResult, toResult, fcnType, initResult, shared, pos)
           }
 
           case FcnRef.Context(fcnType, fcnCalls, _) => {
             if (!FcnType(List(setType), setType).accepts(fcnType))
               throw new PFASemanticException("pool-and-path has type %s but attempting to assign with a function of type %s".format(setType.toString, fcnType.toString), pos)
-            PoolTo.Context(poolType, calls ++ fcnCalls + PoolTo.desc, pool, poolType, setType, pathResult, task(toContext, engineOptions, Some(fcnType)), fcnType, initResult, shared)
+            PoolTo.Context(poolType, calls ++ fcnCalls + PoolTo.desc, pool, poolType, setType, pathResult, task(toContext, engineOptions, Some(fcnType)), fcnType, initResult, shared, pos)
           }
 
           case FcnRefFill.Context(fcnType, fcnCalls, _, _, _) => {
             if (!FcnType(List(setType), setType).accepts(fcnType))
               throw new PFASemanticException("pool-and-path has type %s but attempting to assign with a function of type %s".format(setType.toString, fcnType.toString), pos)
-            PoolTo.Context(poolType, calls ++ fcnCalls + PoolTo.desc, pool, poolType, setType, pathResult, task(toContext, engineOptions, Some(fcnType)), fcnType, initResult, shared)
+            PoolTo.Context(poolType, calls ++ fcnCalls + PoolTo.desc, pool, poolType, setType, pathResult, task(toContext, engineOptions, Some(fcnType)), fcnType, initResult, shared, pos)
           }
         }
       (context, task(context, engineOptions))
@@ -2372,7 +2418,54 @@ package ast {
   }
   object PoolTo {
     val desc = "pool-to"
-    case class Context(retType: AvroType, calls: Set[String], pool: String, poolType: AvroType, setType: AvroType, path: Seq[PathIndex], to: TaskResult, toType: Type, init: TaskResult, shared: Boolean) extends ExpressionContext
+    case class Context(retType: AvroType, calls: Set[String], pool: String, poolType: AvroType, setType: AvroType, path: Seq[PathIndex], to: TaskResult, toType: Type, init: TaskResult, shared: Boolean, pos: Option[String]) extends ExpressionContext
+  }
+
+  case class PoolDel(pool: String, del: Expression, pos: Option[String] = None) extends Expression {
+    override def equals(other: Any): Boolean = other match {
+      case that: PoolDel => this.pool == that.pool  &&  this.del == that.del  // but not pos
+      case _ => false
+    }
+    override def hashCode(): Int = ScalaRunTime._hashCode((pool, del))
+
+    override def collect[X](pf: PartialFunction[Ast, X]): Seq[X] =
+      super.collect(pf) ++
+        del.collect(pf)
+
+    override def replace(pf: PartialFunction[Ast, Ast]): Ast =
+      if (pf.isDefinedAt(this))
+        pf.apply(this)
+      else
+        PoolDel(pool, del.replace(pf).asInstanceOf[Expression], pos)
+
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
+      val shared = symbolTable.pool(pool) match {
+        case Some(x) => x.shared
+        case None => throw new PFASemanticException("no pool named \"%s\"".format(pool), pos)
+      }
+
+      val (delContext: ExpressionContext, delResult) = del.walk(task, symbolTable, functionTable, engineOptions, version)
+      if (!AvroString().accepts(delContext.retType))
+        throw new PFASemanticException("\"pool-del\" expression should evaluate to a string, but is " + delContext.retType, pos)
+
+      val calls = delContext.calls.toSet + PoolDel.desc
+
+      val context = PoolDel.Context(AvroNull(), calls, pool, delResult, shared)
+      (context, task(context, engineOptions))
+    }
+
+    override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = {
+      val factory = JsonNodeFactory.instance
+      val out = factory.objectNode
+      if (lineNumbers) pos.foreach(out.put("@", _))
+      out.put("pool", pool)
+      out.put("del", del.jsonNode(lineNumbers, memo))
+      out
+    }
+  }
+  object PoolDel {
+    val desc = "pool-del"
+    case class Context(retType: AvroType, calls: Set[String], pool: String, del: TaskResult, shared: Boolean) extends ExpressionContext
   }
 
   case class If(predicate: Expression, thenClause: Seq[Expression], elseClause: Option[Seq[Expression]], pos: Option[String] = None) extends Expression {
@@ -2404,17 +2497,17 @@ package ast {
     if (elseClause != None  &&  elseClause.get.size < 1)
       throw new PFASyntaxException("\"else\" clause must contain at least one expression", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
 
       val predScope = symbolTable.newScope(true, true)
-      val (predContext: ExpressionContext, predResult) = predicate.walk(task, predScope, functionTable, engineOptions)
+      val (predContext: ExpressionContext, predResult) = predicate.walk(task, predScope, functionTable, engineOptions, version)
       if (!AvroBoolean().accepts(predContext.retType))
         throw new PFASemanticException("\"if\" predicate should be boolean, but is " + predContext.retType, pos)
       calls ++= predContext.calls
 
       val thenScope = symbolTable.newScope(false, false)
-      val thenResults: Seq[(ExpressionContext, TaskResult)] = thenClause.map(_.walk(task, thenScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val thenResults: Seq[(ExpressionContext, TaskResult)] = thenClause.map(_.walk(task, thenScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       for ((exprCtx, _) <- thenResults)
         calls ++= exprCtx.calls
 
@@ -2423,7 +2516,7 @@ package ast {
           case Some(clause) => {
             val elseScope = symbolTable.newScope(false, false)
 
-            val elseResults = clause.map(_.walk(task, elseScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+            val elseResults = clause.map(_.walk(task, elseScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
             for ((exprCtx, _) <- elseResults)
               calls ++= exprCtx.calls
 
@@ -2510,19 +2603,19 @@ package ast {
     if (elseClause != None  &&  elseClause.get.size < 1)
       throw new PFASyntaxException("\"else\" clause must contain at least one expression", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
 
       val withoutElse: Seq[Cond.WalkBlock] =
         for (If(predicate, thenClause, _, ifpos) <- ifthens) yield {
           val predScope = symbolTable.newScope(true, true)
-          val (predContext: ExpressionContext, predResult) = predicate.walk(task, predScope, functionTable, engineOptions)
+          val (predContext: ExpressionContext, predResult) = predicate.walk(task, predScope, functionTable, engineOptions, version)
           if (!AvroBoolean().accepts(predContext.retType))
             throw new PFASemanticException("\"if\" predicate should be boolean, but is " + predContext.retType, ifpos)
           calls ++= predContext.calls
 
           val thenScope = symbolTable.newScope(false, false)
-          val thenResults: Seq[(ExpressionContext, TaskResult)] = thenClause.map(_.walk(task, thenScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+          val thenResults: Seq[(ExpressionContext, TaskResult)] = thenClause.map(_.walk(task, thenScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
           for ((exprCtx, _) <- thenResults)
             calls ++= exprCtx.calls
 
@@ -2533,7 +2626,7 @@ package ast {
         case Some(clause) => {
           val elseScope = symbolTable.newScope(false, false)
 
-          val elseResults = clause.map(_.walk(task, elseScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+          val elseResults = clause.map(_.walk(task, elseScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
           for ((exprCtx, _) <- elseResults)
             calls ++= exprCtx.calls
 
@@ -2615,17 +2708,17 @@ package ast {
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" block must contain at least one expression", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
       val loopScope = symbolTable.newScope(false, false)
       val predScope = loopScope.newScope(true, true)
 
-      val (predContext: ExpressionContext, predResult) = predicate.walk(task, predScope, functionTable, engineOptions)
+      val (predContext: ExpressionContext, predResult) = predicate.walk(task, predScope, functionTable, engineOptions, version)
       if (!AvroBoolean().accepts(predContext.retType))
         throw new PFASemanticException("\"while\" predicate should be boolean, but is " + predContext.retType, pos)
       calls ++= predContext.calls
 
-      val loopResults: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, loopScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val loopResults: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, loopScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       for ((exprCtx, _) <- loopResults)
         calls ++= exprCtx.calls
 
@@ -2676,16 +2769,16 @@ package ast {
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" block must contain at least one expression", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
       val loopScope = symbolTable.newScope(false, false)
       val predScope = loopScope.newScope(true, true)
 
-      val loopResults: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, loopScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val loopResults: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, loopScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       for ((exprCtx, _) <- loopResults)
         calls ++= exprCtx.calls
 
-      val (predContext: ExpressionContext, predResult) = predicate.walk(task, predScope, functionTable, engineOptions)
+      val (predContext: ExpressionContext, predResult) = predicate.walk(task, predScope, functionTable, engineOptions, version)
       if (!AvroBoolean().accepts(predContext.retType))
         throw new PFASemanticException("\"until\" predicate should be boolean, but is " + predContext.retType, pos)
       calls ++= predContext.calls
@@ -2747,7 +2840,7 @@ package ast {
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" must contain at least one statement", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
       val loopScope = symbolTable.newScope(false, false)
 
@@ -2762,7 +2855,7 @@ package ast {
             throw new PFASemanticException("\"%s\" is not a valid symbol name".format(name), pos)
 
           val initScope = loopScope.newScope(true, true)
-          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, initScope, functionTable, engineOptions)
+          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, initScope, functionTable, engineOptions, version)
           calls ++= exprContext.calls
 
           newSymbols(name) = exprContext.retType
@@ -2774,7 +2867,7 @@ package ast {
           loopScope.put(name, avroType)
 
       val predicateScope = loopScope.newScope(true, true)
-      val (predicateContext: ExpressionContext, predicateResult) = predicate.walk(task, predicateScope, functionTable, engineOptions)
+      val (predicateContext: ExpressionContext, predicateResult) = predicate.walk(task, predicateScope, functionTable, engineOptions, version)
       if (!AvroBoolean().accepts(predicateContext.retType))
         throw new PFASemanticException("predicate should be boolean, but is " + predicateContext.retType, pos)
       calls ++= predicateContext.calls
@@ -2787,7 +2880,7 @@ package ast {
             throw new PFASemanticException("symbol \"%s\" belongs to a sealed enclosing scope; it cannot be modified within this block".format(name), pos)
 
           val stepScope = loopScope.newScope(true, true)
-          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, stepScope, functionTable, engineOptions)
+          val (exprContext: ExpressionContext, exprResult) = expr.walk(task, stepScope, functionTable, engineOptions, version)
           calls ++= exprContext.calls
 
           if (!loopScope(name).accepts(exprContext.retType))
@@ -2797,7 +2890,7 @@ package ast {
         }
 
       val bodyScope = loopScope.newScope(false, false)
-      val bodyResults: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, bodyScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val bodyResults: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, bodyScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       for ((exprCtx, _) <- bodyResults)
         calls ++= exprCtx.calls
 
@@ -2861,7 +2954,7 @@ package ast {
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" must contain at least one statement", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
       val loopScope = symbolTable.newScope(!seq, false)
 
@@ -2872,7 +2965,7 @@ package ast {
         throw new PFASemanticException("\"%s\" is not a valid symbol name".format(name), pos)
 
       val objScope = loopScope.newScope(true, true)
-      val (objContext: ExpressionContext, objResult) = array.walk(task, objScope, functionTable, engineOptions)
+      val (objContext: ExpressionContext, objResult) = array.walk(task, objScope, functionTable, engineOptions, version)
       calls ++= objContext.calls
 
       val elementType = objContext.retType match {
@@ -2883,7 +2976,7 @@ package ast {
       loopScope.put(name, elementType)
 
       val bodyScope = loopScope.newScope(false, false)
-      val bodyResults: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, bodyScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val bodyResults: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, bodyScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       for ((exprCtx, _) <- bodyResults)
         calls ++= exprCtx.calls
 
@@ -2939,7 +3032,7 @@ package ast {
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" must contain at least one statement", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
       val loopScope = symbolTable.newScope(false, false)
 
@@ -2954,7 +3047,7 @@ package ast {
         throw new PFASemanticException("\"%s\" is not a valid symbol name".format(forval), pos)
 
       val objScope = loopScope.newScope(true, true)
-      val (objContext: ExpressionContext, objResult) = map.walk(task, objScope, functionTable, engineOptions)
+      val (objContext: ExpressionContext, objResult) = map.walk(task, objScope, functionTable, engineOptions, version)
       calls ++= objContext.calls
 
       val elementType = objContext.retType match {
@@ -2966,7 +3059,7 @@ package ast {
       loopScope.put(forval, elementType)
 
       val bodyScope = loopScope.newScope(false, false)
-      val bodyResults: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, bodyScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val bodyResults: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, bodyScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       for ((exprCtx, _) <- bodyResults)
         calls ++= exprCtx.calls
 
@@ -3021,14 +3114,14 @@ package ast {
     if (body.size < 1)
       throw new PFASyntaxException("\"do\" block must contain at least one expression", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       if (!validSymbolName(named))
         throw new PFASemanticException("\"%s\" is not a valid symbol name".format(named), pos)
 
       val scope = symbolTable.newScope(false, false)
       scope.put(named, avroType)
 
-      val results: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, scope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val results: Seq[(ExpressionContext, TaskResult)] = body.map(_.walk(task, scope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       val context = CastCase.Context(results.last._1.retType, named, avroType, results.map(_._1.calls).flatten.toSet, scope.inThisScope, results map {_._2})
       (context, task(context, engineOptions))
     }
@@ -3084,11 +3177,11 @@ package ast {
         throw new PFASyntaxException("\"cases\" must contain at least two cases", pos)
     }
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
 
       val exprScope = symbolTable.newScope(true, true)
-      val (exprContext: ExpressionContext, exprResult) = expr.walk(task, exprScope, functionTable, engineOptions)
+      val (exprContext: ExpressionContext, exprResult) = expr.walk(task, exprScope, functionTable, engineOptions, version)
       calls ++= exprContext.calls
 
       val exprType = exprContext.retType
@@ -3100,7 +3193,7 @@ package ast {
         case None =>
       }
 
-      val cases = castCases.map(_.walk(task, symbolTable, functionTable, engineOptions))
+      val cases = castCases.map(_.walk(task, symbolTable, functionTable, engineOptions, version))
       for ((castCtx: CastCase.Context, _) <- cases)
         calls ++= castCtx.calls
 
@@ -3174,9 +3267,9 @@ package ast {
                avroPlaceholder,
                pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val scope = symbolTable.newScope(true, true)
-      val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions)
+      val (exprContext: ExpressionContext, exprResult) = expr.walk(task, scope, functionTable, engineOptions, version)
 
       if (!avroType.accepts(exprContext.retType))
         throw new PFASemanticException("expression results in %s; cannot expand (\"upcast\") to %s".format(exprContext.retType, avroType), pos)
@@ -3231,7 +3324,7 @@ package ast {
     if (elseClause != None  &&  elseClause.size < 1)
       throw new PFASyntaxException("\"else\" clause must contain at least one expression", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
 
       val exprArgsScope = symbolTable.newScope(true, true)
@@ -3241,7 +3334,7 @@ package ast {
         if (!validSymbolName(name))
           throw new PFASemanticException("\"%s\" is not a valid symbol name".format(name), pos)
 
-        val (exprCtx: ExpressionContext, exprRes: TaskResult) = expr.walk(task, exprArgsScope, functionTable, engineOptions)
+        val (exprCtx: ExpressionContext, exprRes: TaskResult) = expr.walk(task, exprArgsScope, functionTable, engineOptions, version)
 
         val avroType =
           exprCtx.retType match {
@@ -3257,7 +3350,7 @@ package ast {
       } toList
 
       val thenScope = assignmentScope.newScope(false, false)
-      val thenResults: Seq[(ExpressionContext, TaskResult)] = thenClause.map(_.walk(task, thenScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val thenResults: Seq[(ExpressionContext, TaskResult)] = thenClause.map(_.walk(task, thenScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       for ((exprCtx, _) <- thenResults)
         calls ++= exprCtx.calls
 
@@ -3266,7 +3359,7 @@ package ast {
           case Some(clause) => {
             val elseScope = symbolTable.newScope(false, false)
 
-            val elseResults = clause.map(_.walk(task, elseScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+            val elseResults = clause.map(_.walk(task, elseScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
             for ((exprCtx, _) <- elseResults)
               calls ++= exprCtx.calls
 
@@ -3429,12 +3522,12 @@ package ast {
     if (exprs.size < 1)
       throw new PFASyntaxException("\"pack\" must contain at least one format-expression mapping", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
 
       var exprsDeclareRes = List[BinaryFormatter.Declare[TaskResult]]()
       for ((f, expr) <- exprs) {
-        val (exprCtx: ExpressionContext, exprRes: TaskResult) = expr.walk(task, symbolTable.newScope(true, true), functionTable, engineOptions)
+        val (exprCtx: ExpressionContext, exprRes: TaskResult) = expr.walk(task, symbolTable.newScope(true, true), functionTable, engineOptions, version)
 
         val declare = BinaryFormatter.formatToDeclare(exprRes, f, pos, true)
 
@@ -3446,7 +3539,7 @@ package ast {
       }
       exprsDeclareRes = exprsDeclareRes.reverse
 
-      val context = Pack.Context(AvroBytes(), calls.toSet + Pack.desc, exprsDeclareRes)
+      val context = Pack.Context(AvroBytes(), calls.toSet + Pack.desc, exprsDeclareRes, pos)
       (context, task(context, engineOptions))
     }
 
@@ -3468,7 +3561,7 @@ package ast {
   }
   object Pack {
     val desc = "pack"
-    case class Context(retType: AvroType, calls: Set[String], exprsDeclareRes: Seq[BinaryFormatter.Declare[TaskResult]]) extends ExpressionContext
+    case class Context(retType: AvroType, calls: Set[String], exprsDeclareRes: Seq[BinaryFormatter.Declare[TaskResult]], pos: Option[String]) extends ExpressionContext
   }
 
   case class Unpack(bytes: Expression, format: Seq[(String, String)], thenClause: Seq[Expression], elseClause: Option[Seq[Expression]], pos: Option[String]) extends Expression {
@@ -3503,13 +3596,13 @@ package ast {
     if (elseClause != None  &&  elseClause.size < 1)
       throw new PFASyntaxException("\"else\" clause must contain at least one expression", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val calls = mutable.Set[String]()
 
       val bytesScope = symbolTable.newScope(true, true)
       val assignmentScope = symbolTable.newScope(false, false)
 
-      val (bytesCtx: ExpressionContext, bytesRes: TaskResult) = bytes.walk(task, bytesScope, functionTable, engineOptions)
+      val (bytesCtx: ExpressionContext, bytesRes: TaskResult) = bytes.walk(task, bytesScope, functionTable, engineOptions, version)
       if (!bytesCtx.retType.isInstanceOf[AvroBytes])
         throw new PFASemanticException("\"unpack\" expression must be a bytes object", pos)
       calls ++= bytesCtx.calls
@@ -3529,7 +3622,7 @@ package ast {
       formatter = formatter.reverse
 
       val thenScope = assignmentScope.newScope(false, false)
-      val thenResults: Seq[(ExpressionContext, TaskResult)] = thenClause.map(_.walk(task, thenScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val thenResults: Seq[(ExpressionContext, TaskResult)] = thenClause.map(_.walk(task, thenScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       for ((exprCtx, _) <- thenResults)
         calls ++= exprCtx.calls
 
@@ -3538,7 +3631,7 @@ package ast {
           case Some(clause) => {
             val elseScope = symbolTable.newScope(false, false)
 
-            val elseResults = clause.map(_.walk(task, elseScope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+            val elseResults = clause.map(_.walk(task, elseScope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
             for ((exprCtx, _) <- elseResults)
               calls ++= exprCtx.calls
 
@@ -3557,7 +3650,7 @@ package ast {
           case None => (AvroNull(), None, None)
         }
 
-      val context = Unpack.Context(retType, calls.toSet + Unpack.desc, bytesRes, formatter, thenScope.inThisScope, thenResults map {_._2}, elseSymbols, elseTaskResults)
+      val context = Unpack.Context(retType, calls.toSet + Unpack.desc, bytesRes, formatter, thenScope.inThisScope, thenResults map {_._2}, elseSymbols, elseTaskResults, pos)
       (context, task(context, engineOptions))
     }
 
@@ -3596,7 +3689,7 @@ package ast {
   }
   object Unpack {
     val desc = "unpack"
-    case class Context(retType: AvroType, calls: Set[String], bytes: TaskResult, formatter: Seq[BinaryFormatter.Declare[String]], thenSymbols: Map[String, AvroType], thenClause: Seq[TaskResult], elseSymbols: Option[Map[String, AvroType]], elseClause: Option[Seq[TaskResult]]) extends ExpressionContext
+    case class Context(retType: AvroType, calls: Set[String], bytes: TaskResult, formatter: Seq[BinaryFormatter.Declare[String]], thenSymbols: Map[String, AvroType], thenClause: Seq[TaskResult], elseSymbols: Option[Map[String, AvroType]], elseClause: Option[Seq[TaskResult]], pos: Option[String]) extends ExpressionContext
   }
 
   case class Doc(comment: String, pos: Option[String] = None) extends Expression {
@@ -3607,7 +3700,7 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode(Tuple1[String](comment))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val context = Doc.Context(AvroNull(), Set[String](Doc.desc))
       (context, task(context, engineOptions))
     }
@@ -3627,6 +3720,9 @@ package ast {
   }
 
   case class Error(message: String, code: Option[Int], pos: Option[String] = None) extends Expression {
+    if (code.exists(_ >= 0))
+      throw new PFASyntaxException("\"code\" for user-defined errors must be negative", pos)
+
     override def equals(other: Any): Boolean = other match {
       case that: Error =>
         this.message == that.message  &&  this.code == that.code  // but not pos
@@ -3634,8 +3730,8 @@ package ast {
     }
     override def hashCode(): Int = ScalaRunTime._hashCode((message, code))
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
-      val context = Error.Context(ExceptionType(), Set[String](Error.desc), message, code)
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
+      val context = Error.Context(ExceptionType(), Set[String](Error.desc), message, code, pos)
       (context, task(context, engineOptions))
     }
 
@@ -3655,10 +3751,10 @@ package ast {
   }
   object Error {
     val desc = "error"
-    case class Context(retType: AvroType, calls: Set[String], message: String, code: Option[Int]) extends ExpressionContext
+    case class Context(retType: AvroType, calls: Set[String], message: String, code: Option[Int], pos: Option[String]) extends ExpressionContext
   }
 
-  case class Try(exprs: Seq[Expression], filter: Option[Seq[String]], pos: Option[String] = None) extends Expression {
+  case class Try(exprs: Seq[Expression], filter: Option[Seq[Either[String, Int]]], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Try =>
         this.exprs == that.exprs  &&  this.filter == that.filter  // but not pos
@@ -3681,9 +3777,9 @@ package ast {
     if (exprs.size < 1)
       throw new PFASyntaxException("\"try\" block must contain at least one expression", pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val scope = symbolTable.newScope(true, true)
-      val results: Seq[(ExpressionContext, TaskResult)] = exprs.map(_.walk(task, scope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val results: Seq[(ExpressionContext, TaskResult)] = exprs.map(_.walk(task, scope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
 
       val (exprType, inferredType) =
         results.last._1.retType match {
@@ -3710,8 +3806,10 @@ package ast {
       filter match {
         case Some(x) => {
           val fout = factory.arrayNode
-          for (str <- x)
-            fout.add(str)
+          for (obj <- x) obj match {
+            case Left(str: String) => fout.add(str)
+            case Right(int: Int) => fout.add(java.lang.Integer.valueOf(int))
+          }
           out.put("filter", fout)
         }
         case None =>
@@ -3722,7 +3820,7 @@ package ast {
   }
   object Try {
     val desc = "try"
-    case class Context(retType: AvroType, calls: Set[String], symbols: Map[String, AvroType], exprs: Seq[TaskResult], exprType: AvroType, filter: Option[Seq[String]]) extends ExpressionContext
+    case class Context(retType: AvroType, calls: Set[String], symbols: Map[String, AvroType], exprs: Seq[TaskResult], exprType: AvroType, filter: Option[Seq[Either[String, Int]]]) extends ExpressionContext
   }
 
   case class Log(exprs: Seq[Expression], namespace: Option[String], pos: Option[String] = None) extends Expression {
@@ -3745,9 +3843,9 @@ package ast {
             namespace,
             pos)
 
-    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions): (AstContext, TaskResult) = {
+    override def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult) = {
       val scope = symbolTable.newScope(true, true)
-      val results: Seq[(ExpressionContext, TaskResult)] = exprs.map(_.walk(task, scope, functionTable, engineOptions)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
+      val results: Seq[(ExpressionContext, TaskResult)] = exprs.map(_.walk(task, scope, functionTable, engineOptions, version)) collect {case (x: ExpressionContext, y: TaskResult) => (x, y)}
       val context = Log.Context(AvroNull(), results.map(_._1.calls).flatten.toSet + Log.desc, scope.inThisScope, results map { case (exprContext, taskResult) => (taskResult, exprContext.retType) }, namespace)
       (context, task(context, engineOptions))
     }

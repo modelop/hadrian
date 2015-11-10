@@ -21,12 +21,34 @@
 import ast
 from collections import OrderedDict
 
-class PythonToPfaException(Exception): pass
+class PythonToPfaException(Exception):
+    """Exception for errors encountered when converting Python code into PFA."""
+    pass
 
 defaultOptions = {"lineNumbers": True,
                   "wantArray": False}
 
 def pfa(expr, subs=None, symbols=None, cells=None, pools=None, options=None, **kwds):
+    """Convert Python code into a PFA expression (not a whole PFA document).
+
+    :type expr: string
+    :param expr: Python code in a string
+    :type subs: dict from substitution strings to their values
+    :param subs: Python identifiers to expand to given PFA structures
+    :type symbols: list of strings
+    :param symbols: Python identifiers to assume are PFA expressions in scope
+    :type cells: list of strings
+    :param cells: Python identifiers to assume are PFA cell names
+    :type pools: list of strings
+    :param pools: Python identifiers to assume are PFA pool names
+    :type options: dict from option names to their values
+    :param options: options for interpreting the Python and producing PFA, such as ``lineNumbers`` and ``wantArray``
+    :type kwds: dict from substitution strings to their values
+    :param kwds: added to ``subs`` (a more convenient way to pass them)
+    :rtype: Pythonized JSON
+    :return: the resulting PFA expression
+    """
+
     if subs is None:
         subs = {}
     if len(kwds) > 0:
@@ -57,11 +79,29 @@ def pfa(expr, subs=None, symbols=None, cells=None, pools=None, options=None, **k
     return out
 
 def fcn(params, ret, expr, subs=None, cells=None, pools=None, options=None, **kwds):
+    """Convert Python code into a PFA function (not a whole PFA document).
+
+    :type params: Pythonized JSON
+    :param params: PFA function params, form is ``[{"argName1": argType1}, {"argName2": argType2}, ...]`` where the ``argTypes`` are Avro type schemas
+    :type ret: Pythonized JSON
+    :param ret: PFA function ret, form is Avro type schema
+    :type subs: dict from substitution strings to their values
+    :param subs: Python identifiers to expand to given PFA structures
+    :type cells: list of strings
+    :param cells: Python identifiers to assume are PFA cell names
+    :type pools: list of strings
+    :param pools: Python identifiers to assume are PFA pool names
+    :type options: dict from option names to their values
+    :param options: options for interpreting the Python and producing PFA, such as ``lineNumbers`` and ``wantArray``
+    :type kwds: dict from substitution strings to their values
+    :param kwds: added to ``subs`` (a more convenient way to pass them)
+    :rtype: Pythonized JSON
+    :return: the resulting PFA function
+    """
     combinedOptions = dict(defaultOptions)
     if options is not None:
         combinedOptions.update(options)
     return OrderedDict([("params", params), ("ret", ret), ("do", pfa(expr, subs, None, cells, pools, options, **kwds))])
-
 
 def _form(state, lineno, others):
     if state["options"]["lineNumbers"] and lineno is not None:

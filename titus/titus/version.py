@@ -18,6 +18,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-__version_info__ = ("0.7.1",)
+__version_info__ = ("0.8.1",)
 
 __version__ = ".".join(map(str, __version_info__))
+
+titusVersion = __version__    # the Titus version is for informational purposes only; doesn't affect behavior
+
+defaultPFAVersion = "0.8.1"   # the PFA version determines how Titus will interpret PFA documents (can be overridden)
+                              # must always be in the form [1-9][0-9]*\.[1-9][0-9]*\.[1-9][0-9]*

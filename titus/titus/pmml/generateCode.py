@@ -25,6 +25,7 @@ import xml.etree.ElementTree as etree
 superset = set()
 
 def fixName(name):
+    """PMML tag name substitutions to avoid conflicts with Python syntax."""
     out = name.replace("-", "_")
     if out == "True":
         out = "AlwaysTrue"
@@ -35,6 +36,8 @@ def fixName(name):
     return out
 
 def convert(xsdFileName):
+    """Used to convert PMML XSDs to Python code *once*, and then that Python code is manually edited."""
+
     pmmlXsd = etree.parse(xsdFileName)
 
     elements = pmmlXsd.getroot().getchildren()

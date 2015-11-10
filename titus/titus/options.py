@@ -21,16 +21,18 @@
 from titus.errors import PFAInitializationException
 
 class EngineOptions(object):
-    recognizedKeys = set(["@", "timeout", "timeout.begin", "timeout.action", "timeout.end", "data.PFARecord.interface"])
+    """Represents the implementation options of a PFA document at runtime (the ``options`` section)."""
 
     def __init__(self, requestedOptions, hostOptions):
+        """:type requestedOptions: dict from string to Pythonized JSON
+        :param requestedOptions: options explicitly requested in the PFA document
+        :type hostOptions: dict from string to Pythonized JSON
+        :param hostOptions: options overridden by host environment
+        """
+
         combinedOptions = {} if requestedOptions is None else dict(requestedOptions)
         if hostOptions is not None:
             combinedOptions.update(hostOptions)
-        unrecognizedKeys = set(combinedOptions.keys()) - self.recognizedKeys
-
-        if len(unrecognizedKeys) > 0:
-            raise PFAInitializationException("unrecognized options: " + " ".join(sorted(unrecognizedKeys)))
 
         def longOpt(name, default):
             out = combinedOptions.get(name, default)

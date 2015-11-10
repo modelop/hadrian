@@ -1297,7 +1297,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
       AvroInt(),
       AvroString(),
       List(),
-      List(Error("hello", None), Error("hello", Some(3))),
+      List(Error("hello", None), Error("hello", Some(-3))),
       List(),
       Map(),
       None,
@@ -1313,7 +1313,7 @@ class JsonToAstSuite extends FlatSpec with Matchers {
   "name": "test",
   "input": "int",
   "output": "string",
-  "action": [{"error":"hello"}, {"error":"hello","code":3}]
+  "action": [{"error":"hello"}, {"error":"hello","code":-3}]
 }""")
   }
 

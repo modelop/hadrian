@@ -24,6 +24,8 @@ import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.language.postfixOps
 
+import org.ejml.simple.SimpleMatrix
+
 import org.python.core.PyInteger
 import org.python.core.PyFloat
 import org.python.core.PyFunction
@@ -38,19 +40,82 @@ import com.opendatagroup.hadrian.datatype.AvroField
 
 package kmeans {
   object Cluster {
-    def avroType = AvroRecord(Seq(AvroField("center", AvroArray(AvroDouble())), AvroField("weight", AvroDouble())), "Cluster")
+    def avroType(options: java.util.Map[String, AnyRef]) = {
+      var pairs = List(AvroField("center", AvroArray(AvroDouble())))
+
+      if (options.get("weight") != null)
+        pairs = AvroField("weight", AvroDouble()) :: pairs
+
+      if (options.get("covariance") != null)
+        pairs = AvroField("covariance", AvroArray(AvroArray(AvroDouble()))) :: pairs
+
+      if (options.get("totalVariance") != null)
+        pairs = AvroField("totalVariance", AvroDouble()) :: pairs
+
+      if (options.get("determinant") != null)
+        pairs = AvroField("determinant", AvroDouble()) :: pairs
+
+      if (options.get("limitDimensions") != null)
+        pairs = AvroField("limitDimensions", AvroArray(AvroInt())) :: pairs
+
+      AvroRecord(pairs.reverse, "Cluster")
+    }
   }
-  case class Cluster(center: java.util.List[Double], weight: Double) extends ModelRecord {
-    def pfa = JsonObject("center" -> JsonArray(center: _*), "weight" -> weight)
-    def avroType = Cluster.avroType
+  case class Cluster(center: java.util.List[Double], weight: Double, covariance: java.util.List[java.util.List[Double]]) extends ModelRecord {
+    def pfa = pfa(mapAsJavaMap(Map[String, AnyRef]()))
+    def pfa(options: java.util.Map[String, AnyRef]) = {
+      val showWeight        = Option(options.get("weight"))          map {case b: java.lang.Boolean => b.booleanValue} getOrElse false
+      val showCovariance    = Option(options.get("covariance"))      map {case b: java.lang.Boolean => b.booleanValue} getOrElse false
+      val showTotalVariance = Option(options.get("totalVariance"))   map {case b: java.lang.Boolean => b.booleanValue} getOrElse false
+      val showDeterminant   = Option(options.get("determinant"))     map {case b: java.lang.Boolean => b.booleanValue} getOrElse false
+      val limitDimensions   = Option(options.get("limitDimensions")) map {_.asInstanceOf[java.util.List[Int]]}
+
+      var pairs: List[(String, AnyRef)] = List("center" -> JsonArray(center: _*))
+
+      limitDimensions foreach {limit =>
+        if (!(limit.toSet subsetOf (0 until covariance.size toSet)))
+          throw new IllegalArgumentException(s"limitDimensions must be a subset of 0 until ${covariance.size}")
+        if (limit.distinct.size != limit.size)
+          throw new IllegalArgumentException(s"limitDimensions must not repeat elements")
+      }
+
+      if (showWeight)
+        pairs = ("weight" -> java.lang.Double.valueOf(weight)) :: pairs
+
+      if (showCovariance) limitDimensions match {
+        case None =>        pairs = ("covariance" -> covariance) :: pairs
+        case Some(limit) => pairs = ("covariance" -> seqAsJavaList(limit map {i => seqAsJavaList(limit map {j => covariance.get(i).get(j)})})) :: pairs
+      }
+
+      if (showTotalVariance) limitDimensions match {
+        case None =>        pairs = ("totalVariance" -> java.lang.Double.valueOf((0 until covariance.size map {i => covariance.get(i).get(i)} sum) / covariance.size)) :: pairs
+        case Some(limit) => pairs = ("totalVariance" -> java.lang.Double.valueOf((limit map {i => covariance.get(i).get(i)} sum) / limit.size)) :: pairs
+      }
+
+      if (showDeterminant) limitDimensions match {
+        case None =>        pairs = ("determinant" -> java.lang.Double.valueOf(new SimpleMatrix(covariance map {row => row map {_.doubleValue} toArray} toArray).determinant)) :: pairs
+        case Some(limit) => pairs = ("determinant" -> java.lang.Double.valueOf(new SimpleMatrix(limit map {i => limit map {j => covariance.get(i).get(j)} toArray} toArray).determinant)) :: pairs
+      }
+
+      limitDimensions foreach {limit =>
+        pairs = ("limitDimensions" -> limit) :: pairs
+      }
+
+      JsonObject(pairs.reverse: _*)
+    }
+
+    def avroType = Cluster.avroType(mapAsJavaMap(Map[String, AnyRef]()))
+    def avroType(options: java.util.Map[String, AnyRef]) = Cluster.avroType(options)
   }
 
   object ClusterSet {
-    def avroType = AvroArray(Cluster.avroType)
+    def avroType(options: java.util.Map[String, AnyRef]) = AvroArray(Cluster.avroType(options))
   }
   case class ClusterSet(clusters: java.util.List[Cluster]) extends Model {
-    def pfa = JsonArray(clusters map {_.pfa}: _*)
-    def avroType = ClusterSet.avroType
+    def pfa = pfa(mapAsJavaMap(Map[String, AnyRef]()))
+    def pfa(options: java.util.Map[String, AnyRef]) = JsonArray(clusters map {_.pfa(options)}: _*)
+    def avroType = ClusterSet.avroType(mapAsJavaMap(Map[String, AnyRef]()))
+    def avroType(options: java.util.Map[String, AnyRef]) = ClusterSet.avroType(options)
   }
 
   class VectorSet extends Dataset {
@@ -241,12 +306,12 @@ package kmeans {
 
   class BelowThreshold(threshold: Double) extends StoppingCondition {
     def apply(iterationNumber: Int, clusterSet: ClusterSet, changes: Array[Array[Double]]): Boolean =
-      changes forall {dx => dx.map(Math.abs).sum < threshold}
+      changes forall {dx => dx.map(Math.abs).max < threshold}
   }
 
   class HalfBelowThreshold(threshold: Double) extends StoppingCondition {
     def apply(iterationNumber: Int, clusterSet: ClusterSet, changes: Array[Array[Double]]): Boolean =
-      (changes count {dx => dx.map(Math.abs).sum < threshold}) >= (0.5 * changes.size)
+      (changes count {dx => dx.map(Math.abs).max < threshold}) >= (0.5 * changes.size)
   }
 
   class WhenAll(conditions: java.lang.Iterable[StoppingCondition]) extends StoppingCondition {
@@ -307,10 +372,10 @@ package kmeans {
 
     if (dataset.numberOfUniquePoints == 0)
       throw new IllegalArgumentException("number of data points must be greater than zero")
-    if (numberOfClusters > dataset.numberOfUniquePoints)
-      throw new IllegalArgumentException(s"requested number of clusters is $numberOfClusters but dataset has only $dataset.numberOfUniquePoints unique points")
     if (dataset.dimension == 0)
       throw new IllegalArgumentException("dataset.dimension of data points must be greater than zero")
+
+    val tooFewUniquePoints = (numberOfClusters > dataset.numberOfUniquePoints)
 
     var _model: ClusterSet = null
     randomClusters()
@@ -325,80 +390,105 @@ package kmeans {
     def setStoppingCondition(s: StoppingCondition) {_stoppingCondition = s}
 
     def randomClusters() {
-      val out = mutable.Set[Cluster]()
-      def select = Cluster(seqAsJavaList(pos(random.nextInt(dataset.numberOfUniquePoints))), 0)
-      0 until numberOfClusters map {i =>
-        var trial = select
-        while (out.contains(trial))
-          trial = select
-        out.add(trial)
+      if (tooFewUniquePoints)
+        _model = ClusterSet(seqAsJavaList(pos zip weight map {case (x, w) => Cluster(seqAsJavaList(x), w, seqAsJavaList(List.fill(dataset.dimension)(seqAsJavaList(List.fill(dataset.dimension)(0.0)))))}))
+      else {
+        val out = mutable.Set[Cluster]()
+        def select = Cluster(seqAsJavaList(pos(random.nextInt(dataset.numberOfUniquePoints))), 0, seqAsJavaList(List[java.util.List[Double]]()))
+        0 until numberOfClusters map {i =>
+          var trial = select
+          while (out.contains(trial))
+            trial = select
+          out.add(trial)
+        }
+        _model = ClusterSet(seqAsJavaList(out.toSeq))
       }
-      _model = ClusterSet(seqAsJavaList(out.toSeq))
     }
-    
+
     def optimize(subsampleSize: Int) {
-      val (subpos, subweight) =
-        if (subsampleSize > dataset.numberOfUniquePoints)
-          throw new IllegalArgumentException(s"cannot select $subsampleSize from a set of ${dataset.numberOfUniquePoints} unique points")
-        else if (subsampleSize < numberOfClusters)
-          throw new IllegalArgumentException(s"cannot optimize $numberOfClusters using only $subsampleSize unique points")
-        else if (subsampleSize == dataset.numberOfUniquePoints)
-          (pos, weight)
-        else {
-          // reservoir sampling
-          val sp = pos.take(subsampleSize)
-          val sw = weight.take(subsampleSize)
-          subsampleSize until dataset.numberOfUniquePoints foreach {i =>
-            val j = random.nextInt(i)
-            if (j < subsampleSize) {
-              sp(j) = pos(i)
-              sw(j) = weight(i)
+      if (!tooFewUniquePoints) {
+        val (subpos, subweight) =
+          if (subsampleSize > dataset.numberOfUniquePoints)
+            throw new IllegalArgumentException(s"cannot select $subsampleSize from a set of ${dataset.numberOfUniquePoints} unique points")
+          else if (subsampleSize < numberOfClusters)
+            throw new IllegalArgumentException(s"cannot optimize $numberOfClusters using only $subsampleSize unique points")
+          else if (subsampleSize == dataset.numberOfUniquePoints)
+            (pos, weight)
+          else {
+            // reservoir sampling
+            val sp = pos.take(subsampleSize)
+            val sw = weight.take(subsampleSize)
+            subsampleSize until dataset.numberOfUniquePoints foreach {i =>
+              val j = random.nextInt(i)
+              if (j < subsampleSize) {
+                sp(j) = pos(i)
+                sw(j) = weight(i)
+              }
             }
+            (sp, sw)
           }
-          (sp, sw)
-        }
 
-      val numer = Array.fill(numberOfClusters)(Array.fill(dataset.dimension)(0.0))
-      val denom = Array.fill(numberOfClusters)(0.0)
-      val changes = Array.fill(numberOfClusters)(Array.fill(dataset.dimension)(0.0))
+        val numer = Array.fill(numberOfClusters)(Array.fill(dataset.dimension)(0.0))
+        val pairs = Array.fill(numberOfClusters)(Array.fill(dataset.dimension)(Array.fill(dataset.dimension)(0.0)))
+        val denom = Array.fill(numberOfClusters)(0.0)
+        val changes = Array.fill(numberOfClusters)(Array.fill(dataset.dimension)(0.0))
 
-      val centersAndIndexes = Vector.fill(numberOfClusters)(Array.fill(dataset.dimension)(0.0)).zipWithIndex
+        val centersAndIndexes = Vector.fill(numberOfClusters)(Array.fill(dataset.dimension)(0.0)).zipWithIndex
 
-      var iterationNumber = 0
-      while (iterationNumber == 0  ||  !stoppingCondition(iterationNumber, model, changes)) {
-        for (i <- 0 until numberOfClusters; j <- 0 until dataset.dimension)
-          (centersAndIndexes(i)._1)(j) = model.clusters(i).center(j)
+        var iterationNumber = 0
+        while (iterationNumber == 0  ||  !stoppingCondition(iterationNumber, model, changes)) {
+          for (i <- 0 until numberOfClusters; j <- 0 until dataset.dimension)
+            (centersAndIndexes(i)._1)(j) = model.clusters(i).center(j)
 
-        for (i <- 0 until numberOfClusters) {
-          for (j <- 0 until dataset.dimension)
-            numer(i)(j) = 0.0
-          denom(i) = 0.0
-        }
+          for (i <- 0 until numberOfClusters) {
+            for (j <- 0 until dataset.dimension) {
+              numer(i)(j) = 0.0
+              for (k <- 0 until dataset.dimension)
+                pairs(i)(j)(k) = 0.0
+            }
+            denom(i) = 0.0
+          }
 
-        var i = 0
-        while (i < subsampleSize) {
-          val clusterIndex = centersAndIndexes.minBy({case (center, clusterIndex) => metric(center, subpos(i))})._2
+          var i = 0
+          while (i < subsampleSize) {
+            val clusterIndex = centersAndIndexes.minBy({case (center, clusterIndex) => metric(center, subpos(i))})._2
 
-          var j = 0
-          while (j < dataset.dimension) {
-            numer(clusterIndex)(j) += subweight(i) * (subpos(i)(j) - centersAndIndexes(clusterIndex)._1(j))
+            var j = 0
+            while (j < dataset.dimension) {
+              numer(clusterIndex)(j) += subweight(i) * (subpos(i)(j) - centersAndIndexes(clusterIndex)._1(j))
+
+              var k = j
+              while (k < dataset.dimension) {
+                pairs(clusterIndex)(j)(k) += subweight(i) * (subpos(i)(j) - centersAndIndexes(clusterIndex)._1(j)) * (subpos(i)(k) - centersAndIndexes(clusterIndex)._1(k))
+                pairs(clusterIndex)(k)(j) = pairs(clusterIndex)(j)(k)
+                k += 1
+              }
+
+              j += 1
+            }
+
             denom(clusterIndex) += subweight(i)
-            j += 1
+            i += 1
           }
 
-          i += 1
+          for (i <- 0 until numberOfClusters; j <- 0 until dataset.dimension)
+            changes(i)(j) = numer(i)(j) / denom(i)
+
+          val newClusters = centersAndIndexes map {case (cluster, clusterIndex) =>
+            val centers = cluster zip changes(clusterIndex) map {case (x, delta) => x + delta}
+
+            val covariance =
+              for (j <- 0 until dataset.dimension) yield
+                for (k <- 0 until dataset.dimension) yield
+                  pairs(clusterIndex)(j)(k)/denom(clusterIndex) - (changes(clusterIndex)(j) * changes(clusterIndex)(k))/denom(clusterIndex)/denom(clusterIndex)
+
+            Cluster(seqAsJavaList(centers), denom(clusterIndex), seqAsJavaList(covariance.map(seqAsJavaList(_))))
+          }
+
+          _model = ClusterSet(seqAsJavaList(newClusters))
+
+          iterationNumber += 1
         }
-
-        for (i <- 0 until numberOfClusters; j <- 0 until dataset.dimension)
-          changes(i)(j) = numer(i)(j) / denom(i)
-
-        val newClusters = centersAndIndexes map {case (cluster, clusterIndex) =>
-          Cluster(seqAsJavaList(cluster zip changes(clusterIndex) map {case (x, delta) => x + delta}), denom(clusterIndex))
-        }
-
-        _model = ClusterSet(seqAsJavaList(newClusters))
-
-        iterationNumber += 1
       }
     }
 

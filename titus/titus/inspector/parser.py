@@ -27,6 +27,7 @@ import ply.yacc as yacc
 import titus.producer.tools as t
 
 class ParserError(Exception):
+    """Exception for errors encountered in parsing a pfainspector command line."""
     def __init__(self, text, col):
         self.text = text
         self.col = col
@@ -35,6 +36,10 @@ class ParserError(Exception):
         return "ParserError({0}, {1})".format(self.text, self.col)
 
 class Ast(object):
+    """Abstract syntax tree for a pfainspector command line.
+
+    Allows for the possibility that a command line is incomplete (for tab-completion).
+    """
     partial = False
     col = None
     def checkPartial(self, text):
@@ -48,6 +53,7 @@ class Ast(object):
         return self.value()
 
 class DotDotDot(Ast):
+    """AST for "..."."""
     def __init__(self, col=None):
         self.col = col
     def __repr__(self):
@@ -58,6 +64,7 @@ class DotDotDot(Ast):
         return isinstance(other, DotDotDot)
 
 class Underscore(Ast):
+    """AST for "_" (meaning a regular expression wildcard)."""
     def __init__(self, col=None):
         self.col = col
     def __repr__(self):
@@ -70,6 +77,7 @@ class Underscore(Ast):
         return t.Any()
 
 class PlusOrMinus(Ast):
+    """AST for "+-"."""
     def __init__(self, col=None):
         self.col = col
     def __repr__(self):
@@ -80,6 +88,7 @@ class PlusOrMinus(Ast):
         return isinstance(other, PlusOrMinus)
 
 class FilePath(Ast):
+    """AST for a filesystem file path."""
     def __init__(self, text, col=None):
         self.text = text
         self.col = col
@@ -91,6 +100,7 @@ class FilePath(Ast):
         return isinstance(other, FilePath) and self.text == other.text
 
 class Regex(Ast):
+    """AST for a JSON regular expression."""
     def __init__(self, text, find, to, flags, col=None):
         self.text = text
         self.find = find
@@ -107,6 +117,7 @@ class Regex(Ast):
         return t.RegEx(self.find, self.to, self.flags)
 
 class Word(FilePath):
+    """AST for a space-delimited word in a command line."""
     def __init__(self, text, col=None):
         self.text = text
         self.col = col
@@ -127,6 +138,7 @@ class Word(FilePath):
             return self.text
 
 class StartExtract(Ast):
+    """AST for the beginning of an extraction (pulling subobjects out of JSON)."""
     def __init__(self, text, col=None):
         self.text = text
         self.col = col
@@ -138,6 +150,7 @@ class StartExtract(Ast):
         return isinstance(other, StartExtract) and self.text == other.text
 
 class String(FilePath):
+    """AST for a string."""
     def __init__(self, text, partial, col=None):
         self.text = text
         self.partial = partial
@@ -152,6 +165,7 @@ class String(FilePath):
         return self.text
 
 class Switches(FilePath):
+    """AST for argument switches (arguments beginning with "-", as on a UNIX command line)."""
     def __init__(self, text, col=None):
         self.text = text
         self.col = col
@@ -163,6 +177,7 @@ class Switches(FilePath):
         return isinstance(other, Switches) and self.text == other.text
 
 class Floating(Ast):
+    """AST for a floating-point number."""
     def __init__(self, num, col=None):
         self.num = float(num)
         self.col = col
@@ -176,6 +191,7 @@ class Floating(Ast):
         return self.num
 
 class Integer(Floating):
+    """AST for an integer."""
     def __init__(self, num, col=None):
         self.num = int(num)
         self.col = col
@@ -189,6 +205,7 @@ class Integer(Floating):
         return self.num
 
 class JsonObject(Ast):
+    """AST for a JSON object, which may be partial (no closing curly bracket) and strings need not be quoted."""
     def __init__(self, pairs, partial, ellipsis, col=None):
         self.pairs = pairs
         self.partial = partial
@@ -221,6 +238,7 @@ class JsonObject(Ast):
             return dict((p.key.replacement(), p.value.replacement()) for p in self.pairs)
 
 class Pair(Ast):
+    """AST for a key-value pair in a JSON object."""
     def __init__(self, key, value, partial, col=None):
         self.key = key
         self.value = value
@@ -238,6 +256,7 @@ class Pair(Ast):
         self.value.checkPartial(text)
 
 class Approx(Ast):
+    """AST for "~" (meaning approximate)."""
     def __init__(self, central, error, col=None):
         self.central = central
         self.error = error
@@ -252,6 +271,7 @@ class Approx(Ast):
         return t.Approx(self.central, self.error)
 
 class Replacement(object):
+    """AST for a JSON regular expression replacement."""
     def __init__(self, name):
         self.name = name
     def __repr__(self):
@@ -260,6 +280,7 @@ class Replacement(object):
         return "(" + self.name + ")"
 
 class Group(Ast):
+    """AST for a JSON regular expression group."""
     def __init__(self, item, counter, col=None):
         self.item = item
         self.counter = counter
@@ -279,6 +300,7 @@ class Group(Ast):
             super(Group, self).replacement()
 
 class Range(Ast):
+    """AST for a JSON regular expression numerical range."""
     def __init__(self, operator, comparator, col=None):
         self.operator = operator
         self.comparator = comparator
@@ -304,6 +326,7 @@ class Range(Ast):
             raise ValueError
 
 class OrChain(Ast):
+    """AST for a chain of logical-or expressions (vertical bar) in a JSON regular expression."""
     def __init__(self, chain, col=None):
         self.chain = chain
         self.col = col
@@ -317,6 +340,7 @@ class OrChain(Ast):
         return t.Or(*[x.regex() for x in self.chain])
 
 class AndChain(Ast):
+    """AST for a chain of logical-and expressions (ampersand) in a JSON regular expression."""
     def __init__(self, chain, col=None):
         self.chain = chain
         self.col = col
@@ -330,6 +354,7 @@ class AndChain(Ast):
         return t.And(*[x.regex() for x in self.chain])
 
 class JsonArray(Ast):
+    """AST for a JSON array, which may be partial (no closing square bracket) and strings need not be quoted."""
     def __init__(self, items, partial, startEllipsis, endEllipsis, col=None):
         self.items = items
         self.partial = partial
@@ -367,6 +392,7 @@ class JsonArray(Ast):
             return [x.replacement() for x in self.items]
 
 class Extract(Ast):
+    """AST for an extraction from a JSON/PFA file in memory."""
     def __init__(self, text, items, partial, col=None):
         self.text = text
         self.items = items
@@ -386,6 +412,7 @@ class Extract(Ast):
             item.checkPartial(text)
 
 class Option(Ast):
+    """AST for a command argument (name=value)."""
     def __init__(self, word, value, partial, col=None):
         self.word = word
         self.value = value
@@ -403,6 +430,11 @@ class Option(Ast):
         self.value.checkPartial(text)
 
 class Parser(object):
+    """Parser for the "ply" package, specialized for pfainspector command lines.
+
+    Includes both the tokenizer and the parser.
+    """
+
     def __init__(self):
         tokens = ["LT", "LE", "GT", "GE", "DOTDOTDOT", "UNDERSCORE", "PLUSORMINUS", "REGEX", "REGEXSUBS", "FILEPATH", "WORD", "STARTEXTRACT", "STRING", "PARTSTRING", "INTEGER", "FLOATING", "SWITCHES"]
         literals = [",", ":", "[", "]", "{", "}", "=", "(", ")", "|", "&", "#"]
@@ -728,6 +760,14 @@ class Parser(object):
         self.yacc = yacc.yacc(debug=False, write_tables=False)
 
     def parse(self, text):
+        """Parse the given text, returning an abstract syntax tree.
+
+        :type text: string
+        :param text: command line to parse
+        :rtype: titus.inspector.parser.Ast
+        :return: parsed text as an abstract syntax tree
+        """
+
         self.text = text
         self.groupCounter = 1
         return self.yacc.parse(text, lexer=self.lexer)

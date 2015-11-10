@@ -1245,7 +1245,7 @@ class TestJsonToAst(unittest.TestCase):
           AvroInt(),
           AvroString(),
           [],
-          [Error("hello", None), Error("hello", 3)],
+          [Error("hello", None), Error("hello", -3)],
           [],
           {},
           None,
@@ -1261,7 +1261,7 @@ class TestJsonToAst(unittest.TestCase):
   "name": "test",
   "input": "int",
   "output": "string",
-  "action": [{"error":"hello"}, {"error":"hello","code":3}]
+  "action": [{"error":"hello"}, {"error":"hello","code":-3}]
 }'''))
   
     def testLog(self):

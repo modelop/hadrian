@@ -73,18 +73,129 @@ from titus.pfaast import PoolTo
 from titus.pfaast import CastCase
 from titus.pfaast import Upcast
 
-class PFAChainError(Exception): pass
+class PFAChainError(Exception):
+    """Exception for errors encountered in chaining PFA files."""
+    pass
 
 def jsonNode(pfas, lineNumbers=True, check=True, name=None, randseed=None, doc=None, version=None, metadata={}, options={}, tryYaml=False, verbose=False):
+    """Create a single PFA from a chained workflow, returning the result as Pythonized JSON.
+
+    :type pfas: list of titus.pfaast.EngineConfig, Pythonized JSON, or JSON strings
+    :param pfas: PFA documents for which the output of document *i* is the input to document *i + 1*
+    :type check: bool
+    :param check: test the chained PFA for validity
+    :type name: string or ``None``
+    :param name: optional name for the chained PFA
+    :type randseed: integer or ``None``
+    :param randseed: optional random number seed for the chained PFA
+    :type doc: string or ``None``
+    :param doc: optional documentation string for the chained PFA
+    :type version: integer or ``None``
+    :param version: optional version number for the chained PFA
+    :type metadata: dict of strings
+    :param metadata: metadata for the chained PFA (default is ``{}``)
+    :type options: dict of Pythonized JSON
+    :param options: implementation options for the chained PFA (default is ``{}``)
+    :type tryYaml: bool
+    :param tryYaml: if ``True``, attempt to interpret ``pfas`` as YAML (assuming they fail as JSON)
+    :type verbose: bool
+    :param verbose: if ``True``, write status messages to standard output
+    :rtype: Pythonized JSON
+    :return: a PFA document representing the chained workflow
+    """
     return ast(pfas, check, name, randseed, doc, version, metadata, options, tryYaml, verbose).jsonNode(lineNumbers, set())
 
 def json(pfas, lineNumbers=True, check=True, name=None, randseed=None, doc=None, version=None, metadata={}, options={}, tryYaml=False, verbose=False):
+    """Create a single PFA from a chained workflow, returning the result as a JSON string.
+
+    :type pfas: list of titus.pfaast.EngineConfig, Pythonized JSON, or JSON strings
+    :param pfas: PFA documents for which the output of document *i* is the input to document *i + 1*
+    :type check: bool
+    :param check: test the chained PFA for validity
+    :type name: string or ``None``
+    :param name: optional name for the chained PFA
+    :type randseed: integer or ``None``
+    :param randseed: optional random number seed for the chained PFA
+    :type doc: string or ``None``
+    :param doc: optional documentation string for the chained PFA
+    :type version: integer or ``None``
+    :param version: optional version number for the chained PFA
+    :type metadata: dict of strings
+    :param metadata: metadata for the chained PFA (default is ``{}``)
+    :type options: dict of Pythonized JSON
+    :param options: implementation options for the chained PFA (default is ``{}``)
+    :type tryYaml: bool
+    :param tryYaml: if ``True``, attempt to interpret ``pfas`` as YAML (assuming they fail as JSON)
+    :type verbose: bool
+    :param verbose: if ``True``, write status messages to standard output
+    :rtype: string
+    :return: a PFA document representing the chained workflow
+    """
     return ast(pfas, check, name, randseed, doc, version, metadata, options, tryYaml, verbose).toJson(lineNumbers)
 
 def engine(pfas, name=None, randseed=None, doc=None, version=None, metadata={}, options={}, tryYaml=False, verbose=False, sharedState=None, multiplicity=1, style="pure", debug=False):
+    """Create a single PFA from a chained workflow, returning the result as an executable scoring engine.
+
+    :type pfas: list of titus.pfaast.EngineConfig, Pythonized JSON, or JSON strings
+    :param pfas: PFA documents for which the output of document *i* is the input to document *i + 1*
+    :type check: bool
+    :param check: test the chained PFA for validity
+    :type name: string or ``None``
+    :param name: optional name for the chained PFA
+    :type randseed: integer or ``None``
+    :param randseed: optional random number seed for the chained PFA
+    :type doc: string or ``None``
+    :param doc: optional documentation string for the chained PFA
+    :type version: integer or ``None``
+    :param version: optional version number for the chained PFA
+    :type metadata: dict of strings
+    :param metadata: metadata for the chained PFA (default is ``{}``)
+    :type options: dict of Pythonized JSON
+    :param options: implementation options for the chained PFA (default is ``{}``)
+    :type tryYaml: bool
+    :param tryYaml: if ``True``, attempt to interpret ``pfas`` as YAML (assuming they fail as JSON)
+    :type verbose: bool
+    :param verbose: if ``True``, write status messages to standard output
+    :type sharedState: titus.genpy.SharedState
+    :param sharedState: external state for shared cells and pools to initialize from and modify; pass ``None`` to limit sharing to instances of a single PFA file
+    :type multiplicity: positive integer
+    :param multiplicity: number of instances to return (default is 1; a single-item collection)
+    :type style: string
+    :param style: style of scoring engine; only one currently supported: "pure" for pure-Python
+    :type debug: bool
+    :param debug: if ``True``, print the Python code generated by this PFA document before evaluating
+    :rtype: titus.genpy.EngineConfig
+    :return: a PFA document representing the chained workflow
+    """
     return PFAEngine.fromAst(ast(pfas, False, name, randseed, doc, version, metadata, options, tryYaml, verbose), options, sharedState, multiplicity, style, debug)
 
 def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, metadata={}, options={}, tryYaml=False, verbose=False):
+    """Create a single PFA from a chained workflow, returning the result as an abstract syntax tree.
+
+    :type pfas: list of titus.pfaast.EngineConfig, Pythonized JSON, or JSON strings
+    :param pfas: PFA documents for which the output of document *i* is the input to document *i + 1*
+    :type check: bool
+    :param check: test the chained PFA for validity
+    :type name: string or ``None``
+    :param name: optional name for the chained PFA
+    :type randseed: integer or ``None``
+    :param randseed: optional random number seed for the chained PFA
+    :type doc: string or ``None``
+    :param doc: optional documentation string for the chained PFA
+    :type version: integer or ``None``
+    :param version: optional version number for the chained PFA
+    :type metadata: dict of strings
+    :param metadata: metadata for the chained PFA (default is ``{}``)
+    :type options: dict of Pythonized JSON
+    :param options: implementation options for the chained PFA (default is ``{}``)
+    :type tryYaml: bool
+    :param tryYaml: if ``True``, attempt to interpret ``pfas`` as YAML (assuming they fail as JSON)
+    :type verbose: bool
+    :param verbose: if ``True``, write status messages to standard output
+    :rtype: titus.pfaast.EngineConfig
+    :return: a PFA document representing the chained workflow
+    """
+
     # normalize all input forms to ASTs
     if verbose: sys.stderr.write(time.asctime() + " Converting all inputs to ASTs\n")
     asts = []

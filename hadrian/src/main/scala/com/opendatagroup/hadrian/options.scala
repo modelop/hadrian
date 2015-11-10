@@ -25,17 +25,9 @@ import org.codehaus.jackson.node.BooleanNode
 import com.opendatagroup.hadrian.errors.PFAInitializationException
 
 package options {
-  object EngineOptions {
-    val recognizedKeys = Set("@", "timeout", "timeout.begin", "timeout.action", "timeout.end", "data.PFARecord.interface", "lib.model.neighbor.nearestK.kdtree")
-  }
-
   class EngineOptions(requestedOptions: Map[String, JsonNode], hostOptions: Map[String, JsonNode]) {
     val combinedOptions = requestedOptions ++ hostOptions
     val overridenKeys = hostOptions.keys.toSet intersect requestedOptions.keys.toSet
-    val unrecognizedKeys = combinedOptions.keys.toSet diff EngineOptions.recognizedKeys
-
-    if (!unrecognizedKeys.isEmpty)
-      throw new PFAInitializationException("unrecognized options: " + unrecognizedKeys.toList.sorted.mkString(" "))
 
     private def longOpt(name: String, default: Long): Long = combinedOptions.get(name) match {
       case None => default

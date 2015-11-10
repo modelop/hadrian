@@ -490,7 +490,7 @@ class AstToJsonSuite extends FlatSpec with Matchers {
 
   it must "error" taggedAs(AstToJson) in {
     checkAstToJson(Error("hello", None), """{"error":"hello"}""")
-    checkAstToJson(Error("hello", Some(3)), """{"error":"hello","code":3}""")
+    checkAstToJson(Error("hello", Some(-3)), """{"error":"hello","code":-3}""")
   }
 
   it must "log" taggedAs(AstToJson) in {

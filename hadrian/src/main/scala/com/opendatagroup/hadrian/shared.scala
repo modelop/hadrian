@@ -68,7 +68,7 @@ package shared {
     def blockUntilInitialized(): Unit = {
       while (!initialized) {
         if (broken) throw new PFAInitializationException("the engine that was initializing the shared state encountered an exception; all other engines must stop, too")
-        Thread.sleep(100)
+        Thread.sleep(10)
       }
     }
 
@@ -76,15 +76,15 @@ package shared {
     // If a put or update is in progress, we get the value from before the beginning of the update.
     def get(name: String, path: Array[PathIndex]): Either[Exception, Any]
 
-    // put() is exclusive and atomic: only one put or update can happen at a time.
+    // put() is exclusive and atomic: only one put, update, or remove can happen at a time.
     // put() is a special case of update in which initialValue = value and updator = (x) => value.
     def put[X](name: String, path: Array[PathIndex], value: X, initializing: Boolean = false): Either[Exception, X]
 
-    // update() is exclusive and atomic: only one put or update can happen at a time.
+    // update() is exclusive and atomic: only one put, update, or remove can happen at a time.
     def update[X](name: String, path: Array[PathIndex], initialValue: X, updator: (X) => X, schema: Schema): Either[Exception, Any]
 
-    // remove() is atomic and more than one remove has the same effect as one remove.
-    def remove(name: String, path: Array[PathIndex]): Either[Exception, Any]
+    // remove() is exclusive and atomic: only one put, update, or remove can happen at a time; returns null.
+    def remove(name: String): AnyRef
 
     // toMap blocks writing and returns a snapshot of the names and values
     def toMap: Map[String, Any]
@@ -131,7 +131,7 @@ package shared {
       if (!initializing)
         blockUntilInitialized()
       while (enumerating)
-        Thread.sleep(100)
+        Thread.sleep(10)
 
       val newRef = Ref(value, LastUpdate(System.currentTimeMillis))
       newRef.lastUpdate.synchronized {
@@ -152,7 +152,7 @@ package shared {
     override def update[X](name: String, path: Array[PathIndex], initialValue: X, updator: (X) => X, schema: Schema): Either[Exception, Any] = try {
       blockUntilInitialized()
       while (enumerating)
-        Thread.sleep(100)
+        Thread.sleep(10)
 
       val newRef = Ref(initialValue, LastUpdate(System.currentTimeMillis))
       var result: Any = initialValue
@@ -183,12 +183,18 @@ package shared {
       case err: Exception => Left(err)
     }
 
-    override def remove(name: String, path: Array[PathIndex]): Either[Exception, Any] = try {
+    override def remove(name: String): AnyRef = {
       blockUntilInitialized()
-      Right(hashMap.remove(name).to)
-    }
-    catch {
-      case err: Exception => Left(err)
+      while (enumerating)
+        Thread.sleep(10)
+
+      val ref = hashMap.get(name)
+      if (ref != null)
+        ref.lastUpdate.synchronized {
+          hashMap.remove(name)
+        }
+
+      null
     }
   }
 }

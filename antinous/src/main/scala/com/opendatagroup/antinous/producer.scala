@@ -44,7 +44,9 @@ package object producer {
 package producer {
   trait Model {
     def pfa: AnyRef
+    def pfa(options: java.util.Map[String, AnyRef]): AnyRef
     def avroType: AvroType
+    def avroType(options: java.util.Map[String, AnyRef]): AvroType
   }
 
   trait Dataset {

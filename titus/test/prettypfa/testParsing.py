@@ -640,8 +640,8 @@ action: error(terrible)
         self.assertEqual(titus.prettypfa.jsonNode('''
 input: double
 output: double
-action: error(terrible, code: 2)
-''', lineNumbers=False, check=False)["action"][0], {"error": "terrible", "code": 2})
+action: error(terrible, code: -2)
+''', lineNumbers=False, check=False)["action"][0], {"error": "terrible", "code": -2})
 
         self.assertEqual(titus.prettypfa.jsonNode('''
 input: double
@@ -670,20 +670,20 @@ action: try {2 + 2; 3 + 3;}
         self.assertEqual(titus.prettypfa.jsonNode('''
 input: double
 output: double
-action: try(one, "two", \'three\') 2 + 2
-''', lineNumbers=False, check=False)["action"][0], {"try": [{"+": [2, 2]}], "filter": ["one", "two", "three"]})
+action: try(one, "two", \'three\', 4) 2 + 2
+''', lineNumbers=False, check=False)["action"][0], {"try": [{"+": [2, 2]}], "filter": ["one", "two", "three", 4]})
 
         self.assertEqual(titus.prettypfa.jsonNode('''
 input: double
 output: double
-action: try(one, "two", \'three\') {2 + 2}
-''', lineNumbers=False, check=False)["action"][0], {"try": [{"+": [2, 2]}], "filter": ["one", "two", "three"]})
+action: try(one, "two", \'three\', 4) {2 + 2}
+''', lineNumbers=False, check=False)["action"][0], {"try": [{"+": [2, 2]}], "filter": ["one", "two", "three", 4]})
 
         self.assertEqual(titus.prettypfa.jsonNode('''
 input: double
 output: double
-action: try(one, "two", \'three\') {2 + 2; 3 + 3;}
-''', lineNumbers=False, check=False)["action"][0], {"try": [{"+": [2, 2]}, {"+": [3, 3]}], "filter": ["one", "two", "three"]})
+action: try(one, "two", \'three\', 4) {2 + 2; 3 + 3;}
+''', lineNumbers=False, check=False)["action"][0], {"try": [{"+": [2, 2]}, {"+": [3, 3]}], "filter": ["one", "two", "three", 4]})
 
         self.assertEqual(titus.prettypfa.jsonNode('''
 input: double

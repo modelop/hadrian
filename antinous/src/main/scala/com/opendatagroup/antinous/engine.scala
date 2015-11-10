@@ -20,11 +20,15 @@ package com.opendatagroup.antinous
 
 import java.io.ByteArrayInputStream
 import java.io.InputStream
+import java.io.OutputStream
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.util.Random
 import scala.language.postfixOps
+
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.QuoteMode
 
 import org.python.core.CompileMode
 import org.python.core.Py
@@ -32,6 +36,9 @@ import org.python.core.PyBytecode
 import org.python.core.PyDictionary
 import org.python.core.PyException
 import org.python.core.PyFunction
+import org.python.core.PyInteger
+import org.python.core.PyLong
+import org.python.core.PyFloat
 import org.python.core.PyObject
 import org.python.core.PyString
 import org.python.core.ThreadState
@@ -51,6 +58,15 @@ import com.opendatagroup.hadrian.{data => hadriandata}
 import com.opendatagroup.hadrian.datatype.AvroCompiled
 import com.opendatagroup.hadrian.datatype.AvroConversions
 import com.opendatagroup.hadrian.datatype.AvroType
+import com.opendatagroup.hadrian.datatype.AvroNull
+import com.opendatagroup.hadrian.datatype.AvroBoolean
+import com.opendatagroup.hadrian.datatype.AvroInt
+import com.opendatagroup.hadrian.datatype.AvroLong
+import com.opendatagroup.hadrian.datatype.AvroFloat
+import com.opendatagroup.hadrian.datatype.AvroDouble
+import com.opendatagroup.hadrian.datatype.AvroBytes
+import com.opendatagroup.hadrian.datatype.AvroString
+import com.opendatagroup.hadrian.datatype.AvroRecord
 import com.opendatagroup.hadrian.datatype.AvroTypeBuilder
 import com.opendatagroup.hadrian.datatype.ForwardDeclarationParser
 import com.opendatagroup.hadrian.errors.PFAInitializationException
@@ -58,6 +74,8 @@ import com.opendatagroup.hadrian.errors.PFARuntimeException
 import com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine
 import com.opendatagroup.hadrian.options.EngineOptions
 import com.opendatagroup.hadrian.shared.SharedState
+import com.opendatagroup.hadrian.data.{csvInputIterator => hadrianCsvInputIterator}
+import com.opendatagroup.hadrian.data.CsvOutputDataStream
 
 import com.opendatagroup.antinous.data.JythonDatumReader
 import com.opendatagroup.antinous.data.JythonDatumWriter
@@ -65,6 +83,7 @@ import com.opendatagroup.antinous.data.JythonEnumSymbol
 import com.opendatagroup.antinous.data.JythonFixed
 import com.opendatagroup.antinous.data.JythonRecord
 import com.opendatagroup.antinous.data.JythonSpecificData
+import com.opendatagroup.antinous.data.jythonByteString
 
 import com.opendatagroup.antinous.translate.AvroToJythonDataTranslator
 import com.opendatagroup.antinous.translate.PFAToJythonDataTranslator
@@ -331,7 +350,7 @@ package engine {
         pyBegin.__call__()
       }
       catch {
-        case err: PyException => throw new PFARuntimeException(exceptionString(err), err)
+        case err: PyException => throw new PFARuntimeException(exceptionString(err), 0, "Python", None, err)
       }
     }
 
@@ -340,7 +359,7 @@ package engine {
         pyAction.__call__(input)
       }
       catch {
-        case err: PyException => throw new PFARuntimeException(exceptionString(err), err)
+        case err: PyException => throw new PFARuntimeException(exceptionString(err), 0, "Python", None, err)
       }
     }
 
@@ -349,7 +368,7 @@ package engine {
         pyEnd.__call__()
       }
       catch {
-        case err: PyException => throw new PFARuntimeException(exceptionString(err), err)
+        case err: PyException => throw new PFARuntimeException(exceptionString(err), 0, "Python", None, err)
       }
     }
 
@@ -424,21 +443,104 @@ package engine {
       reader.read(null, decoder)
     }
 
+    private def pyFieldReaders(inputType: AvroType, csvIndexLookup: Map[String, Int]): Seq[(Int, String => AnyRef)] = inputType match {
+      case AvroRecord(fields, _, _, _, _) =>
+        val fieldNames = fields.map(_.name)
+        fields map {field =>
+          csvIndexLookup.get(field.name) match {
+            case None => throw new IllegalArgumentException(s"CSV file has no field named ${field.name}")
+            case Some(i) => (i, field.avroType match {
+              case AvroNull() => {x: String => null.asInstanceOf[AnyRef]}
+              case AvroBoolean() => {x: String => if (x.toLowerCase == "true") java.lang.Boolean.TRUE else if (x.toLowerCase == "false") java.lang.Boolean.FALSE else throw new IllegalArgumentException(s"""field ${field.name} declared boolean but found "$x"""")}
+              case AvroInt() => {x: String => try {java.lang.Integer.valueOf(x.toInt)} catch {case _: java.lang.NumberFormatException => throw new IllegalArgumentException(s"""field ${field.name} declared int but found "$x"""")}}
+              case AvroLong() => {x: String => try {java.lang.Long.valueOf(x.toLong)} catch {case _: java.lang.NumberFormatException => throw new IllegalArgumentException(s"""field ${field.name} declared long but found "$x"""")}}
+              case AvroFloat() => {x: String => try {java.lang.Float.valueOf(x.toFloat)} catch {case _: java.lang.NumberFormatException => throw new IllegalArgumentException(s"""field ${field.name} declared float but found "$x"""")}}
+              case AvroDouble() => {x: String => try {java.lang.Double.valueOf(x.toDouble)} catch {case _: java.lang.NumberFormatException => throw new IllegalArgumentException(s"""field ${field.name} declared double but found "$x"""")}}
+              case AvroBytes() => {x: String => x.getBytes}
+              case AvroString() => {x: String => x}
+              case _ => throw new IllegalArgumentException("CSV input only allowed for records of non-named, non-container types (not enum, fixed, record, array, map, or union)")
+            })
+          }
+        }
+      case _ => throw new IllegalArgumentException("CSV input only allowed for records")
+    }
+
+    def csvInputIterator[X](inputStream: InputStream, csvFormat: CSVFormat = CSVFormat.DEFAULT.withHeader()): java.util.Iterator[X] =
+      hadrianCsvInputIterator(inputStream, inputType, csvFormat,
+        Some({(inputType: AvroType, csvIndexLookup: Map[String, Int]) => inputType match {
+          case AvroRecord(fields, _, _, _, _) =>
+            val fieldNames = fields.map(_.name)
+            fields map {field =>
+              csvIndexLookup.get(field.name) match {
+                case None => throw new IllegalArgumentException(s"CSV file has no field named ${field.name}")
+                case Some(i) => (i, field.avroType match {
+                  case AvroNull() => {x: String => Py.None}
+                  case AvroBoolean() => {x: String => if (x.toLowerCase == "true") Py.True else if (x.toLowerCase == "false") Py.False else throw new IllegalArgumentException(s"""field ${field.name} declared boolean but found "$x"""")}
+                  case AvroInt() => {x: String => try {new PyInteger(x.toInt)} catch {case _: java.lang.NumberFormatException => throw new IllegalArgumentException(s"""field ${field.name} declared int but found "$x"""")}}
+                  case AvroLong() => {x: String => try {new PyLong(x.toLong)} catch {case _: java.lang.NumberFormatException => throw new IllegalArgumentException(s"""field ${field.name} declared long but found "$x"""")}}
+                  case AvroFloat() => {x: String => try {new PyFloat(x.toFloat)} catch {case _: java.lang.NumberFormatException => throw new IllegalArgumentException(s"""field ${field.name} declared float but found "$x"""")}}
+                  case AvroDouble() => {x: String => try {new PyFloat(x.toDouble)} catch {case _: java.lang.NumberFormatException => throw new IllegalArgumentException(s"""field ${field.name} declared double but found "$x"""")}}
+                  case AvroBytes() => {x: String => jythonByteString(x.getBytes)}
+                  case AvroString() => {x: String => new PyString(x)}
+                  case _ => throw new IllegalArgumentException("CSV input only allowed for records of non-named, non-container types (not enum, fixed, record, array, map, or union)")
+                })
+              }
+            }
+          case _ => throw new IllegalArgumentException("CSV input only allowed for records")
+        }}),
+        Some({fieldValues =>
+          val out = specificData.newRecord(null, inputType.schema).asInstanceOf[JythonRecord]
+          var i = 0
+          while (i < fieldValues.size) {
+            out.put(i, fieldValues(i))
+            i += 1
+          }
+          out.asInstanceOf[X]
+        }))
+
     def jsonInput(json: Array[Byte]): PyObject = fromJson(json, inputType.schema).asInstanceOf[PyObject]
     def jsonInput(json: String): PyObject = fromJson(json.getBytes, inputType.schema).asInstanceOf[PyObject]
 
-    def avroOutputDataStream(outputStream: java.io.OutputStream): AvroOutputDataStream =
+    def avroOutputDataStream(outputStream: OutputStream): AvroOutputDataStream =
       hadriandata.avroOutputDataStream(outputStream, outputType)
     def avroOutputDataStream(file: java.io.File): AvroOutputDataStream =
       hadriandata.avroOutputDataStream(file, outputType)
     def avroOutputDataStream(fileName: String): AvroOutputDataStream =
       hadriandata.avroOutputDataStream(fileName, outputType)
-    def jsonOutputDataStream(outputStream: java.io.OutputStream, writeSchema: Boolean): JsonOutputDataStream =
+    def jsonOutputDataStream(outputStream: OutputStream, writeSchema: Boolean): JsonOutputDataStream =
       hadriandata.jsonOutputDataStream(outputStream, outputType, writeSchema)
     def jsonOutputDataStream(file: java.io.File, writeSchema: Boolean): JsonOutputDataStream =
       hadriandata.jsonOutputDataStream(file, outputType, writeSchema)
     def jsonOutputDataStream(fileName: String, writeSchema: Boolean): JsonOutputDataStream =
       hadriandata.jsonOutputDataStream(fileName, outputType, writeSchema)
+
+    def csvOutputDataStream(outputStream: OutputStream, csvFormat: CSVFormat = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.MINIMAL), writeHeader: Boolean = true): CsvOutputDataStream = {
+      val fieldConverters: Seq[(String, PartialFunction[AnyRef, String])] = outputType match {
+        case AvroRecord(fields, _, _, _, _) => fields map {field =>
+          (field.name, field.avroType match {
+            case AvroNull() => {case x: AnyRef => "null"}: PartialFunction[AnyRef, String]
+            case AvroBoolean() => {case Py.True => "true"; case Py.False => "false"}: PartialFunction[AnyRef, String]
+            case AvroInt() => {case x: PyInteger => x.asInt.toString; case x: PyLong => x.asLong.toString}: PartialFunction[AnyRef, String]
+            case AvroLong() => {case x: PyInteger => x.asInt.toString; case x: PyLong => x.asLong.toString}: PartialFunction[AnyRef, String]
+            case AvroFloat() => {case x: PyInteger => x.asInt.toString; case x: PyLong => x.asLong.toString; case x: PyFloat => x.asDouble.toFloat.toString}: PartialFunction[AnyRef, String]
+            case AvroDouble() => {case x: PyInteger => x.asInt.toString; case x: PyLong => x.asLong.toString; case x: PyFloat => x.asDouble.toString}: PartialFunction[AnyRef, String]
+            case AvroBytes() => {case x: PyString => x.toString}: PartialFunction[AnyRef, String]
+            case AvroString() => {case x: PyString => x.toString}: PartialFunction[AnyRef, String]
+            case _ => throw new IllegalArgumentException("CSV output only allowed for records of non-named, non-container types (not enum, fixed, record, array, map, or union)")
+          })
+        }
+        case _ => throw new IllegalArgumentException("CSV output only allowed for records")
+      }
+
+      val fullCsvFormat =
+        if (writeHeader)
+          csvFormat.withHeader(fieldConverters.map(_._1): _*)
+        else
+          csvFormat
+
+      new CsvOutputDataStream(outputStream, fieldConverters, fullCsvFormat)
+    }
+
     def jsonOutput(obj: AnyRef): String =
       hadriandata.toJson(obj, outputType)
 
@@ -454,7 +556,7 @@ package engine {
         revertState()
       }
       catch {
-        case err: PyException => throw new PFARuntimeException(exceptionString(err), err)
+        case err: PyException => throw new PFARuntimeException(exceptionString(err), 0, "Python", None, err)
       }
     }
     def revert(sharedState: Option[SharedState]): Unit = throw new NotImplementedError

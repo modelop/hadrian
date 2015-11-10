@@ -1,0 +1,120 @@
+#!/usr/bin/env python
+
+# Copyright (C) 2014  Open Data ("Open Data" refers to
+# one or more of the following companies: Open Data Partners LLC,
+# Open Data Research LLC, or Open Data Capital LLC.)
+# 
+# This file is part of Hadrian.
+# 
+# Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import sys
+
+import ijson
+
+fileName, = sys.argv[1:]
+
+class CurrentCounter(object):
+    def __init__(self):
+        self.strings = 0
+        self.characters = 0
+        self.numbers = 0
+        self.atomics = 0
+        self.arrayItems = 0
+        self.objectValues = 0
+        self.maxDepth = 0
+        self.longestLine = 0
+    def __str__(self):
+        out = "    {0} strings ({1} chars), {2} numbers, {3} null/true/false, {4} array items, {5} object values (depth {6})".format(self.strings, self.characters, self.numbers, self.atomics, self.arrayItems, self.objectValues, self.maxDepth)
+        if len(out) >= self.longestLine:
+            self.longestLine = len(out)
+        else:
+            out = out + " " * (self.longestLine - len(out))
+        return out
+
+def doValue(event, value, parser, stack, currentCounter):
+    if event == "start_array":
+        doArray(parser, stack, currentCounter)
+    elif event == "start_map":
+        doMap(parser, stack, currentCounter)
+    elif event == "string":
+        if currentCounter is not None:
+            currentCounter.strings += 1
+            currentCounter.characters += len(value)
+    elif event == "null":
+        if currentCounter is not None:
+            currentCounter.atomics += 1
+    elif event == "boolean":
+        if currentCounter is not None:
+            currentCounter.atomics += 1
+    elif event == "number":
+        if currentCounter is not None:
+            currentCounter.numbers += 1
+    else:
+        raise ValueError("Expecting value, found {0}".format(event))
+
+def doArray(parser, stack, currentCounter):
+    if currentCounter is not None:
+        if len(stack) > currentCounter.maxDepth:
+            currentCounter.maxDepth = len(stack)
+        sys.stdout.write("\r" + str(currentCounter))
+        sys.stdout.flush()
+
+    index = 0
+    for prefix, event, value in parser:
+        if event == "end_array":
+            break
+        else:
+            if currentCounter is not None:
+                currentCounter.arrayItems += 1
+
+            doValue(event, value, parser, stack + [index], currentCounter)
+            index += 1
+
+def doMap(parser, stack, currentCounter):
+    if currentCounter is not None:
+        if len(stack) > currentCounter.maxDepth:
+            currentCounter.maxDepth = len(stack)
+        sys.stdout.write("\r" + str(currentCounter))
+        sys.stdout.flush()
+
+    for prefix, event, key in parser:
+        if event == "map_key":
+            if currentCounter is not None:
+                currentCounter.objectValues += 1
+
+            shouldTrack = currentCounter is None and len(stack) == 2 and (stack[0] == "cells" or stack[0] == "pools") and key == "init"
+            if shouldTrack:
+                if stack[0] == "cells":
+                    print "Cell: {0}".format(stack[1])
+                elif stack[0] == "pools":
+                    print "Pool: {0}".format(stack[1])
+                currentCounter = CurrentCounter()
+
+            prefix, event, value = parser.next()
+            doValue(event, value, parser, stack + [key], currentCounter)
+
+            if shouldTrack:
+                currentCounter = None
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+
+        elif event == "end_map":
+            break
+        else:
+            raise ValueError("Expecting key-value pair, found {0}".format(event))
+
+parser = ijson.parse(open(fileName))
+stack = []
+for prefix, event, value in parser:
+    doValue(event, value, parser, stack, None)

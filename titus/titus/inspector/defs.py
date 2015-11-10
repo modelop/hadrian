@@ -52,10 +52,25 @@ readline.parse_and_bind(r'"\ep": history-search-backward')
 readline.parse_and_bind(r'"\en": history-search-forward')
 
 class TabCompleter(object):
+    """Handles tab-completion in pfainspector."""
+
     def __init__(self, mode):
+        """:type mode: titus.inspector.defs.Mode
+        :param mode: the pfainspector mode in which this tab completer is active
+        """
+
         self.mode = mode
         self.candidates = []
+
     def complete(self, text, state):
+        """:type text: string
+        :param text: partial text to complete
+        :type state: integer
+        :param state: the number of times the user has pressed tab. If ``0``, generate a new list of candidates; otherwise, use the old one
+        :rtype: list of strings
+        :return: set of completions
+        """
+
         if state == 0:
             line = readline.get_line_buffer()
             begin = readline.get_begidx()
@@ -68,16 +83,40 @@ class TabCompleter(object):
         except IndexError:
             return None
 
-class InspectorError(Exception): pass
+class InspectorError(Exception):
+    """Exception encountered in pfainspector."""
+    pass
 
 class Gadget(object):
+    """Trait for pfainspector gadgets."""
     def __init__(self, mode):
         self.commandGroup = None
 
 def do(*args):
+    """Helper function for chaining function calls in a Python lambda expression.
+
+    Part of a poor-man's functional programming suite used to define several pfainspector commands as one-liners.
+
+    :type args: anything
+    :param args: functions that have already been evaluated
+    :rtype: anything
+    :return: the last argument
+    """
     return args[-1]
 
 def maybe(action, exceptions):
+    """Helper function for try-catch logic in a Python lambda expression.
+
+    Part of a poor-man's functional programming suite used to define several pfainspector commands as one-liners.
+
+    :type action: callable
+    :param action: function to call
+    :type exceptions: list of (class, string)
+    :param exceptions: exception classes to catch and their corresponding pfainspector messages
+    :rtype: anything
+    :return: result of calling ``action``
+    """
+
     try:
         action()
     except Exception as err:
@@ -87,6 +126,14 @@ def maybe(action, exceptions):
         raise
 
 def switch(*pairs):
+    """Helper function for cond-logic in a Python lambda expression.
+
+    Part of a poor-man's functional programming suite used to define several pfainspector commands as one-liners.
+
+    :type pairs: callables
+    :param pairs: sequence of predicate1, consequent1, predicate2, consequent2, ..., alternate; the predicates will each be called in turn until one returns ``True``, and then the corresponding consequent will be called *or* the alternate will be called if none of the predicates return ``True``
+    """
+
     if len(pairs) % 2 != 1 or len(pairs) < 3:
         raise TypeError
     for predicate, consequent in zip(pairs[:-1][::2], pairs[:-1][1::2]):
@@ -102,21 +149,55 @@ def switch(*pairs):
     return alterante
 
 def exception(x):
+    """Helper function for raising an exception in a Python lambda expression.
+
+    Part of a poor-man's functional programming suite used to define several pfainspector commands as one-liners.
+
+    :type x: ``Exception``
+    :param x: exception to raise (from a function call)
+    """
+
     raise x
 
 def getwords(text):
+    """Parse a (partial?) command line into a syntax tree.
+
+    :type text: string
+    :param text: text to parse
+    :rtype: list of titus.inspector.parser.Ast
+    :return: abstract syntax tree for a pfainspector command line
+    """
+
     try:
         return parser.parser.parse(text)
     except parser.ParserError as err:
         raise InspectorError(str(err))
 
 def getcomplete(established):
+    """Get the result of tab completion.
+
+    :type established: string
+    :param established: text that has been established and is not subject to completion (though it may influence completion as a context)
+    :rtype: list of titus.inspector.parser.Ast
+    :return: abstract syntax tree of the established part of a pfainspector command line
+    """
+
     if established.strip() == "":
         return []
     else:
         return parser.parser.parse(established)  # let it fail; completer ignores exceptions
 
 def pathcomplete(established, active):
+    """Tab completion routine for filesystem paths.
+
+    :type established: string
+    :param established: text that has been established and is not subject to completion (everything up to the last ``/``)
+    :type active: string
+    :param active: text to be completed (anything after the last ``/``)
+    :rtype: list of strings
+    :return: list of possible completions
+    """
+
     base, last = os.path.split(os.path.expanduser(active))
     if base == "":
         base = "."
@@ -137,6 +218,16 @@ def pathcomplete(established, active):
         return [finish(os.path.join(base, x) if base != "." else x) for x in os.listdir(base) if condition(x)]
 
 def extcomplete(node, items):
+    """Tab completion routine for JSON extraction (everything after an opening square bracket).
+
+    :type established: string
+    :param established: text that has been established and is not subject to completion (everything up to the last ``,``)
+    :type active: string
+    :param active: text to be completed (anything after the last ``,``)
+    :rtype: list of strings
+    :return: list of possible completions
+    """
+
     for item in items:
         if isinstance(item, (parser.Word, parser.String)) and isinstance(node, dict):
             if item.text in node:
@@ -168,6 +259,18 @@ def extcomplete(node, items):
         return []
 
 def extaction(args0, node, items):
+    """Action for pfainspector extensions (depend on specific commands).
+
+    :type args0: titus.inspector.parser.Extract
+    :param args0: abstract syntax tree representation of the object to extract (word before opening square bracket)
+    :type node: Pythonized JSON
+    :param node: JSON node from which to extract subobjects
+    :type items: (integer, titus.inspector.parser.FilePath)
+    :param items: extraction path (everything between square brakets, possibly still open)
+    :rtype: Pythonized JSON
+    :return: result of extracting subobjects
+    """
+
     for index, item in enumerate(items):
         if isinstance(item, (parser.Word, parser.String)):
             try:
@@ -185,6 +288,16 @@ def extaction(args0, node, items):
     return node
 
 def run(command, *args):
+    """Helper function to run a subprocess in a Python lambda expression.
+
+    :type command: string
+    :param command: external command to run
+    :type args: strings
+    :param args: arguments for the external command
+    :rtype: string
+    :return: result of running the command
+    """
+
     whole = [command]
     for arg in args:
         g = glob.glob(arg)
@@ -200,15 +313,39 @@ def run(command, *args):
     return output
 
 def pipe(command):
+    """Helper function to create a subprocess.Popen as a pipe.
+
+    :type command: list of strings
+    :param command: external command with arguments
+    :rtype: subprocess.Popen object
+    :return: piped subprocess (for further processing)
+    """
     return subprocess.Popen(command, stdin=subprocess.PIPE)
 
 def pipewait(proc):
+    """Helper function to wait for a subprocess.Popen to complete.
+
+    :type proc: subprocess.Popen
+    :param proc: process to wait for
+    :rtype: ``None``
+    :return: nothing; if the process's return code is not ``0``, a warning message is printed to standard output
+    """
+
     proc.stdin.close()
     returnCode = proc.wait()
     if returnCode != 0:
         print "\nsubprocesses failed with exit code {0}".format(returnCode)
 
 class Model(object):
+    """A loaded JSON or PFA file.
+
+    Always has an ``obj`` member, representing the Pythonized JSON that was loaded from the file.
+
+    Lazy-evaluates an ``engineConfig`` member the first time it is requested. This is a titus.pfaast.EngineConfig representing the abstract syntax tree of the PFA file. If the PFA file contains an error, attempting to access the ``engineConfig`` property yields an exception (titus.errors.AvroException, titus.errors.SchemaParseException, or titus.errors.PFAException).
+
+    Lazy-evaluates an ``engine`` member the first time it is requested. This is a titus.genpy.PFAEngine representing an executable scoring engine. If the PFA file contains an error, attempting to access the ``engineConfig`` property yields an exception (titus.errors.AvroException, titus.errors.SchemaParseException, or titus.errors.PFAException).
+    """
+
     def __init__(self, obj):
         self.obj = obj
         self._engineConfig = None
@@ -240,7 +377,17 @@ class Model(object):
         return "Model(" + repr(self.obj) + ")"
     
 class Mode(object):
+    """A mode of operation for the pfainspector.
+
+    This concrete base class is a read-eval-print loop for responding to the user's commands.
+    """
+
     def __init__(self):
+        """Create the main mode.
+
+        If titus.inspector.defs.CONFIG_DIRECTORY_EXISTS is ``True``, get the readline history file from the user's titus.inspector.defs.CONFIG_DIRECTORY.
+        """
+
         if CONFIG_DIRECTORY_EXISTS:
             self.historyPath = os.path.join(os.path.expanduser(CONFIG_DIRECTORY), self.historyFileName)
             if not os.path.exists(self.historyPath):
@@ -257,6 +404,17 @@ class Mode(object):
             atexit.register(writehistory)
 
     def loop(self):
+        """Main loop: attempts to evaluate commands.
+
+        An ``EOFError`` exception (user typed control-D on an empty line) quits the pfainspector.
+
+        A ``KeyboardInterrupt`` exception (user typed control-C at any time) jumps to an empty command-line state.
+
+        Any titus.inspector.defs.InspectorError results in the error's message being printed on the screen.
+
+        Any other exception results in a full stack trace being printed on the screen.
+        """
+
         while True:
             try:
                 line = raw_input(self.prompt)
@@ -273,28 +431,54 @@ class Mode(object):
                 traceback.print_exc()
 
     def pause(self):
+        """Write the current history to the history file and stop readline."""
         readline.write_history_file(self.historyPath)
         readline.clear_history()
         readline.set_completer()
         self.active = False
 
     def resume(self):
+        """Read the history file and restart readline."""
         self.active = True
         readline.read_history_file(self.historyPath)
         readline.set_completer(self.tabCompleter.complete)
 
 class Command(object):
+    """Trait for pfainspector commands."""
+
     def __init__(self):
         pass
 
     def syntaxError(self):
+        """General behavior for syntax errors in the command parser: raise a titus.inspector.defs.InspectorError."""
+
         if self.syntax is None:
             raise InspectorError("syntax error in {0}".format(self.name))
         else:
             raise InspectorError("syntax error, should be: {0}".format(self.syntax))
 
 class SimpleCommand(Command):
+    """A pfainspector command whose action can be expressed as a Python lambda expression."""
+
     def __init__(self, name, action, minargs=None, maxargs=None, completer=None, help=None, syntax=None):
+        """Create a SimpleCommand.
+
+        :type name: string
+        :param name: name of the command
+        :type action: callable
+        :param action: action to perform, usually supplied as a Python lambda expression.
+        :type minargs: non-negative integer or ``None``
+        :param minargs: if provided, a minimum legal number of arguments for the command
+        :type maxargs: non-negative integer or ``None``
+        :param maxargs: if provided, a maximum legal number of arguments for the command
+        :type completer: callable
+        :param completer: function to call to complete the arguments of the command
+        :type help: string
+        :param help: message to the user describing the purpose of this command
+        :type syntax: string
+        :param syntax: message to the user specifying the syntax of this command
+        """
+
         self.name = name
         self._action = action
         self.minargs = minargs
@@ -304,6 +488,16 @@ class SimpleCommand(Command):
         self.help = help + "\n    " + syntax
 
     def complete(self, established, active):
+        """Handle tab-complete for this command's arguments.
+
+        :type established: string
+        :param established: part of the text that has been established
+        :type active: string
+        :param active: part of the text to be completed
+        :rtype: list of strings
+        :return: potential completions
+        """
+
         out = []
         if self.completer is None:
             pass
@@ -315,6 +509,14 @@ class SimpleCommand(Command):
         return out
 
     def action(self, args):
+        """Perform the action associated with this command.
+
+        :type args: list of titus.inspector.parser.Ast
+        :param args: arguments passed to the command
+        :rtype: ``None``
+        :return: nothing; results must be printed to the screen
+        """
+
         if self.help is not None and len(args) == 1 and args[0] == parser.Word("help"):
             print self.help
         else:
@@ -332,7 +534,15 @@ class SimpleCommand(Command):
                 print out
 
 class CommandGroup(Command):
+    """A pfainspector command that defers to a group of subcommands."""
+
     def __init__(self, name, commands):
+        """:type name: string
+        :param name: name of the group
+        :type commands: list of titus.inspector.defs.Command
+        :param commands: commands in this group
+        """
+
         self.name = name
         self.commands = dict((x.name, x) for x in commands)
         if name is None:
@@ -344,6 +554,16 @@ class CommandGroup(Command):
         self.help = self.help.strip()
 
     def complete(self, established, active):
+        """Handle tab-complete for the command group: either expanding the subcommand name or deferring to the subcommand's ``complete`` method.
+
+        :type established: string
+        :param established: part of the text that has been established
+        :type active: string
+        :param active: part of the text to be completed
+        :rtype: list of strings
+        :return: potential completions
+        """
+
         word = re.match(r'''\s*([A-Za-z][A-Za-z0-9_]*)\s*''', established)
         if word is None:
             return [x + " " for x in self.commands if x.startswith(active)]
@@ -356,6 +576,14 @@ class CommandGroup(Command):
                 return command.complete(established[word.end():], active)
 
     def action(self, args):
+        """Perform the action associated associated with this command group: descend into the subcommand and call its ``action`` method.
+
+        :type args: list of titus.inspector.parser.Ast
+        :param args: arguments passed to the command
+        :rtype: ``None``
+        :return: nothing; results must be printed to the screen
+        """
+
         if len(args) == 0:
             if self.name is not None:
                 raise InspectorError("command {0} requires a subcommand".format(self.name))

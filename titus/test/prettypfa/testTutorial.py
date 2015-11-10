@@ -188,7 +188,7 @@ output: string
 method: fold
 zero: ""
 action:
-  s.concat(tally, s.number(input))
+  s.concat(tally, s.int(input))
 merge:
   s.concat(tallyOne, tallyTwo)
 ''', '''

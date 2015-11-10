@@ -446,6 +446,9 @@ as the mapper output.
                   throw new IllegalArgumentException("no reducer is specified, so --num-reducers cannot be anything but 0")
               }
 
+              configuration.set("mapreduce.task.classpath.user.precedence", "true")
+              configuration.set("mapreduce.job.user.classpath.first", "true")
+
               configuration.set("pfa.mapper", scoreOptions.mapper)
               configuration.set("mapred.reduce.tasks", "0")
 
@@ -475,6 +478,9 @@ as the mapper output.
                 else
                   configuration.set("mapred.reduce.tasks", x.toString)
               }
+
+              configuration.set("mapreduce.task.classpath.user.precedence", "true")
+              configuration.set("mapreduce.job.user.classpath.first", "true")
 
               configuration.set("pfa.mapper", scoreOptions.mapper)
               configuration.set("pfa.reducer", reducerFileName)
@@ -588,6 +594,9 @@ as the mapper output.
                 else
                   configuration.set("mapred.reduce.tasks", x.toString)
               }
+
+              configuration.set("mapreduce.task.classpath.user.precedence", "true")
+              configuration.set("mapreduce.job.user.classpath.first", "true")
 
               configuration.set("pfa.mapper", scoreOptions.mapper)
 

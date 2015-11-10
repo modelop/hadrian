@@ -19,6 +19,7 @@
 # limitations under the License.
 
 import json
+import math
 
 import avro.io
 import avro.schema
@@ -30,10 +31,13 @@ from titus.util import ts
 ######################################################### the most general types
 
 class Type(object):
+    """Superclass of all Avro types and also inline functions, which can only appear in argument lists."""
     @property
     def avroType(self): raise TypeError
 
 class FcnType(Type):
+    """Pseudo-type for inlines functions that can appear in argument lists."""
+
     def __init__(self, params, ret):
         self._params = params
         self._ret = ret
@@ -71,12 +75,36 @@ class FcnType(Type):
 ######################################################### Avro types
 
 def jsonToAvroType(x):
+    """Convert a JSON-encoded Avro type (AVSC file) into a titus.datatype.AvroType.
+
+    :type x: string
+    :param x: JSON-encoded Avro type
+    :rtype: titus.datatype.AvroType
+    :return: AvroType object
+    """
+
     return schemaToAvroType(avro.schema.parse(x))
 
 def jsonNodeToAvroType(x):
+    """Convert a Python-encoded Avro type into a titus.datatype.AvroType.
+
+    :type x: dicts, lists, strings, numbers, ``True``, ``False``, ``None``
+    :param x: Avro type in Python form
+    :rtype: titus.datatype.AvroType
+    :return: AvroType object
+    """
+
     return schemaToAvroType(avro.schema.parse(json.dumps(x)))
 
 def schemaToAvroType(schema):
+    """Convert an Avro schema into a titus.datatype.AvroType.
+
+    :type schema: avro.schema.Schema
+    :param schema: schema object from the Avro library
+    :rtype: titus.datatype.AvroType
+    :return: AvroType object
+    """
+
     if schema.type == "null":
         return AvroNull()
     elif schema.type == "boolean":
@@ -119,18 +147,34 @@ def schemaToAvroType(schema):
         return out
 
 def avroTypeToSchema(avroType):
+    """Convert a titus.datatype.AvroType into an Avro schema.
+
+    :type avroType: titus.datatype.AvroType
+    :param avroType: AvroType object
+    :rtype: avro.schema.Schema
+    :return: schema object for the Avro library
+    """
+
     return avroType.schema
 
 class AvroType(Type):
+    """Base class for types of all PFA/Avro values.
+
+    Thin wrapper around a avro.schema.Schema, providing a different Python class for each Avro kind.
+    """
+
     @property
     def schema(self):
+        """Return the avro.schema.Schema object."""
         return self._schema
 
     @property
     def name(self):
+        """Return "name" of this type, which is used as a key in tagged unions."""
         return None
 
     def __eq__(self, other):
+        """Return ``True`` if the two types are equal."""
         if isinstance(other, AvroType):
             return self.schema == other.schema
         elif isinstance(other, AvroPlaceholder):
@@ -139,6 +183,7 @@ class AvroType(Type):
             return False
 
     def __hash__(self):
+        """Return a unique hash of the type."""
         return hash(self.schema)
 
     def _recordFieldsOkay(self, other, memo, checkRecord):
@@ -160,6 +205,20 @@ class AvroType(Type):
     # other == "writer" (the given fact, argument to be accepted or rejected)
     # the special cases handle situations in which Python-Avro fails to be fully covariant
     def accepts(self, other, memo=None, checkRecord=True):
+        """Perform type resolution: would PFA objects of type ``other`` be accepted where a PFA object of type ``self`` is expected?
+
+        If ``x.accepts(y) and y.accepts(x)``, then ``x`` and ``y`` are equal. In general, acceptability is not symmetric.
+
+        The ``memo`` and ``checkRecord`` parameters are only used to avoid infinite recursion.
+
+        :type self: titus.datatype.AvroType
+        :param self: the expected signature to be matched
+        :type other: titus.datatype.AvroType
+        :param other: the given argument to be accepted or rejected
+        :rtype: boolean
+        :return: ``True`` if ``other`` is an acceptable substitute for ``self`` (or is exactly the same); ``False`` if incompatible
+        """
+
         if isinstance(other, ExceptionType):
             return False
 
@@ -229,9 +288,11 @@ class AvroType(Type):
             return False
 
     def toJson(self):
+        """Convert the type to a JSON-encoded string, suitable for an AVSC file."""
         return json.dumps(self.jsonNode(set()))
 
     def jsonNode(self, memo):
+        """Convert the type to a Python-encoded Avro type."""
         return self.name
 
     @property
@@ -241,23 +302,38 @@ class AvroType(Type):
         return json.dumps(self.schema.to_json())
 
 class AvroCompiled(AvroType):
+    """AvroTypes that would be compiled in Java (AvroRecord, AvroFixed, AvroEnum)."""
     @property
     def name(self):
+        """Name without namespace; unions would not use this as a tag; they would use fullName."""
         return self.schema.name
     @property
     def namespace(self):
+        """Optional namespace; may be ``None``."""
         return self.schema.namespace
     @property
     def fullName(self):
+        """Optional namespace and name joined with a dot."""
         return self.schema.fullname
 
-class AvroNumber(AvroType): pass
-class AvroRaw(AvroType): pass
-class AvroIdentifier(AvroType): pass
-class AvroContainer(AvroType): pass
-class AvroMapping(AvroType): pass
+class AvroNumber(AvroType):
+    """Numeric AvroTypes (AvroInt, AvroLong, AvroFloat, AvroDouble)."""
+    pass
+class AvroRaw(AvroType):
+    """Raw-byte AvroTypes (AvroBytes, AvroFixed)."""
+    pass
+class AvroIdentifier(AvroType):
+    """AvroTypes that can be used as identifiers (AvroString, AvroEnum)."""
+    pass
+class AvroContainer(AvroType):
+    """AvroTypes that contain other AvroTypes (AvroArray, AvroMap, AvroRecord)."""
+    pass
+class AvroMapping(AvroType):
+    """AvroTypes that are represented by a JSON object in JSON (AvroMap, AvroRecord)."""
+    pass
 
 class ExceptionType(AvroType):
+    """Pseudo-type for exceptions (the "bottom" type in type theory)."""
     def accepts(self, other):
         return isinstance(other, ExceptionType)
     def __repr__(self):
@@ -271,54 +347,73 @@ class ExceptionType(AvroType):
 ######################################################### Avro type wrappers
 
 class AvroNull(AvroType):
+    """Avro "null" type. Has only one possible value, ``null``."""
     _schema = avro.schema.PrimitiveSchema("null")
     @property
     def name(self):
         return "null"
 
 class AvroBoolean(AvroType):
+    """Avro "boolean" type. Has only two possible values, ``true`` and ``false``."""
     _schema = avro.schema.PrimitiveSchema("boolean")
     @property
     def name(self):
         return "boolean"
 
 class AvroInt(AvroNumber):
+    """Avro "int" type for 32-bit integers."""
     _schema = avro.schema.PrimitiveSchema("int")
     @property
     def name(self):
         return "int"
 
 class AvroLong(AvroNumber):
+    """Avro "long" type for 64-bit integers."""
     _schema = avro.schema.PrimitiveSchema("long")
     @property
     def name(self):
         return "long"
 
 class AvroFloat(AvroNumber):
+    """Avro "float" type for 32-bit IEEE floating-point numbers."""
     _schema = avro.schema.PrimitiveSchema("float")
     @property
     def name(self):
         return "float"
 
 class AvroDouble(AvroNumber):
+    """Avro "double" type for 64-bit IEEE floating-point numbers."""
     _schema = avro.schema.PrimitiveSchema("double")
     @property
     def name(self):
         return "double"
 
 class AvroBytes(AvroRaw):
+    """Avro "bytes" type for arbitrary byte arrays."""
     _schema = avro.schema.PrimitiveSchema("bytes")
     @property
     def name(self):
         return "bytes"
 
 class AvroFixed(AvroRaw, AvroCompiled):
+    """Avro "fixed" type for fixed-length byte arrays."""
     def __init__(self, size, name=None, namespace=None):
+        """Create an AvroFixed manually.
+
+        :type size: int
+        :param size: length of the fixed-length byte arrays
+        :type name: string or ``NoneType``
+        :param name: name or an auto-generated name
+        :type namespace: string or ``NoneType``
+        :param namespace: namespace or no namespace
+        """
+
         if name is None:
             name = titus.util.uniqueFixedName()
         self._schema = avro.schema.FixedSchema(name, namespace, size, avro.schema.Names())
     @property
     def size(self):
+        """Length of the fixed-length byte arrays."""
         return self.schema.size
     def jsonNode(self, memo):
         if self.fullName in memo:
@@ -334,18 +429,30 @@ class AvroFixed(AvroRaw, AvroCompiled):
             return out
 
 class AvroString(AvroIdentifier): 
+    """Avro "string" type for UTF-8 encoded strings."""
     _schema = avro.schema.PrimitiveSchema("string")
     @property
     def name(self):
         return "string"
 
 class AvroEnum(AvroIdentifier, AvroCompiled):
+    """Avro "enum" type a small collection of string-labeled values."""
     def __init__(self, symbols, name=None, namespace=None):
+        """Create an AvroEnum manually.
+
+        :type symbols: list of strings
+        :param symbols: collection of labels
+        :type name: string or ``NoneType``
+        :param name: name or an auto-generated name
+        :type namespace: string or ``NoneType``
+        :param namespace: namespace or no namespace
+        """
         if name is None:
             name = titus.util.uniqueEnumName()
         self._schema = avro.schema.EnumSchema(name, namespace, symbols, avro.schema.Names())
     @property
     def symbols(self):
+        """Allowed values for instances of this type."""
         return self.schema.symbols
     def jsonNode(self, memo):
         if self.fullName in memo:
@@ -361,11 +468,18 @@ class AvroEnum(AvroIdentifier, AvroCompiled):
             return out
 
 class AvroArray(AvroContainer):
+    """Avro "array" type for homogeneous lists."""
     def __init__(self, items):
+        """Create an AvroArray manually.
+
+        :type items: titus.datatype.AvroType
+        :param items: type of the contained objects
+        """
         self._schema = avro.schema.ArraySchema("null", avro.schema.Names())
         self._schema.set_prop("items", items.schema)
     @property
     def items(self):
+        """Type of the contained objects."""
         return schemaToAvroType(self.schema.items)
     @property
     def name(self):
@@ -374,11 +488,18 @@ class AvroArray(AvroContainer):
         return {"type": "array", "items": self.items.jsonNode(memo)}
 
 class AvroMap(AvroContainer, AvroMapping):
+    """Avro "map" type for homogeneous maps (keys must be strings)."""
     def __init__(self, values):
+        """Create an AvroMap manually.
+
+        :type values: titus.datatype.AvroType
+        :param values: type of the contained objects
+        """
         self._schema = avro.schema.MapSchema("null", avro.schema.Names())
         self._schema.set_prop("values", values.schema)
     @property
     def values(self):
+        """Type of the contained objects."""
         return schemaToAvroType(self.schema.values)
     @property
     def name(self):
@@ -387,22 +508,32 @@ class AvroMap(AvroContainer, AvroMapping):
         return {"type": "map", "values": self.values.jsonNode(memo)}
 
 class AvroRecord(AvroContainer, AvroMapping, AvroCompiled):
+    """Avro "record" type for inhomogeneous collections of named (and required) fields."""
     def __init__(self, fields, name=None, namespace=None):
+        """Create an AvroRecord manually.
+
+        :type fields: list of titus.datatype.AvroField
+        :param fields: field names and types in order
+        :type name: string or ``NoneType``
+        :param name: name or an auto-generated name
+        :type namespace: string or ``NoneType``
+        :param namespace: namespace or no namespace
+        """
         if name is None:
             name = titus.util.uniqueRecordName()
         self._schema = avro.schema.RecordSchema(name, namespace, [], avro.schema.Names(), "record")
         self._schema.set_prop("fields", [x.schema for x in fields])
     @property
     def fields(self):
+        """Get the fields as a list of titus.datatype.AvroField objects."""
         return [AvroField.fromSchema(x) for x in self.schema.fields]
     @property
     def fieldsDict(self):
+        """Get the fields as a dict from field names to titus.datatype.AvroField objects."""
         return dict((x.name, x) for x in self.fields)
     def field(self, name):
+        """Get one titus.datatype.AvroField object by name."""
         return self.fieldsDict[name]
-    @property
-    def fieldsDict(self):
-        return dict((x.name, AvroField.fromSchema(x)) for x in self.schema.fields)
     def jsonNode(self, memo):
         if self.fullName in memo:
             return self.fullName
@@ -420,7 +551,13 @@ class AvroRecord(AvroContainer, AvroMapping, AvroCompiled):
             return out
 
 class AvroUnion(AvroType):
+    """Avro "union" type for tagged unions."""
     def __init__(self, types):
+        """Create an AvroUnion manually.
+
+        :type types: list of titus.datatype.AvroType
+        :param types: possible types for this union
+        """
         names = set([x.name for x in types])
         if len(types) != len(names):
             raise titus.errors.AvroException("duplicate in union: " + ", ".join(map(ts, types)))
@@ -430,6 +567,7 @@ class AvroUnion(AvroType):
         self._schema._schemas = [x.schema for x in types]
     @property
     def types(self):
+        """Get the possible types for this union as a list of titus.datatype.AvroType."""
         return [schemaToAvroType(x) for x in self._schema._schemas]
     @property
     def name(self):
@@ -438,31 +576,50 @@ class AvroUnion(AvroType):
         return [x.jsonNode(memo) for x in self.types]
 
 class AvroField(object):
+    """Field of a titus.datatype.AvroRecord."""
     @staticmethod
     def fromSchema(schema):
+        """Create a field from an avro.schema.Schema."""
         out = AvroField.__new__(AvroField)
         out._schema = schema
         return out
     def __init__(self, name, avroType, default=None, order=None):
+        """Create an AvroField manually.
+
+        :type name: string
+        :param name: field name
+        :type avroType: titus.datatype.AvroType
+        :param avroType: field type
+        :type default: value or ``NoneType``
+        :param default: default value or ``None``
+        :type order: "ascending", "descending", or "ignore"
+        :param order: sort order (used in Hadoop secondary sort)
+        """
         self._schema = avro.schema.Field(avroType.schema.to_json(), name, default is not None, default, order, avro.schema.Names())
     @property
     def schema(self):
+        """Get the field type as an avro.schema.Schema."""
         return self._schema
     def __repr__(self):
         return json.dumps(self.schema.to_json())
     @property
     def name(self):
+        """Get the field name."""
         return self.schema.name
     @property
     def avroType(self):
+        """Get the field type as a titus.datatype.AvroType."""
         return schemaToAvroType(self.schema.type)
     @property
     def default(self):
+        """Get the field default value."""
         return self.schema.default
     @property
     def order(self):
+        """Get the field order."""
         return self.schema.order
     def jsonNode(self, memo):
+        """Get the field as a Python-encoded JSON node."""
         out = {"name": self.name, "type": self.avroType.jsonNode(memo)}
         if self.default is not None:
             out["default"] = self.default
@@ -473,6 +630,8 @@ class AvroField(object):
 ########################### resolving types out of order in streaming input
 
 class AvroPlaceholder(object):
+    """Represents a type that can't be resolved yet because JSON objects may be streamed in an unknown order."""
+
     def __init__(self, original, forwardDeclarationParser):
         self.original = original
         self.forwardDeclarationParser = forwardDeclarationParser
@@ -509,6 +668,8 @@ class AvroPlaceholder(object):
         return self.forwardDeclarationParser
 
 class AvroFilledPlaceholder(AvroPlaceholder):
+    """Used to create titus.datatype.AvroPlaceholder objects to satisfy functions that require them, yet the type is already known."""
+
     def __init__(self, avroType):
         self._avroType = avroType
 
@@ -520,9 +681,12 @@ class AvroFilledPlaceholder(AvroPlaceholder):
         return repr(self.avroType)
 
 def parseAvroType(obj):
+    """Parse an AVSC object without any memory of named types."""
     return schemaToAvroType(avro.schema.make_avsc_object(obj, avro.schema.Names()))
 
 class ForwardDeclarationParser(object):
+    """Container that stores Avro types as they're collected from a PFA file, returning titus.datatype.AvroPlaceholder objects, and then resolves those types independent of the order in which they were read from the file."""
+
     def __init__(self):
         self.names = avro.schema.Names()
         self.lookupTable = {}
@@ -608,7 +772,7 @@ class ForwardDeclarationParser(object):
                 except ValueError:
                     return None
                 else:
-                    return self.getSchema(obj)
+                    return self.getAvroType(obj)
         elif isinstance(description, dict):
             if description == {"type": "null"}:
                 return AvroNull()
@@ -627,19 +791,22 @@ class ForwardDeclarationParser(object):
             elif description == {"type": "string"}:
                 return AvroString()
             elif description.get("type") == "array" and "items" in description:
-                return AvroArray(self.getSchema(description["items"]))
+                return AvroArray(self.getAvroType(description["items"]))
             elif description.get("type") == "map" and "values" in description:
-                return AvroArray(self.getSchema(description["values"]))
+                return AvroArray(self.getAvroType(description["values"]))
             elif description.get("type") in ("fixed", "enum", "record"):
                 if self.names.has_name(description.get("name"), description.get("namespace")):
                     return schemaToAvroType(self.names.get_name(description.get("name"), description.get("namespace")))
                 else:
                     raise titus.errors.AvroException("new types, like {0}, cannot be defined with the parser.getAvroType or parser.getSchema methods (use parse)".format(json.dumps(description)))
         elif isinstance(description, (tuple, list)):
-            return AvroUnion([self.getSchema(x) for x in description])
-        return None
+            return AvroUnion([self.getAvroType(x) for x in description])
+        else:
+            return None
 
 class AvroTypeBuilder(object):
+    """Factory that coordinates the process of collecting Avro strings, putting them in a titus.datatype.ForwardDeclarationParser, and then resolving them all at the end, independent of order."""
+
     def __init__(self):
         self.forwardDeclarationParser = ForwardDeclarationParser()
         self.originals = []
@@ -692,9 +859,19 @@ class AvroTypeBuilder(object):
     def resolveOneType(self, avroJsonString):
         return ForwardDeclarationParser().parse([avroJsonString])[avroJsonString]
 
-########################### Avro-Python is missing a JSON decoder
+########################### Avro-Python is missing a JSON decoder, encoder, and comparator
 
 def jsonDecoder(avroType, value):
+    """Decode a JSON object as a given titus.datatype.AvroType.
+
+    :type avroType: titus.datatype.AvroType
+    :param avroType: how we want to interpret this JSON
+    :type value: dicts, lists, strings, numbers, ``True``, ``False``, ``None``
+    :param value: the JSON object in Python encoding
+    :rtype: dicts, lists, strings, numbers, ``True``, ``False``, ``None``
+    :return: an object ready for PFAEngine.action
+    """
+
     if isinstance(avroType, AvroNull):
         if value is None:
             return value
@@ -704,22 +881,22 @@ def jsonDecoder(avroType, value):
     elif isinstance(avroType, AvroInt):
         try:
             return int(value)
-        except ValueError:
+        except (ValueError, TypeError):
             pass
     elif isinstance(avroType, AvroLong):
         try:
             return long(value)
-        except ValueError:
+        except (ValueError, TypeError):
             pass
     elif isinstance(avroType, AvroFloat):
         try:
             return float(value)
-        except ValueError:
+        except (ValueError, TypeError):
             pass
     elif isinstance(avroType, AvroDouble):
         try:
             return float(value)
-        except ValueError:
+        except (ValueError, TypeError):
             pass
     elif isinstance(avroType, AvroBytes):
         if isinstance(value, basestring):
@@ -767,7 +944,19 @@ def jsonDecoder(avroType, value):
         raise Exception
     raise titus.errors.AvroException("{0} does not match schema {1}".format(json.dumps(value), ts(avroType)))
 
-def jsonEncoder(avroType, value):
+def jsonEncoder(avroType, value, tagged=True):
+    """Encode an object as JSON, given titus.datatype.AvroType.
+
+    :type avroType: titus.datatype.AvroType
+    :param avroType: type of this object
+    :type value: dicts, lists, strings, numbers, ``True``, ``False``, ``None``
+    :param value: the object returned from PFAEngine.action
+    :type tagged: bool
+    :param tagged: if True, represent unions as ``{tag: value}``; if False, represent them simply as ``value``.
+    :rtype: dicts, lists, strings, numbers, ``True``, ``False``, ``None``
+    :return: the JSON object in Python encoding
+    """
+
     if isinstance(avroType, AvroNull) and value is None:
         return value
     elif isinstance(avroType, AvroBoolean) and (value is True or value is False):
@@ -791,34 +980,173 @@ def jsonEncoder(avroType, value):
     elif isinstance(avroType, AvroEnum) and isinstance(value, basestring) and value in avroType.symbols:
         return value
     elif isinstance(avroType, AvroArray) and isinstance(value, (list, tuple)):
-        return [jsonEncoder(avroType.items, x) for x in value]
+        return [jsonEncoder(avroType.items, x, tagged) for x in value]
     elif isinstance(avroType, AvroMap) and isinstance(value, dict):
-        return dict((k, jsonEncoder(avroType.values, v)) for k, v in value.items())
+        return dict((k, jsonEncoder(avroType.values, v, tagged)) for k, v in value.items())
     elif isinstance(avroType, AvroRecord) and isinstance(value, dict):
         out = {}
         for field in avroType.fields:
             if field.name in value:
-                out[field.name] = jsonEncoder(field.avroType, value[field.name])
+                out[field.name] = jsonEncoder(field.avroType, value[field.name], tagged)
             elif field.default is not None:
                 pass
             else:
                 raise titus.errors.AvroException("{0} does not match schema {1}".format(json.dumps(value), ts(avroType)))
         return out
-
+    elif isinstance(avroType, AvroUnion) and any(isinstance(t, AvroNull) for t in avroType.types) and value is None:
+        return None
     elif isinstance(avroType, AvroUnion):
         if isinstance(value, dict) and len(value) == 1:
             val, = value.values()
             for t in avroType.types:
                 try:
-                    return {t.name: jsonEncoder(t, val)}
+                    out = jsonEncoder(t, val, tagged)
                 except titus.errors.AvroException:
                     pass
+                else:
+                    if tagged:
+                        return {t.name: out}
+                    else:
+                        return out
         for t in avroType.types:
             try:
-                return {t.name: jsonEncoder(t, value)}
+                out = jsonEncoder(t, value, tagged)
             except titus.errors.AvroException:
                 pass
+            else:
+                if tagged:
+                    return {t.name: out}
+                else:
+                    return out
     raise titus.errors.AvroException("{0} does not match schema {1}".format(json.dumps(value), ts(avroType)))
+
+def compare(avroType, x, y):
+    """Returns -1, 0, or 1 depending on whether x is less than, equal to, or greater than y, according to the schema.
+
+    Assumes that x and y are valid examples of the schema.
+
+    :type avroType: titus.datatype.AvroType
+    :param avroType: type of this object
+    :type x: dicts, lists, strings, numbers, ``True``, ``False``, ``None``
+    :param x: Avro object in Python form
+    :type y: dicts, lists, strings, numbers, ``True``, ``False``, ``None``
+    :param y: Avro object in Python form
+    :rtype: int
+    :return: -1, 0, or 1
+    """
+
+    if isinstance(avroType, AvroNull) and x is None and y is None:
+        return 0
+    elif isinstance(avroType, AvroBoolean) and (x is True or x is False) and (y is True or y is False):
+        return cmp(x, y)    # agrees with Java
+    elif isinstance(avroType, AvroInt) and isinstance(x, (int, long)) and x is not True and x is not False and isinstance(y, (int, long)) and y is not True and y is not False:
+        return cmp(x, y)
+    elif isinstance(avroType, AvroLong) and isinstance(x, (int, long)) and x is not True and x is not False and isinstance(y, (int, long)) and y is not True and y is not False:
+        return cmp(x, y)
+    elif isinstance(avroType, AvroFloat) and isinstance(x, (int, long, float)) and x is not True and x is not False and isinstance(y, (int, long, float)) and y is not True and y is not False:
+        return cmp(x, y)
+        if math.isnan(x):
+            if math.isnan(y):
+                return 0
+            else:
+                return 1
+        else:
+            if math.isnan(y):
+                return -1
+            else:
+                return cmp(x, y)
+    elif isinstance(avroType, AvroDouble) and isinstance(x, (int, long, float)) and x is not True and x is not False and isinstance(y, (int, long, float)) and y is not True and y is not False:
+        if math.isnan(x):
+            if math.isnan(y):
+                return 0
+            else:
+                return 1
+        else:
+            if math.isnan(y):
+                return -1
+            else:
+                return cmp(x, y)
+    elif isinstance(avroType, AvroBytes) and isinstance(x, basestring) and isinstance(y, basestring):
+        return cmp(x, y)
+    elif isinstance(avroType, AvroFixed) and isinstance(x, basestring) and isinstance(y, basestring):
+        return cmp(x, y)
+    elif isinstance(avroType, AvroString) and isinstance(x, basestring) and isinstance(y, basestring):
+        return cmp(x, y)
+    elif isinstance(avroType, AvroEnum) and isinstance(x, basestring) and x in avroType.symbols and isinstance(y, basestring) and y in avroType.symbols:
+        comparison = avroType.symbols.index(x) - avroType.symbols.index(y)
+        if comparison < 0:
+            return -1
+        elif comparison > 0:
+            return 1
+        else:
+            return 0
+    elif isinstance(avroType, AvroArray) and isinstance(x, (list, tuple)) and isinstance(y, (list, tuple)):
+        for xi, yi in zip(x, y):
+            comparison = compare(avroType.items, xi, yi)
+            if comparison != 0:
+                return comparison
+        if len(x) > len(y):
+            return 1
+        elif len(x) < len(y):
+            return -1
+        else:
+            return 0
+    elif isinstance(avroType, AvroMap) and isinstance(x, dict) and isinstance(y, dict):
+        raise NotImplementedError("Avro has no order defined for maps???")
+    elif isinstance(avroType, AvroRecord) and isinstance(x, dict) and isinstance(y, dict):
+        for field in avroType.fields:
+            if field.order == "ignore":
+                continue
+            comparison = compare(field.avroType, x[field.name], y[field.name])
+            if comparison != 0:
+                if field.order == "descending":
+                    return -comparison
+                else:
+                    return comparison
+        return 0
+    elif isinstance(avroType, AvroUnion):
+        if isinstance(x, dict) and len(x) == 1:
+            (xtag, x), = x.items()
+            xtypei, xtype = [(ti, t) for ti, t in enumerate(avroType.types) if t.name == xtag][0]
+        else:
+            xtypei = None
+            for ti, t in enumerate(avroType.types):
+                try:
+                    jsonEncoder(t, x)
+                except titus.errors.AvroException:
+                    pass
+                else:
+                    xtypei = ti
+                    xtype = t
+            if xtypei is None:
+                raise titus.errors.AvroException()
+        if isinstance(y, dict) and len(y) == 1:
+            (ytag, y), = y.items()
+            ytypei, ytype = [(ti, t) for ti, t in enumerate(avroType.types) if t.name == ytag][0]
+        else:
+            ytypei = None
+            for ti, t in enumerate(avroType.types):
+                try:
+                    jsonEncoder(t, y)
+                except titus.errors.AvroException:
+                    pass
+                else:
+                    ytypei = ti
+                    ytype = t
+            if ytypei is None:
+                raise titus.errors.AvroException()
+        if xtypei == ytypei:
+            return compare(xtype, x, y)
+        else:
+            comparison = xtypei - ytypei
+            if comparison < 0:
+                return -1
+            elif comparison > 0:
+                return 1
+            else:
+                return 0
+    else:
+        raise titus.errors.AvroException("{0} or {1} does not match schema {2}".format(json.dumps(x), json.dumps(y), ts(avroType)))
 
 ########################### check data value against type
 
@@ -846,6 +1174,8 @@ except ImportError:
     floatTypes   = ()
 
 def checkData(data, avroType):
+    """Return ``True`` if ``data`` satisfies ``avroType`` and can be used in PFAEngine.action."""
+
     if isinstance(avroType, AvroNull):
         if data == "null":
             data = None

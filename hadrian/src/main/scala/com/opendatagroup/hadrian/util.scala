@@ -60,7 +60,7 @@ package object util {
   }
 
   def pos(dot: String, at: String): String =
-    "in%s object from %s".format(if (dot == "") "" else " field " + dot + " of", at)
+    "at " + at + (if (dot == "") "" else " (PFA field \"" + dot.replace("%%", "PERCENT-PERCENT").replace("%", "PERCENT") + "\")")
 
   def escapeJson(x: String): String = new String(JsonStringEncoder.getInstance.quoteAsString(x))
 

@@ -54,9 +54,9 @@ class SharedSuite extends FlatSpec with Matchers {
     state.get("five", Array[PathIndex]()) should be (Right(List(5, 5, 5)))
     state.get("six", Array[PathIndex]()).isLeft should be (true)
 
-    state.remove("one", Array[PathIndex]())
+    state.remove("one")
     state.get("one", Array[PathIndex]()).isLeft should be (true)
-    state.remove("one", Array[PathIndex]())
+    state.remove("one")
     state.get("one", Array[PathIndex]()).isLeft should be (true)
   }
 
@@ -93,7 +93,7 @@ class SharedSuite extends FlatSpec with Matchers {
 
     state.update("x", Array[PathIndex](), 5, {(x: Int) => Thread.sleep(150); 99}, Schema.create(Schema.Type.INT))
     Thread.sleep(200)
-    state.remove("x", Array[PathIndex]())
+    state.remove("x")
     Thread.sleep(150)
   }
 

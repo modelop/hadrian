@@ -27,6 +27,9 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.QuoteMode
+
 import org.codehaus.jackson.JsonNode
 import org.codehaus.janino.JavaSourceClassLoader
 import org.codehaus.janino.util.resource.Resource
@@ -93,6 +96,7 @@ import com.opendatagroup.hadrian.ast.CellGet
 import com.opendatagroup.hadrian.ast.CellTo
 import com.opendatagroup.hadrian.ast.PoolGet
 import com.opendatagroup.hadrian.ast.PoolTo
+import com.opendatagroup.hadrian.ast.PoolDel
 import com.opendatagroup.hadrian.ast.If
 import com.opendatagroup.hadrian.ast.Cond
 import com.opendatagroup.hadrian.ast.While
@@ -140,14 +144,17 @@ import com.opendatagroup.hadrian.datatype.AvroField
 import com.opendatagroup.hadrian.datatype.AvroUnion
 import com.opendatagroup.hadrian.datatype.ForwardDeclarationParser
 
+import com.opendatagroup.hadrian.data.AnyPFARecord
 import com.opendatagroup.hadrian.data.AvroDataTranslator
 import com.opendatagroup.hadrian.data.AvroOutputDataStream
 import com.opendatagroup.hadrian.data.JsonOutputDataStream
+import com.opendatagroup.hadrian.data.CsvOutputDataStream
 import com.opendatagroup.hadrian.data.OutputDataStream
 import com.opendatagroup.hadrian.data.PFADataTranslator
 import com.opendatagroup.hadrian.data.PFADatumReader
 import com.opendatagroup.hadrian.data.PFADatumWriter
 import com.opendatagroup.hadrian.data.PFAMap
+import com.opendatagroup.hadrian.data.PFARecord
 import com.opendatagroup.hadrian.data.PFASpecificData
 import com.opendatagroup.hadrian.data.toJsonDom
 import com.opendatagroup.hadrian.errors.PFAInitializationException
@@ -162,10 +169,13 @@ import com.opendatagroup.hadrian.shared.SharedMapInMemory
 import com.opendatagroup.hadrian.shared.SharedState
 import com.opendatagroup.hadrian.signature.P
 import com.opendatagroup.hadrian.signature.Sig
+import com.opendatagroup.hadrian.signature.PFAVersion
 import com.opendatagroup.hadrian.util.escapeJson
 import com.opendatagroup.hadrian.yaml.yamlToJson
 
 package object jvmcompiler {
+  var defaultPFAVersion = "0.8.1"
+
   //////////////////////////////////////////////////////////// Janino-based compiler tools
 
   def lineNumbers(src: String): String =
@@ -228,6 +238,11 @@ package object jvmcompiler {
     case AvroRecord(_, name, namespace, _, _) => JVMNameMangle.t(namespace, name, true) + ".getClassSchema()"
     case AvroUnion(types) => "org.apache.avro.Schema.createUnion(java.util.Arrays.asList(%s))".format(types.map(javaSchema(_, construct)).mkString(","))
   }
+
+  def posToJava(pos: Option[String]): String = pos match {
+    case None => "scala.Option.apply((String)null)"
+    case Some(x) => "scala.Option.apply(\"" + StringEscapeUtils.escapeJava(x) + "\")"
+  }
 }
 
 package jvmcompiler {
@@ -241,7 +256,14 @@ package jvmcompiler {
     def do2[X, Y](x: X, y: Y): Y = y
 
     def either[X](value: Either[Exception, X]): X = value match {
-      case Left(err) => throw new PFARuntimeException(err.getMessage, err)
+      case Left(err) => throw err
+      case Right(x) => x
+    }
+
+    def either[X](value: Either[Exception, X], arrayErrStr: String, arrayErrCode: Int, mapErrStr: String, mapErrCode: Int, fcnName: String, pos: Option[String]): X = value match {
+      case Left(err: java.lang.IndexOutOfBoundsException) => throw new PFARuntimeException(arrayErrStr, arrayErrCode, fcnName, pos, err)
+      case Left(err: java.util.NoSuchElementException) => throw new PFARuntimeException(mapErrStr, mapErrCode, fcnName, pos, err)
+      case Left(err) => throw err
       case Right(x) => x
     }
 
@@ -251,11 +273,11 @@ package jvmcompiler {
       else
         orElse
     }
-    def getOrFailPool(map: java.util.Map[String, AnyRef], get: String, name: String): AnyRef = {
+    def getOrFailPool(map: java.util.Map[String, AnyRef], get: String, name: String, poolErrStr: String, poolErrCode: Int, fcnName: String, pos: Option[String]): AnyRef = {
       if (map.containsKey(get))
         map.get(get)
       else
-        throw new PFARuntimeException("\"%s\" not found in pool \"%s\"".format(get, name))
+        throw new PFARuntimeException(poolErrStr, poolErrCode, fcnName, pos)
     }
 
     def asBool(x: Boolean): Boolean = x
@@ -269,13 +291,13 @@ package jvmcompiler {
     def asInt(x: Int): Int = x
     def asInt(x: Long): Int =
       if (x > java.lang.Integer.MAX_VALUE  ||  x < java.lang.Integer.MIN_VALUE)
-        throw new PFARuntimeException("integer out of range: " + x.toString)
+        throw new PFARuntimeException("integer out of range", 1000, "", None)
       else
         x.toInt
     def asInt(x: java.lang.Integer): Int = x.intValue
     def asInt(x: java.lang.Long): Int =
       if (x > java.lang.Integer.MAX_VALUE  ||  x < java.lang.Integer.MIN_VALUE)
-        throw new PFARuntimeException("integer out of range: " + x.toString)
+        throw new PFARuntimeException("integer out of range", 1000, "", None)
       else
         x.intValue
     def asInt(x: AnyRef): Int = x match {
@@ -286,13 +308,13 @@ package jvmcompiler {
     def asJInt(x: Int): java.lang.Integer = java.lang.Integer.valueOf(x)
     def asJInt(x: Long): java.lang.Integer =
       if (x > java.lang.Integer.MAX_VALUE  ||  x < java.lang.Integer.MIN_VALUE)
-        throw new PFARuntimeException("integer out of range: " + x.toString)
+        throw new PFARuntimeException("integer out of range", 1000, "", None)
       else
         java.lang.Integer.valueOf(x.toInt)
     def asJInt(x: java.lang.Integer): java.lang.Integer = x
     def asJInt(x: java.lang.Long): java.lang.Integer =
       if (x > java.lang.Integer.MAX_VALUE  ||  x < java.lang.Integer.MIN_VALUE)
-        throw new PFARuntimeException("integer out of range: " + x.toString)
+        throw new PFARuntimeException("integer out of range", 1000, "", None)
       else
         java.lang.Integer.valueOf(x.intValue)
     def asJInt(x: AnyRef): java.lang.Integer = x match {
@@ -424,7 +446,32 @@ package jvmcompiler {
           "com.opendatagroup.hadrian.jvmcompiler.W.maybeJInt(" + x + ")"
         else
           x
+      case (AvroString(), _) => "(String)(" + x + ")"
       case _ => x
+    }
+
+    def containsException(err: PFARuntimeException, filters: Array[String]) = filters exists {filter =>
+      try {
+        val code = java.lang.Integer.parseInt(filter)
+        err.code == code
+      }
+      catch {
+        case _: java.lang.NumberFormatException => err.message == filter
+      }
+    }
+
+    def containsException(err: PFAUserException, filters: Array[String]) = filters exists {filter =>
+      err.code match {
+        case None => err.message == filter
+        case Some(errcode) =>
+          try {
+            val code = java.lang.Integer.parseInt(filter)
+            errcode == code
+          }
+          catch {
+            case _: java.lang.NumberFormatException => err.message == filter
+          }
+      }
     }
 
     def trycatch[X <: AnyRef](f: () => X, hasFilter: Boolean, filters: Array[String]): X = {
@@ -433,8 +480,8 @@ package jvmcompiler {
       }
       catch {
         case _: PFARuntimeException | _: PFAUserException if (!hasFilter) => null.asInstanceOf[X]
-        case err: PFARuntimeException if (hasFilter  &&  filters.contains(err.message)) => null.asInstanceOf[X]
-        case err: PFAUserException if (hasFilter  &&  filters.contains(err.message)) => null.asInstanceOf[X]
+        case err: PFARuntimeException if (hasFilter  &&  containsException(err, filters)) => null.asInstanceOf[X]
+        case err: PFAUserException if (hasFilter  &&  containsException(err, filters)) => null.asInstanceOf[X]
       }
     }
   }
@@ -501,7 +548,7 @@ package jvmcompiler {
     def hasRecursive(fcnName: String): Boolean = callDepth(fcnName) == java.lang.Double.POSITIVE_INFINITY
     def hasSideEffects(fcnName: String): Boolean = {
       val reach = calledBy(fcnName)
-      reach.contains(CellTo.desc)  ||  reach.contains(PoolTo.desc)
+      reach.contains(CellTo.desc)  ||  reach.contains(PoolTo.desc)  ||  reach.contains(PoolDel.desc)
     }
 
     private var _namedTypes: Map[String, AvroType] = null
@@ -604,7 +651,7 @@ package jvmcompiler {
 
       _metadata = PFAMap.fromMap(config.metadata)
 
-      // make sure that functions used in CellTo and PoolTo do not themselves call CellTo or PoolTo (which could lead to deadlock)
+      // make sure that functions used in CellTo and PoolTo do not themselves call CellTo, PoolTo, or PoolDel (which could lead to deadlock)
       config collect {
         case CellTo(_, _, FcnRef(x, _), _) =>
           if (hasSideEffects(x))
@@ -934,6 +981,15 @@ package jvmcompiler {
       }
     }
 
+    def csvInputIterator[X <: AnyRef](inputStream: InputStream, csvFormat: CSVFormat = CSVFormat.DEFAULT.withHeader()): java.util.Iterator[X] = {
+      val constructor = inputClass.getConstructor(classOf[Array[AnyRef]])
+      constructor.setAccessible(true)
+      def makeRecord(fieldValues: Array[AnyRef]) =
+        constructor.newInstance(fieldValues).asInstanceOf[X]
+
+      data.csvInputIterator(inputStream, inputType, csvFormat, None, Some(makeRecord))
+    }
+
     def jsonInput[INPUT <: AnyRef](json: Array[Byte]): INPUT = fromJson(json, inputType.schema).asInstanceOf[INPUT]
     def jsonInput[INPUT <: AnyRef](json: String): INPUT = fromJson(json.getBytes, inputType.schema).asInstanceOf[INPUT]
 
@@ -978,6 +1034,9 @@ package jvmcompiler {
 
     def jsonOutputDataStream(fileName: String, writeSchema: Boolean): JsonOutputDataStream = jsonOutputDataStream(new java.io.File(fileName), writeSchema)
 
+    def csvOutputDataStream(outputStream: java.io.OutputStream, csvFormat: CSVFormat = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.MINIMAL), writeHeader: Boolean = true): CsvOutputDataStream =
+      data.csvOutputDataStream(outputStream, outputType, csvFormat, writeHeader)
+
     def jsonOutput[OUTPUT <: AnyRef](obj: OUTPUT): String = toJson(obj.asInstanceOf[AnyRef], outputType.schema)
 
     var _inputClass: java.lang.Class[AnyRef] = null
@@ -992,95 +1051,558 @@ package jvmcompiler {
     def fromGenericAvroData[INPUT <: AnyRef](datum: AnyRef): INPUT = avroInputTranslator.translate(datum).asInstanceOf[INPUT]
   }
 
+  /** Interface for a Hadrian scoring engine.
+    * 
+    * Create instances using one of [[com.opendatagroup.hadrian.jvmcompiler.PFAEngine$ `PFAEngine`'s "static" methods]], then call `begin` once, `action` once for each datum in the data stream, and `end` once (if the stream ever ends). The rest of the functions are for
+    *  - examining the scoring engine (`config`, call graph),
+    *  - producing acceptable input from serialized streams, other `PFAEngines`, or the Avro library,
+    *  - sending output to a serialized stream,
+    *  - handling log output or emit output (see [[com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine PFAEmitEngine]]) with callbacks,
+    *  - taking snapshots of the scoring engine's current state,
+    *  - reverting its state, and
+    *  - calling PFA user-defined functions from external sources.
+    * 
+    * '''Examples:'''
+    * 
+    * Load a PFA file as a scoring engine. Note the `.head` to extract the single scoring engine from the `Seq` this function returns.
+    * 
+    * {{{
+    * import com.opendatagroup.hadrian.jvmcompiler.PFAEngine
+    * val engine = PFAEngine.fromJson(new java.io.File("myModel.pfa")).head
+    * }}}
+    * 
+    * Assuming (and verifying) that `method` is map, run it over an Avro data stream.
+    * 
+    * {{{
+    * import com.opendatagroup.hadrian.ast.Method
+    * assert(engine.method == Method.MAP)
+    * 
+    * val inputDataStream = engine.avroInputIterator(new java.io.FileInputStream("inputData.avro"))
+    * val outputDataStream = engine.avroOutputDataStream(new java.io.File("outputData.avro"))
+    * 
+    * engine.begin()
+    * while (inputDataStream.hasNext)
+    *   outputDataStream.append(engine.action(inputDataStream.next()))
+    * engine.end()
+    * outputDataStream.close()
+    * }}}
+    * 
+    * Handle the case of `method` = emit engines (map and fold are the same).
+    * 
+    * {{{
+    * import com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine
+    * engine match {
+    *   case emitEngine: PFAEmitEngine =>
+    *     def emit(x) = outputDataStream.append(x)
+    *     emitEngine.emit = emit
+    *     emitEngine.begin()
+    *     while (inputDataStream.hasNext)
+    *       emitEngine.action(inputDataStream.next())
+    *     emitEngine.end()
+    * 
+    *   case otherEngine =>
+    *     otherEngine.begin()
+    *     while (inputDataStream.hasNext)
+    *       outputDataStream.append(otherEngine.action(inputDataStream.next()))
+    *     otherEngine.end()
+    * }
+    * outputDataStream.close()
+    * }}}
+    * 
+    * Take a snapshot of a changing model and write it as a new PFA file.
+    * 
+    * {{{
+    * val snapshotFile = new java.io.FileOutputStream("snapshot.pfa")
+    * snapshotFile.write(engine.snapshot.toJson(lineNumbers = false))
+    * snapshotFile.close()
+    * }}}
+    * 
+    * Take a snapshot of just one cell and write it as a JSON fragment.
+    * 
+    * {{{
+    * import com.opendatagroup.hadrian.data.toJson
+    * val myCellFile = new java.io.FileOutputStream("myCell.json")
+    * myCellFile.write(toJson(engine.snapshotCell("myCell"), engine.config.cells("myCell").avroType))
+    * myCellFile.close()
+    * }}}
+    * 
+    * Calling a PFA user-defined function from an external agent.
+    * 
+    * {{{
+    * // get the callable function object
+    * val myFunction = engine.fcn2("myFunction")
+    * 
+    * // verify that the arguments are what we think they are
+    * import com.opendatagroup.hadrian.datatype._
+    * assert(engine.config.fcns("myFunction").params, Seq("x" -> AvroDouble(), "y" -> AvroString()))
+    * 
+    * // call it with some arguments
+    * myFunction(java.lang.Double.valueOf(3.14), "hello")
+    * }}}
+    * 
+    * '''Specialized data:'''
+    * 
+    * Data passed to `action`, `fcn*` or accepted from `action`, `fcn*`, `analyzeCell`, `analyzePool`, `snapshotCell`, `snapshotPool` has to satisfy a particular form. That form is:
+    * 
+    *  - '''null:''' null-valued `AnyRef`
+    *  - '''boolean:''' `java.lang.Boolean`
+    *  - '''int:''' `java.lang.Integer`
+    *  - '''long:''' `java.lang.Long`
+    *  - '''float:''' `java.lang.Float`
+    *  - '''double:''' `java.lang.Double`
+    *  - '''string:''' `String` 
+    *  - '''bytes:''' `Array[Byte]`
+    *  - '''array(X):''' [[com.opendatagroup.hadrian.data.PFAArray `PFAArray[X]`]] where `X` is an unboxed primitive if a primitive
+    *  - '''map(X):''' [[com.opendatagroup.hadrian.data.PFAMap `PFAMap[X]`]] where `X` is a boxed primitive if a primitive
+    *  - '''enum:''' subclass of [[com.opendatagroup.hadrian.data.PFAEnumSymbol `PFAEnumSymbol`]] that can only be found in this specific `PFAEngine`'s custom ClassLoader (cannot be created by external agent)
+    *  - '''fixed:''' subclass of [[com.opendatagroup.hadrian.data.PFAFixed `PFAFixed`]] that can only be found in the custom ClassLoader
+    *  - '''record:''' subclass of [[com.opendatagroup.hadrian.data.PFARecord `PFARecord`]] that can only be found in the custom ClassLoader
+    *  - '''union:''' any of the above as an `AnyRef`
+    * 
+    * Compiled types, namely '''enum''', '''fixed''', and '''record''', have to be converted using `fromPFAData` or `fromGenericAvroData`.
+    * 
+    * Although all of these types are immutable in PFA, '''bytes''', '''fixed''', and '''record''' are ''mutable'' in Java, but if you modify them, the behavior of the PFA engine is undefined and likely to be wrong. Do not change these objects in place!
+    */
   trait PFAEngine[INPUT <: AnyRef, OUTPUT <: AnyRef] {
+    /** Externally supplied function for handling log output from PFA.
+      * 
+      * By default, prints to standard out.
+      * 
+      * '''Arguments:'''
+      * 
+      *  - String to write to log
+      *  - `Some(namespace)` for filtering log messages or `None`
+      */
     var log: Function2[String, Option[String], Unit]
+
+    /** Abstract syntax tree that was used to generate this engine. */
     def config: EngineConfig
+
+    /** Implementation-specific configuration options. */
     def options: EngineOptions
+
+    /** Graph of which functions can call which other functions in the engine.
+      * 
+      * Map from function name (special forms in parentheses) to the set of all functions it calls. This map can be traversed as a graph by repeated application. */
     def callGraph: Map[String, Set[String]]
+
+    /** Determine which functions are called by `fcnName` by traversing the `callGraph` backward.
+      * 
+      * @param fcnName name of function to look up
+      * @param exclude set of functions to exclude
+      * @return set of functions that can call `fcnName`
+      */
     def calledBy(fcnName: String, exclude: Set[String] = Set[String]()): Set[String]
+
+    /** Determine call depth of a function by traversing the `callGraph`.
+      * 
+      * @param fcnName name of function to look up
+      * @param exclude set of functions to exclude
+      * @param startingDepth used by recursion to count
+      * @return integral number representing call depth as a `Double`, with positive infinity as a possible result
+      */
     def callDepth(fcnName: String, exclude: Set[String] = Set[String](), startingDepth: Double = 0): Double
+
+    /** Determine if a function is directly recursive.
+      * 
+      * @param fcnName name of function to check
+      * @return `true` if the function directly calls itself, `false otherwise
+      */
     def isRecursive(fcnName: String): Boolean
+
+    /** Determine if the call depth of a function is infinite.
+      * 
+      * @param fcnName name of function to check
+      * @return `true` if the function can eventually call itself through a function that it calls, `false` otherwise
+      */
     def hasRecursive(fcnName: String): Boolean
+
+    /** Determine if a function modifies the scoring engine's persistent state.
+      * 
+      * @param fcnName name of function to check
+      * @return `true` if the function can eventually call `(cell-to)` or `(pool-to)` on any cell or pool.
+      */
     def hasSideEffects(fcnName: String): Boolean
 
+    /** The parser used to interpret Avro types in the PFA document, which may be used to find compiled types used by this engine. */
     def typeParser: ForwardDeclarationParser
 
+    /** Instance number, non-zero if this engine is part of a collection of scoring engines made from the same PFA file. */
     def instance: Int
 
+    /** Specialized Avro data model for this `PFAEngine`.
+      * 
+      * Deserializes Avro data into objects this engine can use (see the `*Input`, `*InputIterator` methods to prepare input objects).
+      * 
+      */
     def specificData: PFASpecificData
+
+    /** Specialized Avro data reader for this `PFAEngine`.
+      * 
+      * Reads Avro streams into objects this engine can use (see the `*Input`, `*InputIterator` methods to prepare input objects).
+      * 
+      */
     def datumReader: DatumReader[INPUT]
+
+    /** Class object for the input type. */
     def inputClass: java.lang.Class[AnyRef]
+
+    /** Class object for the output type. */
     def outputClass: java.lang.Class[AnyRef]
+
+    /** ClassLoader in which this scoring engine and its compiled types are compiled. */
     def classLoader: java.lang.ClassLoader
+
+    /** Entry point for starting up a scoring engine: call this first. */
     def begin(): Unit
+
+    /** Entry point for computing one datum: call this after `begin`.
+      * 
+      * @param input datum to compute; objects must be specialized to this class (see above).
+      * @return if `method` is map, returns the transformed input; if `method` is emit, returns `null` (provide a user-defined `emit` callback to capture results!); if `method` is fold, returns the current cumulative `tally`.
+      * 
+      */
     def action(input: INPUT): OUTPUT
+
+    /** Entry point for ending a scoring engine: call this after all `action` calls are complete.
+      * 
+      * If the input data stream is infinite, such a time may never happen.
+      * 
+      */
     def end(): Unit
 
+    /** Take a snapshot of one cell and represent it using objects specialized to this class (see above).
+      * 
+      * @param name the name of the cell
+      * @return an object that may contain internal PFA data, such as instances of classes that are only found in this engine's custom `classLoader`.
+      * 
+      */
     def snapshotCell(name: String): AnyRef
+
+    /** Take a snapshot of one pool and represent it using objects specialized to this class (see above).
+      * 
+      * @param name the name of the pool
+      * @return a Map from pool item name to objects that may contain internal PFA data, such as instances of classes that are only found in this engine's custom `classLoader`.
+      * 
+      */
     def snapshotPool(name: String): Map[String, AnyRef]
+
+    /** Take a snapshot of the entire scoring engine (all cells and pools) and represent it as an abstract syntax tree that can be used to make new scoring engines.
+      * 
+      * Note that you can call `toJson` on the `EngineConfig` to get a string that can be written to a PFA file.
+      * 
+      */
     def snapshot: EngineConfig
+
+    /** Perform an analysis of a cell using a user-defined function.
+      * 
+      * @param name the name of the cell
+      * @param analysis a function to perform some analysis of the cell to which it is applied; note that this function '''must not''' change the cell's state
+      * @return whatever `analysis` returns
+      * 
+      * Note that the `analysis` function is called exactly once.
+      * 
+      */
     def analyzeCell[X](name: String, analysis: Any => X): X
+
+    /** Perform an analysis of a pool using a user-defined function.
+      * 
+      * @param name the name of the pool
+      * @param analysis a function to perform some analysis of each item in the pool; note that this function '''must not''' change the pool's state
+      * @return a map from pool item name to whatever `analysis` returns for that pool item
+      * 
+      * Note that the `analysis` function is called as many times as there are items in the pool.
+      * 
+      */
     def analyzePool[X](name: String, analysis: Any => X): Map[String, X]
 
+    /** Get the [[com.opendatagroup.hadrian.datatype.AvroType AvroType]] of each compiled type. */
     def namedTypes: Map[String, AvroCompiled]
+
+    /** Get the [[com.opendatagroup.hadrian.datatype.AvroType AvroType]] of the input. */
     def inputType: AvroType
+
+    /** Get the [[com.opendatagroup.hadrian.datatype.AvroType AvroType]] of the output. */
     def outputType: AvroType
+
+    /** Report whether this is a [[com.opendatagroup.hadrian.jvmcompiler.PFAMapEngine PFAMapEngine]], [[com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine PFAEmitEngine]], or a [[com.opendatagroup.hadrian.jvmcompiler.PFAFoldEngine PFAFoldEngine]].
+      * 
+      * Note that this information is also available in `config.method`.
+      * 
+      */
     def method: Method.Method
 
+    /** Create an Avro iterator (subclass of `java.util.Iterator`) over Avro-serialized input data.
+      * 
+      * The objects produced by this iterator are suitable inputs to the `action` method.
+      * 
+      * @param inputStream serialized data
+      * @return unserialized data
+      * 
+      */
     def avroInputIterator[X](inputStream: InputStream): DataFileStream[X]    // DataFileStream is a java.util.Iterator
+
+    /** Create an iterator over JSON-serialized input data.
+      * 
+      * The objects produced by this iterator are suitable inputs to the `action` method.
+      * 
+      * @param inputStream serialized data
+      * @return unserialized data
+      * 
+      */
     def jsonInputIterator[X](inputStream: InputStream): java.util.Iterator[X]
+
+    /** Create an iterator over JSON-serialized input data.
+      * 
+      * The objects produced by this iterator are suitable inputs to the `action` method.
+      * 
+      * @param inputIterator serialized data
+      * @return unserialized data
+      * 
+      */
     def jsonInputIterator[X](inputIterator: java.util.Iterator[String]): java.util.Iterator[X]
+
+    /** Create an iterator over JSON-serialized input data.
+      * 
+      * The objects produced by this iterator are suitable inputs to the `action` method.
+      * 
+      * @param inputIterator serialized data
+      * @return unserialized data
+      * 
+      */
     def jsonInputIterator[X](inputIterator: scala.collection.Iterator[String]): scala.collection.Iterator[X]
+
+    /** Create an iterator over CSV-serialized input data.
+      * 
+      * The objects produced by this iterator are suitable inputs to the `action` method.
+      * 
+      * Note that only records of primitives can be read from CSV because of the nature of the CSV format.
+      * 
+      * @param inputStream serialized data
+      * @param csvFormat format description for [[https://commons.apache.org/proper/commons-csv/ Apache `commons-csv`]]
+      * @return unserialized data
+      * 
+      */
+    def csvInputIterator[X](inputStream: InputStream, csvFormat: CSVFormat = CSVFormat.DEFAULT.withHeader()): java.util.Iterator[X]
+
+    /** Deserialize one JSON datum as suitable input to the `action` method. */
     def jsonInput(json: Array[Byte]): INPUT
+
+    /** Deserialize one JSON datum as suitable input to the `action` method. */
     def jsonInput(json: String): INPUT
+
+    /** Create an output stream for Avro-serializing scoring engine output.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * @param outputStream the raw output stream onto which Avro bytes will be written.
+      * @return an output stream with an `append` method for appending output data objects.
+      * 
+      */
     def avroOutputDataStream(outputStream: java.io.OutputStream): AvroOutputDataStream
+
+    /** Create an output stream for Avro-serializing scoring engine output.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * @param file a file that will be overwritten by output.
+      * @return an output stream with an `append` method for appending output data objects.
+      * 
+      */
     def avroOutputDataStream(file: java.io.File): AvroOutputDataStream
+
+    /** Create an output stream for JSON-serializing scoring engine output.
+      * 
+      * Writes one JSON object per line.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * @param outputStream the raw output stream onto which JSON bytes will be written.
+      * @param writeSchema if `true`, write an Avro schema as the first line of the file for interpreting the JSON objects.
+      * @return an output stream with an `append` method for appending output data objects.
+      * 
+      */
     def jsonOutputDataStream(outputStream: java.io.OutputStream, writeSchema: Boolean): JsonOutputDataStream
+
+    /** Create an output stream for JSON-serializing scoring engine output.
+      * 
+      * Writes one JSON object per line.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * @param file a file that will be overwritten by output.
+      * @param writeSchema if `true`, write an Avro schema as the first line of the file for interpreting the JSON objects.
+      * @return an output stream with an `append` method for appending output data objects.
+      * 
+      */
     def jsonOutputDataStream(file: java.io.File, writeSchema: Boolean): JsonOutputDataStream
+
+    /** Create an output stream for JSON-serializing scoring engine output.
+      * 
+      * Writes one JSON object per line.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * @param fileName the name of a file that will be overwritten by output.
+      * @param writeSchema if `true`, write an Avro schema as the first line of the file for interpreting the JSON objects.
+      * @return an output stream with an `append` method for appending output data objects.
+      * 
+      */
     def jsonOutputDataStream(fileName: String, writeSchema: Boolean): JsonOutputDataStream
+
+    /** Create an output stream for CSV-serializing scoring engine output.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * Note that only records of primitives can be written to CSV because of the nature of the CSV format.
+      * 
+      * @param outputStream the raw output stream onto which CSV bytes will be written.
+      * @param csvFormat format description for [[https://commons.apache.org/proper/commons-csv/ Apache `commons-csv`]]
+      * @param writeHeader if `true`, write field names as the first line of the file.
+      * @return an output stream with an `append` method for appending output data objects.
+      * 
+      */
+    def csvOutputDataStream(outputStream: java.io.OutputStream, csvFormat: CSVFormat = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.MINIMAL), writeHeader: Boolean = true): CsvOutputDataStream
+
+    /** Serialize one datum from the `action` method as JSON. */
     def jsonOutput(obj: OUTPUT): String
 
+    /** Translate data that might have come from any PFAEngine class (not necessarily this one) into objects suitable for this PFAEngine's `action`.
+      * 
+      * @param datum objects that may have been output from another type of PFAEngine's `action`, `snapshotCell`, or `snapshotPool`.
+      * @return objects that can be input for this PFAEngine's `action`.
+      */
     def fromPFAData(datum: AnyRef): INPUT
+
+    /** Translate data that might have been deserialized by Avro into objects suitable for this PFAEngine's `action`.
+      * 
+      * @param datum objects that may be Avro generic or Avro specific objects (note that Avro specific objects are subclasses of Avro generic objects)
+      * @return objects that can be input for this PFAEngine's `action`.
+      */
     def fromGenericAvroData(datum: AnyRef): INPUT
 
+    /** The random number generator used by this particular scoring engine instance.
+      * 
+      * Note that if a `randseed` is given in the PFA file but a collection of scoring engines are generated from it, each scoring engine instance will have a ''different'' random generator seeded by a ''different'' seed.
+      */
     def randomGenerator: Random
 
+    /** Restore this scoring engine's original state as defined by the PFA file it was derived from. */
     def revert(): Unit
+
+    /** Restore this scoring engine's original state as defined by the PFA file and `sharedState` object it was derived from.
+      * 
+      * @param sharedState same as the `sharedState` passed to `fromJson`, `fromAst`, `factoryFromJson`, etc.
+      */
     def revert(sharedState: Option[SharedState]): Unit
 
+    /** Get a 0-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn0(name: String): Function0[AnyRef]
+
+    /** Get a 1-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn1(name: String): Function1[AnyRef, AnyRef]
+
+    /** Get a 2-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn2(name: String): Function2[AnyRef, AnyRef, AnyRef]
+
+    /** Get a 3-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn3(name: String): Function3[AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 4-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn4(name: String): Function4[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 5-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn5(name: String): Function5[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 6-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn6(name: String): Function6[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 7-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn7(name: String): Function7[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 8-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn8(name: String): Function8[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 9-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn9(name: String): Function9[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 10-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn10(name: String): Function10[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 11-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn11(name: String): Function11[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 12-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn12(name: String): Function12[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 13-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn13(name: String): Function13[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 14-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn14(name: String): Function14[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 15-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn15(name: String): Function15[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 16-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn16(name: String): Function16[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 17-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn17(name: String): Function17[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 18-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn18(name: String): Function18[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 19-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn19(name: String): Function19[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 20-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn20(name: String): Function20[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 21-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn21(name: String): Function21[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
+
+    /** Get a 22-parameter user-defined function from the scoring engine as something that can be executed by an external agent. If the PFA did not declare a user-defined function with this name or it has a different number of parameters, this will throw a `java.util.NoSuchElementException`. */
     def fcn22(name: String): Function22[AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef, AnyRef]
   }
-  object PFAEngine {
-    def factoryFromAst(engineConfig: EngineConfig, options: java.util.Map[String, JsonNode], sharedState: SharedState, parentClassLoader: ClassLoader, debug: Boolean): (() => PFAEngine[AnyRef, AnyRef]) =
-      factoryFromAst(engineConfig, mapAsScalaMap(options).toMap, if (sharedState == null) None else Some(sharedState), if (parentClassLoader == null) None else Some(parentClassLoader), debug)
 
-    def factoryFromAst(engineConfig: EngineConfig, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): (() => PFAEngine[AnyRef, AnyRef]) = {
+  /** Companion object for Hadrian scoring engines: defines "static" methods. */
+  object PFAEngine {
+    /** Create a factory (0-parameter function) to make instances of this scoring engine from a PFA abstract syntax tree ([[com.opendatagroup.hadrian.ast.EngineConfig EngineConfig]]).
+      * 
+      * This is a Java convenience function, like the other `factoryFromAst` but accepting Java collections and `null` instead of `None` for missing parameters.
+      * 
+      * @param engineConfig a parsed, interpreted PFA document, i.e. produced by [[com.opendatagroup.hadrian.reader.jsonToAst]]
+      * @param options options that override those found in the PFA document as a Java Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
+      * @param version PFA version number as a "major.minor.release" string
+      * @param sharedState external state for shared cells and pools to initialize from and modify; pass `null` to limit sharing to instances of a single PFA file
+      * @param parentClassLoader ClassLoader to link the new scoring engine's private ClassLoaders under; pass `null` for a reasonable default
+      * @param debug if `true`, print the Java code generated by this PFA document before byte-compiling
+      * @return a `scala.Function0` with a 0-parameter `apply` method that generates linked instances of scoring engines from the PFA document
+      * 
+      */
+    def factoryFromAst(engineConfig: EngineConfig, options: java.util.Map[String, JsonNode], version: String, sharedState: SharedState, parentClassLoader: ClassLoader, debug: Boolean): (() => PFAEngine[AnyRef, AnyRef]) =
+      factoryFromAst(engineConfig, mapAsScalaMap(options).toMap, if (version == null) defaultPFAVersion else version, if (sharedState == null) None else Some(sharedState), if (parentClassLoader == null) None else Some(parentClassLoader), debug)
+
+    /** Create a factory (0-parameter function) to make instances of this scoring engine from a PFA abstract syntax tree ([[com.opendatagroup.hadrian.ast.EngineConfig EngineConfig]]).
+      * 
+      * This function is intended for use in Scala; see the other `factoryFromAst` if calling from Java.
+      * 
+      * @param engineConfig a parsed, interpreted PFA document, i.e. produced by [[com.opendatagroup.hadrian.reader.jsonToAst]]
+      * @param options options that override those found in the PFA document as a Scala Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
+      * @param version PFA version number as a "major.minor.release" string
+      * @param sharedState external state for shared cells and pools to initialize from and modify; pass `None` to limit sharing to instances of a single PFA file
+      * @param parentClassLoader ClassLoader to link the new scoring engine's private ClassLoaders under; pass `None` for a reasonable default
+      * @param debug if `true`, print the Java code generated by this PFA document before byte-compiling
+      * @return a `scala.Function0` with a 0-parameter `apply` method that generates linked instances of scoring engines from the PFA document
+      * 
+      */
+    def factoryFromAst(engineConfig: EngineConfig, options: Map[String, JsonNode] = Map[String, JsonNode](), version: String = defaultPFAVersion, sharedState: Option[SharedState] = None, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): (() => PFAEngine[AnyRef, AnyRef]) = {
       val engineOptions = new EngineOptions(engineConfig.options, options)
+      val pfaVersion = PFAVersion.fromString(version)
 
       val (context: EngineConfig.Context, code) =
-        engineConfig.walk(new JVMCompiler, SymbolTable.blank, FunctionTable.blank, engineOptions)
+        engineConfig.walk(new JVMCompiler, SymbolTable.blank, FunctionTable.blank, engineOptions, pfaVersion)
 
       val javaCode = code.asInstanceOf[JavaCode]
       val engineName = javaCode.name.get
@@ -1135,55 +1657,217 @@ package jvmcompiler {
       }
     }
 
-    def factoryFromJson(src: AnyRef, options: java.util.Map[String, JsonNode], sharedState: SharedState, parentClassLoader: ClassLoader, debug: Boolean): (() => PFAEngine[AnyRef, AnyRef]) =
-      factoryFromJson(src, mapAsScalaMap(options).toMap, if (sharedState == null) None else Some(sharedState), if (parentClassLoader == null) None else Some(parentClassLoader), debug)
+    /** Create a factory (0-parameter function) to make instances of this scoring engine from a JSON-formatted PFA file.
+      * 
+      * This is a Java convenience function, like the other `factoryFromJson` but accepting Java collections and `null` instead of `None` for missing parameters.
+      * 
+      * @param src a PFA document in JSON-serialized form (`String`, `java.lang.File`, or `java.lang.InputStream`)
+      * @param options options that override those found in the PFA document as a Java Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
+      * @param version PFA version number as a "major.minor.release" string
+      * @param sharedState external state for shared cells and pools to initialize from and modify; pass `null` to limit sharing to instances of a single PFA file
+      * @param parentClassLoader ClassLoader to link the new scoring engine's private ClassLoaders under; pass `null` for a reasonable default
+      * @param debug if `true`, print the Java code generated by this PFA document before byte-compiling
+      * @return a `scala.Function0` with a 0-parameter `apply` method that generates linked instances of scoring engines from the PFA document
+      * 
+      */
+    def factoryFromJson(src: AnyRef, options: java.util.Map[String, JsonNode], version: String, sharedState: SharedState, parentClassLoader: ClassLoader, debug: Boolean): (() => PFAEngine[AnyRef, AnyRef]) =
+      factoryFromJson(src, mapAsScalaMap(options).toMap, if (version == null) defaultPFAVersion else version, if (sharedState == null) None else Some(sharedState), if (parentClassLoader == null) None else Some(parentClassLoader), debug)
 
-    def factoryFromJson(src: AnyRef, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): (() => PFAEngine[AnyRef, AnyRef]) = src match {
-      case x: String => factoryFromAst(jsonToAst(x), options, sharedState, parentClassLoader, debug)
-      case x: java.io.File => factoryFromAst(jsonToAst(x), options, sharedState, parentClassLoader, debug)
-      case x: java.io.InputStream => factoryFromAst(jsonToAst(x), options, sharedState, parentClassLoader, debug)
+    /** Create a factory (0-parameter function) to make instances of this scoring engine from a JSON-formatted PFA file.
+      * 
+      * This function is intended for use in Scala; see the other `factoryFromJson` if calling from Java.
+      * 
+      * @param src a PFA document in JSON-serialized form (`String`, `java.lang.File`, or `java.lang.InputStream`)
+      * @param options options that override those found in the PFA document as a Scala Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
+      * @param version PFA version number as a "major.minor.release" string
+      * @param sharedState external state for shared cells and pools to initialize from and modify; pass `None` to limit sharing to instances of a single PFA file
+      * @param parentClassLoader ClassLoader to link the new scoring engine's private ClassLoaders under; pass `None` for a reasonable default
+      * @param debug if `true`, print the Java code generated by this PFA document before byte-compiling
+      * @return a `scala.Function0` with a 0-parameter `apply` method that generates linked instances of scoring engines from the PFA document
+      * 
+      */
+    def factoryFromJson(src: AnyRef, options: Map[String, JsonNode] = Map[String, JsonNode](), version: String = defaultPFAVersion, sharedState: Option[SharedState] = None, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): (() => PFAEngine[AnyRef, AnyRef]) = src match {
+      case x: String => factoryFromAst(jsonToAst(x), options, version, sharedState, parentClassLoader, debug)
+      case x: java.io.File => factoryFromAst(jsonToAst(x), options, version, sharedState, parentClassLoader, debug)
+      case x: java.io.InputStream => factoryFromAst(jsonToAst(x), options, version, sharedState, parentClassLoader, debug)
       case x => throw new IllegalArgumentException("cannot read model from objects of type " + src.getClass.getName)
     }
 
-    def factoryFromYaml(src: String, options: java.util.Map[String, JsonNode], sharedState: SharedState, parentClassLoader: ClassLoader, debug: Boolean): (() => PFAEngine[AnyRef, AnyRef]) =
-      factoryFromYaml(src, mapAsScalaMap(options).toMap, if (sharedState == null) None else Some(sharedState), if (parentClassLoader == null) None else Some(parentClassLoader), debug)
+    /** Create a factory (0-parameter function) to make instances of this scoring engine from a YAML-formatted PFA file.
+      * 
+      * This is a Java convenience function, like the other `factoryFromYaml` but accepting Java collections and `null` instead of `None` for missing parameters.
+      * 
+      * @param src a PFA document in YAML-serialized form
+      * @param options options that override those found in the PFA document as a Java Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
+      * @param version PFA version number as a "major.minor.release" string
+      * @param sharedState external state for shared cells and pools to initialize from and modify; pass `null` to limit sharing to instances of a single PFA file
+      * @param parentClassLoader ClassLoader to link the new scoring engine's private ClassLoaders under; pass `null` for a reasonable default
+      * @param debug if `true`, print the Java code generated by this PFA document before byte-compiling
+      * @return a `scala.Function0` with a 0-parameter `apply` method that generates linked instances of scoring engines from the PFA document
+      * 
+      */
+    def factoryFromYaml(src: String, options: java.util.Map[String, JsonNode], version: String, sharedState: SharedState, parentClassLoader: ClassLoader, debug: Boolean): (() => PFAEngine[AnyRef, AnyRef]) =
+      factoryFromYaml(src, mapAsScalaMap(options).toMap, if (version == null) defaultPFAVersion else version, if (sharedState == null) None else Some(sharedState), if (parentClassLoader == null) None else Some(parentClassLoader), debug)
 
-    def factoryFromYaml(src: String, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): (() => PFAEngine[AnyRef, AnyRef]) =
-      factoryFromJson(yamlToJson(src), options, sharedState, parentClassLoader, debug)
+    /** Create a factory (0-parameter function) to make instances of this scoring engine from a YAML-formatted PFA file.
+      * 
+      * This function is intended for use in Scala; see the other `factoryFromYaml` if calling from Java.
+      * 
+      * @param src a PFA document in YAML-serialized form
+      * @param options options that override those found in the PFA document as a Scala Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
+      * @param version PFA version number as a "major.minor.release" string
+      * @param sharedState external state for shared cells and pools to initialize from and modify; pass `None` to limit sharing to instances of a single PFA file
+      * @param parentClassLoader ClassLoader to link the new scoring engine's private ClassLoaders under; pass `None` for a reasonable default
+      * @param debug if `true`, print the Java code generated by this PFA document before byte-compiling
+      * @return a `scala.Function0` with a 0-parameter `apply` method that generates linked instances of scoring engines from the PFA document
+      * 
+      */
+    def factoryFromYaml(src: String, options: Map[String, JsonNode] = Map[String, JsonNode](), version: String = defaultPFAVersion, sharedState: Option[SharedState] = None, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): (() => PFAEngine[AnyRef, AnyRef]) =
+      factoryFromJson(yamlToJson(src), options, version, sharedState, parentClassLoader, debug)
 
-    def fromAst(engineConfig: EngineConfig, options: java.util.Map[String, JsonNode], sharedState: SharedState, multiplicity: Int, parentClassLoader: ClassLoader, debug: Boolean): java.util.List[PFAEngine[AnyRef, AnyRef]] =
-      seqAsJavaList(fromAst(engineConfig, mapAsScalaMap(options).toMap, if (sharedState == null) None else Some(sharedState), multiplicity, if (parentClassLoader == null) None else Some(parentClassLoader), debug))
+    /** Create a collection of instances of this scoring engine from a PFA abstract syntax tree ([[com.opendatagroup.hadrian.ast.EngineConfig EngineConfig]]).
+      * 
+      * This is a Java convenience function, like the other `fromAst` but accepting Java collections and `null` instead of `None` for missing parameters.
+      * 
+      * @param engineConfig a parsed, interpreted PFA document, i.e. produced by [[com.opendatagroup.hadrian.reader.jsonToAst]]
+      * @param options options that override those found in the PFA document as a Java Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
+      * @param version PFA version number as a "major.minor.release" string
+      * @param sharedState external state for shared cells and pools to initialize from and modify; pass `null` to limit sharing to instances of a single PFA file
+      * @param multiplicity number of instances to return
+      * @param parentClassLoader ClassLoader to link the new scoring engine's private ClassLoaders under; pass `null` for a reasonable default
+      * @param debug if `true`, print the Java code generated by this PFA document before byte-compiling
+      * @return a Java List of scoring engine instances
+      * 
+      */
+    def fromAst(engineConfig: EngineConfig, options: java.util.Map[String, JsonNode], version: String, sharedState: SharedState, multiplicity: Int, parentClassLoader: ClassLoader, debug: Boolean): java.util.List[PFAEngine[AnyRef, AnyRef]] =
+      seqAsJavaList(fromAst(engineConfig, mapAsScalaMap(options).toMap, if (version == null) defaultPFAVersion else version, if (sharedState == null) None else Some(sharedState), multiplicity, if (parentClassLoader == null) None else Some(parentClassLoader), debug))
 
-    def fromAst(engineConfig: EngineConfig, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, multiplicity: Int = 1, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): Seq[PFAEngine[AnyRef, AnyRef]] = {
-      val factory = factoryFromAst(engineConfig, options, sharedState, parentClassLoader, debug)
+    /** Create a collection of instances of this scoring engine from a PFA abstract syntax tree ([[com.opendatagroup.hadrian.ast.EngineConfig EngineConfig]]).
+      * 
+      * This function is intended for use in Scala; see the other `fromAst` if calling from Java.
+      * 
+      * @param engineConfig a parsed, interpreted PFA document, i.e. produced by [[com.opendatagroup.hadrian.reader.jsonToAst]]
+      * @param options options that override those found in the PFA document as a Scala Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
+      * @param version PFA version number as a "major.minor.release" string
+      * @param sharedState external state for shared cells and pools to initialize from and modify; pass `None` to limit sharing to instances of a single PFA file
+      * @param multiplicity number of instances to return (default is 1; a single-item collection)
+      * @param parentClassLoader ClassLoader to link the new scoring engine's private ClassLoaders under; pass `None` for a reasonable default
+      * @param debug if `true`, print the Java code generated by this PFA document before byte-compiling
+      * @return a Scala Seq of scoring engine instances
+      * 
+      */
+    def fromAst(engineConfig: EngineConfig, options: Map[String, JsonNode] = Map[String, JsonNode](), version: String = defaultPFAVersion, sharedState: Option[SharedState] = None, multiplicity: Int = 1, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): Seq[PFAEngine[AnyRef, AnyRef]] = {
+      val factory = factoryFromAst(engineConfig, options, version, sharedState, parentClassLoader, debug)
       0 until multiplicity map {x => factory()}
     }
 
-    def fromJson(src: AnyRef, options: java.util.Map[String, JsonNode], sharedState: SharedState, multiplicity: Int, parentClassLoader: ClassLoader, debug: Boolean): java.util.List[PFAEngine[AnyRef, AnyRef]] =
-      seqAsJavaList(fromJson(src, mapAsScalaMap(options).toMap, if (sharedState == null) None else Some(sharedState), multiplicity, if (parentClassLoader == null) None else Some(parentClassLoader), debug))
+    /** Create a collection of instances of this scoring engine from a JSON-formatted PFA file.
+      * 
+      * This is a Java convenience function, like the other `fromAst` but accepting Java collections and `null` instead of `None` for missing parameters.
+      * 
+      * @param src a PFA document in JSON-serialized form (`String`, `java.lang.File`, or `java.lang.InputStream`)
+      * @param options options that override those found in the PFA document as a Java Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
+      * @param version PFA version number as a "major.minor.release" string
+      * @param sharedState external state for shared cells and pools to initialize from and modify; pass `null` to limit sharing to instances of a single PFA file
+      * @param multiplicity number of instances to return
+      * @param parentClassLoader ClassLoader to link the new scoring engine's private ClassLoaders under; pass `null` for a reasonable default
+      * @param debug if `true`, print the Java code generated by this PFA document before byte-compiling
+      * @return a Java List of scoring engine instances
+      * 
+      */
+    def fromJson(src: AnyRef, options: java.util.Map[String, JsonNode], version: String, sharedState: SharedState, multiplicity: Int, parentClassLoader: ClassLoader, debug: Boolean): java.util.List[PFAEngine[AnyRef, AnyRef]] =
+      seqAsJavaList(fromJson(src, mapAsScalaMap(options).toMap, if (version == null) defaultPFAVersion else version, if (sharedState == null) None else Some(sharedState), multiplicity, if (parentClassLoader == null) None else Some(parentClassLoader), debug))
 
-    def fromJson(src: AnyRef, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, multiplicity: Int = 1, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): Seq[PFAEngine[AnyRef, AnyRef]] = src match {
-      case x: String => fromAst(jsonToAst(x), options, sharedState, multiplicity, parentClassLoader, debug)
-      case x: java.io.File => fromAst(jsonToAst(x), options, sharedState, multiplicity, parentClassLoader, debug)
-      case x: java.io.InputStream => fromAst(jsonToAst(x), options, sharedState, multiplicity, parentClassLoader, debug)
+    /** Create a collection of instances of this scoring engine from a JSON-formatted PFA file.
+      * 
+      * This function is intended for use in Scala; see the other `fromJson` if calling from Java.
+      * 
+      * @param src a PFA document in JSON-serialized form (`String`, `java.lang.File`, or `java.lang.InputStream`)
+      * @param options options that override those found in the PFA document as a Scala Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
+      * @param version PFA version number as a "major.minor.release" string
+      * @param sharedState external state for shared cells and pools to initialize from and modify; pass `None` to limit sharing to instances of a single PFA file
+      * @param multiplicity number of instances to return (default is 1; a single-item sequence)
+      * @param parentClassLoader ClassLoader to link the new scoring engine's private ClassLoaders under; pass `None` for a reasonable default
+      * @param debug if `true`, print the Java code generated by this PFA document before byte-compiling
+      * @return a Scala Seq of scoring engine instances
+      * 
+      */
+    def fromJson(src: AnyRef, options: Map[String, JsonNode] = Map[String, JsonNode](), version: String = defaultPFAVersion, sharedState: Option[SharedState] = None, multiplicity: Int = 1, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): Seq[PFAEngine[AnyRef, AnyRef]] = src match {
+      case x: String => fromAst(jsonToAst(x), options, version, sharedState, multiplicity, parentClassLoader, debug)
+      case x: java.io.File => fromAst(jsonToAst(x), options, version, sharedState, multiplicity, parentClassLoader, debug)
+      case x: java.io.InputStream => fromAst(jsonToAst(x), options, version, sharedState, multiplicity, parentClassLoader, debug)
       case x => throw new IllegalArgumentException("cannot read model from objects of type " + src.getClass.getName)
     }
 
-    def fromYaml(src: String, options: java.util.Map[String, JsonNode], sharedState: SharedState, multiplicity: Int, parentClassLoader: ClassLoader, debug: Boolean): java.util.List[PFAEngine[AnyRef, AnyRef]] =
-      seqAsJavaList(fromYaml(src, mapAsScalaMap(options).toMap, if (sharedState == null) None else Some(sharedState), multiplicity, if (parentClassLoader == null) None else Some(parentClassLoader), debug))
+    /** Create a collection of instances of this scoring engine from a YAML-formatted PFA file.
+      * 
+      * This is a Java convenience function, like the other `fromYaml` but accepting Java collections and `null` instead of `None` for missing parameters.
+      * 
+      * @param src a PFA document in YAML-serialized form
+      * @param options options that override those found in the PFA document as a Java Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
+      * @param version PFA version number as a "major.minor.release" string
+      * @param sharedState external state for shared cells and pools to initialize from and modify; pass `null` to limit sharing to instances of a single PFA file
+      * @param multiplicity number of instances to return
+      * @param parentClassLoader ClassLoader to link the new scoring engine's private ClassLoaders under; pass `null` for a reasonable default
+      * @param debug if `true`, print the Java code generated by this PFA document before byte-compiling
+      * @return a Java List of scoring engine instances
+      * 
+      */
+    def fromYaml(src: String, options: java.util.Map[String, JsonNode], version: String, sharedState: SharedState, multiplicity: Int, parentClassLoader: ClassLoader, debug: Boolean): java.util.List[PFAEngine[AnyRef, AnyRef]] =
+      seqAsJavaList(fromYaml(src, mapAsScalaMap(options).toMap, if (version == null) defaultPFAVersion else version, if (sharedState == null) None else Some(sharedState), multiplicity, if (parentClassLoader == null) None else Some(parentClassLoader), debug))
 
-    def fromYaml(src: String, options: Map[String, JsonNode] = Map[String, JsonNode](), sharedState: Option[SharedState] = None, multiplicity: Int = 1, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): Seq[PFAEngine[AnyRef, AnyRef]] =
-      fromJson(yamlToJson(src), options, sharedState, multiplicity, parentClassLoader, debug)
+    /** Create a collection of instances of this scoring engine from a YAML-formatted PFA file.
+      * 
+      * This function is intended for use in Scala; see the other `fromYaml` if calling from Java.
+      * 
+      * @param src a PFA document in YAML-serialized form
+      * @param options options that override those found in the PFA document as a Scala Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
+      * @param version PFA version number as a "major.minor.release" string
+      * @param sharedState external state for shared cells and pools to initialize from and modify; pass `None` to limit sharing to instances of a single PFA file
+      * @param multiplicity number of instances to return (default is 1; a single-item collection)
+      * @param parentClassLoader ClassLoader to link the new scoring engine's private ClassLoaders under; pass `None` for a reasonable default
+      * @param debug if `true`, print the Java code generated by this PFA document before byte-compiling
+      * @return a Scala Seq of scoring engine instances
+      * 
+      */
+    def fromYaml(src: String, options: Map[String, JsonNode] = Map[String, JsonNode](), version: String = defaultPFAVersion, sharedState: Option[SharedState] = None, multiplicity: Int = 1, parentClassLoader: Option[ClassLoader] = None, debug: Boolean = false): Seq[PFAEngine[AnyRef, AnyRef]] =
+      fromJson(yamlToJson(src), options, version, sharedState, multiplicity, parentClassLoader, debug)
   }
 
+  /** Interface for a `method` = map Hadrian scoring engine (one that returns one output for each input).
+    * 
+    * See [[com.opendatagroup.hadrian.jvmcompiler.PFAEngine PFAEngine]] for details.
+    */
   trait PFAMapEngine[INPUT <: AnyRef, OUTPUT <: AnyRef] extends PFAEngine[INPUT, OUTPUT]
 
+  /** Interface for a `method` = emit Hadrian scoring engine (one that returns zero or more outputs for each input).
+    * 
+    * This kind of engine differs from a [[com.opendatagroup.hadrian.jvmcompiler.PFAEngine PFAEngine]] in that it has an externally supplied `emit` callback to collect results, and `action` always returns `null`.
+    * 
+    * See [[com.opendatagroup.hadrian.jvmcompiler.PFAEngine PFAEngine]] for details.
+    */
   trait PFAEmitEngine[INPUT <: AnyRef, OUTPUT <: AnyRef] extends PFAEngine[INPUT, OUTPUT] {
+    /** Externally supplied function for handling output from PFA.
+      * 
+      * By default, ignores all results.
+      * 
+      * '''Arguments:'''
+      * 
+      *  - output from the scoring engine, may be called zero or more times by the scoring engine's `begin`, `action`, or `end`.
+      */
     var emit: Function1[OUTPUT, Unit]
   }
 
+  /** Interface for a `method` = fold Hadrian scoring engine (one that accumulates a tally).
+    * 
+    * This kind of engine differs from a [[com.opendatagroup.hadrian.jvmcompiler.PFAEngine PFAEngine]] in that it has an externally modifiable `tally` field with the running sum or current accumulation of the scoring engine and a `merge` method to combine tallies from scoring engines running in parallel.
+    * 
+    * See [[com.opendatagroup.hadrian.jvmcompiler.PFAEngine PFAEngine]] for details.
+    */
   trait PFAFoldEngine[INPUT <: AnyRef, OUTPUT <: AnyRef] extends PFAEngine[INPUT, OUTPUT] {
+    /** Externally modifiable running sum or current accumulation. */
     var tally: OUTPUT
+    /** Combines tallies from two scoring engines that collected data in parallel. */
     def merge(tallyOne: OUTPUT, tallyTwo: OUTPUT): OUTPUT
   }
 
@@ -1369,10 +2053,16 @@ return out;
                 """case %d: return %s;""".format(i, s(fname))} mkString("\n"),
               (fields zipWithIndex) map {case (AvroField(fname, ftype, _, _, _, _), i) =>
                 """case %d: %s = (%s)value$; break;""".format(i, s(fname), javaType(ftype, true, true, true))} mkString("\n"),
-              fields map {case AvroField(fname, ftype, _, _, _, _) =>
-                """if (field$.equals("%s")) return %s;""".format(StringEscapeUtils.escapeJava(fname), s(fname))} mkString("\nelse "),
-              fields map {case AvroField(fname, ftype, _, _, _, _) =>
-                """if (field$.equals("%s")) %s = (%s)value$;""".format(StringEscapeUtils.escapeJava(fname), s(fname), javaType(ftype, true, true, true))} mkString("\nelse "),
+              if (fields.isEmpty)
+                """if (false) { throw new IllegalArgumentException(""); }"""
+              else
+                fields map {case AvroField(fname, ftype, _, _, _, _) =>
+                  """if (field$.equals("%s")) return %s;""".format(StringEscapeUtils.escapeJava(fname), s(fname))} mkString("\nelse "),
+              if (fields.isEmpty)
+                "if (false) { }"
+              else
+                fields map {case AvroField(fname, ftype, _, _, _, _) =>
+                  """if (field$.equals("%s")) %s = (%s)value$;""".format(StringEscapeUtils.escapeJava(fname), s(fname), javaType(ftype, true, true, true))} mkString("\nelse "),
               t(namespace, name, false),
               t(namespace, name, false),
               fields map {case AvroField(fname, _, _, _, _, _) => """out.%s = this.%s;""".format(s(fname), s(fname))} mkString("\n"),
@@ -2054,17 +2744,28 @@ public %s apply() {
         wrap(nameTypeExpr.toList.collect({case (n, t, j: JavaCode) => (n, t, j)}))
       }
 
-      case AttrGet.Context(retType, _, expr, exprType, path) => {
+      case AttrGet.Context(retType, _, expr, exprType, path, pos) => {
         var out = "((%s)(%s))".format(javaType(exprType, false, true, false), W.wrapExpr(expr.toString, exprType, false))
         for (item <- path) item match {
           case ArrayIndex(expr, t) => out = """((%s)(%s.get(com.opendatagroup.hadrian.jvmcompiler.W.asInt(%s))))""".format(javaType(t, true, true, false), out, expr.toString)
           case MapIndex(expr, t) => out = """((%s)(%s.get(%s)))""".format(javaType(t, true, true, false), out, expr.toString)
           case RecordIndex(name, t) => out = """((%s)(%s.%s))""".format(javaType(t, false, true, false), out, s(name))
         }
-        JavaCode(out)
+        JavaCode("""(new Object() {
+public %s apply() {
+try {
+    return %s;
+}
+catch (java.lang.IndexOutOfBoundsException err) {
+    throw new com.opendatagroup.hadrian.errors.PFARuntimeException("array index not found", 2000, "attr", %s, err);
+}
+catch (java.util.NoSuchElementException err) {
+    throw new com.opendatagroup.hadrian.errors.PFARuntimeException("map key not found", 2001, "attr", %s, err);
+}
+} }).apply()""".format(javaType(retType, false, true, false), out, posToJava(pos), posToJava(pos)))
       }
 
-      case AttrTo.Context(retType, _, expr, exprType, setType, path, to, toType) => {
+      case AttrTo.Context(retType, _, expr, exprType, setType, path, to, toType, pos) => {
         val toFcn =
           if (toType.isInstanceOf[AvroType])
             """(new scala.runtime.AbstractFunction1<%s, %s>() { public %s apply(%s dummy) { return %s; } public Object apply(Object dummy) { return apply((%s)(%s)); } })""".format(
@@ -2078,15 +2779,29 @@ public %s apply() {
           else
             to.toString
 
-        JavaCode("(%s)%s.updated(new com.opendatagroup.hadrian.shared.PathIndex[]{%s}, %s, %s)",
+        JavaCode("""(new Object() {
+public %s apply() {
+try {
+    return (%s)%s.updated(new com.opendatagroup.hadrian.shared.PathIndex[]{%s}, %s, %s);
+}
+catch (java.lang.IndexOutOfBoundsException err) {
+    throw new com.opendatagroup.hadrian.errors.PFARuntimeException("array index not found", 2002, "attr-to", %s, err);
+}
+catch (java.util.NoSuchElementException err) {
+    throw new com.opendatagroup.hadrian.errors.PFARuntimeException("map key not found", 2003, "attr-to", %s, err);
+}
+} }).apply()""",
+          javaType(exprType, false, true, false),                 
           javaType(exprType, false, true, false),
           W.wrapExpr(expr.toString, exprType, false),
           makePathIndex(path),
           toFcn,
-          javaSchema(setType, false))
+          javaSchema(setType, false),
+          posToJava(pos),
+          posToJava(pos))
       }
 
-      case CellGet.Context(retType, _, cell, cellType, path, shared) => {
+      case CellGet.Context(retType, _, cell, cellType, path, shared, pos) => {
         if (!shared) {
           var out = "((%s)(%s))".format(javaType(cellType, !path.isEmpty, true, false), c(cell))
           for (item <- path) item match {
@@ -2094,17 +2809,29 @@ public %s apply() {
             case MapIndex(expr, t) => out = """((%s)(%s.get(%s)))""".format(javaType(t, true, true, false), out, expr.toString)
             case RecordIndex(name, t) => out = """((%s)(%s.%s))""".format(javaType(t, false, true, false), out, s(name))
           }
-          JavaCode(out)
+          JavaCode("""(new Object() {
+public %s apply() {
+try {
+    return %s;
+}
+catch (java.lang.IndexOutOfBoundsException err) {
+    throw new com.opendatagroup.hadrian.errors.PFARuntimeException("array index not found", 2004, "cell", %s, err);
+}
+catch (java.util.NoSuchElementException err) {
+    throw new com.opendatagroup.hadrian.errors.PFARuntimeException("map key not found", 2005, "cell", %s, err);
+}
+} }).apply()""".format(javaType(retType, false, true, false), out, posToJava(pos), posToJava(pos)))
         }
         else {
-          JavaCode("""((%s)com.opendatagroup.hadrian.jvmcompiler.W.either(sharedCells.get("%s", new com.opendatagroup.hadrian.shared.PathIndex[]{%s})))""",
+          JavaCode("""((%s)com.opendatagroup.hadrian.jvmcompiler.W.either(sharedCells.get("%s", new com.opendatagroup.hadrian.shared.PathIndex[]{%s}), "array index not found", 2004, "map key not found", 2005, "cell", %s))""",
             javaType(retType, true, true, false),
             cell,
-            makePathIndex(path))
+            makePathIndex(path),
+            posToJava(pos))
         }
       }
 
-      case CellTo.Context(retType, _, cell, cellType, setType, path, to, toType, shared) => {
+      case CellTo.Context(retType, _, cell, cellType, setType, path, to, toType, shared, pos) => {
         val toFcn =
           if (toType.isInstanceOf[AvroType])
             """(new scala.runtime.AbstractFunction1<%s, %s>() { public %s apply(%s dummy) { return %s; } public Object apply(Object dummy) { return apply((%s)(%s)); } })""".format(
@@ -2122,49 +2849,63 @@ public %s apply() {
           if (path.isEmpty)
             JavaCode("(%s = (%s)%s.apply(%s))".format(c(cell), javaType(cellType, false, true, false), toFcn, c(cell)))
           else
-            JavaCode("(%s = (%s)%s.updated(new com.opendatagroup.hadrian.shared.PathIndex[]{%s}, %s, %s))",
+            JavaCode("""(%s = (%s)%s.updated(new com.opendatagroup.hadrian.shared.PathIndex[]{%s}, %s, %s, "array index not found", 2006, "map key not found", 2007, "cell-to", %s))""",
               c(cell),
               javaType(cellType, false, true, false),
               c(cell),
               makePathIndex(path),
               toFcn,
-              javaSchema(setType, false))
+              javaSchema(setType, false),
+              posToJava(pos))
         }
         else {
-          JavaCode("""((%s)com.opendatagroup.hadrian.jvmcompiler.W.either(sharedCells.update("%s", new com.opendatagroup.hadrian.shared.PathIndex[]{%s}, null, %s, %s)))""",
+          JavaCode("""((%s)com.opendatagroup.hadrian.jvmcompiler.W.either(sharedCells.update("%s", new com.opendatagroup.hadrian.shared.PathIndex[]{%s}, null, %s, %s), "array index not found", 2006, "map key not found", 2007, "cell-to", %s))""",
             javaType(retType, true, true, false),
             cell,
             makePathIndex(path),
             toFcn,
-            javaSchema(setType, false)
-          )
+            javaSchema(setType, false),
+            posToJava(pos))
         }
       }
 
-      case PoolGet.Context(retType, _, pool, path, shared) => {
+      case PoolGet.Context(retType, _, pool, path, shared, pos) => {
         if (!shared) {
-          var out = """((%s)(com.opendatagroup.hadrian.jvmcompiler.W.getOrFailPool(%s, %s, "%s")))""".format(
+          var out = """((%s)(com.opendatagroup.hadrian.jvmcompiler.W.getOrFailPool(%s, %s, "%s", "map key not found", 2009, "pool", %s)))""".format(
             javaType(path.head.asInstanceOf[MapIndex].t, true, true, false),
             p(pool),
             path.head.asInstanceOf[MapIndex].k.toString,
-            StringEscapeUtils.escapeJava(pool))
+            StringEscapeUtils.escapeJava(pool),
+            posToJava(pos))
           for (item <- path.tail) item match {
             case ArrayIndex(expr, t) => out = """((%s)(%s.get(com.opendatagroup.hadrian.jvmcompiler.W.asInt(%s))))""".format(javaType(t, true, true, false), out, expr.toString)
             case MapIndex(expr, t) => out = """((%s)(%s.get(%s)))""".format(javaType(t, true, true, false), out, expr.toString)
             case RecordIndex(name, t) => out = """((%s)(%s.%s))""".format(javaType(t, false, true, false), out, s(name))
           }
-          JavaCode(out)
+          JavaCode("""(new Object() {
+public %s apply() {
+try {
+    return %s;
+}
+catch (java.lang.IndexOutOfBoundsException err) {
+    throw new com.opendatagroup.hadrian.errors.PFARuntimeException("array index not found", 2008, "pool", %s, err);
+}
+catch (java.util.NoSuchElementException err) {
+    throw new com.opendatagroup.hadrian.errors.PFARuntimeException("map key not found", 2009, "pool", %s, err);
+}
+} }).apply()""".format(javaType(retType, false, true, false), out, posToJava(pos), posToJava(pos)))
         }
         else {
-          JavaCode("""((%s)com.opendatagroup.hadrian.jvmcompiler.W.either(%s.get(%s, new com.opendatagroup.hadrian.shared.PathIndex[]{%s})))""",
+          JavaCode("""((%s)com.opendatagroup.hadrian.jvmcompiler.W.either(%s.get(%s, new com.opendatagroup.hadrian.shared.PathIndex[]{%s}), "array index not found", 2008, "map key not found", 2009, "pool", %s))""",
             javaType(retType, true, true, false),
             p(pool),
             path.head.asInstanceOf[MapIndex].k.toString,
-            makePathIndex(path.tail))
+            makePathIndex(path.tail),
+            posToJava(pos))
         }
       }
 
-      case PoolTo.Context(retType, _, pool, poolType, setType, path, to, toType, init, shared) => {
+      case PoolTo.Context(retType, _, pool, poolType, setType, path, to, toType, init, shared, pos) => {
         val toFcn =
           if (toType.isInstanceOf[AvroType])
             """(new scala.runtime.AbstractFunction1<%s, %s>() { public %s apply(%s dummy) { return %s; } public Object apply(Object dummy) { return apply((%s)(%s)); } })""".format(
@@ -2190,7 +2931,7 @@ public %s apply() {
               p(pool),
               path.head.asInstanceOf[MapIndex].k.toString)
           else
-            JavaCode("""com.opendatagroup.hadrian.jvmcompiler.W.do2(%s.put(%s, ((%s)(com.opendatagroup.hadrian.jvmcompiler.W.getOrElse(%s, %s, %s))).updated(new com.opendatagroup.hadrian.shared.PathIndex[]{%s}, %s, %s)), %s.get(%s))""",
+            JavaCode("""com.opendatagroup.hadrian.jvmcompiler.W.do2(%s.put(%s, ((%s)(com.opendatagroup.hadrian.jvmcompiler.W.getOrElse(%s, %s, %s))).updated(new com.opendatagroup.hadrian.shared.PathIndex[]{%s}, %s, %s, "array index not found", 2010, "map key not found", 2011, "pool-to", %s)), %s.get(%s))""",
               p(pool),
               path.head.asInstanceOf[MapIndex].k.toString,
               javaType(path.head.asInstanceOf[MapIndex].t, true, true, false),
@@ -2200,19 +2941,24 @@ public %s apply() {
               makePathIndex(path.tail),
               toFcn,
               javaSchema(setType, false),
+              posToJava(pos),
               p(pool),
               path.head.asInstanceOf[MapIndex].k.toString)
         }
         else
-          JavaCode("""((%s)com.opendatagroup.hadrian.jvmcompiler.W.either(%s.update(%s, new com.opendatagroup.hadrian.shared.PathIndex[]{%s}, %s, %s, %s)))""",
+          JavaCode("""((%s)com.opendatagroup.hadrian.jvmcompiler.W.either(%s.update(%s, new com.opendatagroup.hadrian.shared.PathIndex[]{%s}, %s, %s, %s), "array index not found", 2010, "map key not found", 2011, "pool-to", %s))""",
             javaType(retType, true, true, false),
             p(pool),
             path.head.asInstanceOf[MapIndex].k.toString,
             makePathIndex(path.tail),
             init.toString,
             toFcn,
-            javaSchema(setType, false))
+            javaSchema(setType, false),
+            posToJava(pos))
       }
+
+      case PoolDel.Context(retType, _, pool, del, shared) =>
+        JavaCode("""com.opendatagroup.hadrian.jvmcompiler.W.n(%s.remove(%s))""", p(pool), del.toString)
 
       case If.Context(retType, _, thenSymbols, predicate, thenClause, elseSymbols, elseClause) => (elseSymbols, elseClause) match {
         case (Some(symbols), Some(clause)) =>
@@ -2523,7 +3269,7 @@ return null;
         }
       }
 
-      case Pack.Context(retType, calls, exprsDeclareRes) => {
+      case Pack.Context(retType, calls, exprsDeclareRes, pos) => {
         var counter = 0
         val evaluateAndCountBytes = exprsDeclareRes flatMap {_ match {
           case BinaryFormatter.DeclarePad(value: JavaCode) =>
@@ -2578,7 +3324,7 @@ return null;
             counter += 1
             List("byte[] tmp" + counter.toString + " = " + value.toString + ";",
                  "numBytes += tmp" + counter.toString + ".length;",
-                 "if (tmp" + counter.toString + ".length != " + size.toString + ") throw new com.opendatagroup.hadrian.errors.PFARuntimeException(\"raw bytes expression does not have size " + size.toString + "\", null);")
+                 "if (tmp" + counter.toString + ".length != " + size.toString + ") throw new com.opendatagroup.hadrian.errors.PFARuntimeException(\"raw bytes does not have specified size\", 3000, \"pack\", " + posToJava(pos) + ", null);")
           case BinaryFormatter.DeclareToNull(value: JavaCode) =>
             counter += 1
             List("byte[] tmp" + counter.toString + " = " + value.toString + ";",
@@ -2587,7 +3333,7 @@ return null;
             counter += 1
             List("byte[] tmp" + counter.toString + " = " + value.toString + ";",
                  "numBytes += tmp" + counter.toString + ".length + 1;",
-                 "if (tmp" + counter.toString + ".length > 255) throw new com.opendatagroup.hadrian.errors.PFARuntimeException(\"length prefixed bytes expression is larger than 255 bytes\", null);")
+                 "if (tmp" + counter.toString + ".length > 255) throw new com.opendatagroup.hadrian.errors.PFARuntimeException(\"length prefixed bytes is larger than 255 bytes\", 3001, \"pack\", " + posToJava(pos) + ", null);")
         }} mkString("\n")
 
         counter = 0
@@ -2640,7 +3386,7 @@ return bytes.array();
 } }).apply()""".format(evaluateAndCountBytes, fillBuffer))
       }
 
-      case Unpack.Context(retType, calls, bytes, formatter, thenSymbols, thenClause, elseSymbols, elseClause) => {
+      case Unpack.Context(retType, calls, bytes, formatter, thenSymbols, thenClause, elseSymbols, elseClause, pos) => {
         val formatSymbols = formatter map {f => "%s %s;".format(javaType(f.avroType, false, true, true), s(f.value))} mkString("\n")
         val tryToUnpack = formatter flatMap {_ match {
           case BinaryFormatter.DeclarePad(value: String) =>
@@ -2762,12 +3508,12 @@ return null;
         JavaCode("null")
       }
 
-      case Error.Context(_, _, message, code) =>
+      case Error.Context(_, _, message, code, pos) =>
         JavaCode("""(new Object() {
 boolean dummy = true;
 public Object apply() {
     if (dummy)
-        throw new com.opendatagroup.hadrian.errors.PFAUserException("%s", %s);
+        throw new com.opendatagroup.hadrian.errors.PFAUserException("%s", %s, %s);
     return null;
 }
 }).apply()""",
@@ -2775,7 +3521,8 @@ public Object apply() {
           (if (code == None)
             "scala.None$.MODULE$"
           else
-            "scala.Option.apply(%s)".format(code.get)))
+            "scala.Option.apply(%s)".format(code.get)),
+          posToJava(pos))
 
       case Try.Context(retType, _, symbols, exprs, exprType, filter) =>
         JavaCode("""com.opendatagroup.hadrian.jvmcompiler.W.trycatch(new scala.runtime.AbstractFunction0<%s>() {
@@ -2786,10 +3533,10 @@ public %s apply() {
           javaType(exprType, true, true, false),
           symbolFields(symbols),
           javaType(exprType, true, true, false),
-          block(exprs, ReturnMethod.RETURN, null),
+          block(exprs, ReturnMethod.RETURN, exprType),
           if (filter == None) "false" else "true",
           filter match {
-            case Some(x) => x map {y => "\"" + StringEscapeUtils.escapeJava(y) + "\""} mkString(", ")
+            case Some(x) => x map {case Left(y: String) => "\"" + StringEscapeUtils.escapeJava(y) + "\""; case Right(y: Int) => "\"" + y.toString + "\""} mkString(", ")
             case None => ""
           })
 

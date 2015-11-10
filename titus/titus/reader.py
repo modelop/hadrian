@@ -22,6 +22,7 @@ import json
 import base64
 import urllib
 import io
+import re
 
 from avro.datafile import DataFileReader
 from avro.io import DatumReader
@@ -70,6 +71,7 @@ from titus.pfaast import CellGet
 from titus.pfaast import CellTo
 from titus.pfaast import PoolGet
 from titus.pfaast import PoolTo
+from titus.pfaast import PoolDel
 from titus.pfaast import If
 from titus.pfaast import Cond
 from titus.pfaast import While
@@ -92,6 +94,14 @@ from titus.errors import PFASyntaxException
 from titus.datatype import AvroTypeBuilder
 
 def jsonToAst(jsonInput):
+    """Reads PFA from serialized JSON into an abstract syntax tree.
+
+    :type jsonInput: open JSON file, JSON string, or Pythonized JSON
+    :param jsonInput: input JSON
+    :rtype: titus.pfaast.EngineConfig
+    :return: a PFA configuration that has passed syntax but not semantics checks
+    """
+
     if isinstance(jsonInput, file):
         jsonInput = jsonInput.read()
     if isinstance(jsonInput, basestring):
@@ -104,6 +114,13 @@ def jsonToAst(jsonInput):
     return result
 
 def yamlToAst(yamlInput):
+    """Reads PFA from serialized YAML into an abstract syntax tree.
+
+    :type yamlInput: open YAML file or YAML string
+    :param yamlInput: input YAML
+    :rtype: titus.pfaast.EngineConfig
+    :return: a PFA configuration that has passed syntax but not semantics checks
+    """
     import yaml
 
     def read(parser):
@@ -178,6 +195,13 @@ def yamlToAst(yamlInput):
     return jsonToAst(obj)
 
 def jsonToExpressionAst(jsonInput, where=""):
+    """Parse a PFA expression as a PFA abstract syntax tree.
+
+    :type x: open JSON file, JSON string, or Pythonized JSON
+    :param x: PFA expressions in a JSON array
+    :rtype: titus.pfaast.Expression
+    :return: parsed expression as a single abstract syntax tree
+    """
     if isinstance(jsonInput, file):
         jsonInput = jsonInput.read()
     if isinstance(jsonInput, basestring):
@@ -192,6 +216,13 @@ def jsonToExpressionAst(jsonInput, where=""):
 jsonToAst.expr = jsonToExpressionAst
 
 def jsonToExpressionsAst(jsonInput, where=""):
+    """Parse a JSON array of PFA expressions as a PFA abstract syntax trees.
+
+    :type x: open JSON file, JSON string, or Pythonized JSON
+    :param x: PFA expressions in a JSON array
+    :rtype: list of titus.pfaast.Expression
+    :return: parsed expressions as a list of abstract syntax trees
+    """
     if isinstance(jsonInput, file):
         jsonInput = jsonInput.read()
     if isinstance(jsonInput, basestring):
@@ -206,6 +237,13 @@ def jsonToExpressionsAst(jsonInput, where=""):
 jsonToAst.exprs = jsonToExpressionsAst
 
 def jsonToFcnDef(jsonInput, where=""):
+    """Parse a PFA function definition as a PFA abstract syntax tree.
+
+    :type x: open JSON file, JSON string, or Pythonized JSON
+    :param x: PFA function definition
+    :rtype: titus.pfaast.FcnDef
+    :return: parsed function as a single abstract syntax tree
+    """
     if isinstance(jsonInput, file):
         jsonInput = jsonInput.read()
     if isinstance(jsonInput, basestring):
@@ -220,6 +258,13 @@ def jsonToFcnDef(jsonInput, where=""):
 jsonToAst.fcn = jsonToFcnDef
 
 def jsonToFcnDefs(jsonInput, where=""):
+    """Parse a JSON object of PFA function declarations as a PFA abstract syntax tree.
+
+    :type x: open JSON file, JSON string, or Pythonized JSON
+    :param x: PFA functions in a JSON object
+    :rtype: dict of titus.pfaast.FcnDef
+    :return: parsed functions as abstract syntax trees
+    """
     if isinstance(jsonInput, file):
         jsonInput = jsonInput.read()
     if isinstance(jsonInput, basestring):
@@ -342,7 +387,7 @@ def _readJsonNodeMap(data, dot):
 def _readJsonToStringMap(data, dot):
     if isinstance(data, dict):
         at = data.get("@")
-        return dict((k, _readJsonToString(v, dot + "." + k)) for k, v in data.items() if k != "@")
+        return dict((k, _readJsonToString(v, dot + " -> " + k)) for k, v in data.items() if k != "@")
     else:
         raise PFASyntaxException("expected map of JSON objects, not " + _trunc(repr(data)), dot)
 
@@ -386,7 +431,7 @@ def _readStringExpressionPairs(data, dot, avroTypeBuilder):
     if isinstance(data, (list, tuple)):
         out = []
         for i, item in enumerate(data):
-            pair = _readExpressionMap(item, dot + "." + str(i), avroTypeBuilder)
+            pair = _readExpressionMap(item, dot + " -> " + str(i), avroTypeBuilder)
             try:
                 del pair["@"]
             except KeyError:
@@ -403,7 +448,7 @@ def _readStringPairs(data, dot):
         out = []
         for i, item in enumerate(data):
             try:
-                pair = _readStringMap(item, dot + "." + str(i))
+                pair = _readStringMap(item, dot + " -> " + str(i))
             except PFASyntaxException as err:
                 raise PFASyntaxException("expected array of {string: string} pairs, found non-string map", err.pos)
             try:
@@ -419,14 +464,20 @@ def _readStringPairs(data, dot):
 
 def _readStringArray(data, dot):
     if isinstance(data, (list, tuple)):
-        return [_readString(x, dot + "." + str(i)) for i, x in enumerate(data)]
+        return [_readString(x, dot + " -> " + str(i)) for i, x in enumerate(data)]
     else:
         raise PFASyntaxException("expected array of strings, not " + _trunc(repr(data)), dot)
+
+def _readStringOrIntArray(data, dot):
+    if isinstance(data, (list, tuple)):
+        return [_readStringOrInt(x, dot + " -> " + str(i)) for i, x in enumerate(data)]
+    else:
+        raise PFASyntaxException("expected array of strings or integers, not " + _trunc(repr(data)), dot)
 
 def _readStringMap(data, dot):
     if isinstance(data, dict):
         at = data.get("@")
-        return dict((k, _readString(v, dot + "." + k)) for k, v in data.items() if k != "@")
+        return dict((k, _readString(v, dot + " -> " + k)) for k, v in data.items() if k != "@")
     else:
         raise PFASyntaxException("expected map of strings, not " + _trunc(repr(data)), dot)
 
@@ -436,6 +487,12 @@ def _readString(data, dot):
     else:
         raise PFASyntaxException("expected string, not " + _trunc(repr(data)), dot)
 
+def _readStringOrInt(data, dot):
+    if isinstance(data, (basestring, int, long)):
+        return data
+    else:
+        raise PFASyntaxException("expected string or int, not " + _trunc(repr(data)), dot)
+
 def _readBase64(data, dot):
     if isinstance(data, basestring):
         return base64.b64decode(data)
@@ -444,20 +501,20 @@ def _readBase64(data, dot):
 
 def _readExpressionArray(data, dot, avroTypeBuilder):
     if isinstance(data, (list, tuple)):
-        return [_readExpression(x, dot + "." + str(i), avroTypeBuilder) for i, x in enumerate(data)]
+        return [_readExpression(x, dot + " -> " + str(i), avroTypeBuilder) for i, x in enumerate(data)]
     else:
         raise PFASyntaxException("expected array of expressions, not " + _trunc(repr(data)), dot)
 
 def _readExpressionMap(data, dot, avroTypeBuilder):
     if isinstance(data, dict):
         at = data.get("@")
-        return dict((k, _readExpression(v, dot + "." + k, avroTypeBuilder)) for k, v in data.items() if k != "@")
+        return dict((k, _readExpression(v, dot + " -> " + k, avroTypeBuilder)) for k, v in data.items() if k != "@")
     else:
-        raise PFASyntaxException("expected map of expressions, not " + _trunc(repr(data)), pos(dot, at))
+        raise PFASyntaxException("expected map of expressions, not " + _trunc(repr(data)), dot)
 
 def _readCastCaseArray(data, dot, avroTypeBuilder):
     if isinstance(data, (list, tuple)):
-        return [_readCastCase(x, dot + "." + str(i), avroTypeBuilder) for i, x in enumerate(data)]
+        return [_readCastCase(x, dot + " -> " + str(i), avroTypeBuilder) for i, x in enumerate(data)]
     else:
         raise PFASyntaxException("expected array of cast-cases, not " + _trunc(repr(data)), dot)
 
@@ -467,13 +524,13 @@ def _readCastCase(data, dot, avroTypeBuilder):
         keys = set(x for x in data.keys() if x != "@")
 
         for key in keys:
-            if key == "as": _as = _readAvroPlaceholder(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "named": _named = _readString(data[key], dot + "." + key)
+            if key == "as": _as = _readAvroPlaceholder(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "named": _named = _readString(data[key], dot + " -> " + key)
             elif key == "do":
                 if isinstance(data[key], (list, tuple)):
-                    _body = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+                    _body = _readExpressionArray(data[key], dot + " -> " + key, avroTypeBuilder)
                 else:
-                    _body = [_readExpression(data[key], dot + "." + key, avroTypeBuilder)]
+                    _body = [_readExpression(data[key], dot + " -> " + key, avroTypeBuilder)]
             else:
                 raise PFASyntaxException("unexpected field in cast-case: {0}".format(key), pos(dot, at))
 
@@ -495,14 +552,14 @@ def _readExpression(data, dot, avroTypeBuilder):
 
 def _readArgumentArray(data, dot, avroTypeBuilder):
     if isinstance(data, (list, tuple)):
-        return [_readArgument(x, dot + "." + str(i), avroTypeBuilder) for i, x in enumerate(data)]
+        return [_readArgument(x, dot + " -> " + str(i), avroTypeBuilder) for i, x in enumerate(data)]
     else:
         raise PFASyntaxException("expected array of arguments, not " + _trunc(repr(data)), dot)
 
 def _readArgumentMap(data, dot, avroTypeBuilder):
     if isinstance(data, dict):
         at = data.get("@")
-        return dict((k, _readArgument(v, dot + "." + k, avroTypeBuilder)) for k, v in data.items() if k != "@")
+        return dict((k, _readArgument(v, dot + " -> " + k, avroTypeBuilder)) for k, v in data.items() if k != "@")
     else:
         raise PFASyntaxException("expected map of arguments, found " + _trunc(repr(data)), dot)
 
@@ -551,7 +608,7 @@ def _readArgument(data, dot, avroTypeBuilder):
         keys = set(x for x in data.keys() if x != "@")
 
         _path = []
-        _seq = False
+        _seq = True
         _partial = False
         _code = 0
         _newObject = None
@@ -559,112 +616,113 @@ def _readArgument(data, dot, avroTypeBuilder):
         _filter = None
 
         for key in keys:
-            if key == "int": _int = _readInt(data[key], dot + "." + key)
-            elif key == "long": _long = _readLong(data[key], dot + "." + key)
-            elif key == "float": _float = _readFloat(data[key], dot + "." + key)
-            elif key == "double": _double = _readDouble(data[key], dot + "." + key)
-            elif key == "string": _string = _readString(data[key], dot + "." + key)
-            elif key == "base64": _bytes = _readBase64(data[key], dot + "." + key)
-            elif key == "type": _avroType = _readAvroPlaceholder(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "value": _value = _readJsonToString(data[key], dot + "." + key)
+            if key == "int": _int = _readInt(data[key], dot + " -> " + key)
+            elif key == "long": _long = _readLong(data[key], dot + " -> " + key)
+            elif key == "float": _float = _readFloat(data[key], dot + " -> " + key)
+            elif key == "double": _double = _readDouble(data[key], dot + " -> " + key)
+            elif key == "string": _string = _readString(data[key], dot + " -> " + key)
+            elif key == "base64": _bytes = _readBase64(data[key], dot + " -> " + key)
+            elif key == "type": _avroType = _readAvroPlaceholder(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "value": _value = _readJsonToString(data[key], dot + " -> " + key)
 
-            elif key == "let": _let = _readExpressionMap(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "set": _set = _readExpressionMap(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "for": _forlet = _readExpressionMap(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "step": _forstep = _readExpressionMap(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "ifnotnull": _ifnotnull = _readExpressionMap(data[key], dot + "." + key, avroTypeBuilder)
+            elif key == "let": _let = _readExpressionMap(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "set": _set = _readExpressionMap(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "for": _forlet = _readExpressionMap(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "step": _forstep = _readExpressionMap(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "ifnotnull": _ifnotnull = _readExpressionMap(data[key], dot + " -> " + key, avroTypeBuilder)
 
             elif key == "do":
                 if isinstance(data[key], (list, tuple)):
-                    _body = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+                    _body = _readExpressionArray(data[key], dot + " -> " + key, avroTypeBuilder)
                 else:
-                    _body = [_readExpression(data[key], dot + "." + key, avroTypeBuilder)]
+                    _body = [_readExpression(data[key], dot + " -> " + key, avroTypeBuilder)]
             elif key == "then":
                 if isinstance(data[key], (list, tuple)):
-                    _thenClause = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+                    _thenClause = _readExpressionArray(data[key], dot + " -> " + key, avroTypeBuilder)
                 else:
-                    _thenClause = [_readExpression(data[key], dot + "." + key, avroTypeBuilder)]
+                    _thenClause = [_readExpression(data[key], dot + " -> " + key, avroTypeBuilder)]
             elif key == "else":
                 if isinstance(data[key], (list, tuple)):
-                    _elseClause = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+                    _elseClause = _readExpressionArray(data[key], dot + " -> " + key, avroTypeBuilder)
                 else:
-                    _elseClause = [_readExpression(data[key], dot + "." + key, avroTypeBuilder)]
+                    _elseClause = [_readExpression(data[key], dot + " -> " + key, avroTypeBuilder)]
             elif key == "log":
                 if isinstance(data[key], (list, tuple)):
-                    _log = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+                    _log = _readExpressionArray(data[key], dot + " -> " + key, avroTypeBuilder)
                 else:
-                    _log = [_readExpression(data[key], dot + "." + key, avroTypeBuilder)]
+                    _log = [_readExpression(data[key], dot + " -> " + key, avroTypeBuilder)]
             elif key == "path":
-                _path = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+                _path = _readExpressionArray(data[key], dot + " -> " + key, avroTypeBuilder)
             elif key == "args":
-                _callwithargs = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+                _callwithargs = _readExpressionArray(data[key], dot + " -> " + key, avroTypeBuilder)
             elif key == "try":
                 if isinstance(data[key], (list, tuple)):
-                    _trycatch = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+                    _trycatch = _readExpressionArray(data[key], dot + " -> " + key, avroTypeBuilder)
                 else:
-                    _trycatch = [_readExpression(data[key], dot + "." + key, avroTypeBuilder)]
+                    _trycatch = [_readExpression(data[key], dot + " -> " + key, avroTypeBuilder)]
 
-            elif key == "attr": _attr = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "if": _ifPredicate = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "while": _whilePredicate = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "until": _until = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "unpack": _unpack = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
+            elif key == "attr": _attr = _readExpression(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "if": _ifPredicate = _readExpression(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "while": _whilePredicate = _readExpression(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "until": _until = _readExpression(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "unpack": _unpack = _readExpression(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "del": _dell = _readExpression(data[key], dot + " -> " + key, avroTypeBuilder)
 
             elif key == "cond":
-                _cond = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+                _cond = _readExpressionArray(data[key], dot + " -> " + key, avroTypeBuilder)
                 if any(x.elseClause is not None for x in _cond):
                     raise PFASyntaxException("cond expression must only contain else-less if expressions", pos(dot, at))
 
-            elif key == "cases": _cases = _readCastCaseArray(data[key], dot + "." + key, avroTypeBuilder)
+            elif key == "cases": _cases = _readCastCaseArray(data[key], dot + " -> " + key, avroTypeBuilder)
 
-            elif key == "foreach": _foreach = _readString(data[key], dot + "." + key)
-            elif key == "forkey": _forkey = _readString(data[key], dot + "." + key)
-            elif key == "forval": _forval = _readString(data[key], dot + "." + key)
-            elif key == "fcn": _fcnref = _readString(data[key], dot + "." + key)
-            elif key == "cell": _cell = _readString(data[key], dot + "." + key)
-            elif key == "pool": _pool = _readString(data[key], dot + "." + key)
+            elif key == "foreach": _foreach = _readString(data[key], dot + " -> " + key)
+            elif key == "forkey": _forkey = _readString(data[key], dot + " -> " + key)
+            elif key == "forval": _forval = _readString(data[key], dot + " -> " + key)
+            elif key == "fcn": _fcnref = _readString(data[key], dot + " -> " + key)
+            elif key == "cell": _cell = _readString(data[key], dot + " -> " + key)
+            elif key == "pool": _pool = _readString(data[key], dot + " -> " + key)
 
-            elif key == "in": _in = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "cast": _cast = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "upcast": _upcast = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "init": _init = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "call": _callwith = _readExpression(data[key], dot + "." + key, avroTypeBuilder)
+            elif key == "in": _in = _readExpression(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "cast": _cast = _readExpression(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "upcast": _upcast = _readExpression(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "init": _init = _readExpression(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "call": _callwith = _readExpression(data[key], dot + " -> " + key, avroTypeBuilder)
 
-            elif key == "seq": _seq = _readBoolean(data[key], dot + "." + key)
-            elif key == "partial": _partial = _readBoolean(data[key], dot + "." + key)
+            elif key == "seq": _seq = _readBoolean(data[key], dot + " -> " + key)
+            elif key == "partial": _partial = _readBoolean(data[key], dot + " -> " + key)
 
-            elif key == "doc": _doc = _readString(data[key], dot + "." + key)
-            elif key == "error": _error = _readString(data[key], dot + "." + key)
-            elif key == "code": _code = _readInt(data[key], dot + "." + key)
-            elif key == "namespace": _namespace = _readString(data[key], dot + "." + key)
+            elif key == "doc": _doc = _readString(data[key], dot + " -> " + key)
+            elif key == "error": _error = _readString(data[key], dot + " -> " + key)
+            elif key == "code": _code = _readInt(data[key], dot + " -> " + key)
+            elif key == "namespace": _namespace = _readString(data[key], dot + " -> " + key)
 
             elif key == "new":
                 if isinstance(data[key], dict):
-                    _newObject = _readExpressionMap(data[key], dot + "." + key, avroTypeBuilder)
+                    _newObject = _readExpressionMap(data[key], dot + " -> " + key, avroTypeBuilder)
                 elif isinstance(data[key], (list, tuple)):
-                    _newArray = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+                    _newArray = _readExpressionArray(data[key], dot + " -> " + key, avroTypeBuilder)
                 else:
                     raise PFASyntaxException("\"new\" must be an object (map, record) or an array", pos(dot, at))
 
-            elif key == "params": _params = _readParams(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "ret": _ret = _readAvroPlaceholder(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "as": _as = _readAvroPlaceholder(data[key], dot + "." + key, avroTypeBuilder)
+            elif key == "params": _params = _readParams(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "ret": _ret = _readAvroPlaceholder(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "as": _as = _readAvroPlaceholder(data[key], dot + " -> " + key, avroTypeBuilder)
 
-            elif key == "to": _to = _readArgument(data[key], dot + "." + key, avroTypeBuilder)
+            elif key == "to": _to = _readArgument(data[key], dot + " -> " + key, avroTypeBuilder)
 
-            elif key == "fill": _fill = _readArgumentMap(data[key], dot + "." + key, avroTypeBuilder)
+            elif key == "fill": _fill = _readArgumentMap(data[key], dot + " -> " + key, avroTypeBuilder)
 
-            elif key == "filter": _filter = _readStringArray(data[key], dot + "." + key)
+            elif key == "filter": _filter = _readStringOrIntArray(data[key], dot + " -> " + key)
 
-            elif key == "format": _format = _readStringPairs(data[key], dot + "." + key)
-            elif key == "pack": _pack = _readStringExpressionPairs(data[key], dot + "." + key, avroTypeBuilder)
+            elif key == "format": _format = _readStringPairs(data[key], dot + " -> " + key)
+            elif key == "pack": _pack = _readStringExpressionPairs(data[key], dot + " -> " + key, avroTypeBuilder)
 
             else:
                 _callName = key
                 if isinstance(data[key], (list, tuple)):
-                    _callArgs = _readArgumentArray(data[key], dot + "." + key, avroTypeBuilder)
+                    _callArgs = _readArgumentArray(data[key], dot + " -> " + key, avroTypeBuilder)
                 else:
-                    _callArgs = [_readArgument(data[key], dot + "." + key, avroTypeBuilder)]
+                    _callArgs = [_readArgument(data[key], dot + " -> " + key, avroTypeBuilder)]
 
         if "foreach" in keys and not validSymbolName(_foreach):
             raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(data[keys]), pos(dot, at))
@@ -700,6 +758,7 @@ def _readArgument(data, dot, avroTypeBuilder):
              keys == set(["cell", "path", "to"]):            return CellTo(_cell, _path, _to, pos(dot, at))
         elif keys == set(["pool", "path"]):                  return PoolGet(_pool, _path, pos(dot, at))
         elif keys == set(["pool", "path", "to", "init"]):    return PoolTo(_pool, _path, _to, _init, pos(dot, at))
+        elif keys == set(["pool", "del"]):                   return PoolDel(_pool, _dell, pos(dot, at))
 
         elif keys == set(["if", "then"]):                    return If(_ifPredicate, _thenClause, None, pos(dot, at))
         elif keys == set(["if", "then", "else"]):            return If(_ifPredicate, _thenClause, _elseClause, pos(dot, at))
@@ -758,7 +817,7 @@ def _readFcnDefMap(data, dot, avroTypeBuilder):
         for k in data.keys():
             if k != "@" and not validFunctionName(k):
                 raise PFASyntaxException("\"{0}\" is not a valid function name".format(k), pos(dot, at))
-        return dict((k, _readFcnDef(v, dot + "." + k, avroTypeBuilder)) for k, v in data.items() if k != "@")
+        return dict((k, _readFcnDef(v, dot + " -> " + k, avroTypeBuilder)) for k, v in data.items() if k != "@")
     else:
         raise PFASyntaxException("expected map of function definitions, not " + _trunc(repr(data)), pos(dot, at))
 
@@ -768,13 +827,13 @@ def _readFcnDef(data, dot, avroTypeBuilder):
         keys = set(x for x in data.keys() if x != "@")
 
         for key in keys:
-            if key == "params": _params = _readParams(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "ret": _ret = _readAvroPlaceholder(data[key], dot + "." + key, avroTypeBuilder)
+            if key == "params": _params = _readParams(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "ret": _ret = _readAvroPlaceholder(data[key], dot + " -> " + key, avroTypeBuilder)
             elif key == "do":
                 if isinstance(data[key], (list, tuple)):
-                    _body = _readExpressionArray(data[key], dot + "." + key, avroTypeBuilder)
+                    _body = _readExpressionArray(data[key], dot + " -> " + key, avroTypeBuilder)
                 else:
-                    _body = [_readExpression(data[key], dot + "." + key, avroTypeBuilder)]
+                    _body = [_readExpression(data[key], dot + " -> " + key, avroTypeBuilder)]
             else:
                 raise PFASyntaxException("unexpected field in function definition: " + key, pos(dot, at))
 
@@ -788,7 +847,7 @@ def _readFcnDef(data, dot, avroTypeBuilder):
 
 def _readParams(data, dot, avroTypeBuilder):
     if isinstance(data, (list, tuple)):
-        return [_readParam(x, dot + "." + str(i), avroTypeBuilder) for i, x in enumerate(data)]
+        return [_readParam(x, dot + " -> " + str(i), avroTypeBuilder) for i, x in enumerate(data)]
     else:
         raise PFASyntaxException("expected array of function parameters, not " + _trunc(repr(data)), dot)
 
@@ -802,7 +861,7 @@ def _readParam(data, dot, avroTypeBuilder):
         if not validSymbolName(n):
             raise PFASyntaxException("\"{0}\" is not a valid symbol name".format(n))
 
-        t = _readAvroPlaceholder(data[n], dot + "." + n, avroTypeBuilder)
+        t = _readAvroPlaceholder(data[n], dot + " -> " + n, avroTypeBuilder)
         return {n: t}
     else:
         raise PFASyntaxException("expected function parameter name-type singleton map, not " + _trunc(repr(data)), pos(dot, at))
@@ -825,11 +884,11 @@ def _readCell(data, dot, avroTypeBuilder):
         _source = "embedded"
         keys = set(x for x in data.keys() if x != "@")
         for key in keys:
-            if key == "type": _avroType = _readAvroPlaceholder(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "init": _init = _readJsonToString(data[key], dot + "." + key)
-            elif key == "shared": _shared = _readBoolean(data[key], dot + "." + key)
-            elif key == "rollback": _rollback = _readBoolean(data[key], dot + "." + key)
-            elif key == "source": _source = _readString(data[key], dot + "." + key)
+            if key == "type": _avroType = _readAvroPlaceholder(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "init": _init = _readJsonToString(data[key], dot + " -> " + key)
+            elif key == "shared": _shared = _readBoolean(data[key], dot + " -> " + key)
+            elif key == "rollback": _rollback = _readBoolean(data[key], dot + " -> " + key)
+            elif key == "source": _source = _readString(data[key], dot + " -> " + key)
             else:
                 raise PFASyntaxException("unexpected cell property: \"{0}\"".format(key), pos(dot, at))
 
@@ -850,7 +909,10 @@ def _readCell(data, dot, avroTypeBuilder):
                 if not isinstance(url, basestring):
                     raise PFASyntaxException("source: json requires init to be a string", pos(dot, at))
                 def getit(avroType):
-                    return urllib.urlopen(url).read()
+                    if re.match("^[a-zA-Z][a-zA-Z0-9\+\-\.]*://", url) is not None:
+                        return urllib.urlopen(url).read()
+                    else:
+                        return open(url).read()
                 _init = getit
                 
             elif _source == "embedded":
@@ -887,11 +949,11 @@ def _readPool(data, dot, avroTypeBuilder):
         _source = "embedded"
         keys = set(x for x in data.keys() if x != "@")
         for key in keys:
-            if key == "type": _avroType = _readAvroPlaceholder(data[key], dot + "." + key, avroTypeBuilder)
-            elif key == "init": _init = _readJsonToStringMap(data[key], dot + "." + key)
-            elif key == "shared": _shared = _readBoolean(data[key], dot + "." + key)
-            elif key == "rollback": _rollback = _readBoolean(data[key], dot + "." + key)
-            elif key == "source": _source = _readString(data[key], dot + "." + key)
+            if key == "type": _avroType = _readAvroPlaceholder(data[key], dot + " -> " + key, avroTypeBuilder)
+            elif key == "init": _init = _readJsonToStringMap(data[key], dot + " -> " + key)
+            elif key == "shared": _shared = _readBoolean(data[key], dot + " -> " + key)
+            elif key == "rollback": _rollback = _readBoolean(data[key], dot + " -> " + key)
+            elif key == "source": _source = _readString(data[key], dot + " -> " + key)
 
         if ("type" not in keys) or (not keys.issubset(set(["type", "init", "shared", "rollback", "source"]))):
             raise PFASyntaxException("wrong set of fields for a pool: " + ", ".join(keys), pos(dot, at))
@@ -910,7 +972,10 @@ def _readPool(data, dot, avroTypeBuilder):
                 if not isinstance(url, basestring):
                     raise PFASyntaxException("source: json requires init to be a string", pos(dot, at))
                 def getit(avroType):
-                    return urllib.urlopen(url).read()
+                    if re.match("^[a-zA-Z][a-zA-Z0-9\+\-\.]*://", url) is not None:
+                        return urllib.urlopen(url).read()
+                    else:
+                        return open(url).read()
                 _init = getit
                 
             elif _source == "embedded":

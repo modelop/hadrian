@@ -27,9 +27,17 @@ import titus.version
 from titus.inspector.defs import *
 
 class InspectorMode(Mode):
+    """The main mode of operation for the pfainspector, which handles commands."""
+
     historyFileName = "inspector.history"
     
     def __init__(self, initialCommands, gadgets):
+        """:type initialCommands: list of string
+        :param initialCommands: commands to run before giving the user a prompt (they come from the pfainspector script's arguments)
+        :type gadgets: list of titus.inspector.defs.Gadget
+        :param gadgets: gadgets to load at start-up
+        """
+
         self.prompt = "PFA-Inspector> "
         self.dirStack = []
         self.pfaFiles = {}
@@ -194,9 +202,25 @@ Type 'help' for a list of commands.""".format(titus.version.__version__)
         super(InspectorMode, self).__init__()
 
     def complete(self, established, active):
+        """Handle tab-complete for this command's arguments.
+
+        :type established: string
+        :param established: part of the text that has been established
+        :type active: string
+        :param active: part of the text to be completed
+        :rtype: list of strings
+        :return: potential completions
+        """
         return self.commandGroup.complete(established, active)
 
     def action(self, text):
+        """Perform the action associated with this command.
+
+        :type args: list of titus.inspector.parser.Ast
+        :param args: arguments passed to the command
+        :rtype: ``None``
+        :return: nothing; results must be printed to the screen
+        """
         try:
             args = parser.parser.parse(text)
         except parser.ParserError as err:

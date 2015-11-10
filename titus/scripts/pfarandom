@@ -1,0 +1,216 @@
+#!/usr/bin/env python
+
+# Copyright (C) 2014  Open Data ("Open Data" refers to
+# one or more of the following companies: Open Data Partners LLC,
+# Open Data Research LLC, or Open Data Capital LLC.)
+# 
+# This file is part of Hadrian.
+# 
+# Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import argparse
+import json
+import sys
+import random
+
+from titus.datatype import *
+from titus.genpy import PFAEngine
+
+unicodeRanges = [
+    (0x0021, 0x0021),
+    (0x0023, 0x0026),
+    (0x0028, 0x007E),
+    (0x00A1, 0x00AC),
+    (0x00AE, 0x00FF),
+    (0x0100, 0x017F),
+    (0x0180, 0x024F),
+    (0x2C60, 0x2C7F),
+    (0x16A0, 0x16F0),
+    (0x0370, 0x0377),
+    (0x037A, 0x037E),
+    (0x0384, 0x038A),
+    (0x038C, 0x038C)
+    ]
+unicodeAlphabet = [unichr(cp) for current in unicodeRanges for cp in range(current[0], current[1] + 1)]
+
+def typeName(avroType):
+    if isinstance(avroType, (AvroFixed, AvroEnum, AvroRecord)):
+        return avroType.fullName
+    elif isinstance(avroType, AvroArray):
+        return {"type": "array", "items": typeName(avroType.items)}
+    elif isinstance(avroType, AvroMap):
+        return {"type": "map", "values": typeName(avroType.values)}
+    elif isinstance(avroType, AvroUnion):
+        return [typeName(x) for x in avroType.types]
+    else:
+        return avroType.name
+
+def makeData(avroType):
+    if isinstance(avroType, AvroNull):
+        return None
+    elif isinstance(avroType, AvroBoolean):
+        return random.choice([True, False])
+    elif isinstance(avroType, AvroInt):
+        return random.randint(-2147483648, 2147483647)
+    elif isinstance(avroType, AvroLong):
+        return random.randint(-9223372036854775808, 9223372036854775807)
+    elif isinstance(avroType, AvroFloat):
+        return random.random()
+    elif isinstance(avroType, AvroDouble):
+        return random.random()
+    elif isinstance(avroType, AvroBytes):
+        return "".join(chr(random.randint(0, 255)) for x in xrange(10))
+    elif isinstance(avroType, AvroFixed):
+        return "".join(chr(random.randint(0, 255)) for x in xrange(avroType.size))
+    elif isinstance(avroType, AvroString):
+        return "".join(random.choice(unicodeAlphabet) for x in xrange(10))
+    elif isinstance(avroType, AvroEnum):
+        return random.choice(avroType.symbols)
+    elif isinstance(avroType, AvroArray):
+        return [makeData(avroType.items) for x in xrange(0, random.randint(0, 10))]
+    elif isinstance(avroType, AvroMap):
+        return dict(("".join(random.choice(unicodeAlphabet) for x in xrange(10)), makeData(avroType.values)) for x in xrange(0, random.randint(0, 10)))
+    elif isinstance(avroType, AvroRecord):
+        return dict((f.name, makeData(f.avroType)) for f in avroType.fields)
+    elif isinstance(avroType, AvroUnion):
+        which = random.choice(avroType.types)
+        if isinstance(which, AvroNull):
+            return None
+        else:
+            return {typeName(which): makeData(which)}
+
+def makePFA(avroType, varcount=0):
+    if isinstance(avroType, AvroNull):
+        return None
+    elif isinstance(avroType, AvroBoolean):
+        return {"if": {"==": [{"rand.int": [0, 2]}, 0]}, "then": True, "else": False}
+    elif isinstance(avroType, AvroInt):
+        return {"rand.int": []}
+    elif isinstance(avroType, AvroLong):
+        return {"rand.long": []}
+    elif isinstance(avroType, AvroFloat):
+        return {"rand.float": [{"float": 0.0}, {"float": 1.0}]}
+    elif isinstance(avroType, AvroDouble):
+        return {"rand.double": [0.0, 1.0]}
+    elif isinstance(avroType, AvroBytes):
+        return {"rand.bytes": [10]}
+    elif isinstance(avroType, AvroFixed):
+        return {"fixed.fromBytes": [{"type": typeName(avroType), "value": "\0" * avroType.size}, {"rand.bytes": [avroType.size]}]}
+    elif isinstance(avroType, AvroString):
+        return {"rand.string": [10]}
+    elif isinstance(avroType, AvroEnum):
+        return {"rand.choice": {"type": {"type": "array", "items": typeName(avroType)}, "value": avroType.symbols}}
+    elif isinstance(avroType, AvroArray):
+        return {"do": [
+            {"let": {("size%d" % varcount): {"rand.int": [0, 10]},
+                     ("out%d" % varcount): {"type": typeName(avroType), "value": []}}},
+            {"for": {("i%d" % varcount): 0},
+             "while": {"<": [("i%d" % varcount), ("size%d" % varcount)]},
+             "step": {("i%d" % varcount): {"+": [("i%d" % varcount), 1]}},
+             "do":
+               {"set": {("out%d" % varcount): {"a.append": [("out%d" % varcount), makePFA(avroType.items, varcount + 1)]}}}},
+            ("out%d" % varcount)
+            ]}
+    elif isinstance(avroType, AvroMap):
+        return {"do": [
+            {"let": {("size%d" % varcount): {"rand.int": [0, 10]},
+                     ("out%d" % varcount): {"type": typeName(avroType), "value": {}}}},
+            {"for": {("i%d" % varcount): 0},
+             "while": {"<": [("i%d" % varcount), ("size%d" % varcount)]},
+             "step": {("i%d" % varcount): {"+": [("i%d" % varcount), 1]}},
+             "do":
+             {"set": {("out%d" % varcount): {"map.add": [("out%d" % varcount), {"rand.string": [10]}, makePFA(avroType.values, varcount + 1)]}}}},
+            ("out%d" % varcount)
+            ]}
+    elif isinstance(avroType, AvroRecord):
+        return {"type": typeName(avroType),
+                "new": dict((f.name, makePFA(f.avroType, varcount)) for f in avroType.fields)}
+    elif isinstance(avroType, AvroUnion):
+        return {"do": [
+            {"let": {("which%d" % varcount): {"rand.int": [0, len(avroType.types)]}}},
+            {"cond": [{"if": {"==": [("which%d" % varcount), i]}, "then": makePFA(t, varcount + 1)} for i, t in enumerate(avroType.types)],
+             "else": {"error": "never gets here"}}
+            ]}
+
+if __name__ == "__main__":
+    # command-line arguments
+    argparser = argparse.ArgumentParser(description="Given an input and an output schema, generate a PFA file that only computes random outputs (for tests).")
+    argparser.add_argument("input", help="input schema file (Avro schema in JSON format)")
+    argparser.add_argument("output", help="output schema file (Avro schema in JSON format)")
+    argparser.add_argument("fileName", nargs="?", default="-", help="output PFA file name or \"-\" for standard out")
+    argparser.add_argument("--check", action="store_true", help="if supplied, the PFA will be tested with 100 samples, written to standard error")
+    argparser.add_argument("--exception", type=float, default=0.0, help="probability of runtime exception (must be between 0 and 1, inclusive)")
+    argparser.add_argument("--name", default=None, help="name field for output PFA file")
+    argparser.add_argument("--randseed", type=int, default=None, help="randseed field for output PFA file (must be an integer)")
+    argparser.add_argument("--doc", default=None, help="doc field for output PFA file")
+    argparser.add_argument("--version", type=int, default=None, help="version field for output PFA file (must be an integer)")
+    argparser.add_argument("--metadata", default="{}", help="metadata field for output PFA file (must be a JSON map of strings)")
+    argparser.add_argument("--options", default="{}", help="options field for output PFA file (must be a JSON map)")
+    arguments = argparser.parse_args()
+
+    if arguments.exception < 0.0 or arguments.exception > 1.0:
+        argparser.error("Probability of runtime exception must be between 0 and 1, inclusive.")
+
+    try:
+        arguments.metadata = json.loads(arguments.metadata)
+    except ValueError:
+        argparser.error("Metadata must be JSON formatted.")
+    if not isinstance(arguments.metadata, dict) or any(not isinstance(x, basestring) for x in arguments.metadata.values()):
+        argparser.error("Metadata must be a JSON object of strings.")
+
+    try:
+        arguments.options = json.loads(arguments.options)
+    except ValueError:
+        argparser.error("Options must be JSON formatted.")
+    if not isinstance(arguments.options, dict):
+        argparser.error("Options must be a JSON object.")
+
+    input = open(arguments.input).read()
+    output = open(arguments.output).read()
+
+    inputType = jsonToAvroType(input)
+    outputType = jsonToAvroType(output)
+
+    pfaDocument = {"input": json.loads(input), "output": json.loads(output), "action": []}
+    if arguments.name is not None:
+        pfaDocument["name"] = arguments.name
+    if arguments.randseed is not None:
+        pfaDocument["randseed"] = arguments.randseed
+    if arguments.doc is not None:
+        pfaDocument["doc"] = arguments.doc
+    if arguments.version is not None:
+        pfaDocument["version"] = arguments.version
+    if arguments.metadata != {}:
+        pfaDocument["metadata"] = arguments.metadata
+    if arguments.options != {}:
+        pfaDocument["options"] = arguments.options
+
+    if arguments.exception > 0.0:
+        pfaDocument["action"].append({"if": {"<": [{"rand.double": [0.0, 1.0]}, arguments.exception]}, "then": {"error": "thrown with probability %g" % arguments.exception}})
+    
+    pfaDocument["action"].append(makePFA(outputType))
+
+    if arguments.check:
+        engine, = PFAEngine.fromJson(pfaDocument)
+        engine.begin()
+        for i in xrange(100):
+            datum = makeData(inputType)
+            sys.stderr.write("INPUT: " + repr(datum) + "\n")
+            result = engine.action(datum)
+            sys.stderr.write("OUTPUT: " + repr(result) + "\n\n")
+        engine.end()
+            
+    if arguments.fileName == "-":
+        print json.dumps(pfaDocument)
+    else:
+        json.dump(pfaDocument, open(arguments.fileName, "w"))

@@ -31,6 +31,8 @@ import titus.pmml.version_4_1
 import titus.pmml.version_4_2
 
 class PmmlContentHandler(xml.sax.handler.ContentHandler):
+    """Streaming XML reader for loading PMML: methods handle SAX events (see xml.sax.handler.ContentHandler)."""
+
     def __init__(self):
         self.stack = []
         self.version = None
@@ -102,6 +104,16 @@ class PmmlContentHandler(xml.sax.handler.ContentHandler):
             self.endElement(name[1])
         
 def loadPMML(pmmlInput, processNamespaces=False):
+    """Load a PMML document.
+
+    :type pmmlInput: open XML file, gzip-compressed byte string, XML string, or file name string
+    :param pmmlInput: input source for the PMML
+    :type processNamespaces: bool
+    :param processNamespaces: if ``True``, allow for namespaces other than just "http://www.dmg.org/PMML-*"
+    :rtype: titus.pmml.version_independent.PmmlBinding
+    :return: loaded PMML
+    """
+
     if isinstance(pmmlInput, basestring):
         if len(pmmlInput) >= 2 and pmmlInput[0:2] == "\x1f\x8b":
             pmmlInput = gzip.GzipFile(fileobj=io.StringIO(pmmlInput))
@@ -126,6 +138,16 @@ def loadPMML(pmmlInput, processNamespaces=False):
     return contentHandler.result
 
 def pmmlToAst(pmmlInput, options=None):
+    """Load a PMML document and convert it to a PFA abstract syntax tree.
+
+    :type pmmlInput: open XML file, gzip-compressed byte string, XML string, or file name string
+    :param pmmlInput: input source for the PMML
+    :type options: dict of option strings
+    :param options: PMML-to-PFA conversion options
+    :rtype: titus.pfaast.EngineConfig
+    :return: converted PFA
+    """
+
     if options is None:
         options = {}
 
@@ -137,3 +159,42 @@ def pmmlToAst(pmmlInput, options=None):
 
     context.avroTypeBuilder.resolveTypes()
     return result
+
+def pmmlToNode(pmmlInput, options=None):
+    """Load a PMML document and convert it to PFA as Pythonized JSON.
+
+    :type pmmlInput: open XML file, gzip-compressed byte string, XML string, or file name string
+    :param pmmlInput: input source for the PMML
+    :type options: dict of option strings
+    :param options: PMML-to-PFA conversion options
+    :rtype: Pythonized JSON
+    :return: converted PFA
+    """
+
+    if options is None:
+        options = {}
+
+    config = pmmlToAst(pmmlInput, options)
+
+    lineNumbers = options.get("reader.lineNumbers", False)
+    return config.jsonNode(lineNumbers, set())
+
+def pmmlToJson(pmmlInput, options=None):
+    """Load a PMML document and convert it to PFA as a serialized JSON string.
+
+    :type pmmlInput: open XML file, gzip-compressed byte string, XML string, or file name string
+    :param pmmlInput: input source for the PMML
+    :type options: dict of option strings
+    :param options: PMML-to-PFA conversion options
+    :rtype: JSON string
+    :return: converted PFA
+    """
+
+    if options is None:
+        options = {}
+
+    config = pmmlToAst(pmmlInput, options)
+
+    lineNumbers = options.get("reader.lineNumbers", False)
+    return config.toJson(lineNumbers)
+    

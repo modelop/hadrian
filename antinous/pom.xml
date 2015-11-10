@@ -1,3 +1,23 @@
+<!--
+     Copyright (C) 2014  Open Data ("Open Data" refers to
+one or more of the following companies: Open Data Partners LLC,
+Open Data Research LLC, or Open Data Capital LLC.)
+
+This file is part of Hadrian.
+
+Licensed under the Hadrian Personal Use and Evaluation License (PUEL);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://raw.githubusercontent.com/opendatagroup/hadrian/master/LICENSE
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
@@ -7,7 +27,7 @@
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>antinous</artifactId>
-  <version>0.7.1</version>
+  <version>0.8.1</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -31,13 +51,19 @@
     <dependency>
       <groupId>com.opendatagroup</groupId>
       <artifactId>hadrian</artifactId>
-      <version>0.7.1</version>
+      <version>0.8.1</version>
     </dependency>
 
     <dependency>
       <groupId>org.python</groupId>
       <artifactId>jython-standalone</artifactId>
       <version>2.7.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.googlecode.efficient-java-matrix-library</groupId>
+      <artifactId>ejml</artifactId>
+      <version>0.24</version>
     </dependency>
 
     <dependency>
@@ -71,20 +97,6 @@
         <targetPath>antinous</targetPath>
       </resource>
 
-      <!-- <resource> -->
-      <!--   <directory>src/main/python/titus</directory> -->
-      <!--   <targetPath>titus</targetPath> -->
-      <!-- </resource> -->
-
-      <!-- <resource> -->
-      <!--   <directory>src/main/python/avro</directory> -->
-      <!--   <targetPath>avro</targetPath> -->
-      <!-- </resource> -->
-
-      <!-- <resource> -->
-      <!--   <directory>src/main/python/ply</directory> -->
-      <!--   <targetPath>ply</targetPath> -->
-      <!-- </resource> -->
     </resources>
 
     <testResources>
@@ -142,30 +154,6 @@
         </executions>
       </plugin>
 
-      <!-- <plugin> -->
-      <!--   <artifactId>maven-assembly-plugin</artifactId> -->
-      <!--   <version>2.4</version> -->
-      <!--   <configuration> -->
-      <!--       <descriptorRefs> -->
-      <!--           <descriptorRef>jar-with-dependencies</descriptorRef> -->
-      <!--       </descriptorRefs> -->
-      <!--     <archive> -->
-      <!--       <manifest> -->
-      <!--         <mainClass>com.opendatagroup.antinous.Main</mainClass> -->
-      <!--       </manifest> -->
-      <!--     </archive> -->
-      <!--   </configuration> -->
-      <!--   <executions> -->
-      <!--      <execution> -->
-      <!--          <id>make-assembly</id> -->
-      <!--          <phase>package</phase> -->
-      <!--          <goals> -->
-      <!--              <goal>single</goal> -->
-      <!--          </goals> -->
-      <!--      </execution> -->
-      <!--   </executions> -->
-      <!-- </plugin> -->
-
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
@@ -180,6 +168,7 @@
           </archive>
         </configuration>
       </plugin>
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
@@ -196,6 +185,14 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+        <version>2.3.1</version>
+        <configuration>
+          <createChecksum>true</createChecksum>
+        </configuration>
       </plugin>
       
     </plugins>

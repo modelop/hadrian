@@ -36,11 +36,20 @@ package errors {
   class PFAInitializationException(override val message: String)
       extends PFAException(message, null)
 
-  class PFARuntimeException(override val message: String, cause: Exception = null)
-      extends PFAException(message, cause)
+  class PFARuntimeException(override val message: String, val code: Int, val fcnName: String, val pos: Option[String], cause: Exception = null)
+      extends PFAException("%s in %s (#%d)%s".format(message, fcnName, code, pos match {
+        case Some(position) => " " + position
+        case None => ""
+      }), cause)
 
-  class PFAUserException(override val message: String, val code: Option[Int])
-      extends PFAException((if (code == None) message else "%s (code %s)".format(message, code.get)), null)
+  class PFAUserException(override val message: String, val code: Option[Int], val pos: Option[String])
+      extends PFAException("%s%s%s".format(message, code match {
+        case Some(c) => " (%d)".format(c)
+        case None => ""
+      }, pos match {
+        case Some(position) => " " + position
+        case None => ""
+      }), null)
 
   class PFATimeoutException(override val message: String)
       extends PFAException(message, null)

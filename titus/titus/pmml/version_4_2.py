@@ -23,6 +23,7 @@ import version_independent as ind
 namespace = "http://www.dmg.org/PMML-4_2"
 
 class PMML(ind.PMML):
+    """Represents a <PMML> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(PMML, self).__init__()
         self.version = None
@@ -54,12 +55,14 @@ class PMML(ind.PMML):
         return [x for x in self.AssociationModel + self.BaselineModel + self.ClusteringModel + self.GeneralRegressionModel + self.MiningModel + self.NaiveBayesModel + self.NearestNeighborModel + self.NeuralNetwork + self.RegressionModel + self.RuleSetModel + self.Scorecard + self.SequenceModel + self.SupportVectorMachineModel + self.TextModel + self.TimeSeriesModel + self.TreeModel if x.isScorable != False]
 
 class ARIMA(ind.ARIMA):
+    """Represents a <ARIMA> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ARIMA, self).__init__()
         for key, value in attribs.items():
             setattr(self, key, value)
         
 class Aggregate(ind.Aggregate):
+    """Represents a <Aggregate> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Aggregate, self).__init__()
         self.field = None
@@ -71,6 +74,7 @@ class Aggregate(ind.Aggregate):
         self.Extension = []
         
 class Alternate(ind.Alternate):
+    """Represents a <Alternate> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Alternate, self).__init__()
         for key, value in attribs.items():
@@ -82,6 +86,7 @@ class Alternate(ind.Alternate):
         self.UniformDistribution = []
         
 class Annotation(ind.Annotation):
+    """Represents a <Annotation> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Annotation, self).__init__()
         for key, value in attribs.items():
@@ -89,6 +94,7 @@ class Annotation(ind.Annotation):
         self.Extension = []
         
 class Anova(ind.Anova):
+    """Represents a <Anova> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Anova, self).__init__()
         self.target = None
@@ -98,6 +104,7 @@ class Anova(ind.Anova):
         self.Extension = []
         
 class AnovaRow(ind.AnovaRow):
+    """Represents a <AnovaRow> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(AnovaRow, self).__init__()
         self.type = None
@@ -111,6 +118,7 @@ class AnovaRow(ind.AnovaRow):
         self.Extension = []
         
 class AntecedentSequence(ind.AntecedentSequence):
+    """Represents a <AntecedentSequence> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(AntecedentSequence, self).__init__()
         for key, value in attribs.items():
@@ -120,6 +128,7 @@ class AntecedentSequence(ind.AntecedentSequence):
         self.Time = []
         
 class AnyDistribution(ind.AnyDistribution):
+    """Represents a <AnyDistribution> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(AnyDistribution, self).__init__()
         self.mean = None
@@ -129,6 +138,7 @@ class AnyDistribution(ind.AnyDistribution):
         self.Extension = []
         
 class Application(ind.Application):
+    """Represents a <Application> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Application, self).__init__()
         self.name = None
@@ -138,6 +148,7 @@ class Application(ind.Application):
         self.Extension = []
         
 class Apply(ind.Apply):
+    """Represents a <Apply> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Apply, self).__init__()
         self.function = None
@@ -158,12 +169,14 @@ class Apply(ind.Apply):
         self.TextIndex = []
         
 class Array(ind.Array):
+    """Represents a <Array> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Array, self).__init__()
         for key, value in attribs.items():
             setattr(self, key, value)
         
 class AssociationModel(ind.AssociationModel):
+    """Represents a <AssociationModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(AssociationModel, self).__init__()
         self.modelName = None
@@ -192,6 +205,7 @@ class AssociationModel(ind.AssociationModel):
         self.Output = []
         
 class AssociationRule(ind.AssociationRule):
+    """Represents a <AssociationRule> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(AssociationRule, self).__init__()
         self.antecedent = None
@@ -207,6 +221,7 @@ class AssociationRule(ind.AssociationRule):
         self.Extension = []
         
 class Attribute(ind.Attribute):
+    """Represents a <Attribute> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Attribute, self).__init__()
         self.reasonCode = None
@@ -222,6 +237,7 @@ class Attribute(ind.Attribute):
         self.AlwaysTrue = []
         
 class BaseCumHazardTables(ind.BaseCumHazardTables):
+    """Represents a <BaseCumHazardTables> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(BaseCumHazardTables, self).__init__()
         self.maxTime = None
@@ -232,6 +248,7 @@ class BaseCumHazardTables(ind.BaseCumHazardTables):
         self.Extension = []
         
 class Baseline(ind.Baseline):
+    """Represents a <Baseline> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Baseline, self).__init__()
         for key, value in attribs.items():
@@ -249,6 +266,7 @@ class Baseline(ind.Baseline):
         return (self.AnyDistribution + self.GaussianDistribution + self.PoissonDistribution + self.UniformDistribution)[0]
         
 class BaselineCell(ind.BaselineCell):
+    """Represents a <BaselineCell> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(BaselineCell, self).__init__()
         self.time = None
@@ -258,6 +276,7 @@ class BaselineCell(ind.BaselineCell):
         self.Extension = []
         
 class BaselineModel(ind.BaselineModel):
+    """Represents a <BaselineModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(BaselineModel, self).__init__()
         self.modelName = None
@@ -277,6 +296,7 @@ class BaselineModel(ind.BaselineModel):
         self.TestDistributions = []
         
 class BaselineStratum(ind.BaselineStratum):
+    """Represents a <BaselineStratum> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(BaselineStratum, self).__init__()
         self.value = None
@@ -288,6 +308,7 @@ class BaselineStratum(ind.BaselineStratum):
         self.Extension = []
         
 class BayesInput(ind.BayesInput):
+    """Represents a <BayesInput> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(BayesInput, self).__init__()
         self.fieldName = None
@@ -299,6 +320,7 @@ class BayesInput(ind.BayesInput):
         self.TargetValueStats = []
         
 class BayesInputs(ind.BayesInputs):
+    """Represents a <BayesInputs> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(BayesInputs, self).__init__()
         for key, value in attribs.items():
@@ -307,6 +329,7 @@ class BayesInputs(ind.BayesInputs):
         self.Extension = []
         
 class BayesOutput(ind.BayesOutput):
+    """Represents a <BayesOutput> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(BayesOutput, self).__init__()
         self.fieldName = None
@@ -316,6 +339,7 @@ class BayesOutput(ind.BayesOutput):
         self.TargetValueCounts = []
         
 class BoundaryValueMeans(ind.BoundaryValueMeans):
+    """Represents a <BoundaryValueMeans> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(BoundaryValueMeans, self).__init__()
         for key, value in attribs.items():
@@ -324,6 +348,7 @@ class BoundaryValueMeans(ind.BoundaryValueMeans):
         self.Extension = []
         
 class BoundaryValues(ind.BoundaryValues):
+    """Represents a <BoundaryValues> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(BoundaryValues, self).__init__()
         for key, value in attribs.items():
@@ -332,6 +357,7 @@ class BoundaryValues(ind.BoundaryValues):
         self.Extension = []
         
 class CategoricalPredictor(ind.CategoricalPredictor):
+    """Represents a <CategoricalPredictor> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(CategoricalPredictor, self).__init__()
         self.name = None
@@ -342,6 +368,7 @@ class CategoricalPredictor(ind.CategoricalPredictor):
         self.Extension = []
         
 class Categories(ind.Categories):
+    """Represents a <Categories> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Categories, self).__init__()
         for key, value in attribs.items():
@@ -350,6 +377,7 @@ class Categories(ind.Categories):
         self.Extension = []
         
 class Category(ind.Category):
+    """Represents a <Category> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Category, self).__init__()
         self.value = None
@@ -358,6 +386,7 @@ class Category(ind.Category):
         self.Extension = []
         
 class Characteristic(ind.Characteristic):
+    """Represents a <Characteristic> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Characteristic, self).__init__()
         self.name = None
@@ -369,6 +398,7 @@ class Characteristic(ind.Characteristic):
         self.Extension = []
         
 class Characteristics(ind.Characteristics):
+    """Represents a <Characteristics> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Characteristics, self).__init__()
         for key, value in attribs.items():
@@ -377,6 +407,7 @@ class Characteristics(ind.Characteristics):
         self.Extension = []
         
 class ChildParent(ind.ChildParent):
+    """Represents a <ChildParent> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ChildParent, self).__init__()
         self.childField = None
@@ -391,6 +422,7 @@ class ChildParent(ind.ChildParent):
         self.TableLocator = []
         
 class ClassLabels(ind.ClassLabels):
+    """Represents a <ClassLabels> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ClassLabels, self).__init__()
         for key, value in attribs.items():
@@ -399,6 +431,7 @@ class ClassLabels(ind.ClassLabels):
         self.Extension = []
         
 class Cluster(ind.Cluster):
+    """Represents a <Cluster> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Cluster, self).__init__()
         self.id = None
@@ -413,6 +446,7 @@ class Cluster(ind.Cluster):
         self.Partition = []
         
 class ClusteringField(ind.ClusteringField):
+    """Represents a <ClusteringField> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ClusteringField, self).__init__()
         self.field = None
@@ -426,6 +460,7 @@ class ClusteringField(ind.ClusteringField):
         self.Extension = []
         
 class ClusteringModel(ind.ClusteringModel):
+    """Represents a <ClusteringModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ClusteringModel, self).__init__()
         self.modelName = None
@@ -435,6 +470,10 @@ class ClusteringModel(ind.ClusteringModel):
         self.numberOfClusters = None
         self.isScorable = None
         for key, value in attribs.items():
+            """Represents a <= None
+        self.numberOfClusters = None
+        self.isScorable = None
+        for key, value in attribs.items> tag in v4.2 and provides methods to convert to PFA."""
             setattr(self, key, value)
         self.Cluster = []
         self.ClusteringField = []
@@ -449,6 +488,7 @@ class ClusteringModel(ind.ClusteringModel):
         self.Output = []
         
 class ClusteringModelQuality(ind.ClusteringModelQuality):
+    """Represents a <ClusteringModelQuality> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ClusteringModelQuality, self).__init__()
         self.dataName = None
@@ -458,6 +498,7 @@ class ClusteringModelQuality(ind.ClusteringModelQuality):
             setattr(self, key, value)
         
 class Coefficient(ind.Coefficient):
+    """Represents a <Coefficient> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Coefficient, self).__init__()
         self.value = None
@@ -466,6 +507,7 @@ class Coefficient(ind.Coefficient):
         self.Extension = []
         
 class Coefficients(ind.Coefficients):
+    """Represents a <Coefficients> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Coefficients, self).__init__()
         self.numberOfCoefficients = None
@@ -476,6 +518,7 @@ class Coefficients(ind.Coefficients):
         self.Extension = []
         
 class ComparisonMeasure(ind.ComparisonMeasure):
+    """Represents a <ComparisonMeasure> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ComparisonMeasure, self).__init__()
         self.kind = None
@@ -496,6 +539,7 @@ class ComparisonMeasure(ind.ComparisonMeasure):
         self.tanimoto = []
         
 class Comparisons(ind.Comparisons):
+    """Represents a <Comparisons> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Comparisons, self).__init__()
         for key, value in attribs.items():
@@ -504,6 +548,7 @@ class Comparisons(ind.Comparisons):
         self.Matrix = []
         
 class ComplexPartialScore(ind.ComplexPartialScore):
+    """Represents a <ComplexPartialScore> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ComplexPartialScore, self).__init__()
         for key, value in attribs.items():
@@ -520,6 +565,7 @@ class ComplexPartialScore(ind.ComplexPartialScore):
         self.TextIndex = []
         
 class CompoundPredicate(ind.CompoundPredicate):
+    """Represents a <CompoundPredicate> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(CompoundPredicate, self).__init__()
         self.booleanOperator = None
@@ -533,6 +579,7 @@ class CompoundPredicate(ind.CompoundPredicate):
         self.AlwaysTrue = []
         
 class CompoundRule(ind.CompoundRule):
+    """Represents a <CompoundRule> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(CompoundRule, self).__init__()
         for key, value in attribs.items():
@@ -547,6 +594,7 @@ class CompoundRule(ind.CompoundRule):
         self.AlwaysTrue = []
         
 class Con(ind.Con):
+    """Represents a <Con> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Con, self).__init__()
         self.isfrom = None
@@ -556,6 +604,7 @@ class Con(ind.Con):
         self.Extension = []
         
 class ConfusionMatrix(ind.ConfusionMatrix):
+    """Represents a <ConfusionMatrix> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ConfusionMatrix, self).__init__()
         for key, value in attribs.items():
@@ -565,6 +614,7 @@ class ConfusionMatrix(ind.ConfusionMatrix):
         self.Matrix = []
         
 class ConsequentSequence(ind.ConsequentSequence):
+    """Represents a <ConsequentSequence> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ConsequentSequence, self).__init__()
         for key, value in attribs.items():
@@ -574,6 +624,7 @@ class ConsequentSequence(ind.ConsequentSequence):
         self.Time = []
         
 class Constant(ind.Constant):
+    """Represents a <Constant> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Constant, self).__init__()
         self.dataType = None
@@ -581,6 +632,7 @@ class Constant(ind.Constant):
             setattr(self, key, value)
         
 class Constraints(ind.Constraints):
+    """Represents a <Constraints> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Constraints, self).__init__()
         self.minimumNumberOfItems = None
@@ -603,6 +655,7 @@ class Constraints(ind.Constraints):
         self.Extension = []
         
 class ContStats(ind.ContStats):
+    """Represents a <ContStats> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ContStats, self).__init__()
         self.totalValuesSum = None
@@ -614,6 +667,7 @@ class ContStats(ind.ContStats):
         self.Interval = []
         
 class CorrelationFields(ind.CorrelationFields):
+    """Represents a <CorrelationFields> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(CorrelationFields, self).__init__()
         for key, value in attribs.items():
@@ -622,6 +676,7 @@ class CorrelationFields(ind.CorrelationFields):
         self.Extension = []
         
 class CorrelationMethods(ind.CorrelationMethods):
+    """Represents a <CorrelationMethods> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(CorrelationMethods, self).__init__()
         for key, value in attribs.items():
@@ -630,6 +685,7 @@ class CorrelationMethods(ind.CorrelationMethods):
         self.Matrix = []
         
 class CorrelationValues(ind.CorrelationValues):
+    """Represents a <CorrelationValues> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(CorrelationValues, self).__init__()
         for key, value in attribs.items():
@@ -638,6 +694,7 @@ class CorrelationValues(ind.CorrelationValues):
         self.Matrix = []
         
 class Correlations(ind.Correlations):
+    """Represents a <Correlations> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Correlations, self).__init__()
         for key, value in attribs.items():
@@ -648,12 +705,14 @@ class Correlations(ind.Correlations):
         self.Extension = []
         
 class CountTable(ind.CountTable):
+    """Represents a <CountTable> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(CountTable, self).__init__()
         for key, value in attribs.items():
             setattr(self, key, value)
         
 class Counts(ind.Counts):
+    """Represents a <Counts> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Counts, self).__init__()
         self.totalFreq = None
@@ -665,6 +724,7 @@ class Counts(ind.Counts):
         self.Extension = []
         
 class Covariances(ind.Covariances):
+    """Represents a <Covariances> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Covariances, self).__init__()
         for key, value in attribs.items():
@@ -673,6 +733,7 @@ class Covariances(ind.Covariances):
         self.Matrix = []
         
 class CovariateList(ind.CovariateList):
+    """Represents a <CovariateList> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(CovariateList, self).__init__()
         for key, value in attribs.items():
@@ -681,6 +742,7 @@ class CovariateList(ind.CovariateList):
         self.Predictor = []
         
 class DataDictionary(ind.DataDictionary):
+    """Represents a <DataDictionary> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(DataDictionary, self).__init__()
         self.numberOfFields = None
@@ -691,6 +753,7 @@ class DataDictionary(ind.DataDictionary):
         self.Taxonomy = []
         
 class DataField(ind.DataField):
+    """Represents a <DataField> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(DataField, self).__init__()
         self.name = None
@@ -706,6 +769,7 @@ class DataField(ind.DataField):
         self.Value = []
         
 class Decision(ind.Decision):
+    """Represents a <Decision> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Decision, self).__init__()
         self.value = None
@@ -716,6 +780,7 @@ class Decision(ind.Decision):
         self.Extension = []
         
 class DecisionTree(ind.DecisionTree):
+    """Represents a <DecisionTree> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(DecisionTree, self).__init__()
         self.modelName = None
@@ -736,6 +801,7 @@ class DecisionTree(ind.DecisionTree):
         self.Targets = []
         
 class Decisions(ind.Decisions):
+    """Represents a <Decisions> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Decisions, self).__init__()
         self.businessProblem = None
@@ -746,6 +812,7 @@ class Decisions(ind.Decisions):
         self.Extension = []
         
 class DefineFunction(ind.DefineFunction):
+    """Represents a <DefineFunction> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(DefineFunction, self).__init__()
         self.name = None
@@ -766,6 +833,7 @@ class DefineFunction(ind.DefineFunction):
         self.TextIndex = []
         
 class Delimiter(ind.Delimiter):
+    """Represents a <Delimiter> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Delimiter, self).__init__()
         self.delimiter = None
@@ -775,6 +843,7 @@ class Delimiter(ind.Delimiter):
         self.Extension = []
         
 class DerivedField(ind.DerivedField):
+    """Represents a <DerivedField> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(DerivedField, self).__init__()
         self.name = None
@@ -796,6 +865,7 @@ class DerivedField(ind.DerivedField):
         self.Value = []
 
 class DiscrStats(ind.DiscrStats):
+    """Represents a <DiscrStats> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(DiscrStats, self).__init__()
         self.modalValue = None
@@ -805,6 +875,7 @@ class DiscrStats(ind.DiscrStats):
         self.Extension = []
         
 class Discretize(ind.Discretize):
+    """Represents a <Discretize> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Discretize, self).__init__()
         self.field = None
@@ -817,6 +888,7 @@ class Discretize(ind.Discretize):
         self.Extension = []
         
 class DiscretizeBin(ind.DiscretizeBin):
+    """Represents a <DiscretizeBin> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(DiscretizeBin, self).__init__()
         self.binValue = None
@@ -826,6 +898,7 @@ class DiscretizeBin(ind.DiscretizeBin):
         self.Interval = []
         
 class DocumentTermMatrix(ind.DocumentTermMatrix):
+    """Represents a <DocumentTermMatrix> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(DocumentTermMatrix, self).__init__()
         for key, value in attribs.items():
@@ -834,6 +907,7 @@ class DocumentTermMatrix(ind.DocumentTermMatrix):
         self.Matrix = []
         
 class EventValues(ind.EventValues):
+    """Represents a <EventValues> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(EventValues, self).__init__()
         for key, value in attribs.items():
@@ -843,6 +917,7 @@ class EventValues(ind.EventValues):
         self.Value = []
         
 class ExponentialSmoothing(ind.ExponentialSmoothing):
+    """Represents a <ExponentialSmoothing> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ExponentialSmoothing, self).__init__()
         self.RMSE = None
@@ -855,6 +930,7 @@ class ExponentialSmoothing(ind.ExponentialSmoothing):
         self.Trend_ExpoSmooth = []
         
 class Extension(ind.Extension):
+    """Represents a <Extension> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Extension, self).__init__()
         self.extender = None
@@ -864,6 +940,7 @@ class Extension(ind.Extension):
             setattr(self, key, value)
         
 class FactorList(ind.FactorList):
+    """Represents a <FactorList> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(FactorList, self).__init__()
         for key, value in attribs.items():
@@ -872,6 +949,7 @@ class FactorList(ind.FactorList):
         self.Predictor = []
         
 class AlwaysFalse(ind.AlwaysFalse):
+    """Represents a <AlwaysFalse> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(AlwaysFalse, self).__init__()
         for key, value in attribs.items():
@@ -883,6 +961,7 @@ class AlwaysFalse(ind.AlwaysFalse):
         return "False"
 
 class FieldColumnPair(ind.FieldColumnPair):
+    """Represents a <FieldColumnPair> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(FieldColumnPair, self).__init__()
         self.field = None
@@ -892,6 +971,7 @@ class FieldColumnPair(ind.FieldColumnPair):
         self.Extension = []
         
 class FieldRef(ind.FieldRef):
+    """Represents a <FieldRef> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(FieldRef, self).__init__()
         self.field = None
@@ -901,6 +981,7 @@ class FieldRef(ind.FieldRef):
         self.Extension = []
         
 class FieldValue(ind.FieldValue):
+    """Represents a <FieldValue> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(FieldValue, self).__init__()
         self.field = None
@@ -912,6 +993,7 @@ class FieldValue(ind.FieldValue):
         self.FieldValueCount = []
         
 class FieldValueCount(ind.FieldValueCount):
+    """Represents a <FieldValueCount> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(FieldValueCount, self).__init__()
         self.field = None
@@ -922,6 +1004,7 @@ class FieldValueCount(ind.FieldValueCount):
         self.Extension = []
         
 class GaussianDistribution(ind.GaussianDistribution):
+    """Represents a <GaussianDistribution> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(GaussianDistribution, self).__init__()
         self.mean = None
@@ -931,6 +1014,7 @@ class GaussianDistribution(ind.GaussianDistribution):
         self.Extension = []
         
 class GeneralRegressionModel(ind.GeneralRegressionModel):
+    """Represents a <GeneralRegressionModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(GeneralRegressionModel, self).__init__()
         self.targetVariableName = None
@@ -975,6 +1059,7 @@ class GeneralRegressionModel(ind.GeneralRegressionModel):
         self.Targets = []
         
 class Header(ind.Header):
+    """Represents a <Header> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Header, self).__init__()
         self.copyright = None
@@ -987,6 +1072,7 @@ class Header(ind.Header):
         self.Timestamp = []
         
 class INT_Entries(ind.INT_Entries):
+    """Represents a <INT_Entries> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(INT_Entries, self).__init__()
         for key, value in attribs.items():
@@ -997,6 +1083,7 @@ class INT_Entries(ind.INT_Entries):
         return "INT-Entries"
 
 class INT_SparseArray(ind.INT_SparseArray):
+    """Represents a <INT_SparseArray> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(INT_SparseArray, self).__init__()
         self.n = None
@@ -1011,12 +1098,14 @@ class INT_SparseArray(ind.INT_SparseArray):
         return "INT-SparseArray"
 
 class Indices(ind.Indices):
+    """Represents a <Indices> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Indices, self).__init__()
         for key, value in attribs.items():
             setattr(self, key, value)
         
 class InlineTable(ind.InlineTable):
+    """Represents a <InlineTable> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(InlineTable, self).__init__()
         for key, value in attribs.items():
@@ -1025,6 +1114,7 @@ class InlineTable(ind.InlineTable):
         self.row = []
         
 class InstanceField(ind.InstanceField):
+    """Represents a <InstanceField> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(InstanceField, self).__init__()
         self.field = None
@@ -1034,6 +1124,7 @@ class InstanceField(ind.InstanceField):
         self.Extension = []
         
 class InstanceFields(ind.InstanceFields):
+    """Represents a <InstanceFields> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(InstanceFields, self).__init__()
         for key, value in attribs.items():
@@ -1042,6 +1133,7 @@ class InstanceFields(ind.InstanceFields):
         self.InstanceField = []
         
 class Interval(ind.Interval):
+    """Represents a <Interval> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Interval, self).__init__()
         self.closure = None
@@ -1052,6 +1144,7 @@ class Interval(ind.Interval):
         self.Extension = []
         
 class Item(ind.Item):
+    """Represents a <Item> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Item, self).__init__()
         self.id = None
@@ -1063,6 +1156,7 @@ class Item(ind.Item):
         self.Extension = []
         
 class ItemRef(ind.ItemRef):
+    """Represents a <ItemRef> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ItemRef, self).__init__()
         self.itemRef = None
@@ -1071,6 +1165,7 @@ class ItemRef(ind.ItemRef):
         self.Extension = []
         
 class Itemset(ind.Itemset):
+    """Represents a <Itemset> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Itemset, self).__init__()
         self.id = None
@@ -1082,6 +1177,7 @@ class Itemset(ind.Itemset):
         self.ItemRef = []
         
 class KNNInput(ind.KNNInput):
+    """Represents a <KNNInput> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(KNNInput, self).__init__()
         self.field = None
@@ -1092,6 +1188,7 @@ class KNNInput(ind.KNNInput):
         self.Extension = []
         
 class KNNInputs(ind.KNNInputs):
+    """Represents a <KNNInputs> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(KNNInputs, self).__init__()
         for key, value in attribs.items():
@@ -1100,6 +1197,7 @@ class KNNInputs(ind.KNNInputs):
         self.KNNInput = []
         
 class KohonenMap(ind.KohonenMap):
+    """Represents a <KohonenMap> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(KohonenMap, self).__init__()
         self.coord1 = None
@@ -1110,6 +1208,7 @@ class KohonenMap(ind.KohonenMap):
         self.Extension = []
         
 class Level(ind.Level):
+    """Represents a <Level> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Level, self).__init__()
         self.alpha = None
@@ -1118,6 +1217,7 @@ class Level(ind.Level):
             setattr(self, key, value)
         
 class LiftData(ind.LiftData):
+    """Represents a <LiftData> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(LiftData, self).__init__()
         self.targetFieldValue = None
@@ -1131,6 +1231,7 @@ class LiftData(ind.LiftData):
         self.RandomLiftGraph = []
         
 class LiftGraph(ind.LiftGraph):
+    """Represents a <LiftGraph> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(LiftGraph, self).__init__()
         for key, value in attribs.items():
@@ -1142,6 +1243,7 @@ class LiftGraph(ind.LiftGraph):
         self.YCoordinates = []
         
 class LinearKernelType(ind.LinearKernelType):
+    """Represents a <LinearKernelType> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(LinearKernelType, self).__init__()
         self.description = None
@@ -1150,6 +1252,7 @@ class LinearKernelType(ind.LinearKernelType):
         self.Extension = []
         
 class LinearNorm(ind.LinearNorm):
+    """Represents a <LinearNorm> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(LinearNorm, self).__init__()
         self.orig = None
@@ -1159,6 +1262,7 @@ class LinearNorm(ind.LinearNorm):
         self.Extension = []
         
 class LocalTransformations(ind.LocalTransformations):
+    """Represents a <LocalTransformations> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(LocalTransformations, self).__init__()
         for key, value in attribs.items():
@@ -1167,6 +1271,7 @@ class LocalTransformations(ind.LocalTransformations):
         self.Extension = []
         
 class MapValues(ind.MapValues):
+    """Represents a <MapValues> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(MapValues, self).__init__()
         self.mapMissingTo = None
@@ -1181,6 +1286,7 @@ class MapValues(ind.MapValues):
         self.TableLocator = []
         
 class MatCell(ind.MatCell):
+    """Represents a <MatCell> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(MatCell, self).__init__()
         self.row = None
@@ -1189,6 +1295,7 @@ class MatCell(ind.MatCell):
             setattr(self, key, value)
         
 class Matrix(ind.Matrix):
+    """Represents a <Matrix> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Matrix, self).__init__()
         self.kind = None
@@ -1202,6 +1309,7 @@ class Matrix(ind.Matrix):
         self.MatCell = []
         
 class MiningBuildTask(ind.MiningBuildTask):
+    """Represents a <MiningBuildTask> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(MiningBuildTask, self).__init__()
         for key, value in attribs.items():
@@ -1209,6 +1317,7 @@ class MiningBuildTask(ind.MiningBuildTask):
         self.Extension = []
         
 class MiningField(ind.MiningField):
+    """Represents a <MiningField> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(MiningField, self).__init__()
         self.name = None
@@ -1226,6 +1335,7 @@ class MiningField(ind.MiningField):
         self.Extension = []
         
 class MiningModel(ind.MiningModel):
+    """Represents a <MiningModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(MiningModel, self).__init__()
         self.modelName = None
@@ -1247,6 +1357,7 @@ class MiningModel(ind.MiningModel):
         self.Targets = []
         
 class MiningSchema(ind.MiningSchema):
+    """Represents a <MiningSchema> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(MiningSchema, self).__init__()
         for key, value in attribs.items():
@@ -1255,6 +1366,7 @@ class MiningSchema(ind.MiningSchema):
         self.MiningField = []
         
 class MissingValueWeights(ind.MissingValueWeights):
+    """Represents a <MissingValueWeights> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(MissingValueWeights, self).__init__()
         for key, value in attribs.items():
@@ -1263,6 +1375,7 @@ class MissingValueWeights(ind.MissingValueWeights):
         self.Extension = []
         
 class ModelExplanation(ind.ModelExplanation):
+    """Represents a <ModelExplanation> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ModelExplanation, self).__init__()
         for key, value in attribs.items():
@@ -1273,6 +1386,7 @@ class ModelExplanation(ind.ModelExplanation):
         self.PredictiveModelQuality = []
         
 class ModelLiftGraph(ind.ModelLiftGraph):
+    """Represents a <ModelLiftGraph> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ModelLiftGraph, self).__init__()
         for key, value in attribs.items():
@@ -1281,6 +1395,7 @@ class ModelLiftGraph(ind.ModelLiftGraph):
         self.LiftGraph = []
         
 class ModelStats(ind.ModelStats):
+    """Represents a <ModelStats> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ModelStats, self).__init__()
         for key, value in attribs.items():
@@ -1290,6 +1405,7 @@ class ModelStats(ind.ModelStats):
         self.UnivariateStats = []
         
 class ModelVerification(ind.ModelVerification):
+    """Represents a <ModelVerification> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ModelVerification, self).__init__()
         self.recordCount = None
@@ -1301,6 +1417,7 @@ class ModelVerification(ind.ModelVerification):
         self.VerificationFields = []
         
 class MultivariateStat(ind.MultivariateStat):
+    """Represents a <MultivariateStat> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(MultivariateStat, self).__init__()
         self.name = None
@@ -1324,6 +1441,7 @@ class MultivariateStat(ind.MultivariateStat):
         self.Extension = []
         
 class MultivariateStats(ind.MultivariateStats):
+    """Represents a <MultivariateStats> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(MultivariateStats, self).__init__()
         self.targetCategory = None
@@ -1333,6 +1451,7 @@ class MultivariateStats(ind.MultivariateStats):
         self.MultivariateStat = []
         
 class NaiveBayesModel(ind.NaiveBayesModel):
+    """Represents a <NaiveBayesModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NaiveBayesModel, self).__init__()
         self.modelName = None
@@ -1354,6 +1473,7 @@ class NaiveBayesModel(ind.NaiveBayesModel):
         self.Targets = []
         
 class NearestNeighborModel(ind.NearestNeighborModel):
+    """Represents a <NearestNeighborModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NearestNeighborModel, self).__init__()
         self.modelName = None
@@ -1380,6 +1500,7 @@ class NearestNeighborModel(ind.NearestNeighborModel):
         self.TrainingInstances = []
         
 class NeuralInput(ind.NeuralInput):
+    """Represents a <NeuralInput> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NeuralInput, self).__init__()
         self.id = None
@@ -1389,6 +1510,7 @@ class NeuralInput(ind.NeuralInput):
         self.Extension = []
         
 class NeuralInputs(ind.NeuralInputs):
+    """Represents a <NeuralInputs> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NeuralInputs, self).__init__()
         self.numberOfInputs = None
@@ -1398,6 +1520,7 @@ class NeuralInputs(ind.NeuralInputs):
         self.NeuralInput = []
         
 class NeuralLayer(ind.NeuralLayer):
+    """Represents a <NeuralLayer> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NeuralLayer, self).__init__()
         self.numberOfNeurons = None
@@ -1412,6 +1535,7 @@ class NeuralLayer(ind.NeuralLayer):
         self.Neuron = []
         
 class NeuralNetwork(ind.NeuralNetwork):
+    """Represents a <NeuralNetwork> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NeuralNetwork, self).__init__()
         self.modelName = None
@@ -1439,6 +1563,7 @@ class NeuralNetwork(ind.NeuralNetwork):
         self.Targets = []
         
 class NeuralOutput(ind.NeuralOutput):
+    """Represents a <NeuralOutput> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NeuralOutput, self).__init__()
         self.outputNeuron = None
@@ -1448,6 +1573,7 @@ class NeuralOutput(ind.NeuralOutput):
         self.Extension = []
         
 class NeuralOutputs(ind.NeuralOutputs):
+    """Represents a <NeuralOutputs> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NeuralOutputs, self).__init__()
         self.numberOfOutputs = None
@@ -1457,6 +1583,7 @@ class NeuralOutputs(ind.NeuralOutputs):
         self.NeuralOutput = []
         
 class Neuron(ind.Neuron):
+    """Represents a <Neuron> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Neuron, self).__init__()
         self.id = None
@@ -1469,6 +1596,7 @@ class Neuron(ind.Neuron):
         self.Extension = []
         
 class Node(ind.Node):
+    """Represents a <Node> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Node, self).__init__()
         self.id = None
@@ -1490,6 +1618,7 @@ class Node(ind.Node):
         self.AlwaysTrue = []
         
 class NormContinuous(ind.NormContinuous):
+    """Represents a <NormContinuous> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NormContinuous, self).__init__()
         self.mapMissingTo = None
@@ -1501,6 +1630,7 @@ class NormContinuous(ind.NormContinuous):
         self.LinearNorm = []
         
 class NormDiscrete(ind.NormDiscrete):
+    """Represents a <NormDiscrete> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NormDiscrete, self).__init__()
         self.field = None
@@ -1512,12 +1642,14 @@ class NormDiscrete(ind.NormDiscrete):
         self.Extension = []
         
 class NormalizedCountTable(ind.NormalizedCountTable):
+    """Represents a <NormalizedCountTable> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NormalizedCountTable, self).__init__()
         for key, value in attribs.items():
             setattr(self, key, value)
         
 class NumericInfo(ind.NumericInfo):
+    """Represents a <NumericInfo> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NumericInfo, self).__init__()
         self.minimum = None
@@ -1532,6 +1664,7 @@ class NumericInfo(ind.NumericInfo):
         self.Quantile = []
         
 class NumericPredictor(ind.NumericPredictor):
+    """Represents a <NumericPredictor> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(NumericPredictor, self).__init__()
         self.name = None
@@ -1542,6 +1675,7 @@ class NumericPredictor(ind.NumericPredictor):
         self.Extension = []
         
 class OptimumLiftGraph(ind.OptimumLiftGraph):
+    """Represents a <OptimumLiftGraph> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(OptimumLiftGraph, self).__init__()
         for key, value in attribs.items():
@@ -1550,6 +1684,7 @@ class OptimumLiftGraph(ind.OptimumLiftGraph):
         self.LiftGraph = []
         
 class Output(ind.Output):
+    """Represents a <Output> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Output, self).__init__()
         for key, value in attribs.items():
@@ -1558,6 +1693,7 @@ class Output(ind.Output):
         self.OutputField = []
         
 class OutputField(ind.OutputField):
+    """Represents a <OutputField> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(OutputField, self).__init__()
         self.name = None
@@ -1589,6 +1725,7 @@ class OutputField(ind.OutputField):
         self.TextIndex = []
         
 class PCell(ind.PCell):
+    """Represents a <PCell> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(PCell, self).__init__()
         self.targetCategory = None
@@ -1600,6 +1737,7 @@ class PCell(ind.PCell):
         self.Extension = []
         
 class PCovCell(ind.PCovCell):
+    """Represents a <PCovCell> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(PCovCell, self).__init__()
         self.pRow = None
@@ -1613,6 +1751,7 @@ class PCovCell(ind.PCovCell):
         self.Extension = []
         
 class PCovMatrix(ind.PCovMatrix):
+    """Represents a <PCovMatrix> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(PCovMatrix, self).__init__()
         self.type = None
@@ -1622,6 +1761,7 @@ class PCovMatrix(ind.PCovMatrix):
         self.PCovCell = []
         
 class PPCell(ind.PPCell):
+    """Represents a <PPCell> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(PPCell, self).__init__()
         self.value = None
@@ -1633,6 +1773,7 @@ class PPCell(ind.PPCell):
         self.Extension = []
         
 class PPMatrix(ind.PPMatrix):
+    """Represents a <PPMatrix> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(PPMatrix, self).__init__()
         for key, value in attribs.items():
@@ -1641,6 +1782,7 @@ class PPMatrix(ind.PPMatrix):
         self.PPCell = []
         
 class PairCounts(ind.PairCounts):
+    """Represents a <PairCounts> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(PairCounts, self).__init__()
         self.value = None
@@ -1650,6 +1792,7 @@ class PairCounts(ind.PairCounts):
         self.TargetValueCounts = []
         
 class ParamMatrix(ind.ParamMatrix):
+    """Represents a <ParamMatrix> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ParamMatrix, self).__init__()
         for key, value in attribs.items():
@@ -1658,6 +1801,7 @@ class ParamMatrix(ind.ParamMatrix):
         self.PCell = []
         
 class Parameter(ind.Parameter):
+    """Represents a <Parameter> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Parameter, self).__init__()
         self.name = None
@@ -1668,6 +1812,7 @@ class Parameter(ind.Parameter):
         self.Extension = []
         
 class ParameterField(ind.ParameterField):
+    """Represents a <ParameterField> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ParameterField, self).__init__()
         self.name = None
@@ -1677,6 +1822,7 @@ class ParameterField(ind.ParameterField):
             setattr(self, key, value)
         
 class ParameterList(ind.ParameterList):
+    """Represents a <ParameterList> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ParameterList, self).__init__()
         for key, value in attribs.items():
@@ -1685,6 +1831,7 @@ class ParameterList(ind.ParameterList):
         self.Parameter = []
         
 class Partition(ind.Partition):
+    """Represents a <Partition> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Partition, self).__init__()
         self.name = None
@@ -1695,6 +1842,7 @@ class Partition(ind.Partition):
         self.PartitionFieldStats = []
         
 class PartitionFieldStats(ind.PartitionFieldStats):
+    """Represents a <PartitionFieldStats> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(PartitionFieldStats, self).__init__()
         self.field = None
@@ -1707,6 +1855,7 @@ class PartitionFieldStats(ind.PartitionFieldStats):
         self.NumericInfo = []
         
 class PoissonDistribution(ind.PoissonDistribution):
+    """Represents a <PoissonDistribution> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(PoissonDistribution, self).__init__()
         self.mean = None
@@ -1715,6 +1864,7 @@ class PoissonDistribution(ind.PoissonDistribution):
         self.Extension = []
         
 class PolynomialKernelType(ind.PolynomialKernelType):
+    """Represents a <PolynomialKernelType> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(PolynomialKernelType, self).__init__()
         self.description = None
@@ -1726,6 +1876,7 @@ class PolynomialKernelType(ind.PolynomialKernelType):
         self.Extension = []
         
 class PredictiveModelQuality(ind.PredictiveModelQuality):
+    """Represents a <PredictiveModelQuality> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(PredictiveModelQuality, self).__init__()
         self.targetField = None
@@ -1755,6 +1906,7 @@ class PredictiveModelQuality(ind.PredictiveModelQuality):
         self.ROC = []
         
 class Predictor(ind.Predictor):
+    """Represents a <Predictor> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Predictor, self).__init__()
         self.name = None
@@ -1766,6 +1918,7 @@ class Predictor(ind.Predictor):
         self.Matrix = []
         
 class PredictorTerm(ind.PredictorTerm):
+    """Represents a <PredictorTerm> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(PredictorTerm, self).__init__()
         self.name = None
@@ -1776,6 +1929,7 @@ class PredictorTerm(ind.PredictorTerm):
         self.FieldRef = []
         
 class Quantile(ind.Quantile):
+    """Represents a <Quantile> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Quantile, self).__init__()
         self.quantileLimit = None
@@ -1785,6 +1939,7 @@ class Quantile(ind.Quantile):
         self.Extension = []
         
 class REAL_Entries(ind.REAL_Entries):
+    """Represents a <REAL_Entries> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(REAL_Entries, self).__init__()
         for key, value in attribs.items():
@@ -1795,6 +1950,7 @@ class REAL_Entries(ind.REAL_Entries):
         return "REAL-Entries"
 
 class REAL_SparseArray(ind.REAL_SparseArray):
+    """Represents a <REAL_SparseArray> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(REAL_SparseArray, self).__init__()
         self.n = None
@@ -1809,6 +1965,7 @@ class REAL_SparseArray(ind.REAL_SparseArray):
         return "REAL-SparseArray"
 
 class ROC(ind.ROC):
+    """Represents a <ROC> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ROC, self).__init__()
         self.positiveTargetFieldValue = None
@@ -1821,6 +1978,7 @@ class ROC(ind.ROC):
         self.ROCGraph = []
         
 class ROCGraph(ind.ROCGraph):
+    """Represents a <ROCGraph> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ROCGraph, self).__init__()
         for key, value in attribs.items():
@@ -1831,6 +1989,7 @@ class ROCGraph(ind.ROCGraph):
         self.YCoordinates = []
         
 class RadialBasisKernelType(ind.RadialBasisKernelType):
+    """Represents a <RadialBasisKernelType> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(RadialBasisKernelType, self).__init__()
         self.description = None
@@ -1840,6 +1999,7 @@ class RadialBasisKernelType(ind.RadialBasisKernelType):
         self.Extension = []
         
 class RandomLiftGraph(ind.RandomLiftGraph):
+    """Represents a <RandomLiftGraph> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(RandomLiftGraph, self).__init__()
         for key, value in attribs.items():
@@ -1848,6 +2008,7 @@ class RandomLiftGraph(ind.RandomLiftGraph):
         self.LiftGraph = []
         
 class Regression(ind.Regression):
+    """Represents a <Regression> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Regression, self).__init__()
         self.modelName = None
@@ -1865,6 +2026,7 @@ class Regression(ind.Regression):
         self.Targets = []
         
 class RegressionModel(ind.RegressionModel):
+    """Represents a <RegressionModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(RegressionModel, self).__init__()
         self.modelName = None
@@ -1887,6 +2049,7 @@ class RegressionModel(ind.RegressionModel):
         self.Targets = []
         
 class RegressionTable(ind.RegressionTable):
+    """Represents a <RegressionTable> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(RegressionTable, self).__init__()
         self.intercept = None
@@ -1899,6 +2062,7 @@ class RegressionTable(ind.RegressionTable):
         self.PredictorTerm = []
         
 class ResultField(ind.ResultField):
+    """Represents a <ResultField> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ResultField, self).__init__()
         self.name = None
@@ -1912,6 +2076,7 @@ class ResultField(ind.ResultField):
         self.Extension = []
         
 class RuleSelectionMethod(ind.RuleSelectionMethod):
+    """Represents a <RuleSelectionMethod> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(RuleSelectionMethod, self).__init__()
         self.criterion = None
@@ -1920,6 +2085,7 @@ class RuleSelectionMethod(ind.RuleSelectionMethod):
         self.Extension = []
         
 class RuleSet(ind.RuleSet):
+    """Represents a <RuleSet> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(RuleSet, self).__init__()
         self.recordCount = None
@@ -1935,6 +2101,7 @@ class RuleSet(ind.RuleSet):
         self.SimpleRule = []
         
 class RuleSetModel(ind.RuleSetModel):
+    """Represents a <RuleSetModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(RuleSetModel, self).__init__()
         self.modelName = None
@@ -1954,6 +2121,7 @@ class RuleSetModel(ind.RuleSetModel):
         self.Targets = []
         
 class ScoreDistribution(ind.ScoreDistribution):
+    """Represents a <ScoreDistribution> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(ScoreDistribution, self).__init__()
         self.value = None
@@ -1965,6 +2133,7 @@ class ScoreDistribution(ind.ScoreDistribution):
         self.Extension = []
         
 class Scorecard(ind.Scorecard):
+    """Represents a <Scorecard> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Scorecard, self).__init__()
         self.modelName = None
@@ -1989,12 +2158,14 @@ class Scorecard(ind.Scorecard):
         self.Targets = []
         
 class SeasonalTrendDecomposition(ind.SeasonalTrendDecomposition):
+    """Represents a <SeasonalTrendDecomposition> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SeasonalTrendDecomposition, self).__init__()
         for key, value in attribs.items():
             setattr(self, key, value)
         
 class Seasonality_ExpoSmooth(ind.Seasonality_ExpoSmooth):
+    """Represents a <Seasonality_ExpoSmooth> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Seasonality_ExpoSmooth, self).__init__()
         self.type = None
@@ -2007,6 +2178,7 @@ class Seasonality_ExpoSmooth(ind.Seasonality_ExpoSmooth):
         self.Array = []
         
 class Segment(ind.Segment):
+    """Represents a <Segment> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Segment, self).__init__()
         self.id = None
@@ -2037,6 +2209,7 @@ class Segment(ind.Segment):
         self.AlwaysTrue = []
         
 class Segmentation(ind.Segmentation):
+    """Represents a <Segmentation> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Segmentation, self).__init__()
         self.multipleModelMethod = None
@@ -2046,6 +2219,7 @@ class Segmentation(ind.Segmentation):
         self.Segment = []
         
 class Sequence(ind.Sequence):
+    """Represents a <Sequence> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Sequence, self).__init__()
         self.id = None
@@ -2060,6 +2234,7 @@ class Sequence(ind.Sequence):
         self.Time = []
         
 class SequenceModel(ind.SequenceModel):
+    """Represents a <SequenceModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SequenceModel, self).__init__()
         self.modelName = None
@@ -2086,6 +2261,7 @@ class SequenceModel(ind.SequenceModel):
         self.SetPredicate = []
         
 class SequenceReference(ind.SequenceReference):
+    """Represents a <SequenceReference> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SequenceReference, self).__init__()
         self.seqId = None
@@ -2094,6 +2270,7 @@ class SequenceReference(ind.SequenceReference):
         self.Extension = []
         
 class SequenceRule(ind.SequenceRule):
+    """Represents a <SequenceRule> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SequenceRule, self).__init__()
         self.id = None
@@ -2111,6 +2288,7 @@ class SequenceRule(ind.SequenceRule):
         self.Time = []
         
 class SetPredicate(ind.SetPredicate):
+    """Represents a <SetPredicate> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SetPredicate, self).__init__()
         self.id = None
@@ -2122,6 +2300,7 @@ class SetPredicate(ind.SetPredicate):
         self.Extension = []
         
 class SetReference(ind.SetReference):
+    """Represents a <SetReference> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SetReference, self).__init__()
         self.setId = None
@@ -2130,6 +2309,7 @@ class SetReference(ind.SetReference):
         self.Extension = []
         
 class SigmoidKernelType(ind.SigmoidKernelType):
+    """Represents a <SigmoidKernelType> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SigmoidKernelType, self).__init__()
         self.description = None
@@ -2140,6 +2320,7 @@ class SigmoidKernelType(ind.SigmoidKernelType):
         self.Extension = []
         
 class SimplePredicate(ind.SimplePredicate):
+    """Represents a <SimplePredicate> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SimplePredicate, self).__init__()
         self.field = None
@@ -2150,6 +2331,7 @@ class SimplePredicate(ind.SimplePredicate):
         self.Extension = []
         
 class SimpleRule(ind.SimpleRule):
+    """Represents a <SimpleRule> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SimpleRule, self).__init__()
         self.id = None
@@ -2169,6 +2351,7 @@ class SimpleRule(ind.SimpleRule):
         self.AlwaysTrue = []
         
 class SimpleSetPredicate(ind.SimpleSetPredicate):
+    """Represents a <SimpleSetPredicate> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SimpleSetPredicate, self).__init__()
         self.field = None
@@ -2179,12 +2362,14 @@ class SimpleSetPredicate(ind.SimpleSetPredicate):
         self.Extension = []
         
 class SpectralAnalysis(ind.SpectralAnalysis):
+    """Represents a <SpectralAnalysis> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SpectralAnalysis, self).__init__()
         for key, value in attribs.items():
             setattr(self, key, value)
         
 class SupportVector(ind.SupportVector):
+    """Represents a <SupportVector> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SupportVector, self).__init__()
         self.vectorId = None
@@ -2193,6 +2378,7 @@ class SupportVector(ind.SupportVector):
         self.Extension = []
         
 class SupportVectorMachine(ind.SupportVectorMachine):
+    """Represents a <SupportVectorMachine> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SupportVectorMachine, self).__init__()
         self.targetCategory = None
@@ -2205,6 +2391,7 @@ class SupportVectorMachine(ind.SupportVectorMachine):
         self.SupportVectors = []
         
 class SupportVectorMachineModel(ind.SupportVectorMachineModel):
+    """Represents a <SupportVectorMachineModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SupportVectorMachineModel, self).__init__()
         self.modelName = None
@@ -2232,6 +2419,7 @@ class SupportVectorMachineModel(ind.SupportVectorMachineModel):
         self.VectorDictionary = []
         
 class SupportVectors(ind.SupportVectors):
+    """Represents a <SupportVectors> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(SupportVectors, self).__init__()
         self.numberOfSupportVectors = None
@@ -2242,6 +2430,7 @@ class SupportVectors(ind.SupportVectors):
         self.SupportVector = []
         
 class TableLocator(ind.TableLocator):
+    """Represents a <TableLocator> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TableLocator, self).__init__()
         for key, value in attribs.items():
@@ -2249,6 +2438,7 @@ class TableLocator(ind.TableLocator):
         self.Extension = []
         
 class Target(ind.Target):
+    """Represents a <Target> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Target, self).__init__()
         self.field = None
@@ -2264,6 +2454,7 @@ class Target(ind.Target):
         self.TargetValue = []
         
 class TargetValue(ind.TargetValue):
+    """Represents a <TargetValue> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TargetValue, self).__init__()
         self.value = None
@@ -2276,6 +2467,7 @@ class TargetValue(ind.TargetValue):
         self.Partition = []
         
 class TargetValueCount(ind.TargetValueCount):
+    """Represents a <TargetValueCount> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TargetValueCount, self).__init__()
         self.value = None
@@ -2285,6 +2477,7 @@ class TargetValueCount(ind.TargetValueCount):
         self.Extension = []
         
 class TargetValueCounts(ind.TargetValueCounts):
+    """Represents a <TargetValueCounts> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TargetValueCounts, self).__init__()
         for key, value in attribs.items():
@@ -2293,6 +2486,7 @@ class TargetValueCounts(ind.TargetValueCounts):
         self.TargetValueCount = []
         
 class TargetValueStat(ind.TargetValueStat):
+    """Represents a <TargetValueStat> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TargetValueStat, self).__init__()
         self.value = None
@@ -2305,6 +2499,7 @@ class TargetValueStat(ind.TargetValueStat):
         self.UniformDistribution = []
         
 class TargetValueStats(ind.TargetValueStats):
+    """Represents a <TargetValueStats> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TargetValueStats, self).__init__()
         for key, value in attribs.items():
@@ -2313,6 +2508,7 @@ class TargetValueStats(ind.TargetValueStats):
         self.TargetValueStat = []
         
 class Targets(ind.Targets):
+    """Represents a <Targets> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Targets, self).__init__()
         for key, value in attribs.items():
@@ -2321,6 +2517,7 @@ class Targets(ind.Targets):
         self.Target = []
         
 class Taxonomy(ind.Taxonomy):
+    """Represents a <Taxonomy> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Taxonomy, self).__init__()
         self.name = None
@@ -2330,6 +2527,7 @@ class Taxonomy(ind.Taxonomy):
         self.Extension = []
         
 class TestDistributions(ind.TestDistributions):
+    """Represents a <TestDistributions> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TestDistributions, self).__init__()
         self.field = None
@@ -2345,6 +2543,7 @@ class TestDistributions(ind.TestDistributions):
         self.Extension = []
         
 class TextCorpus(ind.TextCorpus):
+    """Represents a <TextCorpus> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TextCorpus, self).__init__()
         for key, value in attribs.items():
@@ -2353,6 +2552,7 @@ class TextCorpus(ind.TextCorpus):
         self.TextDocument = []
         
 class TextDictionary(ind.TextDictionary):
+    """Represents a <TextDictionary> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TextDictionary, self).__init__()
         for key, value in attribs.items():
@@ -2362,6 +2562,7 @@ class TextDictionary(ind.TextDictionary):
         self.Taxonomy = []
         
 class TextDocument(ind.TextDocument):
+    """Represents a <TextDocument> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TextDocument, self).__init__()
         self.id = None
@@ -2373,6 +2574,7 @@ class TextDocument(ind.TextDocument):
         self.Extension = []
         
 class TextIndex(ind.TextIndex):
+    """Represents a <TextIndex> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TextIndex, self).__init__()
         self.textField = None
@@ -2396,6 +2598,7 @@ class TextIndex(ind.TextIndex):
         self.TextIndexNormalization = []
         
 class TextIndexNormalization(ind.TextIndexNormalization):
+    """Represents a <TextIndexNormalization> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TextIndexNormalization, self).__init__()
         self.inField = None
@@ -2412,6 +2615,7 @@ class TextIndexNormalization(ind.TextIndexNormalization):
         self.TableLocator = []
         
 class TextModel(ind.TextModel):
+    """Represents a <TextModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TextModel, self).__init__()
         self.modelName = None
@@ -2437,6 +2641,7 @@ class TextModel(ind.TextModel):
         self.TextModelSimiliarity = []
         
 class TextModelNormalization(ind.TextModelNormalization):
+    """Represents a <TextModelNormalization> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TextModelNormalization, self).__init__()
         self.localTermWeights = None
@@ -2447,6 +2652,7 @@ class TextModelNormalization(ind.TextModelNormalization):
         self.Extension = []
         
 class TextModelSimiliarity(ind.TextModelSimiliarity):
+    """Represents a <TextModelSimiliarity> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TextModelSimiliarity, self).__init__()
         self.similarityType = None
@@ -2455,6 +2661,7 @@ class TextModelSimiliarity(ind.TextModelSimiliarity):
         self.Extension = []
         
 class Time(ind.Time):
+    """Represents a <Time> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Time, self).__init__()
         self.min = None
@@ -2466,6 +2673,7 @@ class Time(ind.Time):
         self.Extension = []
         
 class TimeAnchor(ind.TimeAnchor):
+    """Represents a <TimeAnchor> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TimeAnchor, self).__init__()
         self.type = None
@@ -2478,6 +2686,7 @@ class TimeAnchor(ind.TimeAnchor):
         self.TimeException = []
         
 class TimeCycle(ind.TimeCycle):
+    """Represents a <TimeCycle> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TimeCycle, self).__init__()
         self.length = None
@@ -2488,6 +2697,7 @@ class TimeCycle(ind.TimeCycle):
         self.Array = []
         
 class TimeException(ind.TimeException):
+    """Represents a <TimeException> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TimeException, self).__init__()
         self.type = None
@@ -2497,6 +2707,7 @@ class TimeException(ind.TimeException):
         self.Array = []
         
 class TimeSeries(ind.TimeSeries):
+    """Represents a <TimeSeries> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TimeSeries, self).__init__()
         self.usage = None
@@ -2509,6 +2720,7 @@ class TimeSeries(ind.TimeSeries):
         self.TimeValue = []
         
 class TimeSeriesModel(ind.TimeSeriesModel):
+    """Represents a <TimeSeriesModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TimeSeriesModel, self).__init__()
         self.modelName = None
@@ -2532,6 +2744,7 @@ class TimeSeriesModel(ind.TimeSeriesModel):
         self.TimeSeries = []
         
 class TimeValue(ind.TimeValue):
+    """Represents a <TimeValue> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TimeValue, self).__init__()
         self.index = None
@@ -2543,6 +2756,7 @@ class TimeValue(ind.TimeValue):
         self.Timestamp = []
         
 class Timestamp(ind.Timestamp):
+    """Represents a <Timestamp> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Timestamp, self).__init__()
         for key, value in attribs.items():
@@ -2550,6 +2764,7 @@ class Timestamp(ind.Timestamp):
         self.Extension = []
         
 class TrainingInstances(ind.TrainingInstances):
+    """Represents a <TrainingInstances> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TrainingInstances, self).__init__()
         self.isTransformed = None
@@ -2563,6 +2778,7 @@ class TrainingInstances(ind.TrainingInstances):
         self.TableLocator = []
         
 class TransformationDictionary(ind.TransformationDictionary):
+    """Represents a <TransformationDictionary> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TransformationDictionary, self).__init__()
         for key, value in attribs.items():
@@ -2572,6 +2788,7 @@ class TransformationDictionary(ind.TransformationDictionary):
         self.Extension = []
         
 class TreeModel(ind.TreeModel):
+    """Represents a <TreeModel> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(TreeModel, self).__init__()
         self.modelName = None
@@ -2595,6 +2812,7 @@ class TreeModel(ind.TreeModel):
         self.Targets = []
         
 class Trend_ExpoSmooth(ind.Trend_ExpoSmooth):
+    """Represents a <Trend_ExpoSmooth> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Trend_ExpoSmooth, self).__init__()
         self.trend = None
@@ -2606,6 +2824,7 @@ class Trend_ExpoSmooth(ind.Trend_ExpoSmooth):
         self.Array = []
         
 class AlwaysTrue(ind.AlwaysTrue):
+    """Represents a <AlwaysTrue> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(AlwaysTrue, self).__init__()
         for key, value in attribs.items():
@@ -2617,6 +2836,7 @@ class AlwaysTrue(ind.AlwaysTrue):
         return "True"
 
 class UniformDistribution(ind.UniformDistribution):
+    """Represents a <UniformDistribution> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(UniformDistribution, self).__init__()
         self.lower = None
@@ -2626,6 +2846,7 @@ class UniformDistribution(ind.UniformDistribution):
         self.Extension = []
         
 class UnivariateStats(ind.UnivariateStats):
+    """Represents a <UnivariateStats> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(UnivariateStats, self).__init__()
         self.field = None
@@ -2640,6 +2861,7 @@ class UnivariateStats(ind.UnivariateStats):
         self.NumericInfo = []
         
 class Value(ind.Value):
+    """Represents a <Value> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(Value, self).__init__()
         self.value = None
@@ -2650,6 +2872,7 @@ class Value(ind.Value):
         self.Extension = []
         
 class VectorDictionary(ind.VectorDictionary):
+    """Represents a <VectorDictionary> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(VectorDictionary, self).__init__()
         self.numberOfVectors = None
@@ -2660,6 +2883,7 @@ class VectorDictionary(ind.VectorDictionary):
         self.VectorInstance = []
         
 class VectorFields(ind.VectorFields):
+    """Represents a <VectorFields> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(VectorFields, self).__init__()
         self.numberOfFields = None
@@ -2669,6 +2893,7 @@ class VectorFields(ind.VectorFields):
         self.FieldRef = []
         
 class VectorInstance(ind.VectorInstance):
+    """Represents a <VectorInstance> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(VectorInstance, self).__init__()
         self.id = None
@@ -2679,6 +2904,7 @@ class VectorInstance(ind.VectorInstance):
         self.REAL_SparseArray = []
         
 class VerificationField(ind.VerificationField):
+    """Represents a <VerificationField> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(VerificationField, self).__init__()
         self.field = None
@@ -2690,6 +2916,7 @@ class VerificationField(ind.VerificationField):
         self.Extension = []
         
 class VerificationFields(ind.VerificationFields):
+    """Represents a <VerificationFields> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(VerificationFields, self).__init__()
         for key, value in attribs.items():
@@ -2698,6 +2925,7 @@ class VerificationFields(ind.VerificationFields):
         self.VerificationField = []
         
 class XCoordinates(ind.XCoordinates):
+    """Represents a <XCoordinates> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(XCoordinates, self).__init__()
         for key, value in attribs.items():
@@ -2706,6 +2934,7 @@ class XCoordinates(ind.XCoordinates):
         self.Extension = []
         
 class YCoordinates(ind.YCoordinates):
+    """Represents a <YCoordinates> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(YCoordinates, self).__init__()
         for key, value in attribs.items():
@@ -2714,6 +2943,7 @@ class YCoordinates(ind.YCoordinates):
         self.Extension = []
         
 class binarySimilarity(ind.binarySimilarity):
+    """Represents a <binarySimilarity> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(binarySimilarity, self).__init__()
         self.c00_parameter = None
@@ -2729,6 +2959,7 @@ class binarySimilarity(ind.binarySimilarity):
         self.Extension = []
         
 class chebychev(ind.chebychev):
+    """Represents a <chebychev> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(chebychev, self).__init__()
         for key, value in attribs.items():
@@ -2736,6 +2967,7 @@ class chebychev(ind.chebychev):
         self.Extension = []
         
 class cityBlock(ind.cityBlock):
+    """Represents a <cityBlock> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(cityBlock, self).__init__()
         for key, value in attribs.items():
@@ -2743,6 +2975,7 @@ class cityBlock(ind.cityBlock):
         self.Extension = []
         
 class euclidean(ind.euclidean):
+    """Represents a <euclidean> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(euclidean, self).__init__()
         for key, value in attribs.items():
@@ -2750,6 +2983,7 @@ class euclidean(ind.euclidean):
         self.Extension = []
         
 class jaccard(ind.jaccard):
+    """Represents a <jaccard> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(jaccard, self).__init__()
         for key, value in attribs.items():
@@ -2757,6 +2991,7 @@ class jaccard(ind.jaccard):
         self.Extension = []
         
 class minkowski(ind.minkowski):
+    """Represents a <minkowski> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(minkowski, self).__init__()
         self.p_parameter = None
@@ -2765,12 +3000,14 @@ class minkowski(ind.minkowski):
         self.Extension = []
         
 class row(ind.row):
+    """Represents a <row> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(row, self).__init__()
         for key, value in attribs.items():
             setattr(self, key, value)
         
 class simpleMatching(ind.simpleMatching):
+    """Represents a <simpleMatching> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(simpleMatching, self).__init__()
         for key, value in attribs.items():
@@ -2778,6 +3015,7 @@ class simpleMatching(ind.simpleMatching):
         self.Extension = []
         
 class squaredEuclidean(ind.squaredEuclidean):
+    """Represents a <squaredEuclidean> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(squaredEuclidean, self).__init__()
         for key, value in attribs.items():
@@ -2785,6 +3023,7 @@ class squaredEuclidean(ind.squaredEuclidean):
         self.Extension = []
         
 class tanimoto(ind.tanimoto):
+    """Represents a <tanimoto> tag in v4.2 and provides methods to convert to PFA."""
     def __init__(self, attribs):
         super(tanimoto, self).__init__()
         for key, value in attribs.items():

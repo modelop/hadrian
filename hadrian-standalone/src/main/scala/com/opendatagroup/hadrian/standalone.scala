@@ -7,19 +7,22 @@ import java.io.FileInputStream
 import scala.collection.JavaConversions._
 import scala.language.postfixOps
 
+import org.apache.commons.csv.CSVFormat
+
 import org.codehaus.jackson.node.ArrayNode
 import org.codehaus.jackson.node.ObjectNode
 
 import com.opendatagroup.hadrian.datatype.AvroConversions._
-import com.opendatagroup.hadrian.jvmcompiler.PFAEngine
+import com.opendatagroup.hadrian.datatype.AvroRecord
 import com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine
+import com.opendatagroup.hadrian.jvmcompiler.PFAEngine
 import com.opendatagroup.hadrian.util.convertFromJson
 
 import com.opendatagroup.antinous.engine.JythonEngine
 
 object Main {
   object Format extends Enumeration {
-    val AVRO, JSON, JSONSCHEMA = Value
+    val AVRO, JSON, JSONSCHEMA, CSV, CSVHEADER = Value
   }
 
   case class Config(numberOfEngines: Int = 1,
@@ -43,19 +46,33 @@ object Main {
 
       opt[String]('i', "inputFormat")
         .optional
-        .validate(x => if (x == "avro"  ||  x == "json") success else failure("inputFormat must be \"avro\" or \"json\""))
-        .action((x, c) => c.copy(inputFormat = if (x == "avro") Format.AVRO else Format.JSON))
-        .text("input format: \"avro\" (default) or \"json\"")
-
-      opt[String]('o', "outputFormat")
-        .optional
-        .validate(x => if (x == "avro"  ||  x == "json"  ||  x == "json+schema") success else failure("outputFormat must be \"avro\", \"json\", or \"json+schema\""))
-        .action((x, c) => c.copy(outputFormat = x match {
+        .validate {_.toLowerCase match {
+          case "avro" | "json" | "csv" | "csv+header" => success
+          case _ => failure("inputFormat must be \"avro\", \"json\", \"json+schema\", \"csv\", or \"csv+header\"")
+        }}
+        .action {(x, c) => c.copy(inputFormat = x.toLowerCase match {
           case "avro" => Format.AVRO
           case "json" => Format.JSON
           case "json+schema" => Format.JSONSCHEMA
-        }))
-        .text("output format: \"avro\" (default), \"json\", or \"json+schema\"")
+          case "csv" => Format.CSV
+          case "csv+header" => Format.CSVHEADER
+        })}
+        .text("input format: \"avro\" (default), \"json\", \"json+schema\", \"csv\", \"csv+header\"")
+
+      opt[String]('o', "outputFormat")
+        .optional
+        .validate {_.toLowerCase match {
+          case "avro" | "json" | "json+schema" | "csv" | "csv+header" => success
+          case _ => failure("outputFormat must be \"avro\", \"json\", \"json+schema\", \"csv\" or \"csv+header\"")
+        }}
+        .action {(x, c) => c.copy(outputFormat = x.toLowerCase match {
+          case "avro" => Format.AVRO
+          case "json" => Format.JSON
+          case "json+schema" => Format.JSONSCHEMA
+          case "csv" => Format.CSV
+          case "csv+header" => Format.CSVHEADER
+        })}
+        .text("output format: \"avro\" (default), \"json\", \"json+schema\", \"csv\", or \"csv+header\"")
 
       opt[String]('s', "saveState")
         .optional
@@ -138,6 +155,17 @@ input.
           val inputIterator = config.inputFormat match {
             case Format.AVRO => engines.head.avroInputIterator[AnyRef](inputStream)
             case Format.JSON => engines.head.jsonInputIterator[AnyRef](inputStream)
+            case Format.JSONSCHEMA =>
+              while (inputStream.read() != 10) {}
+              engines.head.jsonInputIterator[AnyRef](inputStream)
+            case Format.CSV =>
+              val fieldNames = engines.head.inputType match {
+                case AvroRecord(fields, _, _, _, _) => fields.map(_.name)
+                case _ => List[String]()
+              }
+              engines.head.csvInputIterator[AnyRef](inputStream, csvFormat = CSVFormat.DEFAULT.withHeader(fieldNames: _*))
+            case Format.CSVHEADER =>
+              engines.head.csvInputIterator[AnyRef](inputStream, csvFormat = CSVFormat.DEFAULT.withHeader())
           }
 
           while (inputIterator.hasNext) {
@@ -216,6 +244,8 @@ input.
             case Format.AVRO => engines.head.avroOutputDataStream(System.out)
             case Format.JSON => engines.head.jsonOutputDataStream(System.out, false)
             case Format.JSONSCHEMA => engines.head.jsonOutputDataStream(System.out, true)
+            case Format.CSV => engines.head.csvOutputDataStream(System.out, writeHeader = false)
+            case Format.CSVHEADER => engines.head.csvOutputDataStream(System.out, writeHeader = true)
           }
 
           while (engineThreads.exists(_.isAlive)  ||  !outputQueue.isEmpty) {

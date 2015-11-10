@@ -24,6 +24,7 @@ import scala.language.postfixOps
 
 import org.python.core.Py
 import org.python.core.PyDictionary
+import org.python.core.PyStringMap
 import org.python.core.PyFloat
 import org.python.core.PyInteger
 import org.python.core.PyList
@@ -67,6 +68,7 @@ import com.opendatagroup.antinous.data.JythonFixed
 import com.opendatagroup.antinous.data.JythonEnumSymbol
 import com.opendatagroup.antinous.data.JythonRecord
 import com.opendatagroup.antinous.data.JythonSpecificData
+import com.opendatagroup.antinous.data.jythonByteString
 
 package translate {
   object PFAToJythonDataTranslator {
@@ -129,7 +131,7 @@ package translate {
 
     class TranslateBytes extends Translator {
       def toJython(datum: AnyRef): PyObject = datum match {
-        case x: Array[Byte] => new PyString(new String(x))
+        case x: Array[Byte] => jythonByteString(x)
         case x => throw new IllegalArgumentException(s"""schema "bytes" not satisfied by ${x.getClass.getName} ($x)""")
       }
     }
@@ -289,7 +291,7 @@ package translate {
 
     class TranslateBytes extends Translator {
       def toJython(datum: AnyRef): PyObject = datum match {
-        case x: java.nio.ByteBuffer => new PyString(new String(x.array))
+        case x: java.nio.ByteBuffer => jythonByteString(x.array)
         case x => throw new IllegalArgumentException(s"""schema "bytes" not satisfied by ${x.getClass.getName} ($x)""")
       }
     }
@@ -629,7 +631,7 @@ package translate {
     }
 
     class TranslateUnion(toPFATranslate: PartialFunction[AnyRef, AnyRef]) extends Translator {
-      def toPFA(datum: AnyRef): AnyRef = toPFATranslate(datum)
+      def toPFA(datum: AnyRef): AnyRef = toPFATranslate(stripDerived(datum))
     }
 
     def getTranslator(avroType: AvroType): Translator = avroType match {
@@ -689,7 +691,7 @@ package translate {
             case y: TranslateRecord =>  {case datum: JythonRecord if (datum != null  &&  datum.getSchema.getFullName == y.fullName)     => y.toPFA(datum)
                                          case datum: java.util.Map[_, _] if (datum != null  &&  datum.keys.toSet == y.fieldNames.toSet) => y.toPFA(datum)
                                          case datum: PyDictionary if (datum != null  &&  datum.keys.toSet == y.fieldNames.toSet)        => y.toPFA(datum)
-                                         case datum: PyObject if (datum != null  &&  datum.getDict.asInstanceOf[PyDictionary].keys.toSet == y.fieldNames.toSet) => y.toPFA(datum)}: PartialFunction[AnyRef, AnyRef]
+                                         case datum: PyObject if (datum != null  &&  datum.fastGetClass != null  &&  datum.fastGetClass.__getattr__("__name__").toString == y.fullName) => y.toPFA(datum)}: PartialFunction[AnyRef, AnyRef]
             case _ =>                   {case y: PyObject => throw Py.TypeError(s"""schema ${x.schema} not satisfied by ${y.getType.__repr__} (${y.__repr__})""")
                                          case y => throw Py.TypeError(s"""schema ${x.schema} not satisfied by ${y.getClass.getName} ($y)""")}: PartialFunction[AnyRef, AnyRef]
           }

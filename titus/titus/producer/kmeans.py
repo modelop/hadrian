@@ -36,11 +36,13 @@ import titus.prettypfa
 def _NotImplementedError():
     raise NotImplementedError
 class Similarity(object):
+    """Trait for similarity functions in Numpy and PFA (compare two scalars, return a non-negative number)."""
     def __init__(self):
         self.calculate = lambda dataset, cluster: _NotImplementedError()
     def pfa(self):
         raise NotImplementedError
 class Metric(object):
+    """Trait for metric functions in Numpy and PFA (compare two vectors, return a non-negative number)."""
     def __init__(self):
         self.calculate = lambda dataset, cluster: _NotImplementedError()
     def pfa(self):
@@ -49,12 +51,14 @@ class Metric(object):
 ### similarity
 
 class AbsDiff(Similarity):
+    """Absolute difference similarity function for Numpy and PFA."""
     def __init__(self):
         self.calculate = lambda dataset, cluster: numpy.absolute(dataset - cluster)
     def pfa(self):
         return {"fcn": "metric.absDiff"}
 
 class GaussianSimilarity(Similarity):
+    """Gaussian similarity function for Numpy and PFA."""
     def __init__(self, sigma):
         self.calculate = lambda dataset, cluster: numpy.exp(-numpy.log(2) * numpy.square(dataset - cluster) / sigma**2)
         self.sigma = sigma
@@ -68,6 +72,7 @@ class GaussianSimilarity(Similarity):
 ### metrics
 
 class Euclidean(Metric):
+    """Euclidean metric for Numpy and PFA."""
     def __init__(self, similarity):
         self.calculate = lambda dataset, cluster: numpy.sqrt(numpy.sum(numpy.square(similarity.calculate(dataset, cluster)), axis=1))
         self.similarity = similarity
@@ -75,6 +80,7 @@ class Euclidean(Metric):
         return {"metric.euclidean": [self.similarity.pfa(), x, y]}
 
 class SquaredEuclidean(Metric):
+    """Squared euclidean metric for Numpy and PFA."""
     def __init__(self, similarity):
         self.calculate = lambda dataset, cluster: numpy.sum(numpy.square(similarity.calculate(dataset, cluster)), axis=1)
         self.similarity = similarity
@@ -84,6 +90,7 @@ class SquaredEuclidean(Metric):
         return {"metric.squaredEuclidean": [self.similarity.pfa(), x, y]}
 
 class Chebyshev(Metric):
+    """Chebyshev (maximum) metric for Numpy and PFA."""
     def __init__(self, similarity):
         self.calculate = lambda dataset, cluster: numpy.max(similarity.calculate(dataset, cluster), axis=1)
         self.similarity = similarity
@@ -93,6 +100,7 @@ class Chebyshev(Metric):
         return {"metric.chebyshev": [self.similarity.pfa(), x, y]}
 
 class Taxicab(Metric):
+    """Taxicab (sum) metric for Numpy and PFA."""
     def __init__(self, similarity):
         self.calculate = lambda dataset, cluster: numpy.sum(similarity.calculate(dataset, cluster), axis=1)
         self.similarity = similarity
@@ -102,6 +110,7 @@ class Taxicab(Metric):
         return {"metric.taxicab": [self.similarity.pfa(), x, y]}
 
 class Minkowski(Metric):
+    """Minkowski metric for Numpy and PFA."""
     def __init__(self, similarity, p):
         self.calculate = lambda dataset, cluster: numpy.pow(numpy.sum(numpy.pow(similarity.calculate(dataset, cluster), p), axis=1), 1.0/p)
         self.similarity = similarity
@@ -121,6 +130,14 @@ class Minkowski(Metric):
 # 0.001, and keep going if one jumped
 
 def printValue(format="g"):
+    """Generates a "stopping condition" that prints the current value and never stops.
+
+    :type format: string
+    :param format: format string ("g" is general number, "8.3f" is 8-characters wide, 3-digits after the decimal floating point, etc.)
+    :rtype: callable that takes iterationNumber, corrections, values, datasetSize as arguments
+    :return: stopping condition function
+    """
+
     state = {"ready": False}
     def out(iterationNumber, corrections, values, datasetSize):
         if not state["ready"]:
@@ -146,6 +163,14 @@ def printValue(format="g"):
     return out
 
 def printChange(format="g"):
+    """Generates a "stopping condition" that prints changes in values and never stops.
+
+    :type format: string
+    :param format: format string ("g" is general number, "8.3f" is 8-characters wide, 3-digits after the decimal floating point, etc.)
+    :rtype: callable that takes iterationNumber, corrections, values, datasetSize as arguments
+    :return: stopping condition function
+    """
+
     state = {"ready": False}
     def out(iterationNumber, corrections, values, datasetSize):
         if not state["ready"]:
@@ -171,59 +196,95 @@ def printChange(format="g"):
     return out
 
 def clusterJumped():
+    """Generates a stopping condition that stops if no clusters jumped (reset to a random point because of encounting nan).
+
+    :rtype: callable that takes iterationNumber, corrections, values, datasetSize as arguments
+    :return: stopping condition function
+    """
     return lambda iterationNumber, corrections, values, datasetSize: all(x is not None for x in corrections)
 
 def maxIterations(number):
+    """Generates a stopping condition that stops after a given number of iterations have passed.
+
+    :rtype: callable that takes iterationNumber, corrections, values, datasetSize as arguments
+    :return: stopping condition function
+    """
     return lambda iterationNumber, corrections, values, datasetSize: iterationNumber < number
 
 def allChange(threshold):
+    """Generates a stopping condition that stops if all cluster changes are less than a threshold.
+
+    :type threshold: number
+    :param threshold: maximum change allowed for all clusters
+    :rtype: callable that takes iterationNumber, corrections, values, datasetSize as arguments
+    :return: stopping condition function
+    """
     return lambda iterationNumber, corrections, values, datasetSize: not all((numpy.absolute(x) < threshold).all() for x in corrections if x is not None)
 
 def halfChange(threshold):
+    """Generates a stopping condition that stops if half of the cluster changes are less than a threshold.
+
+    :type threshold: number
+    :param threshold: maximum change allowed for half of the clusters
+    :rtype: callable that takes iterationNumber, corrections, values, datasetSize as arguments
+    :return: stopping condition function
+    """
     return lambda iterationNumber, corrections, values, datasetSize: numpy.sum([(numpy.absolute(x) < threshold).all() for x in corrections if x is not None], dtype=numpy.dtype(float)) / numpy.sum([x is not None for x in corrections], dtype=numpy.dtype(float)) < 0.5
 
 def whileall(*conditions):
+    """Generates a stopping condition that continues while all of its subconditions continue.
+
+    :type conditions: stopping condition functions
+    :param conditions: subconditions
+    :rtype: callable that takes iterationNumber, corrections, values, datasetSize as arguments
+    :return: stopping condition function
+    """
     return lambda *args: all(x(*args) for x in conditions)
 
 def whileany(*conditions):
+    """Generates a stopping condition that continues while any of its subconditions continue.
+
+    :type conditions: stopping condition functions
+    :param conditions: subconditions
+    :rtype: callable that takes iterationNumber, corrections, values, datasetSize as arguments
+    :return: stopping condition function
+    """
     return lambda *args: any(x(*args) for x in conditions)
 
 def moving():
+    """Generates a stopping condition that stops when all clusters change less than 1e-15 and none are jumping (reset to a random point because of encounting nan).
+
+    :type conditions: stopping condition functions
+    :param conditions: subconditions
+    :rtype: callable that takes iterationNumber, corrections, values, datasetSize as arguments
+    :return: stopping condition function
+    """
     return whileall(clusterJumped(), allChange(1e-15))
 
 ### the KMeans class
 
 class KMeans(object):
-    """Represents a k-means optimization by storing a dataset and
-    performing all operations *in-place*.
+    """Represents a k-means optimization by storing a dataset and performing all operations *in-place*.
 
-    Usually, you would construct the object, possibly stepup, then
-    optimize and export to pfaDocument."""
+    Usually, you would construct the object, possibly stepup, then optimize and export to pfaDocument.
+    """
 
     def __init__(self, numberOfClusters, dataset, weights=None, metric=Euclidean(AbsDiff()), minPointsInCluster=None, maxPointsForClustering=None):
-        """Construct a KMeans object, initializing cluster centers to
-        unique, random points from the dataset.
+        """Construct a KMeans object, initializing cluster centers to unique, random points from the dataset.
 
-        numberOfClusters is an integer number of clusters (the "k" in
-        k-means).
-
-        dataset is a two-dimensional Numpy array: dataset.shape[0] is
-        the number of records (rows), dataset.shape[1] is the number
-        of dimensions for each point (columns).
-
-        weights may be None or an array of shape (dataset.shape[0],).
-        Used to raise or lower significance of individual points (0
-        means ignore datapoint, 1 means take it as usual).
-
-        metric is a Metric object, such as Euclidean(AbsDiff()).
-
-        minPointsInCluster is None or a minimum number of points
-        before jumping (choosing a random point for a cluster during
-        optimization).
-
-        maxPointsForClustering is None or a maximum number of points
-        in an optimization (if dataset.shape[0] exceeds this amount, a
-        random subset is chosen)."""
+        :type numberOfClusters: positive integer
+        :param numberOfClusters: number of clusters (the "k" in k-means)
+        :type dataset: 2-d Numpy array
+        :param dataset: dataset to cluster; ``dataset.shape[0]`` is the number of records (rows), ``dataset.shape[1]`` is the number of dimensions for each point (columns)
+        :type weights: 1-d Numpy array or ``None``
+        :param weights: how much to weight each point in the ``dataset``: must have shape equal to ``(dataset.shape[0],)``; ``0`` means ignore the dataset, ``1`` means normal weight; ``None`` generates all ones
+        :type metric: titus.produce.kmeans.Metric
+        :param metric: metric for Numpy and PFA, such as ``Euclidean(AbsDiff())``
+        :type minPointsInCluster: non-negative integer or ``None``
+        :param minPointsInCluster: minimum number of points before jumping (replacing cluster with a random point during optimization)
+        :type maxPointsForClustering: positive integer or ``None``
+        :param maxPointsForClustering: maximum number of points in an optimization (if ``dataset.shape[0]`` exceeds this amount, a random subset is chosen)
+        """
 
         if len(dataset.shape) != 2:
             raise TypeError("dataset must be two-dimensional: dataset.shape[0] is the number of records (rows), dataset.shape[1] is the number of dimensions (columns)")
@@ -253,20 +314,33 @@ class KMeans(object):
         self.maxPointsForClustering = maxPointsForClustering
 
     def randomPoint(self):
-        """Pick a random point from the dataset."""
+        """Pick a random point from the dataset.
+
+        :rtype: 1-d Numpy array
+        :return: a *copy* of a random point
+        """
         # make sure to copy it, so there are no hidden connections between dataset and clusters
         return self.uniques[random.randint(0, self.uniques.shape[0] - 1),:].copy()
 
     def newCluster(self):
-        """Pick a random point from the dataset and ensure that it is different from all other cluster centers."""
+        """Pick a random point from the dataset and ensure that it is different from all other cluster centers.
+
+        :rtype: 1-d Numpy array
+        :return: a *copy* of a random point, guaranteed to be different from all other clusters.
+        """
         newCluster = self.randomPoint()
         while any(numpy.array_equal(x, newCluster) for x in self.clusters):
             newCluster = self.randomPoint()
         return newCluster
 
     def randomSubset(self, subsetSize):
-        """Return a (dataset, weights) that are randomly chosen to
-        have subsetSize records."""
+        """Return a (dataset, weights) that are randomly chosen to have ``subsetSize`` records.
+
+        :type subsetSize: positive integer
+        :param subsetSize: size of the sample
+        :rtype: (2-d Numpy array, 1-d Numpy array)
+        :return: (dataset, weights) sampled without replacement (if the original dataset is unique, the new one will be, too)
+        """
 
         if subsetSize <= self.numberOfClusters:
             raise TypeError("subsetSize must be strictly greater than the numberOfClusters")
@@ -281,11 +355,15 @@ class KMeans(object):
         return dataset, weights
 
     def closestCluster(self, dataset=None, weights=None):
-        """Identify the closest cluster to each element in the
-        dataset.
+        """Identify the closest cluster to each element in the dataset.
 
-        Return value is an array of integers corresponding to the
-        indexes of the closest cluster for each datum."""
+        :type dataset: 2-d Numpy array or ``None``
+        :param dataset: an input dataset or the built-in dataset if ``None`` is passed
+        :type weights: 1-d Numpy array or ``None``
+        :param weights: input weights or the built-in weights if ``None`` is passed
+        :rtype: 1-d Numpy array of integers
+        :return: the *indexes* of the closest cluster for each datum
+        """
 
         if dataset is None:
             dataset = self.dataset
@@ -303,14 +381,19 @@ class KMeans(object):
         return numpy.argmin(distanceToCenter, axis=1)
 
     def iterate(self, dataset, weights, iterationNumber, condition):
-        """Perform one iteration step (in-place; modifies
-        self.clusters).
+        """Perform one iteration step (in-place; modifies ``self.clusters``).
 
-        The dataset and weights are passed in so that this may be used
-        with subsets.
-
-        The return value is the result of condition(iterationNumber,
-        corrections, values, dataset.shape[0])."""
+        :type dataset: 2-d Numpy array
+        :param dataset: an input dataset
+        :type weights: 1-d Numpy array
+        :param weights: input weights
+        :type iterationNumber: non-negative integer
+        :param iterationNumber: the iteration number
+        :type condition: callable that takes iterationNumber, corrections, values, datasetSize as arguments
+        :param condition: the stopping condition
+        :rtype: bool
+        :return: the result of the stopping condition
+        """
 
         indexOfClosestCluster = self.closestCluster(dataset, weights)
 
@@ -351,25 +434,23 @@ class KMeans(object):
         return condition(iterationNumber, corrections, values, dataset.shape[0])
 
     def stepup(self, condition, base=2):
-        """Optimize the cluster set in successively larger subsets of
-        the dataset.  (This can be viewed as a cluster seeding
-        technique.)
+        """Optimize the cluster set in successively larger subsets of the dataset.  (This can be viewed as a cluster seeding technique.)
 
-        If randomly seeded, optimizing the whole dataset can be slow
-        to converge: a long time per iteration times many iterations.
+        If randomly seeded, optimizing the whole dataset can be slow to converge: a long time per iteration times many iterations.
 
-        Optimizing a random subset takes as many iterations, but the
-        time per iteration is short.  However, the final cluster
-        centers are only approximate.
+        Optimizing a random subset takes as many iterations, but the time per iteration is short.  However, the final cluster centers are only approximate.
 
-        Optimizing the whole dataset with approximate cluster starting
-        points takes a long time per iteration but fewer iterations.
+        Optimizing the whole dataset with approximate cluster starting points takes a long time per iteration but fewer iterations.
 
-        This procedure runs the k-means optimization technique on
-        random subsets with exponentially increasing sizes from the
-        smallest base**x that is larger than minPointsInCluster (or
-        numberOfClusters) to the largest base**x that is a subset of
-        the whole dataset."""
+        This procedure runs the k-means optimization technique on random subsets with exponentially increasing sizes from the smallest base**x that is larger than minPointsInCluster (or numberOfClusters) to the largest base**x that is a subset of the whole dataset.
+
+        :type condition: callable that takes iterationNumber, corrections, values, datasetSize as arguments
+        :param condition: the stopping condition
+        :type base: integer greater than 1
+        :param base: the factor by which the subset size is increased after each convergence
+        :rtype: ``None``
+        :return: nothing; modifies cluster set in-place
+        """
 
         if self.minPointsInCluster is None:
             minPointsInCluster = self.numberOfClusters
@@ -391,8 +472,13 @@ class KMeans(object):
                 iterationNumber += 1
 
     def optimize(self, condition):
-        """Run a standard k-means (Lloyd's algorithm) on the dataset,
-        changing the clusters *in-place*."""
+        """Run a standard k-means (Lloyd's algorithm) on the dataset, changing the clusters *in-place*.
+
+        :type condition: callable that takes iterationNumber, corrections, values, datasetSize as arguments
+        :param condition: the stopping condition
+        :rtype: ``None``
+        :return: nothing; modifies cluster set in-place
+        """
 
         if self.maxPointsForClustering is None:
             dataset, weights = self.dataset, self.weights
@@ -404,24 +490,56 @@ class KMeans(object):
             iterationNumber += 1
 
     def centers(self, sort=True):
-        """Get the cluster centers as a sorted Python list (canonical form)."""
+        """Get the cluster centers as a sorted Python list (canonical form).
+
+        :type sort: bool
+        :param sort: if ``True``, sort the centers for stable results
+        :rtype: list of list of numbers
+        :return: the cluster centers as Pythonized JSON
+        """
         if sort:
             centers = sorted(map(list, self.clusters))
         else:
             centers = map(list, self.clusters)
         return centers
 
-    def pfaType(self, clusterTypeName, idType="string", centerComponentType="double"):
-        """Create a PFA type schema representing this cluster set."""
+    def pfaType(self, clusterTypeName, idType="string", centerComponentType="double", populations=False):
+        """Create a PFA type schema representing this cluster set.
+
+        :type clusterTypeName: string
+        :param clusterTypeName: name of the PFA record type
+        :type idType: Pythonized JSON
+        :param idType: subtype for the ``id`` field
+        :type centerComponentType: Pythonized JSON
+        :param centerComponentType: subtype for the center array items
+        :type populations: bool
+        :param populations: if ``True``, include the number of training points as a "population" field
+        :rtype: Pythonized JSON
+        :return: PFA type schema for an array of clusters
+        """
+
+        fields = [{"name": "center", "type": {"type": "array", "items": centerComponentType}},
+                  {"name": "id", "type": idType}]
+        if populations:
+            fields.append({"name": "population", "type": "int"})
 
         return {"type": "array",
                 "items": {"type": "record",
                           "name": clusterTypeName,
-                          "fields": [{"name": "center", "type": {"type": "array", "items": centerComponentType}},
-                                     {"name": "id", "type": idType}]}}
+                          "fields": fields}}
             
     def pfaValue(self, ids, populations=False, sort=True):
-        """Create a PFA data structure representing this cluster set."""
+        """Create a PFA data structure representing this cluster set.
+
+        :type ids: list of string
+        :param ids: names of the clusters
+        :type populations: bool
+        :param populations: if ``True``, include the number of training points as a "population" field
+        :type sort: bool
+        :param sort: if ``True``, sort the centers for stable results
+        :rtype: Pythonized JSON
+        :return: data structure that should be inserted in the ``init`` section of the cell or pool containing the clusters
+        """
 
         if len(ids) != self.numberOfClusters:
             raise TypeError("ids should be a list with length equal to the number of clusters")
@@ -443,17 +561,44 @@ class KMeans(object):
         return out
 
     def pfaDocument(self, clusterTypeName, ids, populations=False, sort=True, preprocess=None, idType="string", dataComponentType="double", centerComponentType="double"):
-        """Create a PFA document to score with this cluster set."""
+        """Create a PFA document to score with this cluster set.
+
+        :type clusterTypeName: string
+        :param clusterTypeName: name of the PFA record type
+        :type ids: list of string
+        :param ids: names of the clusters
+        :type populations: bool
+        :param populations: if ``True``, include the number of training points as a "population" field
+        :type sort: bool
+        :param sort: if ``True``, sort the centers for stable results
+        :type preprocess: PrettyPFA substitution or ``None``
+        :param preprocess: pre-processing expression
+        :type idType: Pythonized JSON
+        :param idType: subtype for the ``id`` field
+        :type dataComponentType: Pythonized JSON
+        :param dataComponentType: subtype for the data array items
+        :type centerComponentType: Pythonized JSON
+        :param centerComponentType: subtype for the center array items
+        :rtype: Pythonized JSON
+        :return: a complete PFA document that performs clustering
+        """
 
         clusters = self.pfaValue(ids, populations, sort)
         metric = self.metric.pfa("datum", "clusterCenter")
         if preprocess is None:
             preprocess = "input"
 
+        if populations:
+            populationsField = '''
+    populations: int,
+'''
+        else:
+            populationsField = ""
+
         return titus.prettypfa.jsonNode('''
 types:
   ClusterType = record(<<clusterTypeName>>,
-    id: <<idType>>,
+    id: <<idType>>,{0}
     center: array(<<centerComponentType>>))
 input: array(<<dataComponentType>>)
 output: <<idType>>
@@ -464,4 +609,4 @@ action:
     fcn(datum: array(<<dataComponentType>>),
         clusterCenter: array(<<centerComponentType>>) -> double)
       <<metric>>)["id"]
-''', **vars())
+'''.format(populationsField), **vars())

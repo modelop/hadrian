@@ -39,6 +39,8 @@ from titus.prettypfa import ppfa
 from titus.prettypfa import pfa
 
 class Transformation(object):
+    """Represents an expression that can be applied to Numpy arrays in Python and included in a PFA scoring engine."""
+
     constants = {
         "m.pi": "math.pi",
         "m.e": "math.e",
@@ -93,6 +95,14 @@ class Transformation(object):
 
     @staticmethod
     def findFields(x):
+        """Find the symbols (variables) referenced in a PFA expression.
+
+        :type x: Pythonized JSON
+        :param x: the PFA expression
+        :rtype: list of strings
+        :return: all symbols found
+        """
+
         if isinstance(x, dict):
             return sum((Transformation.findFields(v) for k, v in x.items() if k != "@"), [])
         elif isinstance(x, (list, tuple)):
@@ -104,6 +114,16 @@ class Transformation(object):
 
     @staticmethod
     def replace(x, subs):
+        """Apply replacements to a PFA expression.
+
+        :type x: Pythonized JSON
+        :param x: the PFA expression
+        :type subs: dict from substitution identifier to its replacement value
+        :param subs: identifiers to replace
+        :rtype: Pythonized JSON
+        :return: the PFA with replacements
+        """
+
         if isinstance(x, dict):
             return dict((k, Transformation.replace(v, subs)) for k, v in x.items())
         elif isinstance(x, (list, tuple)):
@@ -115,6 +135,14 @@ class Transformation(object):
 
     @staticmethod
     def toNumpyExpr(ast):
+        """Convert a PFA abstract syntax tree into a Numpy expression.
+
+        :type ast: titus.pfaast.Ast
+        :param ast: the PFA to convert
+        :rtype: string
+        :return: executable Python code in a string
+        """
+
         if isinstance(ast, Call):
             if ast.name in Transformation.constants and len(ast.args) == 0:
                 return Transformation.constants[ast.name]
@@ -132,6 +160,18 @@ class Transformation(object):
             raise ValueError("No numpy equivalent defined for expression {0}".format(ast.toJson()))
 
     def __init__(self, *indexed, **named):
+        """Create a Transformation either from an ordered list of Python expressions or by keywords.
+
+        Although it's possible to mix the ordered list method and the keyword method, doing so could be confusing.
+
+        Expressions loaded as positional arguments are given keyword names "_0", "_1", "_2", etc., and all methods proceed as though they were loaded as keywords.
+
+        :type indexed: strings (as positional arguments)
+        :param indexed: executable Python code in strings
+        :type named: strings (as keyword arguments)
+        :param named: executable Python code in strings
+        """
+
         # indexed inputs come first, in order, and are labeled as _0, _1, _2, etc.
         self.exprs = named
         self.order = sorted(named.keys())
@@ -150,7 +190,13 @@ class Transformation(object):
         self.lambdas = dict((k, eval("lambda " + ", ".join(self.fields) + ": " + Transformation.toNumpyExpr(ppfa(v)), self.namespace)) for k, v in self.exprs.items())
 
     def transform(self, dataset, fieldNames=None):
-        """Return a transformed Numpy dataset (leaving the original intact)."""
+        """Return a transformed Numpy dataset (leaving the original intact).
+
+        :type dataset: Numpy record array, dict of 1-D Numpy arrays, or Numpy 2-d table
+        :param dataset: input dataset to be transformed; the Numpy record names or dict keys must correspond to the keywords of the arguments used to construct this ``Transformation``, or the column indexes of the 2-d table must correspond to the positions of the arguments used to construct this ``Transformation``.
+        :rtype: same as ``dataset``
+        :return: transformed dataset (operations are *not* performed in-place)
+        """
 
         # option 1: dataset is a record array
         if isinstance(dataset, numpy.core.records.recarray):
@@ -198,6 +244,14 @@ class Transformation(object):
 
     @staticmethod
     def interpret(x):
+        """Interpret expression from a PFA abstract syntax tree or PrettyPFA string.
+
+        :type x: titus.datatype.Ast, PrettyPFA string
+        :param x: input PFA
+        :rtype: Pythonized JSON
+        :return: the PFA as Pythonized JSON
+        """
+
         if isinstance(x, Ast):
             return x.jsonNode(False, set())
         elif isinstance(x, basestring):
@@ -206,7 +260,17 @@ class Transformation(object):
             return pfa(x).jsonNode(False, set())
 
     def new(self, avroType, subs={}, **subs2):
-        """Return a PFA 'new' expression for this transformation."""
+        """Construct a PFA "new" expression for this transformation.
+
+        :type avroType: titus.datatype.AvroType
+        :param avroType: type argument for the PFA "new" expression
+        :type subs: dict of substitutions
+        :param subs: subsititusions to apply
+        :type subs2: dict of substitutions
+        :param subs2: more subsititusions to apply
+        :rtype: Pythonized JSON
+        :return: PFA "new" expression
+        """
 
         subs2.update(subs)
         for k, v in subs2.items():
@@ -237,7 +301,15 @@ class Transformation(object):
             raise TypeError("new can only be used to make an array, map, or record")
 
     def let(self, subs={}, **subs2):
-        """Return a PFA 'let' expression for this transformation."""
+        """Construct a PFA "let" expression for this transformation.
+
+        :type subs: dict of substitutions
+        :param subs: subsititusions to apply
+        :type subs2: dict of substitutions
+        :param subs2: more subsititusions to apply
+        :rtype: Pythonized JSON
+        :return: PFA "let" expression
+        """
 
         subs2.update(subs)
         for k, v in subs2.items():
@@ -246,7 +318,17 @@ class Transformation(object):
         return {"let": dict((k, Transformation.replace(v, subs2)) for k, v in self.pfas.items())}
 
     def expr(self, name="_0", subs={}, **subs2):
-        """Return PFA for one expression from the transformation."""
+        """Construct a PFA expression for one of the expressions in this ``Transformation``.
+
+        :type name: string
+        :param name: expression to choose
+        :type subs: dict of substitutions
+        :param subs: subsititusions to apply
+        :type subs2: dict of substitutions
+        :param subs2: more subsititusions to apply
+        :rtype: Pythonized JSON
+        :return: PFA "let" expression
+        """
 
         subs2.update(subs)
         for k, v in subs2.items():

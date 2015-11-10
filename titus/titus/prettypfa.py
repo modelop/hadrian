@@ -94,6 +94,7 @@ from titus.util import avscToPretty
 from titus.reader import jsonToAst
 
 class Token(object):
+    """PrettyPFA token; used internally."""
     def __init__(self, t, v, lineno):
         self.t = t
         self.v = v
@@ -102,6 +103,7 @@ class Token(object):
         return "{0}({1})".format(self.t, self.v)
 
 class InterpretationState(object):
+    """State of the PrettyPFA interpreter; used internally."""
     def __init__(self):
         self.avroTypeBuilder = AvroTypeBuilder()
         self.avroTypeMemo = {}
@@ -111,6 +113,7 @@ class InterpretationState(object):
         self.poolNames = set()
 
 class Section(object):
+    """Mini-AST element representing a PrettyPFA section."""
     def __init__(self, name, content, lineno):
         self.name = name
         self.content = content
@@ -294,6 +297,7 @@ class Section(object):
         return self.content.asJson()
 
 class MiniAst(object):
+    """Trait for PrettyPFA Mini-AST."""
     def __init__(self, low, high):
         self.low, self.high = low, high
     @property
@@ -318,6 +322,7 @@ class MiniAst(object):
         raise PrettyPfaException("{0} ({1}) is not a type definition at {2}".format(self, type(self), self.pos))
 
 class ResolvedSubs(Token, MiniAst):
+    """Mini-AST element representing a resolved substitution."""
     def __init__(self, name, value, lineno):
         self.name = name
         self.value = value
@@ -339,6 +344,7 @@ class ResolvedSubs(Token, MiniAst):
         return self.value
 
 class MiniGenGet(MiniAst):
+    """Mini-AST element representing a general PFA attr special form."""
     def __init__(self, expr, args, low, high):
         self.expr = expr
         self.args = args
@@ -349,6 +355,7 @@ class MiniGenGet(MiniAst):
         return AttrGet(self.expr.asExpr(state), [x.asExpr(state) for x in self.args], self.pos)
 
 class MiniGet(MiniAst):
+    """Mini-AST element representing a PFA dotted name."""
     def __init__(self, name, args, low, high):
         self.name = name
         self.args = args
@@ -371,6 +378,7 @@ class MiniGet(MiniAst):
             return AttrGet(Ref(base, self.pos), path, self.pos)
 
 class MiniTo(MiniAst):
+    """Mini-AST element representing an attr-to, cell-to, or pool-to."""
     def __init__(self, name, args, direct, to, init, low, high):
         self.name = name
         self.args = args
@@ -418,6 +426,7 @@ class MiniTo(MiniAst):
             return AttrTo(Ref(base, self.pos), path, to, self.pos)
 
 class MiniEnumSymbol(MiniAst):
+    """Mini-AST element representing an enumeration symbol."""
     def __init__(self, enumType, enumValue, low, high):
         self.enumType = enumType
         self.enumValue = enumValue
@@ -428,6 +437,7 @@ class MiniEnumSymbol(MiniAst):
         return Literal(state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.enumType), state.avroTypeMemo), jsonlib.dumps(self.enumValue), self.pos)
 
 class MiniDotName(MiniAst):
+    """Mini-AST element representing a dotted name (string token with dots in it)."""
     def __init__(self, name, lineno):
         self.name = name
         super(MiniDotName, self).__init__(lineno, lineno)
@@ -478,6 +488,7 @@ class MiniDotName(MiniAst):
             return self.name
 
 class MiniNumber(MiniAst):
+    """Mini-AST element representing a literal number."""
     def __init__(self, value, lineno):
         self.value = value
         super(MiniNumber, self).__init__(lineno, lineno)
@@ -492,6 +503,7 @@ class MiniNumber(MiniAst):
         return self.value
 
 class MiniString(MiniAst):
+    """Mini-AST element representing a literal string."""
     def __init__(self, value, lineno):
         self.value = value
         super(MiniString, self).__init__(lineno, lineno)
@@ -503,6 +515,7 @@ class MiniString(MiniAst):
         return self.value
 
 class MiniCall(MiniAst):
+    """Mini-AST element representing a function call (or possibly a type expression)."""
     def __init__(self, name, args, low0, high0):
         self.name = name
         self.args = args
@@ -778,6 +791,7 @@ class MiniCall(MiniAst):
             super(MiniCall, self).defType(state)
 
 class MiniBlock(MiniAst):
+    """Mini-AST element representing a code block (commands in curly brackets)."""
     def __init__(self, exprs, low, high):
         self.exprs = exprs
         super(MiniBlock, self).__init__(low, high)
@@ -792,6 +806,7 @@ class MiniBlock(MiniAst):
         return out
 
 class MiniBracketedArgs(MiniAst):
+    """Mini-AST element representing a JSON array in square brackets."""
     def __init__(self, args, low, high):
         self.args = args
         super(MiniBracketedArgs, self).__init__(low, high)
@@ -801,6 +816,7 @@ class MiniBracketedArgs(MiniAst):
         return [x.asJson() for x in self.args]
 
 class MiniParam(MiniAst):
+    """Mini-AST element representing a "key: value" pair."""
     def __init__(self, name, typeExpr, low, high):
         self.name = name
         self.typeExpr = typeExpr
@@ -811,6 +827,7 @@ class MiniParam(MiniAst):
         return {self.name: state.avroTypeBuilder.makePlaceholder(jsonlib.dumps(self.typeExpr.asType(state)), state.avroTypeMemo)}
 
 class MiniFcnDef(MiniAst):
+    """Mini-AST element representing an inline function definition."""
     def __init__(self, parameters, retType, definition, low, high):
         self.parameters = parameters
         self.retType = retType
@@ -824,6 +841,7 @@ class MiniFcnDef(MiniAst):
                       [x.asExpr(state) for x in self.definition])
 
 class MiniNamedFcnDef(MiniAst):
+    """Mini-AST element representing a named function definition (in the "fcns" section)."""
     def __init__(self, name, parameters, retType, definition, low, high):
         self.name = name
         self.parameters = parameters
@@ -838,6 +856,7 @@ class MiniNamedFcnDef(MiniAst):
                                   [x.asExpr(state) for x in self.definition]))
 
 class MiniCellPool(MiniAst):
+    """Mini-AST element representing a cell or pool declaration."""
     def __init__(self, name, objType, init, shared, rollback, source, low, high):
         self.name = name
         self.objType = objType
@@ -867,6 +886,7 @@ class MiniCellPool(MiniAst):
                                 self.pos))
 
 class MiniIf(MiniAst):
+    """Mini-AST element representing an ``if`` statement."""
     def __init__(self, pairs, elseClause, low, high):
         self.pairs = pairs
         self.elseClause = elseClause
@@ -900,6 +920,7 @@ class MiniIf(MiniAst):
             return Cond(pairs, elseClause, self.pos)
 
 class MiniAsBlock(MiniAst):
+    """Mini-AST element representing an ``as`` block (in a cast-as construct)."""
     def __init__(self, astype, named, body, low, high):
         self.astype = astype
         self.named = named
@@ -918,6 +939,7 @@ class MiniAsBlock(MiniAst):
         return CastCase(t, self.named, body, self.pos)
 
 class MiniCast(MiniAst):
+    """Mini-AST element representing a ``cast`` expression (in a cast-as construct)."""
     def __init__(self, expression, asblocks, partial, low, high):
         self.expression = expression
         self.asblocks = asblocks
@@ -929,6 +951,7 @@ class MiniCast(MiniAst):
         return CastBlock(self.expression.asExpr(state), [x.asExpr(state) for x in self.asblocks], self.partial, self.pos)
 
 class MiniIfNotNull(MiniAst):
+    """Mini-AST element representing an ``ifnotnull`` expression."""
     def __init__(self, params, thenClause, elseClause, low, high):
         self.params = params
         self.thenClause = thenClause
@@ -958,6 +981,7 @@ class MiniIfNotNull(MiniAst):
         return IfNotNull(params, thenClause, elseClause, self.pos)
 
 class MiniUnpack(MiniAst):
+    """Mini-AST element representing an ``unpack`` expression."""
     def __init__(self, bytesExpr, params, thenClause, elseClause, low, high):
         self.bytesExpr = bytesExpr
         self.params = params
@@ -996,6 +1020,7 @@ class MiniUnpack(MiniAst):
         return Unpack(bytesExpr, params, thenClause, elseClause, self.pos)
 
 class MiniWhile(MiniAst):
+    """Mini-AST element representing a ``while`` loop."""
     def __init__(self, predicate, body, pretest, low, high):
         self.predicate = predicate
         self.body = body
@@ -1016,6 +1041,7 @@ class MiniWhile(MiniAst):
             return DoUntil(body, self.predicate.asExpr(state), self.pos)
 
 class MiniFor(MiniAst):
+    """Mini-AST element representing a ``for`` loop."""
     def __init__(self, init, predicate, step, body, low, high):
         self.init = init
         self.predicate = predicate
@@ -1038,6 +1064,7 @@ class MiniFor(MiniAst):
                    body)
 
 class MiniForeach(MiniAst):
+    """Mini-AST element representing a ``foreach`` loop."""
     def __init__(self, name, array, body, seq, low, high):
         self.name = name
         self.array = array
@@ -1061,6 +1088,7 @@ class MiniForeach(MiniAst):
             return Foreach(self.name, self.array.asExpr(state), body, self.seq, self.pos)
 
 class MiniTry(MiniAst):
+    """Mini-AST element representing a ``try`` expression."""
     def __init__(self, body, filters, low, high):
         self.body = body
         self.filters = filters
@@ -1071,8 +1099,8 @@ class MiniTry(MiniAst):
         if self.filters is None:
             filters = None
         else:
-            if any(not isinstance(x, (MiniDotName, MiniString)) for x in self.filters):
-                raise PrettyPfaException("try filters must all be strings, not {0}, at {1}".format(self.filters, self.pos))
+            if any(not isinstance(x, (MiniDotName, MiniString)) and not (isinstance(x, MiniNumber) and isinstance(x.value, (int, long))) for x in self.filters):
+                raise PrettyPfaException("try filters must all be strings or integers, not {0}, at {1}".format(self.filters, self.pos))
             filters = [x.name if isinstance(x, MiniDotName) else x.value for x in self.filters]
 
         if isinstance(self.body, MiniCall) and self.body.name == "do":
@@ -1085,6 +1113,7 @@ class MiniTry(MiniAst):
         return Try(body, filters, self.pos)
 
 class MiniGenAssignment(MiniAst):
+    """Mini-AST element representing a general assignment."""
     def __init__(self, expr, args, rhs, low, high):
         self.expr = expr
         self.args = args
@@ -1096,6 +1125,7 @@ class MiniGenAssignment(MiniAst):
         return AttrTo(self.expr.asExpr(state), [x.asExpr(state) for x in self.args], self.rhs.asExpr(state), self.pos)
 
 class MiniAssignment(MiniAst):
+    """Mini-AST element representing an assignment."""
     def __init__(self, pairs, qualifier, low, high):
         self.pairs = pairs
         self.qualifier = qualifier
@@ -1155,11 +1185,31 @@ class MiniAssignment(MiniAst):
             super(MiniAssignment, self).defType(state)
 
 class Parser(object):
+    """Parser for the "ply" package, specialized for PrettyPFA (whole document or expression).
+
+    Includes both the tokenizer and the parser.
+    """
+
     def __init__(self, wholeDocument):
+        """Creates the ``Parser``, but it is only ready to use after calling ``initialize``.
+
+        :type wholeDocument: bool
+        :param wholeDocument: if ``True``, this parser expects a whole PFA document and ``parse`` returns a titus.pfaast.EngineConfig; otherwise, this parser expects a PFA expression and ``parse`` returns a titus.pfaast.Expression
+        """
         self.initialized = False
         self.wholeDocument = wholeDocument
 
     def initialize(self, lex, yacc):
+        """Initialize the ``Parser`` by passing it the appropriate ply modules.
+
+        :type lex: Python module
+        :param lex: ``ply.lex`` after ``import ply.lex``
+        :type yacc: Python module
+        :param yacc: ``ply.yacc`` after ``import ply.yacc``
+        :rtype: ``None``
+        :return: nothing
+        """
+
         tokens = ["NUMBER", "STRING", "RAWSTRING", "REPLACEMENT", "DOTNAME",
                   "LPAREN", "RPAREN", "LBRACKET", "RBRACKET", "LCURLY", "RCURLY", "RARROW", 
                   "PLUS", "MINUS", "TIMES", "FDIV", "MOD", "REM", "POW", "EQ", "NE", "LT", "LE", "GT", "GE", "AND", "OR", "XOR", "NOT", "BITAND", "BITOR", "BITXOR", "BITNOT"]
@@ -2059,6 +2109,16 @@ class Parser(object):
         self.initialized = True
 
     def parse(self, text, subs):
+        """Parse the given text, returning a PFA abstract syntax tree.
+
+        :type text: string
+        :param text: command line to parse
+        :type subs: dict of substitutions
+        :param subs: substitutions to apply to any strings in ``<<French quotes>>``
+        :rtype: titus.pfaast.EngineConfig or titus.pfaast.Expression
+        :return: parsed text as an abstract syntax tree
+        """
+
         self.lexer.lineno = 1
         self.text = text
         self.subs = subs
@@ -2077,6 +2137,15 @@ class Parser(object):
 parser = Parser(True)
 
 def subs(originalAst, **subs2):
+    """Apply substitutions to all titus.pfaast.Subs nodes in a PFA abstract syntax tree using its ``replace`` method.
+
+    :type originalAst: titus.pfaast.Ast
+    :param originalAst: abstract syntax tree to replace
+    :type subs2: dict from substitution names to substitutions
+    :param subs2: replacement values as PFA titus.pfaast.Ast, PrettyPFA strings, or PFA Pythonized JSON
+    :rtype: titus.pfaast.Ast
+    :return: PFA abstract syntax tree with replacements
+    """
     def pf(node):
         out = subs2[node.name]
         if node.context == "expr":
@@ -2088,7 +2157,23 @@ def subs(originalAst, **subs2):
     pf.isDefinedAt = lambda node: isinstance(node, Subs) and node.name in subs2
     return originalAst.replace(pf)
 
-def ast(text, check=True, subs={}, **subs2):
+def ast(text, check=True, version=None, subs={}, **subs2):
+    """Parse PrettyPFA and return the result as a PFA abstract syntax tree.
+
+    :type text: string
+    :param text: PrettyPFA to parse
+    :type check: bool
+    :param check: if ``True``, check the result for PFA semantic errors (default ``True``); **Note:** if the PrettyPFA contains any unresolved substitutions (in ``<<French quotes>>``), it will **not** be checked
+    :type version: string or ``None``
+    :param version: version of the PFA language to use while interpreting (``None`` defaults to titus.version.defaultPFAVersion)
+    :type subs: dict from substitution names to substitutions
+    :param subs: replacement values as PFA titus.pfaast.Ast, PrettyPFA strings, or PFA Pythonized JSON
+    :type subs2: dict from substitution names to substitutions
+    :param subs2: added to ``subs`` (a more convenient way to pass them)
+    :rtype: titus.pfaast.EngineConfig
+    :return: PFA abstract syntax tree
+    """
+
     subs2.update(subs)
 
     if not parser.initialized:
@@ -2106,23 +2191,91 @@ def ast(text, check=True, subs={}, **subs2):
     anysubs.isDefinedAt = lambda x: isinstance(x, Subs)
 
     if check and len(out.collect(anysubs)) == 0:
-        PFAEngine.fromAst(out)
+        PFAEngine.fromAst(out, version=version)
     return out
 
-def jsonNode(text, lineNumbers=True, check=True, subs={}, **subs2):
-    return ast(text, check, subs, **subs2).jsonNode(lineNumbers, set())
+def jsonNode(text, lineNumbers=True, check=True, version=None, subs={}, **subs2):
+    """Parse PrettyPFA and return the result as PFA in Pythonized JSON form.
 
-def json(text, lineNumbers=True, check=True, subs={}, **subs2):
-    return ast(text, check, subs, **subs2).toJson(lineNumbers)
+    :type text: string
+    :param text: PrettyPFA to parse
+    :type lineNumbers: bool
+    :param lineNumbers: if ``True`` include locator marks to trace back to PrettyPFA line numbers
+    :type check: bool
+    :param check: if ``True``, check the result for PFA semantic errors (default ``True``); **Note:** if the PrettyPFA contains any unresolved substitutions (in ``<<French quotes>>``), it will **not** be checked
+    :type version: string or ``None``
+    :param version: version of the PFA language to use while interpreting (``None`` defaults to titus.version.defaultPFAVersion)
+    :type subs: dict from substitution names to substitutions
+    :param subs: replacement values as PFA titus.pfaast.Ast, PrettyPFA strings, or PFA Pythonized JSON
+    :type subs2: dict from substitution names to substitutions
+    :param subs2: added to ``subs`` (a more convenient way to pass them)
+    :rtype: Pythonized JSON
+    :return: PFA in Pythonized JSON
+    """
+    return ast(text, check, version, subs, **subs2).jsonNode(lineNumbers, set())
 
-def engine(text, options=None, sharedState=None, multiplicity=1, style="pure", debug=False, subs={}, **subs2):
-    return PFAEngine.fromAst(ast(text, False, subs, **subs2), options, sharedState, multiplicity, style, debug)
+def json(text, lineNumbers=True, check=True, version=None, subs={}, **subs2):
+    """Parse PrettyPFA and return the result as PFA in a JSON string.
+
+    :type text: string
+    :param text: PrettyPFA to parse
+    :type lineNumbers: bool
+    :param lineNumbers: if ``True`` include locator marks to trace back to PrettyPFA line numbers
+    :type check: bool
+    :param check: if ``True``, check the result for PFA semantic errors (default ``True``); **Note:** if the PrettyPFA contains any unresolved substitutions (in ``<<French quotes>>``), it will **not** be checked
+    :type version: string or ``None``
+    :param version: version of the PFA language to use while interpreting (``None`` defaults to titus.version.defaultPFAVersion)
+    :type subs: dict from substitution names to substitutions
+    :param subs: replacement values as PFA titus.pfaast.Ast, PrettyPFA strings, or PFA Pythonized JSON
+    :type subs2: dict from substitution names to substitutions
+    :param subs2: added to ``subs`` (a more convenient way to pass them)
+    :rtype: string
+    :return: PFA in a JSON string
+    """
+    return ast(text, check, version, subs, **subs2).toJson(lineNumbers)
+
+def engine(text, options=None, version=None, sharedState=None, multiplicity=1, style="pure", debug=False, subs={}, **subs2):
+    """Parse PrettyPFA and construct scoring engine instances from it.
+
+    :type text: string
+    :param text: PrettyPFA to parse
+    :type options: dict of Pythonized JSON
+    :type version: string or ``None``
+    :param version: version of the PFA language to use while interpreting (``None`` defaults to titus.version.defaultPFAVersion)
+    :type sharedState: titus.genpy.SharedState
+    :param sharedState: external state for shared cells and pools to initialize from and modify; pass ``None`` to limit sharing to instances of a single PFA file
+    :type multiplicity: positive integer
+    :param multiplicity: number of instances to return (default is 1; a single-item collection)
+    :type style: string
+    :param style: style of scoring engine; only one currently supported: "pure" for pure-Python
+    :type debug: bool
+    :param debug: if ``True``, print the Python code generated by this PFA document before evaluating
+    :type subs: dict from substitution names to substitutions
+    :param subs: replacement values as PFA titus.pfaast.Ast, PrettyPFA strings, or PFA Pythonized JSON
+    :type subs2: dict from substitution names to substitutions
+    :param subs2: added to ``subs`` (a more convenient way to pass them)
+    :rtype: list of titus.genpy.PFAEngine
+    :return: a list of scoring engine instances
+    """
+    return PFAEngine.fromAst(ast(text, False, version, subs, **subs2), options, version, sharedState, multiplicity, style, debug)
 
 ###
 
 exprParser = Parser(False)
 
 def ppfas(text, subs={}, **subs2):
+    """Parse a string of several PrettyPFA expressions (delimited by semicolons) as a list of PFA abstract syntax trees.
+
+    :type text: string
+    :param text: PrettyPFA expressions (delimited by semicolons)
+    :type subs: dict from substitution names to substitutions
+    :param subs: replacement values as PFA titus.pfaast.Ast, PrettyPFA strings, or PFA Pythonized JSON
+    :type subs2: dict from substitution names to substitutions
+    :param subs2: added to ``subs`` (a more convenient way to pass them)
+    :rtype: list of titus.pfaast.Expression
+    :return: parsed expressions as PFA
+    """
+
     subs2.update(subs)
 
     if not exprParser.initialized:
@@ -2137,6 +2290,18 @@ def ppfas(text, subs={}, **subs2):
     return exprParser.parse(text, subs2)
 
 def ppfa(text, subs={}, **subs2):
+    """Parse a string of a single PrettyPFA expression as a PFA abstract syntax trees.
+
+    :type text: string
+    :param text: PrettyPFA expressions (delimited by semicolons)
+    :type subs: dict from substitution names to substitutions
+    :param subs: replacement values as PFA titus.pfaast.Ast, PrettyPFA strings, or PFA Pythonized JSON
+    :type subs2: dict from substitution names to substitutions
+    :param subs2: added to ``subs`` (a more convenient way to pass them)
+    :rtype: titus.pfaast.Expression
+    :return: parsed expression as PFA
+    """
+
     out = ppfas(text, subs, **subs2)
     if len(out) != 1:
         raise ValueError("use ppfa for single expressions, ppfas for multiple expressions")
@@ -2144,10 +2309,35 @@ def ppfa(text, subs={}, **subs2):
         return out[0]
 
 def pfas(x):
+    """Parse a JSON array of PFA expressions as a PFA abstract syntax trees.
+
+    :type x: open JSON file, JSON string, or Pythonized JSON
+    :param x: PFA expressions in a JSON array
+    :rtype: list of titus.pfaast.Expression
+    :return: parsed expressions as a list of abstract syntax trees
+    """
     return jsonToAst.exprs(x)
 
 def pfa(x):
+    """Parse a PFA expression as a PFA abstract syntax tree.
+
+    :type x: open JSON file, JSON string, or Pythonized JSON
+    :param x: PFA expressions in a JSON array
+    :rtype: titus.pfaast.Expression
+    :return: parsed expression as a single abstract syntax tree
+    """
     return jsonToAst.expr(x)
 
 def expr(prettyPfa, subs={}, **subs2):
-    ppfa(prettyPfa, subs, **subs2).jsonNode(False, set())
+    """Parse a string of a single PrettyPFA expression as PFA Pythonized JSON.
+
+    :type text: string
+    :param text: PrettyPFA expressions (delimited by semicolons)
+    :type subs: dict from substitution names to substitutions
+    :param subs: replacement values as PFA titus.pfaast.Ast, PrettyPFA strings, or PFA Pythonized JSON
+    :type subs2: dict from substitution names to substitutions
+    :param subs2: added to ``subs`` (a more convenient way to pass them)
+    :rtype: Pythonized JSON
+    :return: parsed expression as PFA
+    """
+    return ppfa(prettyPfa, subs, **subs2).jsonNode(False, set())

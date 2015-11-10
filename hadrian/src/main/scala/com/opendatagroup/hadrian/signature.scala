@@ -45,6 +45,48 @@ import com.opendatagroup.hadrian.datatype.AvroUnion
 package signature {
   class IncompatibleTypes(message: String) extends Exception(message)
 
+  case class PFAVersion(major: Int, minor: Int, release: Int) extends Ordered[PFAVersion] {
+    if (major < 0  ||  minor < 0  ||  release < 0)
+      throw new IllegalArgumentException("PFA version major, minor, and release numbers must be non-negative")
+
+    override def toString() = s"$major.$minor.$release"
+    def compare(that: PFAVersion) = (this, that) match {
+      case (PFAVersion(a, b, c), PFAVersion(x, y, z)) if (a == x  &&  b == y) => c - z
+      case (PFAVersion(a, b, c), PFAVersion(x, y, z)) if (a == x) => b - y
+      case (PFAVersion(a, b, c), PFAVersion(x, y, z)) => a - x
+    }
+  }
+  object PFAVersion {
+    def fromString(x: String) = try {
+      val Array(major, minor, release) = x.split("\\.").map(_.toInt)
+      PFAVersion(major, minor, release)
+    }
+    catch {
+      case _: scala.MatchError => throw new IllegalArgumentException("PFA version numbers must have major.minor.release structure")
+      case _: java.lang.NumberFormatException => throw new IllegalArgumentException("PFA version major, minor, and release numbers must be integers")
+    }
+  }
+
+  case class Lifespan(birth: Option[PFAVersion], deprecation: Option[PFAVersion], death: Option[PFAVersion], contingency: Option[String]) {
+    (deprecation, death) match {
+      case (None, None) =>
+      case (Some(dep), Some(dth)) if (dep < dth) =>
+      case _ => throw new IllegalArgumentException("deprecation and death must be specified together, and deprecation version must be strictly earlier than death version")
+    }
+
+    (birth, deprecation) match {
+      case (Some(b), Some(d)) =>
+        if (b >= d) throw new IllegalArgumentException("if birth and deprecation are specified together, birth version must be strictly earlier than deprecation version")
+      case _ =>
+    }
+
+    def current(now: PFAVersion) =
+      (birth == None  ||  now >= birth.get)  &&  (deprecation == None  ||  now < deprecation.get)
+
+    def deprecated(now: PFAVersion) =
+      (deprecation != None  &&  deprecation.get <= now  &&  now < death.get)
+  }
+
   trait Pattern
   object P {
     case object Null extends Pattern
@@ -270,31 +312,39 @@ package signature {
   }
 
   trait Signature {
-    def accepts(args: Seq[Type]): Option[(Seq[Type], AvroType)]
+    def accepts(args: Seq[Type], version: PFAVersion): Option[(Sig, Seq[Type], AvroType)]
   }
 
   case class Sigs(cases: Seq[Sig]) extends Signature {
-    def accepts(args: Seq[Type]): Option[(Seq[Type], AvroType)] =
-      cases.view flatMap {_.accepts(args)} headOption
+    def accepts(args: Seq[Type], version: PFAVersion): Option[(Sig, Seq[Type], AvroType)] =
+      cases.view flatMap {_.accepts(args, version)} headOption
   }
 
-  case class Sig(params: Seq[(String, Pattern)], ret: Pattern) extends Signature {
-    def accepts(args: Seq[Type]): Option[(Seq[Type], AvroType)] = {
-      val labelData = mutable.Map[String, LabelData]()
-      if (params.corresponds(args)({case ((n, p), a) => check(p, a, labelData, false, false)})) {
-        try {
-          val assignments = labelData map {case (l, ld) => (l, ld.determineAssignment)} toMap
-          val assignedParams = params.zip(args) map {case ((n, p), a) => assign(p, a, assignments)}
-          val assignedRet = assignRet(ret, assignments)
-          Some((assignedParams, assignedRet))
+  case class Sig(params: Seq[(String, Pattern)], ret: Pattern, lifespan: Lifespan = Lifespan(None, None, None, None)) extends Signature {
+    override def toString() = {
+      val alreadyLabeled = mutable.Set[String]()
+      "(" + (params map {case (n, p) => n + ": " + toText(p, alreadyLabeled)} mkString(", ")) + " -> " + toText(ret, alreadyLabeled) + ")"
+    }
+
+    def accepts(args: Seq[Type], version: PFAVersion): Option[(Sig, Seq[Type], AvroType)] =
+      if (lifespan.current(version)  ||  lifespan.deprecated(version)) {
+        val labelData = mutable.Map[String, LabelData]()
+        if (params.corresponds(args)({case ((n, p), a) => check(p, a, labelData, false, false)})) {
+          try {
+            val assignments = labelData map {case (l, ld) => (l, ld.determineAssignment)} toMap
+            val assignedParams = params.zip(args) map {case ((n, p), a) => assign(p, a, assignments)}
+            val assignedRet = assignRet(ret, assignments)
+            Some((this, assignedParams, assignedRet))
+          }
+          catch {
+            case _: IncompatibleTypes => None
+          }
         }
-        catch {
-          case _: IncompatibleTypes => None
-        }
+        else
+          None
       }
       else
         None
-    }
 
     private def check(pat: Pattern, arg: Type, labelData: mutable.Map[String, LabelData], strict: Boolean, reversed: Boolean): Boolean = (pat, arg) match {
       case (_, _: ExceptionType) => false
@@ -506,6 +556,7 @@ package signature {
       case P.WildEnum(label) if (alreadyLabeled.contains(label)) => s"{\\PFAtp $label}"
       case P.WildFixed(label) if (alreadyLabeled.contains(label)) => s"{\\PFAtp $label}"
       case P.WildRecord(label, _) if (alreadyLabeled.contains(label)) => s"{\\PFAtp $label}"
+      case P.EnumFields(label, _) if (alreadyLabeled.contains(label)) => s"{\\PFAtp $label}"
       case P.Wildcard(label, oneOf) if (oneOf.isEmpty) => alreadyLabeled.add(label);  s"any {\\PFAtp $label}"
       case P.Wildcard(label, oneOf) => alreadyLabeled.add(label);  val types = oneOf.map({applyType(_)}).mkString(", ");  s"any {\\PFAtp $label} of \\{$types\\}"
       case P.WildEnum(label) => alreadyLabeled.add(label);  s"any enum {\\PFAtp $label}"
@@ -528,4 +579,109 @@ package signature {
       // finish on an as-needed basis
     }
   }
+
+  object toHTML extends Function1[Pattern, String] {
+    def apply(p: Pattern): String = apply(p, mutable.Set[String]())
+
+    // Note: a recursive record (possibly through a union) would make this infinite-loop.
+    // It's not smart, but nothing in the library uses recursive records, so it's not a problem yet.
+    def apply(p: Pattern, alreadyLabeled: mutable.Set[String]): String = p match {
+      case P.Null => "null"
+      case P.Boolean => "boolean"
+      case P.Int => "int"
+      case P.Long => "long"
+      case P.Float => "float"
+      case P.Double => "double"
+      case P.Bytes => "bytes"
+      case P.Fixed(size, Some(fullName)) => s"fixed(<i>size:</i> $size, <i>name:</i> $fullName)"
+      case P.Fixed(size, None) => s"fixed(<i>size:</i> $size)"
+      case P.String => "string"
+      case P.Enum(symbols, Some(fullName)) => s"""enum(<i>symbols:</i> ${symbols.mkString(", ")}, <i>name:</i> $fullName)"""
+      case P.Enum(symbols, None) => s"""enum (<i>symbols:</i> ${symbols.mkString(", ")})"""
+      case P.Array(items) => "array of " + apply(items, alreadyLabeled)
+      case P.Map(values) => "map of " + apply(values, alreadyLabeled)
+      case P.Record(fields, Some(fullName)) => s"""record (<i>fields:</i> {${fields.map({case (n, f) => "<i>" + n + "</i>: " + apply(f, alreadyLabeled)}).mkString(", ")}}, <i>name:</i> $fullName)"""
+      case P.Record(fields, None) => s"""record (<i>fields:</i> {${fields.map({case (n, f) => "<i>" + n + "</i>: " + apply(f, alreadyLabeled)}).mkString(", ")}})"""
+      case P.Union(types) => s"""union of {${types map {apply(_, alreadyLabeled)} mkString(", ")}}"""
+      case P.Fcn(params, ret) => s"""function of (${params map {apply(_, alreadyLabeled)} mkString(", ")}) &rarr; ${apply(ret, alreadyLabeled)}"""
+      case P.Wildcard(label, _) if (alreadyLabeled.contains(label)) => s"<b>$label</b>"
+      case P.WildEnum(label) if (alreadyLabeled.contains(label)) => s"<b>$label</b>"
+      case P.WildFixed(label) if (alreadyLabeled.contains(label)) => s"<b>$label</b>"
+      case P.WildRecord(label, _) if (alreadyLabeled.contains(label)) => s"<b>$label</b>"
+      case P.EnumFields(label, _) if (alreadyLabeled.contains(label)) => s"<b>$label</b>"
+      case P.Wildcard(label, oneOf) if (oneOf.isEmpty) => alreadyLabeled.add(label);  s"any <b>$label</b>"
+      case P.Wildcard(label, oneOf) => alreadyLabeled.add(label);  s"any <b>$label</b> of {${oneOf.map({applyType(_)}).mkString(", ")}}"
+      case P.WildEnum(label) => alreadyLabeled.add(label);  s"any enum <b>$label</b>"
+      case P.WildFixed(label) => alreadyLabeled.add(label);  s"any fixed <b>$label</b>"
+      case P.WildRecord(label, fields) => alreadyLabeled.add(label);  s"""any record <b>$label</b>""" + (if (fields.isEmpty) "" else s""" with fields {${fields.map({case (n, f) => "<i>" + n + "</i>: " + apply(f, alreadyLabeled)}).mkString(", ")}}""")
+      case P.EnumFields(label, wildRecord) => alreadyLabeled.add(label);  s"enum <b>$label</b> of fields of $wildRecord"
+    }
+
+    private def applyType(t: Type): String = t match {
+      case AvroNull() => "null"
+      case AvroBoolean() => "boolean"
+      case AvroInt() => "int"
+      case AvroLong() => "long"
+      case AvroFloat() => "float"
+      case AvroDouble() => "double"
+      case AvroBytes() => "bytes"
+      case AvroString() => "string"
+      case AvroArray(items) => "array of " + applyType(items)
+      case AvroMap(values) => "map of " + applyType(values)
+      // finish on an as-needed basis
+    }
+  }
+
+  object toText extends Function1[Pattern, String] {
+    def apply(p: Pattern): String = apply(p, mutable.Set[String]())
+
+    // Note: a recursive record (possibly through a union) would make this infinite-loop.
+    // It's not smart, but nothing in the library uses recursive records, so it's not a problem yet.
+    def apply(p: Pattern, alreadyLabeled: mutable.Set[String]): String = p match {
+      case P.Null => "null"
+      case P.Boolean => "boolean"
+      case P.Int => "int"
+      case P.Long => "long"
+      case P.Float => "float"
+      case P.Double => "double"
+      case P.Bytes => "bytes"
+      case P.Fixed(size, Some(fullName)) => s"fixed(size: $size, name: $fullName)"
+      case P.Fixed(size, None) => s"fixed(size: $size)"
+      case P.String => "string"
+      case P.Enum(symbols, Some(fullName)) => s"""enum(symbols: ${symbols.mkString(", ")}, name: $fullName)"""
+      case P.Enum(symbols, None) => s"""enum (symbols: ${symbols.mkString(", ")})"""
+      case P.Array(items) => "array of " + apply(items, alreadyLabeled)
+      case P.Map(values) => "map of " + apply(values, alreadyLabeled)
+      case P.Record(fields, Some(fullName)) => s"""record (fields: {${fields.map({case (n, f) => "" + n + ": " + apply(f, alreadyLabeled)}).mkString(", ")}}, name: $fullName)"""
+      case P.Record(fields, None) => s"""record (fields: {${fields.map({case (n, f) => "" + n + ": " + apply(f, alreadyLabeled)}).mkString(", ")}})"""
+      case P.Union(types) => s"""union of {${types map {apply(_, alreadyLabeled)} mkString(", ")}}"""
+      case P.Fcn(params, ret) => s"""function of (${params map {apply(_, alreadyLabeled)} mkString(", ")}) -> ${apply(ret, alreadyLabeled)}"""
+      case P.Wildcard(label, _) if (alreadyLabeled.contains(label)) => s"$label"
+      case P.WildEnum(label) if (alreadyLabeled.contains(label)) => s"$label"
+      case P.WildFixed(label) if (alreadyLabeled.contains(label)) => s"$label"
+      case P.WildRecord(label, _) if (alreadyLabeled.contains(label)) => s"$label"
+      case P.EnumFields(label, _) if (alreadyLabeled.contains(label)) => s"$label"
+      case P.Wildcard(label, oneOf) if (oneOf.isEmpty) => alreadyLabeled.add(label);  s"any $label"
+      case P.Wildcard(label, oneOf) => alreadyLabeled.add(label);  s"any $label of {${oneOf.map({applyType(_)}).mkString(", ")}}"
+      case P.WildEnum(label) => alreadyLabeled.add(label);  s"any enum $label"
+      case P.WildFixed(label) => alreadyLabeled.add(label);  s"any fixed $label"
+      case P.WildRecord(label, fields) => alreadyLabeled.add(label);  s"""any record $label""" + (if (fields.isEmpty) "" else s""" with fields {${fields.map({case (n, f) => "" + n + ": " + apply(f, alreadyLabeled)}).mkString(", ")}}""")
+      case P.EnumFields(label, wildRecord) => alreadyLabeled.add(label);  s"enum $label of fields of $wildRecord"
+    }
+
+    def applyType(t: Type): String = t match {
+      case AvroNull() => "null"
+      case AvroBoolean() => "boolean"
+      case AvroInt() => "int"
+      case AvroLong() => "long"
+      case AvroFloat() => "float"
+      case AvroDouble() => "double"
+      case AvroBytes() => "bytes"
+      case AvroString() => "string"
+      case AvroArray(items) => "array of " + applyType(items)
+      case AvroMap(values) => "map of " + applyType(values)
+      // finish on an as-needed basis
+    }
+  }
+
 }

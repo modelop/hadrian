@@ -21,10 +21,15 @@ package com.opendatagroup.hadrian
 import java.lang.reflect.Method
 import java.io.ByteArrayInputStream
 import java.io.InputStream
+import java.io.OutputStream
 
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.language.postfixOps
+
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.CSVPrinter
+import org.apache.commons.csv.QuoteMode
 
 import org.codehaus.jackson.JsonNode
 import org.codehaus.jackson.node.NullNode
@@ -60,7 +65,6 @@ import org.apache.avro.specific.SpecificRecord
 import org.apache.avro.specific.SpecificRecordBase
 
 import com.opendatagroup.hadrian.errors.PFARuntimeException
-import com.opendatagroup.hadrian.errors.PFAInitializationException
 import com.opendatagroup.hadrian.jvmcompiler.JVMNameMangle
 import com.opendatagroup.hadrian.shared.PathIndex
 import com.opendatagroup.hadrian.shared.I
@@ -99,8 +103,12 @@ package data {
   /////////////////////////// defer to official library for general ordering, but implement numeric types with simple operators
 
   class Comparison(schema: Schema) extends Function2[AnyRef, AnyRef, Int] {
+    def ensureUnit(x: Int): Int =
+      if (x < 0) -1
+      else if (x > 0) 1
+      else 0
     def apply(x: AnyRef, y: AnyRef): Int =
-      ReflectData.get().compare(x, y, schema)
+      ensureUnit(ReflectData.get().compare(x, y, schema))
   }
 
   class ComparisonOperator(schema: Schema, operator: Int) extends Function2[AnyRef, AnyRef, Boolean] {
@@ -145,64 +153,172 @@ package data {
   object NumericalComparison {
     def apply(x: Int, y: Int): Int = if (x > y) 1 else if (x < y) -1 else 0
     def apply(x: Long, y: Long): Int = if (x > y) 1 else if (x < y) -1 else 0
-    def apply(x: Float, y: Float): Int = if (x > y) 1 else if (x < y) -1 else 0
-    def apply(x: Double, y: Double): Int = if (x > y) 1 else if (x < y) -1 else 0
+    def apply(x: Float, y: Float): Int =
+      if (java.lang.Float.isNaN(x)) {
+        if (java.lang.Float.isNaN(y))
+          0
+        else
+          1
+      }
+      else {
+        if (java.lang.Float.isNaN(y))
+          -1
+        else
+          if (x > y) 1 else if (x < y) -1 else 0
+      }
+    def apply(x: Double, y: Double): Int =
+      if (java.lang.Double.isNaN(x)) {
+        if (java.lang.Double.isNaN(y))
+          0
+        else
+          1
+      }
+      else {
+        if (java.lang.Double.isNaN(y))
+          -1
+        else
+          if (x > y) 1 else if (x < y) -1 else 0
+      }
   }
 
   object NumericalEQ {
     def apply(x: Int, y: Int): Boolean = (x == y)
     def apply(x: Long, y: Long): Boolean = (x == y)
-    def apply(x: Float, y: Float): Boolean = (x == y)
-    def apply(x: Double, y: Double): Boolean = (x == y)
+    def apply(x: Float, y: Float): Boolean =
+      if (java.lang.Float.isNaN(x)  &&  java.lang.Float.isNaN(y))
+        true
+      else
+        x == y
+    def apply(x: Double, y: Double): Boolean =
+      if (java.lang.Double.isNaN(x)  &&  java.lang.Double.isNaN(y))
+        true
+      else
+        x == y
   }
 
   object NumericalGE {
     def apply(x: Int, y: Int): Boolean = (x >= y)
     def apply(x: Long, y: Long): Boolean = (x >= y)
-    def apply(x: Float, y: Float): Boolean = (x >= y)
-    def apply(x: Double, y: Double): Boolean = (x >= y)
+    def apply(x: Float, y: Float): Boolean =
+      if (java.lang.Float.isNaN(x))
+        true
+      else
+        x >= y
+    def apply(x: Double, y: Double): Boolean =
+      if (java.lang.Double.isNaN(x))
+        true
+      else
+        x >= y
   }
 
   object NumericalGT {
     def apply(x: Int, y: Int): Boolean = (x > y)
     def apply(x: Long, y: Long): Boolean = (x > y)
-    def apply(x: Float, y: Float): Boolean = (x > y)
-    def apply(x: Double, y: Double): Boolean = (x > y)
+    def apply(x: Float, y: Float): Boolean =
+      if (java.lang.Float.isNaN(x)  &&  !java.lang.Float.isNaN(y))
+        true
+      else
+        x > y
+    def apply(x: Double, y: Double): Boolean =
+      if (java.lang.Double.isNaN(x)  &&  !java.lang.Double.isNaN(y))
+        true
+      else
+        x > y
   }
 
   object NumericalNE {
     def apply(x: Int, y: Int): Boolean = (x != y)
     def apply(x: Long, y: Long): Boolean = (x != y)
-    def apply(x: Float, y: Float): Boolean = (x != y)
-    def apply(x: Double, y: Double): Boolean = (x != y)
+    def apply(x: Float, y: Float): Boolean =
+      if (java.lang.Float.isNaN(x)  &&  java.lang.Float.isNaN(y))
+        false
+      else if (java.lang.Float.isNaN(x)  ||  java.lang.Float.isNaN(y))
+        true
+      else
+        x != y
+    def apply(x: Double, y: Double): Boolean =
+      if (java.lang.Double.isNaN(x)  &&  java.lang.Double.isNaN(y))
+        false
+      else if (java.lang.Double.isNaN(x)  ||  java.lang.Double.isNaN(y))
+        true
+      else
+        x != y
   }
 
   object NumericalLT {
     def apply(x: Int, y: Int): Boolean = (x < y)
     def apply(x: Long, y: Long): Boolean = (x < y)
-    def apply(x: Float, y: Float): Boolean = (x < y)
-    def apply(x: Double, y: Double): Boolean = (x < y)
+    def apply(x: Float, y: Float): Boolean =
+      if (java.lang.Float.isNaN(y)  &&  !java.lang.Float.isNaN(x))
+        true
+      else
+        x < y
+    def apply(x: Double, y: Double): Boolean =
+      if (java.lang.Double.isNaN(y)  &&  !java.lang.Double.isNaN(x))
+        true
+      else
+        x < y
   }
 
   object NumericalLE {
     def apply(x: Int, y: Int): Boolean = (x <= y)
     def apply(x: Long, y: Long): Boolean = (x <= y)
-    def apply(x: Float, y: Float): Boolean = (x <= y)
-    def apply(x: Double, y: Double): Boolean = (x <= y)
+    def apply(x: Float, y: Float): Boolean =
+      if (java.lang.Float.isNaN(y))
+        true
+      else
+        x <= y
+    def apply(x: Double, y: Double): Boolean =
+      if (java.lang.Double.isNaN(y))
+        true
+      else
+        x <= y
   }
 
   object NumericalMax {
     def apply(x: Int, y: Int): Int = if (x >= y) x else y
     def apply(x: Long, y: Long): Long = if (x >= y) x else y
-    def apply(x: Float, y: Float): Float = if (x >= y) x else y
-    def apply(x: Double, y: Double): Double = if (x >= y) x else y
+    def apply(x: Float, y: Float): Float =
+      if (java.lang.Float.isNaN(x))
+        x
+      else if (java.lang.Float.isNaN(y))
+        y
+      else if (x >= y)
+        x
+      else
+        y
+    def apply(x: Double, y: Double): Double =
+      if (java.lang.Double.isNaN(x))
+        x
+      else if (java.lang.Double.isNaN(y))
+        y
+      else if (x >= y)
+        x
+      else
+        y
   }
 
   object NumericalMin {
     def apply(x: Int, y: Int): Int = if (x < y) x else y
     def apply(x: Long, y: Long): Long = if (x < y) x else y
-    def apply(x: Float, y: Float): Float = if (x < y) x else y
-    def apply(x: Double, y: Double): Double = if (x < y) x else y
+    def apply(x: Float, y: Float): Float =
+      if (java.lang.Float.isNaN(x))
+        y
+      else if (java.lang.Float.isNaN(y))
+        x
+      else if (x < y)
+        x
+      else
+        y
+    def apply(x: Double, y: Double): Double =
+      if (java.lang.Double.isNaN(x))
+        y
+      else if (java.lang.Double.isNaN(y))
+        x
+      else if (x < y)
+        x
+      else
+        y
   }
 
   /////////////////////////// replace Avro's in-memory data representation with our own classes
@@ -350,9 +466,26 @@ package data {
     def updated[X](i: Int, elem: X, schema: Schema): PFARecord = internalUpdate(i, converted(elem, schema))
     def updated[X](i: String, elem: X, schema: Schema): PFARecord = internalUpdate(i, converted(elem, schema))
 
-    def updated(path: Array[PathIndex], elem: AnyRef, schema: Schema): PFARecord = updated(path.toList, (dummy: AnyRef) => elem, schema)
     def updated(path: List[PathIndex], elem: AnyRef, schema: Schema): PFARecord = updated(path, (dummy: AnyRef) => elem, schema)
+    def updated(path: Array[PathIndex], elem: AnyRef, schema: Schema): PFARecord = updated(path.toList, (dummy: AnyRef) => elem, schema)
+    def updated(path: Array[PathIndex], elem: AnyRef, schema: Schema, arrayErrStr: String, arrayErrCode: Int, mapErrStr: String, mapErrCode: Int, fcnName: String, pos: Option[String]): PFARecord =
+      try {
+        updated(path, (dummy: AnyRef) => elem, schema)
+      }
+      catch {
+        case err: java.lang.IndexOutOfBoundsException => throw new PFARuntimeException(arrayErrStr, arrayErrCode, fcnName, pos, err)
+        case err: java.util.NoSuchElementException => throw new PFARuntimeException(mapErrStr, mapErrCode, fcnName, pos, err)
+      }
     def updated[Y](path: Array[PathIndex], updator: Y => Y, schema: Schema): PFARecord = updated(path.toList, updator, schema)
+    def updated[Y](path: Array[PathIndex], updator: Y => Y, schema: Schema, arrayErrStr: String, arrayErrCode: Int, mapErrStr: String, mapErrCode: Int, fcnName: String, pos: Option[String]): PFARecord =
+      try {
+        updated(path, updator, schema)
+      }
+      catch {
+        case err: java.lang.IndexOutOfBoundsException => throw new PFARuntimeException(arrayErrStr, arrayErrCode, fcnName, pos, err)
+        case err: java.util.NoSuchElementException => throw new PFARuntimeException(mapErrStr, mapErrCode, fcnName, pos, err)
+      }
+
     def updated[Y](path: List[PathIndex], updator: Y => Y, schema: Schema): PFARecord = path match {
       case R(f) :: Nil => updated(f, updator(apply(f).asInstanceOf[Y]), schema)
       case R(f) :: rest => {
@@ -516,27 +649,29 @@ package data {
           case _ => elem
         }
 
-    def apply(i: Int): X = {
-      val vec = toVector
-      try {
-        vec(i)
-      }
-      catch {
-        case err: java.lang.IndexOutOfBoundsException => throw new PFARuntimeException("index %d out of bounds for array with size %d".format(i, vec.size))
-      }
-    }
-    def updated(i: Int, elem: X, schema: Schema): PFAArray[X] = {
-      val vec = toVector
-      try {
-        PFAArray.fromVector(vec.updated(i, converted(elem, schema)))
-      }
-      catch {
-        case err: java.lang.IndexOutOfBoundsException => throw new PFARuntimeException("index %d out of bounds for array with size %d".format(i, vec.size))
-      }
-    }
-    def updated(path: Array[PathIndex], elem: X, schema: Schema): PFAArray[X] = updated(path.toList, (dummy: X) => elem, schema)
+    def apply(i: Int): X = toVector.apply(i)
+    def updated(i: Int, elem: X, schema: Schema): PFAArray[X] = PFAArray.fromVector(toVector.updated(i, converted(elem, schema)))
+
     def updated(path: List[PathIndex], elem: X, schema: Schema): PFAArray[X] = updated(path, (dummy: X) => elem, schema)
+    def updated(path: Array[PathIndex], elem: X, schema: Schema): PFAArray[X] = updated(path.toList, (dummy: X) => elem, schema)
+    def updated(path: Array[PathIndex], elem: X, schema: Schema, arrayErrStr: String, arrayErrCode: Int, mapErrStr: String, mapErrCode: Int, fcnName: String, pos: Option[String]): PFAArray[X] =
+      try {
+        updated(path.toList, (dummy: X) => elem, schema)
+      }
+      catch {
+        case err: java.lang.IndexOutOfBoundsException => throw new PFARuntimeException(arrayErrStr, arrayErrCode, fcnName, pos, err)
+        case err: java.util.NoSuchElementException => throw new PFARuntimeException(mapErrStr, mapErrCode, fcnName, pos, err)
+      }
     def updated[Y](path: Array[PathIndex], updator: Y => Y, schema: Schema): PFAArray[X] = updated(path.toList, updator, schema)
+    def updated[Y](path: Array[PathIndex], updator: Y => Y, schema: Schema, arrayErrStr: String, arrayErrCode: Int, mapErrStr: String, mapErrCode: Int, fcnName: String, pos: Option[String]): PFAArray[X] =
+      try {
+        updated(path.toList, updator, schema)
+      }
+      catch {
+        case err: java.lang.IndexOutOfBoundsException => throw new PFARuntimeException(arrayErrStr, arrayErrCode, fcnName, pos, err)
+        case err: java.util.NoSuchElementException => throw new PFARuntimeException(mapErrStr, mapErrCode, fcnName, pos, err)
+      }
+
     def updated[Y](path: List[PathIndex], updator: Y => Y, schema: Schema): PFAArray[X] = path match {
       case I(i) :: Nil => updated(i, updator(apply(i).asInstanceOf[Y]).asInstanceOf[X], schema)
       case I(i) :: rest => {
@@ -640,19 +775,29 @@ package data {
           case _ => elem
         }
 
-    def apply(i: String): X = {
-      val map = toMap
+    def apply(i: String): X = toMap.apply(i)
+    def updated(i: String, elem: X, schema: Schema): PFAMap[X] = PFAMap.fromMap(toMap.updated(i, converted(elem, schema)))
+
+    def updated(path: List[PathIndex], elem: X, schema: Schema): PFAMap[X] = updated(path, (dummy: X) => elem, schema)
+    def updated(path: Array[PathIndex], elem: X, schema: Schema): PFAMap[X] = updated(path.toList, (dummy: X) => elem, schema)
+    def updated(path: Array[PathIndex], elem: X, schema: Schema, arrayErrStr: String, arrayErrCode: Int, mapErrStr: String, mapErrCode: Int, fcnName: String, pos: Option[String]): PFAMap[X] =
       try {
-        map(i)
+        updated(path.toList, (dummy: X) => elem, schema)
       }
       catch {
-        case err: java.util.NoSuchElementException => throw new PFARuntimeException("key \"%s\" not found in map with size %d".format(i, map.size))
+        case err: java.lang.IndexOutOfBoundsException => throw new PFARuntimeException(arrayErrStr, arrayErrCode, fcnName, pos, err)
+        case err: java.util.NoSuchElementException => throw new PFARuntimeException(mapErrStr, mapErrCode, fcnName, pos, err)
       }
-    }
-    def updated(i: String, elem: X, schema: Schema): PFAMap[X] = PFAMap.fromMap(toMap.updated(i, converted(elem, schema)))
-    def updated(path: Array[PathIndex], elem: X, schema: Schema): PFAMap[X] = updated(path.toList, (dummy: X) => elem, schema)
-    def updated(path: List[PathIndex], elem: X, schema: Schema): PFAMap[X] = updated(path, (dummy: X) => elem, schema)
     def updated[Y](path: Array[PathIndex], updator: Y => Y, schema: Schema): PFAMap[X] = updated(path.toList, updator, schema)
+    def updated[Y](path: Array[PathIndex], updator: Y => Y, schema: Schema, arrayErrStr: String, arrayErrCode: Int, mapErrStr: String, mapErrCode: Int, fcnName: String, pos: Option[String]): PFAMap[X] =
+      try {
+        updated(path.toList, updator, schema)
+      }
+      catch {
+        case err: java.lang.IndexOutOfBoundsException => throw new PFARuntimeException(arrayErrStr, arrayErrCode, fcnName, pos, err)
+        case err: java.util.NoSuchElementException => throw new PFARuntimeException(mapErrStr, mapErrCode, fcnName, pos, err)
+      }
+
     def updated[Y](path: List[PathIndex], updator: Y => Y, schema: Schema): PFAMap[X] = path match {
       case M(k) :: Nil => updated(k, updator(apply(k).asInstanceOf[Y]).asInstanceOf[X], schema)
       case M(k) :: rest => {
@@ -680,15 +825,17 @@ package data {
       def translate(datum: AnyRef): AnyRef = datum
     }
 
-    class TranslateFixed(avroFixed: AvroFixed, classLoader: java.lang.ClassLoader) extends Translator {
+    class TranslateFixed(avroFixed: AvroFixed, classLoader: java.lang.ClassLoader, memo: mutable.Map[String, Translator]) extends Translator {
       val fullName = avroFixed.fullName
+      memo(fullName) = this
       val constructor = classLoader.loadClass(avroFixed.fullName).getConstructor(classOf[AnyPFAFixed])
       constructor.setAccessible(true)
       def translate(datum: AnyRef): AnyRef = constructor.newInstance(datum).asInstanceOf[AnyRef]
     }
 
-    class TranslateEnum(avroEnum: AvroEnum, classLoader: java.lang.ClassLoader) extends Translator {
+    class TranslateEnum(avroEnum: AvroEnum, classLoader: java.lang.ClassLoader, memo: mutable.Map[String, Translator]) extends Translator {
       val fullName = avroEnum.fullName
+      memo(fullName) = this
       val constructor = classLoader.loadClass(avroEnum.fullName).getConstructor(classOf[AnyPFAEnumSymbol])
       constructor.setAccessible(true)
       def translate(datum: AnyRef): AnyRef = constructor.newInstance(datum).asInstanceOf[AnyRef]
@@ -705,9 +852,10 @@ package data {
       }
     }
 
-    class TranslateRecord(avroRecord: AvroRecord, classLoader: java.lang.ClassLoader) extends Translator {
+    class TranslateRecord(avroRecord: AvroRecord, classLoader: java.lang.ClassLoader, memo: mutable.Map[String, Translator]) extends Translator {
       val fullName = avroRecord.fullName
-      val fieldTranslators = avroRecord.fields map {field => getTranslator(field.avroType, classLoader)} toArray
+      memo(fullName) = this
+      val fieldTranslators = avroRecord.fields map {field => getTranslator(field.avroType, classLoader, memo)} toArray
 
       val constructor = classLoader.loadClass(avroRecord.fullName).getConstructor(classOf[Array[AnyRef]])
       constructor.setAccessible(true)
@@ -723,50 +871,51 @@ package data {
       def translate(datum: AnyRef): AnyRef = translator(datum)
     }
 
-    def getTranslator(avroType: AvroType, classLoader: java.lang.ClassLoader): Translator = avroType match {
-      case _: AvroNull => new PassThrough
-      case _: AvroBoolean => new PassThrough
-      case _: AvroInt => new PassThrough
-      case _: AvroLong => new PassThrough
-      case _: AvroFloat => new PassThrough
-      case _: AvroDouble => new PassThrough
-      case _: AvroBytes => new PassThrough
-      case _: AvroString => new PassThrough
+    def getTranslator(avroType: AvroType, classLoader: java.lang.ClassLoader, memo: mutable.Map[String, Translator]): Translator =
+      memo.getOrElse(avroType.fullName, avroType match {
+        case _: AvroNull => new PassThrough
+        case _: AvroBoolean => new PassThrough
+        case _: AvroInt => new PassThrough
+        case _: AvroLong => new PassThrough
+        case _: AvroFloat => new PassThrough
+        case _: AvroDouble => new PassThrough
+        case _: AvroBytes => new PassThrough
+        case _: AvroString => new PassThrough
 
-      case x: AvroFixed => new TranslateFixed(x, classLoader)
-      case x: AvroEnum => new TranslateEnum(x, classLoader)
+        case x: AvroFixed => new TranslateFixed(x, classLoader, memo)
+        case x: AvroEnum => new TranslateEnum(x, classLoader, memo)
 
-      case x: AvroArray =>
-        val items = getTranslator(x.items, classLoader)
-        items match {
-          case _: PassThrough => new PassThrough
-          case _ => new TranslateArray(items)
-        }
-
-      case x: AvroMap =>
-        val values = getTranslator(x.values, classLoader)
-        values match {
-          case _: PassThrough => new PassThrough
-          case _ => new TranslateMap(values)
-        }
-
-      case x: AvroRecord => new TranslateRecord(x, classLoader)
-
-      case x: AvroUnion =>
-        val types = x.types map {y => getTranslator(y, classLoader)}
-        val translators =
-          types collect {
-            case y: TranslateArray =>  {case null => null; case datum: PFAArray[_] => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
-            case y: TranslateMap =>    {case null => null; case datum: PFAMap[_]   => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
-            case y: TranslateFixed =>  {case null => null; case datum: AnyPFAFixed if (datum.getSchema.getFullName == y.fullName)      => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
-            case y: TranslateEnum =>   {case null => null; case datum: AnyPFAEnumSymbol if (datum.getSchema.getFullName == y.fullName) => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
-            case y: TranslateRecord => {case null => null; case datum: AnyPFARecord if (datum.getSchema.getFullName == y.fullName)     => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+        case x: AvroArray =>
+          val items = getTranslator(x.items, classLoader, memo)
+          items match {
+            case _: PassThrough => new PassThrough
+            case _ => new TranslateArray(items)
           }
-        new TranslateUnion((translators :+ ({case y => y}: PartialFunction[AnyRef, AnyRef])) reduce {_ orElse _})
-    }
+
+        case x: AvroMap =>
+          val values = getTranslator(x.values, classLoader, memo)
+          values match {
+            case _: PassThrough => new PassThrough
+            case _ => new TranslateMap(values)
+          }
+
+        case x: AvroRecord => new TranslateRecord(x, classLoader, memo)
+
+        case x: AvroUnion =>
+          val types = x.types map {y => getTranslator(y, classLoader, memo)}
+          val translators =
+            types collect {
+              case y: TranslateArray =>  {case null => null; case datum: PFAArray[_] => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+              case y: TranslateMap =>    {case null => null; case datum: PFAMap[_]   => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+              case y: TranslateFixed =>  {case null => null; case datum: AnyPFAFixed if (datum.getSchema.getFullName == y.fullName)      => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+              case y: TranslateEnum =>   {case null => null; case datum: AnyPFAEnumSymbol if (datum.getSchema.getFullName == y.fullName) => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+              case y: TranslateRecord => {case null => null; case datum: AnyPFARecord if (datum.getSchema.getFullName == y.fullName)     => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+            }
+          new TranslateUnion((translators :+ ({case y => y}: PartialFunction[AnyRef, AnyRef])) reduce {_ orElse _})
+      })
   }
   class PFADataTranslator(avroType: AvroType, classLoader: java.lang.ClassLoader) {
-    val translator = PFADataTranslator.getTranslator(avroType, classLoader)
+    val translator = PFADataTranslator.getTranslator(avroType, classLoader, mutable.Map[String, PFADataTranslator.Translator]())
     def translate(datum: AnyRef): AnyRef = translator.translate(datum)
   }
 
@@ -803,8 +952,9 @@ package data {
       }
     }
 
-    class TranslateFixed(avroFixed: AvroFixed, classLoader: java.lang.ClassLoader) extends Translator {
+    class TranslateFixed(avroFixed: AvroFixed, classLoader: java.lang.ClassLoader, memo: mutable.Map[String, Translator]) extends Translator {
       val fullName = avroFixed.fullName
+      memo(fullName) = this
       val constructor = classLoader.loadClass(avroFixed.fullName).getConstructor(classOf[Array[Byte]])
       constructor.setAccessible(true)
       def translate(datum: AnyRef): AnyRef = {
@@ -813,8 +963,9 @@ package data {
       }
     }
 
-    class TranslateEnum(avroEnum: AvroEnum, classLoader: java.lang.ClassLoader) extends Translator {
+    class TranslateEnum(avroEnum: AvroEnum, classLoader: java.lang.ClassLoader, memo: mutable.Map[String, Translator]) extends Translator {
       val fullName = avroEnum.fullName
+      memo(fullName) = this
       val constructor = classLoader.loadClass(avroEnum.fullName).getConstructor(classOf[Schema], classOf[String])
       constructor.setAccessible(true)
       def translate(datum: AnyRef): AnyRef = {
@@ -837,10 +988,11 @@ package data {
       }
     }
 
-    class TranslateRecord(avroRecord: AvroRecord, classLoader: java.lang.ClassLoader) extends Translator {
+    class TranslateRecord(avroRecord: AvroRecord, classLoader: java.lang.ClassLoader, memo: mutable.Map[String, Translator]) extends Translator {
       val fullName = avroRecord.fullName
+      memo(fullName) = this
       val fieldNames = avroRecord.fields map {field => field.name} toArray
-      val fieldTranslators = avroRecord.fields map {field => getTranslator(field.avroType, classLoader)} toArray
+      val fieldTranslators = avroRecord.fields map {field => getTranslator(field.avroType, classLoader, memo)} toArray
 
       val constructor = classLoader.loadClass(avroRecord.fullName).getConstructor(classOf[Array[AnyRef]])
       constructor.setAccessible(true)
@@ -863,48 +1015,49 @@ package data {
       def translate(datum: AnyRef): AnyRef = translator(datum)
     }
 
-    def getTranslator(avroType: AvroType, classLoader: java.lang.ClassLoader): Translator = avroType match {
-      case _: AvroNull => new PassThrough
-      case _: AvroBoolean => new PassThrough
-      case _: AvroInt => new PassThrough
-      case _: AvroLong => new PassThrough
-      case _: AvroFloat => new PassThrough
-      case _: AvroDouble => new PassThrough
+    def getTranslator(avroType: AvroType, classLoader: java.lang.ClassLoader, memo: mutable.Map[String, Translator]): Translator =
+      memo.getOrElse(avroType.fullName, avroType match {
+        case _: AvroNull => new PassThrough
+        case _: AvroBoolean => new PassThrough
+        case _: AvroInt => new PassThrough
+        case _: AvroLong => new PassThrough
+        case _: AvroFloat => new PassThrough
+        case _: AvroDouble => new PassThrough
 
-      case _: AvroBytes => new TranslateBytes
-      case _: AvroString => new TranslateString
+        case _: AvroBytes => new TranslateBytes
+        case _: AvroString => new TranslateString
 
-      case x: AvroFixed => new TranslateFixed(x, classLoader)
-      case x: AvroEnum => new TranslateEnum(x, classLoader)
+        case x: AvroFixed => new TranslateFixed(x, classLoader, memo)
+        case x: AvroEnum => new TranslateEnum(x, classLoader, memo)
 
-      case x: AvroArray =>
-        val items = getTranslator(x.items, classLoader)
-        new TranslateArray(items)
+        case x: AvroArray =>
+          val items = getTranslator(x.items, classLoader, memo)
+          new TranslateArray(items)
 
-      case x: AvroMap =>
-        val values = getTranslator(x.values, classLoader)
-        new TranslateMap(values)
+        case x: AvroMap =>
+          val values = getTranslator(x.values, classLoader, memo)
+          new TranslateMap(values)
 
-      case x: AvroRecord => new TranslateRecord(x, classLoader)
+        case x: AvroRecord => new TranslateRecord(x, classLoader, memo)
 
-      case x: AvroUnion =>
-        val types = x.types map {y => getTranslator(y, classLoader)}
-        val translators =
-          types collect {
-            case y: TranslateBytes =>  {case null => null; case datum: java.nio.ByteBuffer    => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
-            case y: TranslateString => {case null => null; case datum: java.lang.CharSequence => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
-            case y: TranslateArray =>  {case null => null; case datum: java.util.List[_]      => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
-            case y: TranslateMap =>    {case null => null; case datum: java.util.Map[_, _]    => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
-            case y: TranslateFixed =>  {case null => null; case datum: org.apache.avro.generic.GenericFixed if (datum.getSchema.getFullName == y.fullName)      => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
-            case y: TranslateEnum =>   {case null => null; case datum: org.apache.avro.generic.GenericEnumSymbol if (datum.getSchema.getFullName == y.fullName) => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
-            case y: TranslateRecord => {case null => null; case datum: org.apache.avro.generic.GenericRecord if (datum.getSchema.getFullName == y.fullName)     => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
-          }
+        case x: AvroUnion =>
+          val types = x.types map {y => getTranslator(y, classLoader, memo)}
+          val translators =
+            types collect {
+              case y: TranslateBytes =>  {case null => null; case datum: java.nio.ByteBuffer    => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+              case y: TranslateString => {case null => null; case datum: java.lang.CharSequence => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+              case y: TranslateArray =>  {case null => null; case datum: java.util.List[_]      => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+              case y: TranslateMap =>    {case null => null; case datum: java.util.Map[_, _]    => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+              case y: TranslateFixed =>  {case null => null; case datum: org.apache.avro.generic.GenericFixed if (datum.getSchema.getFullName == y.fullName)      => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+              case y: TranslateEnum =>   {case null => null; case datum: org.apache.avro.generic.GenericEnumSymbol if (datum.getSchema.getFullName == y.fullName) => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+              case y: TranslateRecord => {case null => null; case datum: org.apache.avro.generic.GenericRecord if (datum.getSchema.getFullName == y.fullName)     => y.translate(datum)}: PartialFunction[AnyRef, AnyRef]
+            }
 
-        new TranslateUnion((translators :+ ({case y => y}: PartialFunction[AnyRef, AnyRef])) reduce {_ orElse _})
-    }
+          new TranslateUnion((translators :+ ({case y => y}: PartialFunction[AnyRef, AnyRef])) reduce {_ orElse _})
+      })
   }
   class AvroDataTranslator(avroType: AvroType, classLoader: java.lang.ClassLoader) {
-    val translator = AvroDataTranslator.getTranslator(avroType, classLoader)
+    val translator = AvroDataTranslator.getTranslator(avroType, classLoader, mutable.Map[String, AvroDataTranslator.Translator]())
     def translate(datum: AnyRef): AnyRef = translator.translate(datum)
   }
 
@@ -982,16 +1135,18 @@ package data {
       val scalaClass = classOf[String]
     }
 
-    class TranslateFixed(avroFixed: AvroFixed) extends Translator[Array[Byte]] {
+    class TranslateFixed(avroFixed: AvroFixed, memo: mutable.Map[String, Translator[_]]) extends Translator[Array[Byte]] {
       val fullName = avroFixed.fullName
+      memo(fullName) = this
       val size = avroFixed.size
       def toScala(datum: AnyRef): Array[Byte] = datum.asInstanceOf[AnyPFAFixed].bytes
       def fromScala(datum: Any): AnyRef = new GenericPFAFixed(avroFixed.schema, datum.asInstanceOf[Array[Byte]])
       val scalaClass = classOf[Array[Byte]]
     }
 
-    class TranslateEnum(avroEnum: AvroEnum) extends Translator[String] {
+    class TranslateEnum(avroEnum: AvroEnum, memo: mutable.Map[String, Translator[_]]) extends Translator[String] {
       val fullName = avroEnum.fullName
+      memo(fullName) = this
       val symbols = avroEnum.symbols
       def toScala(datum: AnyRef): String = datum.asInstanceOf[AnyPFAEnumSymbol].toString
       def fromScala(datum: Any): AnyRef = new GenericPFAEnumSymbol(avroEnum.schema, datum.asInstanceOf[String])
@@ -1014,9 +1169,11 @@ package data {
       val scalaClass = classOf[Map[String, _]]
     }
 
-    class TranslateRecord[X](avroRecord: AvroRecord, classLoader: java.lang.ClassLoader) extends Translator[X] {
+    class TranslateRecord[X](avroRecord: AvroRecord, classLoader: java.lang.ClassLoader, memo: mutable.Map[String, Translator[_]]) extends Translator[X] {
       val fullName = avroRecord.fullName
-      val fieldTranslators = avroRecord.fields map {field => getTranslator(field.avroType, classLoader)}
+      memo(fullName) = this
+      val fieldTranslators = avroRecord.fields map {field => getTranslator(field.avroType, classLoader, memo)}
+
       val constructor = classLoader.loadClass(fullName).getConstructor(fieldTranslators map {_.scalaClass}: _*)
       constructor.setAccessible(true)
 
@@ -1042,64 +1199,65 @@ package data {
       val scalaClass = classOf[AnyRef]
     }
 
-    def getTranslator(avroType: AvroType, classLoader: java.lang.ClassLoader): Translator[_] = avroType match {
-      case _: AvroNull => new TranslateNull
-      case _: AvroBoolean => new TranslateBoolean
-      case _: AvroInt => new TranslateInt
-      case _: AvroLong => new TranslateLong
-      case _: AvroFloat => new TranslateFloat
-      case _: AvroDouble => new TranslateDouble
-      case _: AvroBytes => new TranslateBytes
-      case _: AvroString => new TranslateString
+    def getTranslator(avroType: AvroType, classLoader: java.lang.ClassLoader, memo: mutable.Map[String, Translator[_]]): Translator[_] =
+      memo.getOrElse(avroType.fullName, avroType match {
+        case _: AvroNull => new TranslateNull
+        case _: AvroBoolean => new TranslateBoolean
+        case _: AvroInt => new TranslateInt
+        case _: AvroLong => new TranslateLong
+        case _: AvroFloat => new TranslateFloat
+        case _: AvroDouble => new TranslateDouble
+        case _: AvroBytes => new TranslateBytes
+        case _: AvroString => new TranslateString
 
-      case x: AvroFixed => new TranslateFixed(x)
-      case x: AvroEnum => new TranslateEnum(x)
+        case x: AvroFixed => new TranslateFixed(x, memo)
+        case x: AvroEnum => new TranslateEnum(x, memo)
 
-      case x: AvroArray => new TranslateArray(getTranslator(x.items, classLoader))
-      case x: AvroMap => new TranslateMap(getTranslator(x.values, classLoader))
+        case x: AvroArray => new TranslateArray(getTranslator(x.items, classLoader, memo))
+        case x: AvroMap => new TranslateMap(getTranslator(x.values, classLoader, memo))
 
-      case x: AvroRecord => new TranslateRecord(x, classLoader)
+        case x: AvroRecord => new TranslateRecord(x, classLoader, memo)
 
-      case x: AvroUnion =>
-        val translators = x.types map {y => getTranslator(y, classLoader)}
+        case x: AvroUnion =>
+          val translators = x.types map {y => getTranslator(y, classLoader, memo)}
 
-        val translateToScala = translators map {
-          case y: TranslateNull =>      {case null                     => y.toScala(null)}:  PartialFunction[AnyRef, Any]
-          case y: TranslateBoolean =>   {case datum: java.lang.Boolean => y.toScala(datum)}: PartialFunction[AnyRef, Any]
-          case y: TranslateInt =>       {case datum: java.lang.Integer => y.toScala(datum)}: PartialFunction[AnyRef, Any]
-          case y: TranslateLong =>      {case datum: java.lang.Long    => y.toScala(datum)}: PartialFunction[AnyRef, Any]
-          case y: TranslateFloat =>     {case datum: java.lang.Float   => y.toScala(datum)}: PartialFunction[AnyRef, Any]
-          case y: TranslateDouble =>    {case datum: java.lang.Double  => y.toScala(datum)}: PartialFunction[AnyRef, Any]
-          case y: TranslateBytes =>     {case datum: Array[_]          => y.toScala(datum)}: PartialFunction[AnyRef, Any]
-          case y: TranslateString =>    {case datum: String            => y.toScala(datum)}: PartialFunction[AnyRef, Any]
-          case y: TranslateArray[_] =>  {case datum: PFAArray[_]       => y.toScala(datum)}: PartialFunction[AnyRef, Any]
-          case y: TranslateMap[_] =>    {case datum: PFAMap[_]         => y.toScala(datum)}: PartialFunction[AnyRef, Any]
-          case y: TranslateFixed =>     {case datum: AnyPFAFixed if (datum.getSchema.getFullName == y.fullName)      => y.toScala(datum)}: PartialFunction[AnyRef, Any]
-          case y: TranslateEnum =>      {case datum: AnyPFAEnumSymbol if (datum.getSchema.getFullName == y.fullName) => y.toScala(datum)}: PartialFunction[AnyRef, Any]
-          case y: TranslateRecord[_] => {case datum: AnyPFARecord if (datum.getSchema.getFullName == y.fullName)     => y.toScala(datum)}: PartialFunction[AnyRef, Any]
-        }
+          val translateToScala = translators map {
+            case y: TranslateNull =>      {case null                     => y.toScala(null)}:  PartialFunction[AnyRef, Any]
+            case y: TranslateBoolean =>   {case datum: java.lang.Boolean => y.toScala(datum)}: PartialFunction[AnyRef, Any]
+            case y: TranslateInt =>       {case datum: java.lang.Integer => y.toScala(datum)}: PartialFunction[AnyRef, Any]
+            case y: TranslateLong =>      {case datum: java.lang.Long    => y.toScala(datum)}: PartialFunction[AnyRef, Any]
+            case y: TranslateFloat =>     {case datum: java.lang.Float   => y.toScala(datum)}: PartialFunction[AnyRef, Any]
+            case y: TranslateDouble =>    {case datum: java.lang.Double  => y.toScala(datum)}: PartialFunction[AnyRef, Any]
+            case y: TranslateBytes =>     {case datum: Array[_]          => y.toScala(datum)}: PartialFunction[AnyRef, Any]
+            case y: TranslateString =>    {case datum: String            => y.toScala(datum)}: PartialFunction[AnyRef, Any]
+            case y: TranslateArray[_] =>  {case datum: PFAArray[_]       => y.toScala(datum)}: PartialFunction[AnyRef, Any]
+            case y: TranslateMap[_] =>    {case datum: PFAMap[_]         => y.toScala(datum)}: PartialFunction[AnyRef, Any]
+            case y: TranslateFixed =>     {case datum: AnyPFAFixed if (datum.getSchema.getFullName == y.fullName)      => y.toScala(datum)}: PartialFunction[AnyRef, Any]
+            case y: TranslateEnum =>      {case datum: AnyPFAEnumSymbol if (datum.getSchema.getFullName == y.fullName) => y.toScala(datum)}: PartialFunction[AnyRef, Any]
+            case y: TranslateRecord[_] => {case datum: AnyPFARecord if (datum.getSchema.getFullName == y.fullName)     => y.toScala(datum)}: PartialFunction[AnyRef, Any]
+          }
 
-        val translateFromScala = translators map {
-          case y: TranslateNull =>      {case null             => y.fromScala(null)}: PartialFunction[Any, AnyRef]
-          case y: TranslateBoolean =>   {case datum: Boolean   => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
-          case y: TranslateInt =>       {case datum: Int       => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
-          case y: TranslateLong =>      {case datum: Long      => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
-          case y: TranslateFloat =>     {case datum: Float     => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
-          case y: TranslateDouble =>    {case datum: Double    => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
-          case y: TranslateBytes =>     {case datum: Array[_]  => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
-          case y: TranslateString =>    {case datum: String    => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
-          case y: TranslateArray[_] =>  {case datum: Seq[_]    => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
-          case y: TranslateMap[_] =>    {case datum: Map[_, _] => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
-          case y: TranslateFixed =>     {case datum: Array[_] if (y.size == datum.size)                          => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
-          case y: TranslateEnum =>      {case datum: String if (y.symbols.contains(datum))                       => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
-          case y: TranslateRecord[_] => {case datum: AnyPFARecord if (datum.getSchema.getFullName == y.fullName) => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
-        }
+          val translateFromScala = translators map {
+            case y: TranslateNull =>      {case null             => y.fromScala(null)}: PartialFunction[Any, AnyRef]
+            case y: TranslateBoolean =>   {case datum: Boolean   => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
+            case y: TranslateInt =>       {case datum: Int       => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
+            case y: TranslateLong =>      {case datum: Long      => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
+            case y: TranslateFloat =>     {case datum: Float     => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
+            case y: TranslateDouble =>    {case datum: Double    => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
+            case y: TranslateBytes =>     {case datum: Array[_]  => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
+            case y: TranslateString =>    {case datum: String    => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
+            case y: TranslateArray[_] =>  {case datum: Seq[_]    => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
+            case y: TranslateMap[_] =>    {case datum: Map[_, _] => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
+            case y: TranslateFixed =>     {case datum: Array[_] if (y.size == datum.size)                          => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
+            case y: TranslateEnum =>      {case datum: String if (y.symbols.contains(datum))                       => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
+            case y: TranslateRecord[_] => {case datum: AnyPFARecord if (datum.getSchema.getFullName == y.fullName) => y.fromScala(datum)}: PartialFunction[Any, AnyRef]
+          }
 
-        new TranslateUnion(translateToScala reduce {_ orElse _}, translateFromScala reduce {_ orElse _})
-    }
+          new TranslateUnion(translateToScala reduce {_ orElse _}, translateFromScala reduce {_ orElse _})
+      })
   }
   class ScalaDataTranslator[X](avroType: AvroType, classLoader: java.lang.ClassLoader) {
-    val translator = ScalaDataTranslator.getTranslator(avroType, classLoader)
+    val translator = ScalaDataTranslator.getTranslator(avroType, classLoader, mutable.Map[String, ScalaDataTranslator.Translator[_]]())
     def toScala(datum: AnyRef): X = translator.toScala(datum).asInstanceOf[X]
     def fromScala(datum: Any): AnyRef = translator.fromScala(datum)
   }
@@ -1151,7 +1309,7 @@ package object data {
     
     val fileSchema = AvroConversions.schemaToAvroType(out.getSchema)
     if (!inputType.accepts(fileSchema))
-      throw new PFAInitializationException("InputStream has schema %s\nbut expecting schema %s".format(fileSchema, inputType))
+      throw new IllegalArgumentException("InputStream has schema %s\nbut expecting schema %s".format(fileSchema, inputType))
     out
   }
 
@@ -1200,6 +1358,67 @@ package object data {
     }
   }
 
+  private def javaFieldReaders(inputType: AvroType, csvIndexLookup: Map[String, Int]): Seq[(Int, String => AnyRef)] = inputType match {
+    case AvroRecord(fields, _, _, _, _) =>
+      val fieldNames = fields.map(_.name)
+      fields map {field =>
+        csvIndexLookup.get(field.name) match {
+          case None => throw new IllegalArgumentException(s"CSV file has no field named ${field.name}")
+          case Some(i) => (i, field.avroType match {
+            case AvroNull() => {x: String => null.asInstanceOf[AnyRef]}
+            case AvroBoolean() => {x: String => if (x.toLowerCase == "true") java.lang.Boolean.TRUE else if (x.toLowerCase == "false") java.lang.Boolean.FALSE else throw new IllegalArgumentException(s"""field ${field.name} declared boolean but found "$x"""")}
+            case AvroInt() => {x: String => try {java.lang.Integer.valueOf(x.toInt)} catch {case _: java.lang.NumberFormatException => throw new IllegalArgumentException(s"""field ${field.name} declared int but found "$x"""")}}
+            case AvroLong() => {x: String => try {java.lang.Long.valueOf(x.toLong)} catch {case _: java.lang.NumberFormatException => throw new IllegalArgumentException(s"""field ${field.name} declared long but found "$x"""")}}
+            case AvroFloat() => {x: String => try {java.lang.Float.valueOf(x.toFloat)} catch {case _: java.lang.NumberFormatException => throw new IllegalArgumentException(s"""field ${field.name} declared float but found "$x"""")}}
+            case AvroDouble() => {x: String => try {java.lang.Double.valueOf(x.toDouble)} catch {case _: java.lang.NumberFormatException => throw new IllegalArgumentException(s"""field ${field.name} declared double but found "$x"""")}}
+            case AvroBytes() => {x: String => x.getBytes}
+            case AvroString() => {x: String => x}
+            case _ => throw new IllegalArgumentException("CSV input only allowed for records of non-named, non-container types (not enum, fixed, record, array, map, or union)")
+          })
+        }
+      }
+    case _ => throw new IllegalArgumentException("CSV input only allowed for records")
+  }
+
+  def csvInputIterator[X](inputStream: InputStream, inputType: AvroType, csvFormat: CSVFormat = CSVFormat.DEFAULT.withHeader(), makeFieldReaders: Option[(AvroType, Map[String, Int]) => Seq[(Int, String => AnyRef)]] = None, makeRecord: Option[Array[AnyRef] => X] = None): java.util.Iterator[X] = {
+    val q = csvFormat.getQuoteCharacter
+    val Quoted = ("""^\s*""" + q + """(.*)""" + q + """\s*$""").r
+    val Unquoted = ("""^\s*(.*)\s*$""").r
+    def unquote(x: String): String = x match {
+      case Quoted(inner) => inner.replaceAll(q.toString + q.toString, q.toString)
+      case Unquoted(inner) => inner
+      case _ => x
+    }
+
+    val csvParser = csvFormat.parse(new java.io.InputStreamReader(inputStream))
+    val csvIndexLookup = csvParser.getHeaderMap map {case (csvName, csvIndex) => unquote(csvName) -> csvIndex.intValue} toMap
+
+    val fieldReaders: Seq[(Int, String => AnyRef)] = makeFieldReaders match {
+      case Some(f) => f(inputType, csvIndexLookup)
+      case None => javaFieldReaders(inputType, csvIndexLookup)
+    }
+
+    val myMakeRecord = makeRecord.getOrElse {fieldValues: Array[AnyRef] =>
+      val out = new GenericPFARecord(inputType.schema)
+      var i = 0
+      while (i < fieldValues.size) {
+        out.put(i, fieldValues(i))
+        i += 1
+      }
+      out.asInstanceOf[X]
+    }
+
+    new java.util.Iterator[X] {
+      private val csvIterator = csvParser.iterator
+      def hasNext(): Boolean = csvIterator.hasNext
+      def next(): X = {
+        val csvRecord = csvIterator.next()
+        myMakeRecord(fieldReaders map {case (i, r) => r(unquote(csvRecord.get(i)))} toArray)
+      }
+      def remove(): Unit = throw new java.lang.UnsupportedOperationException
+    }
+  }
+
   trait OutputDataStream {
     def append(datum: AnyRef): Unit
     def flush(): Unit
@@ -1208,7 +1427,7 @@ package object data {
   
   class AvroOutputDataStream(writer: DatumWriter[AnyRef]) extends DataFileWriter[AnyRef](writer) with OutputDataStream
 
-  def avroOutputDataStream(outputStream: java.io.OutputStream, outputType: AvroType): AvroOutputDataStream = {
+  def avroOutputDataStream(outputStream: OutputStream, outputType: AvroType): AvroOutputDataStream = {
     val writer = new GenericPFADatumWriter[AnyRef](outputType.schema, genericData)
     val out = new AvroOutputDataStream(writer)
     out.create(outputType.schema, outputStream)
@@ -1224,7 +1443,7 @@ package object data {
 
   def avroOutputDataStream(fileName: String, outputType: AvroType): AvroOutputDataStream = avroOutputDataStream(new java.io.File(fileName), outputType)
 
-  class JsonOutputDataStream(writer: DatumWriter[AnyRef], encoder: JsonEncoder, outputStream: java.io.OutputStream) extends OutputDataStream {
+  class JsonOutputDataStream(writer: DatumWriter[AnyRef], encoder: JsonEncoder, outputStream: OutputStream) extends OutputDataStream {
     def append(obj: AnyRef): Unit = writer.write(obj, encoder)
     def flush(): Unit = encoder.flush()
     def close(): Unit = {
@@ -1233,7 +1452,7 @@ package object data {
     }
   }
 
-  def jsonOutputDataStream(outputStream: java.io.OutputStream, outputType: AvroType, writeSchema: Boolean): JsonOutputDataStream = {
+  def jsonOutputDataStream(outputStream: OutputStream, outputType: AvroType, writeSchema: Boolean): JsonOutputDataStream = {
     val encoder = EncoderFactory.get.jsonEncoder(outputType.schema, outputStream)
     val writer = new GenericPFADatumWriter[AnyRef](outputType.schema, genericData)
     val out = new JsonOutputDataStream(writer, encoder, outputStream)
@@ -1256,7 +1475,49 @@ package object data {
     out
   }
 
-  def jsonOutputDataStream(fileName: String, outputType: AvroType, writeSchema: Boolean): JsonOutputDataStream = jsonOutputDataStream(new java.io.File(fileName), outputType, writeSchema)
+  def jsonOutputDataStream(fileName: String, outputType: AvroType, writeSchema: Boolean): JsonOutputDataStream =
+    jsonOutputDataStream(new java.io.File(fileName), outputType, writeSchema)
+
+  class CsvOutputDataStream(outputStream: OutputStream, fieldConverters: Seq[(String, PartialFunction[AnyRef, String])], csvFormat: CSVFormat) extends OutputDataStream {
+    private val writer = new CSVPrinter(new java.io.PrintStream(outputStream), csvFormat)
+    def append(datum: AnyRef) {
+      datum.asInstanceOf[AnyPFARecord].getAll.foreach(writer.print)
+      writer.println()
+    }
+    def flush() {
+      writer.flush()
+    }
+    def close() {
+      writer.close()
+    }
+  }
+
+  def csvOutputDataStream(outputStream: OutputStream, outputType: AvroType, csvFormat: CSVFormat = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.MINIMAL), writeHeader: Boolean = true) = {
+    val fieldConverters: Seq[(String, PartialFunction[AnyRef, String])] = outputType match {
+      case AvroRecord(fields, _, _, _, _) => fields map {field =>
+        (field.name, field.avroType match {
+          case AvroNull() => {case x: AnyRef => "null"}: PartialFunction[AnyRef, String]
+          case AvroBoolean() => {case java.lang.Boolean.TRUE => "true"; case java.lang.Boolean.FALSE => "false"}: PartialFunction[AnyRef, String]
+          case AvroInt() => {case x: java.lang.Number => x.intValue.toString}: PartialFunction[AnyRef, String]
+          case AvroLong() => {case x: java.lang.Number => x.longValue.toString}: PartialFunction[AnyRef, String]
+          case AvroFloat() => {case x: java.lang.Number => x.floatValue.toString}: PartialFunction[AnyRef, String]
+          case AvroDouble() => {case x: java.lang.Number => x.doubleValue.toString}: PartialFunction[AnyRef, String]
+          case AvroBytes() => {case x: Array[_] => new String(x.asInstanceOf[Array[Byte]])}: PartialFunction[AnyRef, String]
+          case AvroString() => {case x: String => x}: PartialFunction[AnyRef, String]
+          case _ => throw new IllegalArgumentException("CSV output only allowed for records of non-named, non-container types (not enum, fixed, record, array, map, or union)")
+        })
+      }
+      case _ => throw new IllegalArgumentException("CSV output only allowed for records")
+    }
+
+    val fullCsvFormat =
+      if (writeHeader)
+        csvFormat.withHeader(fieldConverters.map(_._1): _*)
+      else
+        csvFormat
+
+    new CsvOutputDataStream(outputStream, fieldConverters, fullCsvFormat)
+  }
 
   def toJsonDom(obj: AnyRef, avroType: AvroType): JsonDom = (obj, avroType) match {
     case (null, AvroNull()) => JsonNull

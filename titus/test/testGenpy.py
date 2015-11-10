@@ -425,7 +425,7 @@ input: int
 output: string
 method: fold
 zero: "-"
-action: {s.concat: [tally, {s.number: input}]}
+action: {s.concat: [tally, {s.int: input}]}
 merge: {s.concat: [tallyOne, tallyTwo]}
 ''', multiplicity=2)
 
@@ -1865,7 +1865,7 @@ input: "null"
 output: [double, string]
 action: {upcast: 3, as: ["double", "string"]}
 ''')
-        self.assertEqual(engine.action(None), 3.0)
+        self.assertEqual(engine.action(None), {"double": 3.0})
 
         self.assertRaises(PFASemanticException, lambda: PFAEngine.fromYaml('''
 input: "null"
@@ -2532,12 +2532,12 @@ action: {do: {error: "This is bad"}}
             engine, = PFAEngine.fromYaml('''
 input: "null"
 output: "null"
-action: {do: {error: "This is bad", code: 12}}
+action: {do: {error: "This is bad", code: -12}}
 ''')
             engine.action(None)
             raise Exception
         except PFAUserException as err:
-            self.assertEqual(err.code, 12)
+            self.assertEqual(err.code, -12)
 
         def callme2():
             engine, = PFAEngine.fromYaml('''
@@ -4633,6 +4633,32 @@ fcns:
 ''')
         self.assertEqual(engine.action("hey"), 2)
 
+    def testRemovePrivatePoolItems(self):
+        engine, = PFAEngine.fromYaml('''
+input: string
+output: int
+pools:
+  x: {type: int, init: {whatever: 12}}
+action:
+  - {pool: x, del: input}
+  - {pool: x, path: [{string: "whatever"}]}
+''')
+        self.assertEqual(engine.action("somesuch"), 12)
+        self.assertRaises(PFARuntimeException, lambda: engine.action("whatever"))
+
+    def testRemovePublicPoolItems(self):
+        engine, = PFAEngine.fromYaml('''
+input: string
+output: int
+pools:
+  x: {type: int, init: {whatever: 12}, shared: true}
+action:
+  - {pool: x, del: input}
+  - {pool: x, path: [{string: "whatever"}]}
+''')
+        self.assertEqual(engine.action("somesuch"), 12)
+        self.assertRaises(PFARuntimeException, lambda: engine.action("whatever"))
+
     def testStopIntRunningProcess(self):
         def go():
             engine, = PFAEngine.fromYaml('''
@@ -5204,6 +5230,27 @@ action:
     else: input
   filter:
     - ouch
+''')
+        self.assertEqual(engine.action(1), 1)
+        self.assertEqual(engine.action(2), 2)
+        self.assertEqual(engine.action(3), None)
+        self.assertRaises(PFAUserException, lambda: engine.action(4))
+        self.assertEqual(engine.action(5), 5)
+
+    def testTryCatchWithFiltering2(self):
+        engine, = PFAEngine.fromYaml('''
+input: int
+output: [int, "null"]
+action:
+  try:
+    cond:
+      - if: {"==": [input, 3]}
+        then: {error: "ouch", code: -99}
+      - if: {"==": [input, 4]}
+        then: {error: "yowzers", code: -100}
+    else: input
+  filter:
+    - -99
 ''')
         self.assertEqual(engine.action(1), 1)
         self.assertEqual(engine.action(2), 2)

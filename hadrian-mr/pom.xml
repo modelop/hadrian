@@ -4,7 +4,7 @@
 
     <groupId>com.opendatagroup</groupId>
     <artifactId>hadrian-mr</artifactId>
-    <version>0.7.1</version>
+    <version>0.8.1</version>
     <packaging>jar</packaging>
 
     <name>hadrian-mr</name>
@@ -36,35 +36,30 @@
             <classifier>hadoop2</classifier>
         </dependency>
 
-        <!-- <dependency> -->
-        <!--     <groupId>org.apache.hadoop</groupId> -->
-        <!--     <artifactId>hadoop-core</artifactId> -->
-        <!--     <version>1.2.1</version> -->
-        <!--     <scope>provided</scope> -->
-        <!-- </dependency> -->
-
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-core</artifactId>
-            <version>2.6.0-mr1-cdh5.4.2</version>
+            <version>2.4.1-mapr-1408</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
-            <version>2.6.0-cdh5.4.2</version>
+            <version>2.4.1-mapr-1408</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>com.opendatagroup</groupId>
             <artifactId>hadrian</artifactId>
-            <version>0.7.1</version>
+            <version>0.8.1</version>
         </dependency>
 
         <dependency>
             <groupId>com.opendatagroup</groupId>
             <artifactId>antinous</artifactId>
-            <version>0.7.1</version>
+            <version>0.8.1</version>
         </dependency>
 
         <dependency>
@@ -94,8 +89,8 @@
         </repository>
 
         <repository>
-            <id>cloudera</id>
-            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
+            <id>mapr</id>
+            <url>http://repository.mapr.com/maven</url>
         </repository>
 
     </repositories>

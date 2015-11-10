@@ -436,7 +436,7 @@ class TestAstToJson(unittest.TestCase):
 
     def testError(self):
         self.assertEqual(json.loads(Error("hello", None).toJson(lineNumbers=False)), json.loads('''{"error":"hello"}'''))
-        self.assertEqual(json.loads(Error("hello", 3).toJson(lineNumbers=False)), json.loads('''{"error":"hello","code":3}'''))
+        self.assertEqual(json.loads(Error("hello", -3).toJson(lineNumbers=False)), json.loads('''{"error":"hello","code":-3}'''))
 
     def testLog(self):
         self.assertEqual(json.loads(Log([LiteralString("hello")], None).toJson(lineNumbers=False)), json.loads('''{"log":[{"string":"hello"}]}'''))

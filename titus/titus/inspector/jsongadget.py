@@ -26,6 +26,18 @@ import titus.producer.tools as t
 from titus.inspector.defs import *
 
 def depthGreaterThan(obj, target):
+    """Helper function for determining if an object's depth is greater than a given target.
+
+    A string, number, boolean, or null has depth 0, a list or dict of such objects has depth 1, etc.
+
+    :type obj: Pythonized JSON
+    :param obj: object to inspect
+    :type target: non-negative integer
+    :param target: target depth
+    :rtype: bool
+    :return: ``True`` if the depth of ``obj`` is greater than ``target``; ``False`` otherwise.
+    """
+
     if isinstance(obj, dict):
         return any(depthGreaterThan(x, target - 1) for x in obj.values()) or \
                (len(obj) == 0 and target <= 0)
@@ -36,6 +48,8 @@ def depthGreaterThan(obj, target):
         return target < 0
         
 class LookCommand(Command):
+    """The 'json look' command in pfainspector."""
+
     def __init__(self, mode):
         self.name = "look"
         self.syntax = "look <name> [maxDepth=8] [indexWidth=30]"
@@ -43,6 +57,16 @@ class LookCommand(Command):
         self.mode = mode
 
     def complete(self, established, active):
+        """Handle tab-complete for this command's arguments.
+
+        :type established: string
+        :param established: part of the text that has been established
+        :type active: string
+        :param active: part of the text to be completed
+        :rtype: list of strings
+        :return: potential completions
+        """
+
         options = ["maxDepth=", "indexWidth="]
         words = getcomplete(established)
 
@@ -65,6 +89,14 @@ class LookCommand(Command):
             return []
 
     def action(self, args):
+        """Perform the action associated with this command.
+
+        :type args: list of titus.inspector.parser.Ast
+        :param args: arguments passed to the command
+        :rtype: ``None``
+        :return: nothing; results must be printed to the screen
+        """
+
         if len(args) == 1 and args[0] == parser.Word("help"):
             print self.help
         else:
@@ -125,6 +157,8 @@ class LookCommand(Command):
                     pipewait(proc)
 
 class CountCommand(Command):
+    """The 'json count' command in pfainspector."""
+
     def __init__(self, mode):
         self.name = "count"
         self.syntax = "count <name> <pattern>"
@@ -132,6 +166,16 @@ class CountCommand(Command):
         self.mode = mode
 
     def complete(self, established, active):
+        """Handle tab-complete for this command's arguments.
+
+        :type established: string
+        :param established: part of the text that has been established
+        :type active: string
+        :param active: part of the text to be completed
+        :rtype: list of strings
+        :return: potential completions
+        """
+
         words = getcomplete(established)
 
         if len(words) == 0:
@@ -150,6 +194,14 @@ class CountCommand(Command):
             return []
 
     def action(self, args):
+        """Perform the action associated with this command.
+
+        :type args: list of titus.inspector.parser.Ast
+        :param args: arguments passed to the command
+        :rtype: ``None``
+        :return: nothing; results must be printed to the screen
+        """
+
         if len(args) == 1 and args[0] == parser.Word("help"):
             print self.help
         else:
@@ -172,6 +224,8 @@ class CountCommand(Command):
             print "{0} matches".format(t.count(regex, node))
 
 class IndexCommand(Command):
+    """The 'json index' command in pfainspector."""
+
     def __init__(self, mode):
         self.name = "index"
         self.syntax = "index <name> <pattern>"
@@ -179,6 +233,16 @@ class IndexCommand(Command):
         self.mode = mode
 
     def complete(self, established, active):
+        """Handle tab-complete for this command's arguments.
+
+        :type established: string
+        :param established: part of the text that has been established
+        :type active: string
+        :param active: part of the text to be completed
+        :rtype: list of strings
+        :return: potential completions
+        """
+
         words = getcomplete(established)
 
         if len(words) == 0:
@@ -197,6 +261,14 @@ class IndexCommand(Command):
             return []
 
     def action(self, args):
+        """Perform the action associated with this command.
+
+        :type args: list of titus.inspector.parser.Ast
+        :param args: arguments passed to the command
+        :rtype: ``None``
+        :return: nothing; results must be printed to the screen
+        """
+
         if len(args) == 1 and args[0] == parser.Word("help"):
             print self.help
         else:
@@ -234,6 +306,8 @@ class IndexCommand(Command):
                 print "    (none)"
 
 class FindCommand(Command):
+    """The 'json find' command in pfainspector."""
+
     def __init__(self, mode):
         self.name = "find"
         self.syntax = "find <name> <pattern> [maxDepth=3] [indexWidth=30]"
@@ -241,6 +315,16 @@ class FindCommand(Command):
         self.mode = mode
 
     def complete(self, established, active):
+        """Handle tab-complete for this command's arguments.
+
+        :type established: string
+        :param established: part of the text that has been established
+        :type active: string
+        :param active: part of the text to be completed
+        :rtype: list of strings
+        :return: potential completions
+        """
+
         options = ["maxDepth=", "indexWidth="]
         words = getcomplete(established)
 
@@ -263,6 +347,14 @@ class FindCommand(Command):
             return []
 
     def action(self, args):
+        """Perform the action associated with this command.
+
+        :type args: list of titus.inspector.parser.Ast
+        :param args: arguments passed to the command
+        :rtype: ``None``
+        :return: nothing; results must be printed to the screen
+        """
+
         if len(args) == 1 and args[0] == parser.Word("help"):
             print self.help
         else:
@@ -342,6 +434,8 @@ class FindCommand(Command):
                 pipewait(proc)
 
 class ChangeCommand(Command):
+    """The 'json change' command in pfainspector."""
+
     def __init__(self, mode):
         self.name = "change"
         self.syntax = "change <name> <pattern> to <replacement>"
@@ -349,6 +443,16 @@ class ChangeCommand(Command):
         self.mode = mode
 
     def complete(self, established, active):
+        """Handle tab-complete for this command's arguments.
+
+        :type established: string
+        :param established: part of the text that has been established
+        :type active: string
+        :param active: part of the text to be completed
+        :rtype: list of strings
+        :return: potential completions
+        """
+
         words = getcomplete(established)
 
         if len(words) == 0:
@@ -370,6 +474,14 @@ class ChangeCommand(Command):
             return []
 
     def action(self, args):
+        """Perform the action associated with this command.
+
+        :type args: list of titus.inspector.parser.Ast
+        :param args: arguments passed to the command
+        :rtype: ``None``
+        :return: nothing; results must be printed to the screen
+        """
+
         if len(args) == 1 and args[0] == parser.Word("help"):
             print self.help
         else:
@@ -483,6 +595,8 @@ class ChangeCommand(Command):
                 self.mode.resume()
 
 class JsonGadget(Gadget):
+    """The 'json' gadget in pfainspector."""
+
     def __init__(self, mode):
         self.commandGroup = CommandGroup("json", [
             LookCommand(mode),

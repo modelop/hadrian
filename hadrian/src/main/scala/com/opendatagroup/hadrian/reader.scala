@@ -77,6 +77,7 @@ import com.opendatagroup.hadrian.ast.CellGet
 import com.opendatagroup.hadrian.ast.CellTo
 import com.opendatagroup.hadrian.ast.PoolGet
 import com.opendatagroup.hadrian.ast.PoolTo
+import com.opendatagroup.hadrian.ast.PoolDel
 import com.opendatagroup.hadrian.ast.If
 import com.opendatagroup.hadrian.ast.Cond
 import com.opendatagroup.hadrian.ast.While
@@ -214,7 +215,7 @@ package reader {
     )
 
     private def jsonAt(parser: JsonParser): String =
-      "JSON start line,col %d,%d".format(parser.getCurrentLocation.getLineNr, parser.getCurrentLocation.getColumnNr)
+      "JSON line:col %d:%d".format(parser.getCurrentLocation.getLineNr, parser.getCurrentLocation.getColumnNr)
 
     private def readEngineConfig(parser: JsonParser, token: JsonToken, avroTypeBuilder: AvroTypeBuilder): EngineConfig = token match {
       case null => throw new PFASyntaxException("empty input", Some(pos("", "")))
@@ -450,7 +451,7 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key != "@")
-            items = (key, readJsonNode(parser, parser.nextToken(), dot + "." + key, at)) :: items
+            items = (key, readJsonNode(parser, parser.nextToken(), dot + " -> " + key, at)) :: items
           subtoken = parser.nextToken()
         }
         items.toMap
@@ -465,7 +466,7 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key != "@")
-            items = (key, readJsonToBytes(parser, parser.nextToken(), dot + "." + key, at)) :: items
+            items = (key, readJsonToBytes(parser, parser.nextToken(), dot + " -> " + key, at)) :: items
           subtoken = parser.nextToken()
         }
         items.toMap
@@ -480,7 +481,7 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key != "@")
-            items = (key, readJsonToDom(parser, parser.nextToken(), dot + "." + key, at)) :: items
+            items = (key, readJsonToDom(parser, parser.nextToken(), dot + " -> " + key, at)) :: items
           subtoken = parser.nextToken()
         }
         items.toMap
@@ -520,7 +521,7 @@ package reader {
         var subtoken = parser.nextToken()
         var counter = 0
         while (subtoken != JsonToken.END_ARRAY) {
-          val pair = readExpressionMap(parser, subtoken, dot + ".%d".format(counter), at, avroTypeBuilder, false)
+          val pair = readExpressionMap(parser, subtoken, dot + " -> %d".format(counter), at, avroTypeBuilder, false)
           val pairNoAt = pair - "@"
           if (pairNoAt.size != 1)
             throw new PFASyntaxException("expected array of {string: expression} pairs, found map of length %d".format(pairNoAt.size), Some(pos(dot, at)))
@@ -539,7 +540,7 @@ package reader {
         var counter = 0
         while (subtoken != JsonToken.END_ARRAY) {
           val pair = try {
-            readStringMap(parser, subtoken, dot + ".%d".format(counter), at)
+            readStringMap(parser, subtoken, dot + " -> %d".format(counter), at)
           }
           catch {
             case err: PFASyntaxException =>
@@ -562,12 +563,26 @@ package reader {
         var subtoken = parser.nextToken()
         var counter = 0
         while (subtoken != JsonToken.END_ARRAY) {
-          items = readString(parser, subtoken, dot + ".%d".format(counter), at) :: items
+          items = readString(parser, subtoken, dot + " -> %d".format(counter), at) :: items
           subtoken = parser.nextToken()
         }
         items.reverse
       }
       case x => throw new PFASyntaxException("expected array of strings, found %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos(dot, at)))
+    }
+
+    private def readStringOrIntArray(parser: JsonParser, token: JsonToken, dot: String, at: String): Seq[Either[String, Int]] = token match {
+      case JsonToken.START_ARRAY => {
+        var items = List[Either[String, Int]]()
+        var subtoken = parser.nextToken()
+        var counter = 0
+        while (subtoken != JsonToken.END_ARRAY) {
+          items = readStringOrInt(parser, subtoken, dot + " -> %d".format(counter), at) :: items
+          subtoken = parser.nextToken()
+        }
+        items.reverse
+      }
+      case x => throw new PFASyntaxException("expected array of strings or integers, found %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos(dot, at)))
     }
 
     private def readStringMap(parser: JsonParser, token: JsonToken, dot: String, at: String): Map[String, String] = token match {
@@ -579,9 +594,9 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key == "@")
-            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+            _at = readString(parser, parser.nextToken(), dot + " -> " + key, at)
           else
-            items = (key, readString(parser, parser.nextToken(), dot + "." + key, _at)) :: items
+            items = (key, readString(parser, parser.nextToken(), dot + " -> " + key, _at)) :: items
           subtoken = parser.nextToken()
         }
         items.toMap
@@ -592,6 +607,12 @@ package reader {
     private def readString(parser: JsonParser, token: JsonToken, dot: String, at: String): String = token match {
       case JsonToken.VALUE_STRING => parser.getText
       case x => throw new PFASyntaxException("expected string, found %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos(dot, at)))
+    }
+
+    private def readStringOrInt(parser: JsonParser, token: JsonToken, dot: String, at: String): Either[String, Int] = token match {
+      case JsonToken.VALUE_STRING => Left(parser.getText)
+      case JsonToken.VALUE_NUMBER_INT => Right(parser.getIntValue)
+      case x => throw new PFASyntaxException("expected string or integer, found %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos(dot, at)))
     }
 
     private def readBase64(parser: JsonParser, token: JsonToken, dot: String, at: String): Array[Byte] = token match {
@@ -610,7 +631,7 @@ package reader {
         var subtoken = parser.nextToken()
         var counter = 0
         while (subtoken != JsonToken.END_ARRAY) {
-          items = readExpression(parser, subtoken, dot + ".%d".format(counter), at, avroTypeBuilder) :: items
+          items = readExpression(parser, subtoken, dot + " -> %d".format(counter), at, avroTypeBuilder) :: items
           subtoken = parser.nextToken()
         }
         items.reverse
@@ -627,9 +648,9 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key == "@")
-            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+            _at = readString(parser, parser.nextToken(), dot + " -> " + key, at)
           else if (!keysMustBeSymbols  ||  validSymbolName(key))
-            items = (key, readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)) :: items
+            items = (key, readExpression(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)) :: items
           else
             throw new PFASyntaxException("\"%s\" is not a valid symbol name".format(key), Some(pos(dot, at)))
           subtoken = parser.nextToken()
@@ -645,7 +666,7 @@ package reader {
         var subtoken = parser.nextToken()
         var counter = 0
         while (subtoken != JsonToken.END_ARRAY) {
-          items = readCastCase(parser, subtoken, dot + ".%d".format(counter), at, avroTypeBuilder) :: items
+          items = readCastCase(parser, subtoken, dot + " -> %d".format(counter), at, avroTypeBuilder) :: items
           subtoken = parser.nextToken()
         }
         items.reverse
@@ -666,15 +687,15 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key == "@")
-            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+            _at = readString(parser, parser.nextToken(), dot + " -> " + key, at)
           else {
             keys.add(key)
             key match {
-              case "as" =>    _as = readAvroPlaceholder(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "named" => _named = readString(parser, parser.nextToken(), dot + "." + key, _at)
+              case "as" =>    _as = readAvroPlaceholder(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "named" => _named = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
               case "do" => parser.nextToken() match {
-                case x @ JsonToken.START_ARRAY => _body = readExpressionArray(parser, x, dot + "." + key, _at, avroTypeBuilder)
-                case x => _body = List(readExpression(parser, x, dot + "." + key, _at, avroTypeBuilder))
+                case x @ JsonToken.START_ARRAY => _body = readExpressionArray(parser, x, dot + " -> " + key, _at, avroTypeBuilder)
+                case x => _body = List(readExpression(parser, x, dot + " -> " + key, _at, avroTypeBuilder))
               }
               case x => throw new PFASyntaxException("unexpected field in cast-case: %s".format(x), Some(pos(dot, _at)))
             }
@@ -706,7 +727,7 @@ package reader {
         var subtoken = parser.nextToken()
         var counter = 0
         while (subtoken != JsonToken.END_ARRAY) {
-          items = readArgument(parser, subtoken, dot + ".%d".format(counter), at, avroTypeBuilder) :: items
+          items = readArgument(parser, subtoken, dot + " -> %d".format(counter), at, avroTypeBuilder) :: items
           subtoken = parser.nextToken()
         }
         items.reverse
@@ -723,9 +744,9 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key == "@")
-            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+            _at = readString(parser, parser.nextToken(), dot + " -> " + key, at)
           else
-            items = (key, readArgument(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)) :: items
+            items = (key, readArgument(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)) :: items
           subtoken = parser.nextToken()
         }
         items.toMap
@@ -748,6 +769,9 @@ package reader {
       }
       case JsonToken.VALUE_NUMBER_FLOAT => LiteralDouble(parser.getDoubleValue, Some(pos(dot, at)))
       case JsonToken.VALUE_STRING => parser.getText.split("""\.""").toList match {
+        case Nil =>
+          throw new PFASyntaxException("\"%s\" is not a valid symbol name".format(parser.getText), Some(pos(dot, at)))
+
         case item :: Nil =>
           if (validSymbolName(item))
             Ref(item, Some(pos(dot, at)))
@@ -813,6 +837,7 @@ package reader {
         var _whilePredicate: Expression = null
         var _until: Expression = null
         var _unpack: Expression = null
+        var _del: Expression = null
 
         var _cond: Seq[Expression] = null
         var _cases: Seq[CastCase] = null
@@ -830,7 +855,7 @@ package reader {
         var _init: Expression = null
         var _callwith: Expression = null
 
-        var _seq: Boolean = false
+        var _seq: Boolean = true
         var _partial: Boolean = false
 
         var _doc: String = null
@@ -849,7 +874,7 @@ package reader {
         var _callArgs: Seq[Argument] = null
         var _to: Argument = null
         var _fill: Map[String, Argument] = null
-        var _filter = Seq[String]()
+        var _filter = Seq[Either[String, Int]]()
         var _format: Seq[(String, String)] = null
         var _pack: Seq[(String, Expression)] = null
 
@@ -857,107 +882,108 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key == "@")
-            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+            _at = readString(parser, parser.nextToken(), dot + " -> " + key, at)
           else {
             keys.add(key)
             key match {
-              case "int" =>       _int = readInt(parser, parser.nextToken(), dot + "." + key, _at)
-              case "long" =>      _long = readLong(parser, parser.nextToken(), dot + "." + key, _at)
-              case "float" =>     _float = readFloat(parser, parser.nextToken(), dot + "." + key, _at)
-              case "double" =>    _double = readDouble(parser, parser.nextToken(), dot + "." + key, _at)
-              case "string" =>    _string = readString(parser, parser.nextToken(), dot + "." + key, _at)
-              case "base64" =>    _bytes = readBase64(parser, parser.nextToken(), dot + "." + key, _at)
-              case "type" =>      _avroType = readAvroPlaceholder(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "value" =>     _value = readJsonToString(parser, parser.nextToken(), dot + "." + key, _at)
+              case "int" =>       _int = readInt(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "long" =>      _long = readLong(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "float" =>     _float = readFloat(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "double" =>    _double = readDouble(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "string" =>    _string = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "base64" =>    _bytes = readBase64(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "type" =>      _avroType = readAvroPlaceholder(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "value" =>     _value = readJsonToString(parser, parser.nextToken(), dot + " -> " + key, _at)
 
-              case "let" =>       _let = readExpressionMap(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder, true)
-              case "set" =>       _set = readExpressionMap(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder, true)
-              case "for" =>       _forlet = readExpressionMap(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder, true)
-              case "step" =>      _forstep = readExpressionMap(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder, true)
-              case "ifnotnull" => _ifnotnull = readExpressionMap(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder, true)
+              case "let" =>       _let = readExpressionMap(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder, true)
+              case "set" =>       _set = readExpressionMap(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder, true)
+              case "for" =>       _forlet = readExpressionMap(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder, true)
+              case "step" =>      _forstep = readExpressionMap(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder, true)
+              case "ifnotnull" => _ifnotnull = readExpressionMap(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder, true)
 
               case "do" => parser.nextToken() match {
-                case x @ JsonToken.START_ARRAY => _body = readExpressionArray(parser, x, dot + "." + key, _at, avroTypeBuilder)
-                case x => _body = List(readExpression(parser, x, dot + "." + key, _at, avroTypeBuilder))
+                case x @ JsonToken.START_ARRAY => _body = readExpressionArray(parser, x, dot + " -> " + key, _at, avroTypeBuilder)
+                case x => _body = List(readExpression(parser, x, dot + " -> " + key, _at, avroTypeBuilder))
               }
               case "then" => parser.nextToken() match {
-                case x @ JsonToken.START_ARRAY => _thenClause = readExpressionArray(parser, x, dot + "." + key, _at, avroTypeBuilder)
-                case x => _thenClause = List(readExpression(parser, x, dot + "." + key, _at, avroTypeBuilder))
+                case x @ JsonToken.START_ARRAY => _thenClause = readExpressionArray(parser, x, dot + " -> " + key, _at, avroTypeBuilder)
+                case x => _thenClause = List(readExpression(parser, x, dot + " -> " + key, _at, avroTypeBuilder))
               }
               case "else" => parser.nextToken() match {
-                case x @ JsonToken.START_ARRAY => _elseClause = readExpressionArray(parser, x, dot + "." + key, _at, avroTypeBuilder)
-                case x => _elseClause = List(readExpression(parser, x, dot + "." + key, _at, avroTypeBuilder))
+                case x @ JsonToken.START_ARRAY => _elseClause = readExpressionArray(parser, x, dot + " -> " + key, _at, avroTypeBuilder)
+                case x => _elseClause = List(readExpression(parser, x, dot + " -> " + key, _at, avroTypeBuilder))
               }
               case "log" => parser.nextToken() match {
-                case x @ JsonToken.START_ARRAY => _log = readExpressionArray(parser, x, dot + "." + key, _at, avroTypeBuilder)
-                case x => _log = List(readExpression(parser, x, dot + "." + key, _at, avroTypeBuilder))
+                case x @ JsonToken.START_ARRAY => _log = readExpressionArray(parser, x, dot + " -> " + key, _at, avroTypeBuilder)
+                case x => _log = List(readExpression(parser, x, dot + " -> " + key, _at, avroTypeBuilder))
               }
-              case "path" =>      _path = readExpressionArray(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "args" =>      _callwithargs = readExpressionArray(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+              case "path" =>      _path = readExpressionArray(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "args" =>      _callwithargs = readExpressionArray(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
               case "try" => parser.nextToken() match {
-                case x @ JsonToken.START_ARRAY => _trycatch = readExpressionArray(parser, x, dot + "." + key, _at, avroTypeBuilder)
-                case x => _trycatch = List(readExpression(parser, x, dot + "." + key, _at, avroTypeBuilder))
+                case x @ JsonToken.START_ARRAY => _trycatch = readExpressionArray(parser, x, dot + " -> " + key, _at, avroTypeBuilder)
+                case x => _trycatch = List(readExpression(parser, x, dot + " -> " + key, _at, avroTypeBuilder))
               }
 
-              case "attr" =>      _attr = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "if" =>        _ifPredicate = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "while" =>     _whilePredicate = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "until" =>     _until = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "unpack" =>    _unpack = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+              case "attr" =>      _attr = readExpression(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "if" =>        _ifPredicate = readExpression(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "while" =>     _whilePredicate = readExpression(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "until" =>     _until = readExpression(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "unpack" =>    _unpack = readExpression(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "del" =>       _del = readExpression(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
 
               case "cond" => {
-                _cond = readExpressionArray(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+                _cond = readExpressionArray(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
                 if (!_cond.forall({case If(_, _, None, _) => true; case _ => false}))
                   throw new PFASyntaxException("cond expression must only contain else-less if expressions", Some(pos(dot, _at)))
               }
 
-              case "cases" =>     _cases = readCastCaseArray(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+              case "cases" =>     _cases = readCastCaseArray(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
 
-              case "foreach" =>   _foreach = readString(parser, parser.nextToken(), dot + "." + key, _at)
-              case "forkey" =>    _forkey = readString(parser, parser.nextToken(), dot + "." + key, _at)
-              case "forval" =>    _forval = readString(parser, parser.nextToken(), dot + "." + key, _at)
-              case "fcn" =>       _fcnref = readString(parser, parser.nextToken(), dot + "." + key, _at)
-              case "cell" =>      _cell = readString(parser, parser.nextToken(), dot + "." + key, _at)
-              case "pool" =>      _pool = readString(parser, parser.nextToken(), dot + "." + key, _at)
+              case "foreach" =>   _foreach = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "forkey" =>    _forkey = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "forval" =>    _forval = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "fcn" =>       _fcnref = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "cell" =>      _cell = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "pool" =>      _pool = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
 
-              case "in" =>        _in = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "cast" =>      _cast = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "upcast" =>    _upcast = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "init" =>      _init = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "call" =>      _callwith = readExpression(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+              case "in" =>        _in = readExpression(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "cast" =>      _cast = readExpression(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "upcast" =>    _upcast = readExpression(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "init" =>      _init = readExpression(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "call" =>      _callwith = readExpression(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
 
-              case "seq" =>       _seq = readBoolean(parser, parser.nextToken(), dot + "." + key, _at)
-              case "partial" =>   _partial = readBoolean(parser, parser.nextToken(), dot + "." + key, _at)
+              case "seq" =>       _seq = readBoolean(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "partial" =>   _partial = readBoolean(parser, parser.nextToken(), dot + " -> " + key, _at)
 
-              case "doc" =>       _doc = readString(parser, parser.nextToken(), dot + "." + key, _at)
-              case "error" =>     _error = readString(parser, parser.nextToken(), dot + "." + key, _at)
-              case "code" =>      _code = readInt(parser, parser.nextToken(), dot + "." + key, _at)
-              case "namespace" => _namespace = readString(parser, parser.nextToken(), dot + "." + key, _at)
+              case "doc" =>       _doc = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "error" =>     _error = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "code" =>      _code = readInt(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "namespace" => _namespace = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
 
               case "new" => parser.nextToken() match {
-                case x @ JsonToken.START_OBJECT => _newObject = readExpressionMap(parser, x, dot + "." + key, _at, avroTypeBuilder, true);  _newArray = null
-                case x @ JsonToken.START_ARRAY => _newArray = readExpressionArray(parser, x, dot + "." + key, _at, avroTypeBuilder);  _newObject = null
+                case x @ JsonToken.START_OBJECT => _newObject = readExpressionMap(parser, x, dot + " -> " + key, _at, avroTypeBuilder, true);  _newArray = null
+                case x @ JsonToken.START_ARRAY => _newArray = readExpressionArray(parser, x, dot + " -> " + key, _at, avroTypeBuilder);  _newObject = null
                 case x => throw new PFASyntaxException("\"new\" must be an object (map, record) or an array, not " + x.toString, Some(pos(dot, at)))
               }
 
-              case "params" =>    _params = readParams(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "ret" =>       _ret = readAvroPlaceholder(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "as" =>        _as = readAvroPlaceholder(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+              case "params" =>    _params = readParams(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "ret" =>       _ret = readAvroPlaceholder(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "as" =>        _as = readAvroPlaceholder(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
 
-              case "to" =>        _to = readArgument(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+              case "to" =>        _to = readArgument(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
 
-              case "fill" =>      _fill = readArgumentMap(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+              case "fill" =>      _fill = readArgumentMap(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
 
-              case "filter" =>    _filter = readStringArray(parser, parser.nextToken(), dot + "." + key, _at)
+              case "filter" =>    _filter = readStringOrIntArray(parser, parser.nextToken(), dot + " -> " + key, _at)
 
-              case "format" =>    _format = readStringPairs(parser, parser.nextToken(), dot + "." + key, _at)
-              case "pack" =>      _pack = readStringExpressionPairs(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+              case "format" =>    _format = readStringPairs(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "pack" =>      _pack = readStringExpressionPairs(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
 
               case x => {
                 _callName = x
                 parser.nextToken() match {
-                  case x @ JsonToken.START_ARRAY => _callArgs = readArgumentArray(parser, x, dot + "." + key, _at, avroTypeBuilder)
-                  case x => _callArgs = List(readArgument(parser, x, dot + "." + key, _at, avroTypeBuilder))
+                  case x @ JsonToken.START_ARRAY => _callArgs = readArgumentArray(parser, x, dot + " -> " + key, _at, avroTypeBuilder)
+                  case x => _callArgs = List(readArgument(parser, x, dot + " -> " + key, _at, avroTypeBuilder))
                 }
               }
             }
@@ -997,6 +1023,7 @@ package reader {
                  keys == Set("cell", "path", "to"))                  CellTo(_cell, _path, _to, Some(pos(dot, _at)))
         else if (keys == Set("pool", "path"))                        PoolGet(_pool, _path, Some(pos(dot, _at)))
         else if (keys == Set("pool", "path", "to", "init"))          PoolTo(_pool, _path, _to, _init, Some(pos(dot, _at)))
+        else if (keys == Set("pool", "del"))                         PoolDel(_pool, _del, Some(pos(dot, _at)))
 
         else if (keys == Set("if", "then"))                          If(_ifPredicate, _thenClause, None, Some(pos(dot, _at)))
         else if (keys == Set("if", "then", "else"))                  If(_ifPredicate, _thenClause, Some(_elseClause), Some(pos(dot, _at)))
@@ -1038,7 +1065,7 @@ package reader {
 
         // function call is anything else
         else if (keys.size == 1  &&
-                 !Set("args", "as", "attr", "base64", "call", "cases", "cast", "cell", "code", "cond", "do", "doc", "double", "else",
+                 !Set("args", "as", "attr", "base64", "call", "cases", "cast", "cell", "code", "cond", "del", "do", "doc", "double", "else",
                       "error", "fcn", "fill", "filter", "float", "for", "foreach", "forkey", "format", "forval", "if", "ifnotnull", "in", "init",
                       "int", "let", "log", "long", "namespace", "new", "pack", "params", "partial", "path", "pool", "ret", "seq",
                       "set", "step", "string", "then", "to", "try", "type", "unpack", "until", "upcast", "value", "while").contains(keys.head))
@@ -1057,9 +1084,9 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key == "@")
-            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+            _at = readString(parser, parser.nextToken(), dot + " -> " + key, at)
           else if (validFunctionName(key))
-            items = (key, readFcnDef(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)) :: items
+            items = (key, readFcnDef(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)) :: items
           else
             throw new PFASyntaxException("\"%s\" is not a valid function name".format(key), Some(pos(dot, at)))
           subtoken = parser.nextToken()
@@ -1082,15 +1109,15 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key == "@")
-            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+            _at = readString(parser, parser.nextToken(), dot + " -> " + key, at)
           else {
             keys.add(key)
             key match {
-              case "params" => _params = readParams(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "ret" =>    _ret = readAvroPlaceholder(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
+              case "params" => _params = readParams(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "ret" =>    _ret = readAvroPlaceholder(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
               case "do" => parser.nextToken() match {
-                case x @ JsonToken.START_ARRAY => _body = readExpressionArray(parser, x, dot + "." + key, _at, avroTypeBuilder)
-                case x => _body = List(readExpression(parser, x, dot + "." + key, _at, avroTypeBuilder))
+                case x @ JsonToken.START_ARRAY => _body = readExpressionArray(parser, x, dot + " -> " + key, _at, avroTypeBuilder)
+                case x => _body = List(readExpression(parser, x, dot + " -> " + key, _at, avroTypeBuilder))
               }
               case x => throw new PFASyntaxException("unexpected field in function definition: %s".format(x), Some(pos(dot, _at)))
             }
@@ -1113,7 +1140,7 @@ package reader {
         var subtoken = parser.nextToken()
         var counter = 0
         while (subtoken != JsonToken.END_ARRAY) {
-          items = readParam(parser, subtoken, dot + ".%d".format(counter), at, avroTypeBuilder) :: items
+          items = readParam(parser, subtoken, dot + " -> %d".format(counter), at, avroTypeBuilder) :: items
           subtoken = parser.nextToken()
         }
         items.reverse
@@ -1130,9 +1157,9 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key == "@")
-            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+            _at = readString(parser, parser.nextToken(), dot + " -> " + key, at)
           else if (validSymbolName(key))
-            items = (key, readAvroPlaceholder(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)) :: items
+            items = (key, readAvroPlaceholder(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)) :: items
           else
             throw new PFASyntaxException("\"%s\" is not a valid symbol name".format(key), Some(pos(dot, at)))
           subtoken = parser.nextToken()
@@ -1155,9 +1182,9 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key == "@")
-            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+            _at = readString(parser, parser.nextToken(), dot + " -> " + key, at)
           else if (validSymbolName(key))
-            items = (key, readCell(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)) :: items
+            items = (key, readCell(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)) :: items
           else
             throw new PFASyntaxException("\"%s\" is not a valid symbol name".format(key), Some(pos(dot, at)))
           subtoken = parser.nextToken()
@@ -1166,6 +1193,12 @@ package reader {
       }
       case x => throw new PFASyntaxException("expected map of cells, found %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos(dot, at)))
     }
+
+    private def readURL(value: String) =
+      if (value.matches("""[a-zA-Z][a-zA-Z0-9\+\-\.]*://.*"""))
+        new java.net.URL(value)
+      else
+        new java.io.File(value).toURI.toURL
 
     private def readCell(parser: JsonParser, token: JsonToken, dot: String, at: String, avroTypeBuilder: AvroTypeBuilder): Cell = token match {
       case JsonToken.START_OBJECT => {
@@ -1182,15 +1215,15 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key == "@")
-            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+            _at = readString(parser, parser.nextToken(), dot + " -> " + key, at)
           else {
             keys.add(key)
             key match {
-              case "type" => _avroType = readAvroPlaceholder(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "init" => _initDom = readJsonToDom(parser, parser.nextToken(), dot + "." + key, _at)
-              case "shared" => _shared = readBoolean(parser, parser.nextToken(), dot + "." + key, _at)
-              case "rollback" => _rollback = readBoolean(parser, parser.nextToken(), dot + "." + key, _at)
-              case "source" => _source = readString(parser, parser.nextToken(), dot + "." + key, _at)
+              case "type" => _avroType = readAvroPlaceholder(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "init" => _initDom = readJsonToDom(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "shared" => _shared = readBoolean(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "rollback" => _rollback = readBoolean(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "source" => _source = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
               case x => throw new PFASyntaxException("unexpected cell property: %s".format(x), Some(pos(dot, _at)))
             }
           }
@@ -1205,7 +1238,7 @@ package reader {
             case "json" => _initDom match {
               case JsonString(value) =>
                 try {
-                  Cell(_avroType, ExternalJsonCellSource(new java.net.URL(value), _avroType), _shared, _rollback, CellPoolSource.JSON, Some(pos(dot, _at)))
+                  Cell(_avroType, ExternalJsonCellSource(readURL(value), _avroType), _shared, _rollback, CellPoolSource.JSON, Some(pos(dot, _at)))
                 }
                 catch {
                   case _: java.net.MalformedURLException => throw new PFASyntaxException("init should be a URL for source: json, not \"%s\"".format(value), Some(pos(dot, _at)))
@@ -1215,7 +1248,7 @@ package reader {
             case "avro" => _initDom match {
               case JsonString(value) =>
                 try {
-                  Cell(_avroType, ExternalAvroCellSource(new java.net.URL(value), _avroType), _shared, _rollback, CellPoolSource.AVRO, Some(pos(dot, _at)))
+                  Cell(_avroType, ExternalAvroCellSource(readURL(value), _avroType), _shared, _rollback, CellPoolSource.AVRO, Some(pos(dot, _at)))
                 }
                 catch {
                   case _: java.net.MalformedURLException => throw new PFASyntaxException("init should be a URL for source: avro, not \"%s\"".format(value), Some(pos(dot, _at)))
@@ -1237,9 +1270,9 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key == "@")
-            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+            _at = readString(parser, parser.nextToken(), dot + " -> " + key, at)
           else if (validSymbolName(key))
-            items = (key, readPool(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)) :: items
+            items = (key, readPool(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)) :: items
           else
             throw new PFASyntaxException("\"%s\" is not a valid symbol name".format(key), Some(pos(dot, at)))
           subtoken = parser.nextToken()
@@ -1264,15 +1297,15 @@ package reader {
         while (subtoken != JsonToken.END_OBJECT) {
           val key = parser.getCurrentName
           if (key == "@")
-            _at = readString(parser, parser.nextToken(), dot + "." + key, at)
+            _at = readString(parser, parser.nextToken(), dot + " -> " + key, at)
           else {
             keys.add(key)
             key match {
-              case "type" => _avroType = readAvroPlaceholder(parser, parser.nextToken(), dot + "." + key, _at, avroTypeBuilder)
-              case "init" => _initDom = readJsonToDom(parser, parser.nextToken(), dot + "." + key, _at)
-              case "shared" => _shared = readBoolean(parser, parser.nextToken(), dot + "." + key, _at)
-              case "rollback" => _rollback = readBoolean(parser, parser.nextToken(), dot + "." + key, _at)
-              case "source" => _source = readString(parser, parser.nextToken(), dot + "." + key, _at)
+              case "type" => _avroType = readAvroPlaceholder(parser, parser.nextToken(), dot + " -> " + key, _at, avroTypeBuilder)
+              case "init" => _initDom = readJsonToDom(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "shared" => _shared = readBoolean(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "rollback" => _rollback = readBoolean(parser, parser.nextToken(), dot + " -> " + key, _at)
+              case "source" => _source = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
               case x => throw new PFASyntaxException("unexpected pool property: %s".format(x), Some(pos(dot, _at)))
             }
           }
@@ -1294,7 +1327,7 @@ package reader {
             case "json" => _initDom match {
               case JsonString(value) =>
                 try {
-                  Pool(_avroType, ExternalJsonPoolSource(new java.net.URL(value), _avroType), _shared, _rollback, CellPoolSource.JSON, Some(pos(dot, _at)))
+                  Pool(_avroType, ExternalJsonPoolSource(readURL(value), _avroType), _shared, _rollback, CellPoolSource.JSON, Some(pos(dot, _at)))
                 }
                 catch {
                   case _: java.net.MalformedURLException => throw new PFASyntaxException("init should be a URL for source: json, not \"%s\"".format(value), Some(pos(dot, _at)))
@@ -1304,7 +1337,7 @@ package reader {
             case "avro" => _initDom match {
               case JsonString(value) =>
                 try {
-                  Pool(_avroType, ExternalAvroPoolSource(new java.net.URL(value), _avroType), _shared, _rollback, CellPoolSource.AVRO, Some(pos(dot, _at)))
+                  Pool(_avroType, ExternalAvroPoolSource(readURL(value), _avroType), _shared, _rollback, CellPoolSource.AVRO, Some(pos(dot, _at)))
                 }
                 catch {
                   case _: java.net.MalformedURLException => throw new PFASyntaxException("init should be a URL for source: avro, not \"%s\"".format(value), Some(pos(dot, _at)))

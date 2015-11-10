@@ -34,22 +34,22 @@ import titus.prettypfa
 class Dataset(object):
     """Canonical format for providing a dataset to the tree-builder.
 
-    Constructors are __init__ and fromIterable."""
+    Constructors are __init__ and fromIterable.
+    """
 
     class Field(object):
-        """Represents a field of the dataset; usually created by a
-        Dataset constructor.
+        """Represents a field of the dataset; usually created by a Dataset constructor.
 
-        Dataset.Field objects may be in one of two states: Numpy and
-        Python.  The Dataset constructors produce Dataset.Fields in
+        ``Dataset.Field`` objects may be in one of two states: Numpy and
+        Python.  The Dataset constructors produce ``Dataset.Fields`` in
         their Numpy representation, which is required by the
         tree-builder.  In the Numpy representation, categorical string
         data are represented as integers from 0 to N-1, where N is the
         number of unique input strings, with each distinct integer
         representing a distinct input string.  Strings and integers
-        can be converted through the intToStr and strToInt
+        can be converted through the ``intToStr`` and ``strToInt``
         dictionaries, or by converting the whole array into a Pythonic
-        form with the toPython method.
+        form with the ``toPython`` method.
         """
 
         def __init__(self, t):
@@ -63,9 +63,7 @@ class Dataset(object):
             self.data.append(v)
 
         def toNumpy(self):
-            """Changes this field into a Numpy representation
-            *in-place* (destructively replaces the old
-            representation)."""
+            """Changes this field into a Numpy representation *in-place* (destructively replaces the old representation)."""
 
             if self.tpe == numbers.Real:
                 self.data = numpy.array(self.data, dtype=numpy.dtype(float))
@@ -82,14 +80,17 @@ class Dataset(object):
             return self
 
         def select(self, selection):
-            """Creates a new Dataset.Field from this one by applying a
-            boolean-valued Numpy array of the same length.
+            """Creates a new ``Dataset.Field`` from this one by applying a boolean-valued Numpy array of the same length.
 
-            The new Dataset.Field is independent of the old one (this
-            is a purely functional method).
+            The new ``Dataset.Field`` is independent of the old one (this is a purely functional method).
 
-            Assumes that the Dataset.Field is currently in a Numpy
-            representation."""
+            Assumes that the ``Dataset.Field`` is currently in a Numpy representation.
+
+            :type selection: 1-d Numpy array of bool
+            :param selection: data points to select
+            :rtype: 1-d Numpy array
+            :return: subset of the original ``self.data``
+            """
 
             out = Dataset.Field(self.tpe)
             out.data = self.data[selection]
@@ -99,9 +100,7 @@ class Dataset(object):
             return out
 
         def toPython(self):
-            """Changes this field into a Python representation
-            *in-place* (destructively replaces the old
-            representation)."""
+            """Changes this field into a Python representation *in-place* (destructively replaces the old representation)."""
 
             if self.tpe == numbers.Real:
                 self.data = list(self.data)
@@ -116,20 +115,18 @@ class Dataset(object):
 
     @classmethod
     def fromIterable(cls, iterable, limit=None, names=None):
-        """Constructor for Dataset that takes a Python iterable (rows)
-        of iterables (columns).
+        """Constructor for Dataset that takes a Python iterable (rows) of iterables (columns).
 
-        Each row must have the same number of fields with the same
-        types (numbers.Real versus basestring).
+        Each row must have the same number of fields with the same types (``numbers.Real`` or ``basestring``).
 
-        If limit is provided, stop after limit rows.  (Useful for
-        infinite lists, represented by generators.)
-
-        If names is provided, associate the given names with each
-        field.  If not provided, names will be var0 ... varN-1 (with
-        enough zero-padding that lexicographic order is numerical
-        order).  Names are used when writing a PFA document; they are
-        not used in the tree-building process.
+        :type iterable: Python iterable
+        :param iterable: input dataset
+        :type limit: positive integer or ``None``
+        :param limit: maximum number of input rows
+        :type names: list of strings or ``None``
+        :param names: names of the fields; if not provided, names like ``var0``, ``var1``, etc. will be generated.
+        :rtype: titus.producer.cart.Dataset
+        :return: a dataset
         """
 
         fields = []
@@ -167,36 +164,25 @@ class Dataset(object):
         return "<Dataset with {0} fields at 0x{:08x}>".format(len(self.fields), id(self))
 
 class TreeNode(object):
-    """Represents a tree node and applies the CART algorithm to build
-    decision and regression trees.
+    """Represents a tree node and applies the CART algorithm to build decision and regression trees.
 
-    The constructors are __init__ and fromWholeDataset.
+    The constructors are ``__init__`` and ``fromWholeDataset``.
 
-    Tree-building is initiated by calling splitUntil(condition), where
-    condition(node, depth) is a user-supplied function that takes a
-    node (TreeNode) and depth (int) and returns boolean (True:
-    continue splitting; False: stop splitting).
-
-    The following are convenience functions that pass a standard
-    condition to splitUntil:
-    
-        splitComplete() splits until each unique value from the
-        dataset is in a separate TreeNode.
-
-        splitMaxDepth(maxDepth) splits until each datum is in a
-        separate TreeNode or until the depth of the tree is maxDepth.
+    Tree-building is initiated by calling ``splitUntil(condition)``, where ``condition(node, depth)`` is a user-supplied function that takes a node (titus.producer.cart.TreeNode) and depth (integer) and returns bool (``True``: continue splitting; ``False``: stop splitting).
     """
 
     @classmethod
     def fromWholeDataset(cls, wholeDataset, predictandName, maxSubsetSize=None):
-        """Constructor for a dataset that includes predictors (fields
-        to explicitly refer to in splits) the predictand (the field in
-        which we try to optimize purity) as a field in the dataset,
-        called out by predictandName.
+        """Constructor for a tree from a dataset that includes the predictand (that which we try to purify in the leaves) as one of its fields.
 
-        maxSubsetSize is used to limit splitting of categorical
-        predictors; see categoricalEntropyGainTerm and
-        categoricalNVarianceGainTerm.
+        :type wholeDataset: titus.producer.cart.Dataset
+        :param wholeDataset: dataset including the predictand
+        :type predictandName: string
+        :param predictandName: name of the predictand, to be taken out of the dataset
+        :type maxSubsetSize: positive integer or ``None``
+        :param maxSubsetSize: maximum size of subset splits of categorical regressors (approximation for optimization in ``categoricalEntropyGainTerm`` and ``categoricalNVarianceGainTerm``)
+        :rtype: titus.producer.cart.TreeNode
+        :return: an unsplit tree
         """
 
         predictandIndex = wholeDataset.names.index(predictandName)
@@ -207,12 +193,14 @@ class TreeNode(object):
         return cls(dataset, predictand, maxSubsetSize)
 
     def __init__(self, dataset, predictand, maxSubsetSize=None):
-        """Constructor for a dataset of predictors only; the
-        predictand is a distinct Dataset.Field, provided separately.
+        """Constructor for a tree from a dataset of regressors (that which we split) and a predictand (that which we try to purify in the leaves).
 
-        maxSubsetSize is used to limit splitting of categorical
-        predictors; see categoricalEntropyGainTerm and
-        categoricalNVarianceGainTerm.
+        :type dataset: titus.producer.cart.Dataset
+        :param dataset: dataset of regressors only
+        :type predictand: 1-d Numpy array
+        :param predictand: predictands in a separate array with the same number of rows as the ``dataset``
+        :type maxSubsetSize: positive integer or ``None``
+        :param maxSubsetSize: maximum size of subset splits of categorical regressors (approximation for optimization in ``categoricalEntropyGainTerm`` and ``categoricalNVarianceGainTerm``)
         """
 
         self.dataset = dataset
@@ -240,37 +228,32 @@ class TreeNode(object):
             raise RuntimeError
 
     def splitComplete(self):
-        """Convenience function for building up a tree until each leaf
-        has only one unique value.  Calls splitUntil."""
+        """Convenience function for building up a tree until each leaf has only one unique value. Calls ``splitUntil``."""
 
         self.splitUntil(lambda node, depth: True)
 
     def splitMaxDepth(self, maxDepth):
-        """Convenience function for building up trees until each leaf
-        has only one unique value or the depth reaches maxDepth.
-        Calls splitUntil."""
+        """Convenience function for building up trees until each leaf has only one unique value or the depth reaches ``maxDepth``. Calls ``splitUntil``.
+
+        :type maxDepth: positive integer
+        :param maxDepth: maximum allowed depth of the tree
+        """
 
         self.splitUntil(lambda node, depth: depth < maxDepth)
 
     def splitUntil(self, condition, depth=1):
-        """Performs a recursive tree-split, calling the user-supplied
-        condition(node, depth) at each new node.
+        """Performs a recursive tree-split, calling the user-supplied ``condition(node, depth)`` at each new node.
 
-        The node provided to condition is a TreeNode, the depth is an
-        int, and it should return a boolean value.  It has access to
-        all information about the current node and its depth, and if
-        it returns True, the tree continues to split; if False, it
-        stops.
+        If the predictand is numerical (``numbers.Real``), the node has attributes: ``datasetSize``, ``predictandUnique``, ``nTimesVariance``, and ``gain``.
 
-        If the predictand is numerical (numbers.Real), the node has
-        attributes: datasetSize, predictandUnique, nTimesVariance, and
-        gain.
+        If the predictand is categorical (``basestring``), the node has attributes: ``datasetSize``, ``predictandDistribution``, ``entropy``, and ``gain``.
 
-        If the predictand is categorical (basestring), the node has
-        attributes: datasetSize, predictandDistribution, entropy, and
-        gain.
+        Splits are performed *in-place*, changing this ``TreeNode``.
 
-        Splits are performed *in-place*.
+        :type condition: callable that takes node (titus.producer.cart.TreeNode) and depth (integer) and returns bool (``True``: continue splitting; ``False``: stop splitting).
+        :param condition: splitting condition function
+        :type depth: positive integer
+        :param depth: current depth
         """
 
         if self.canSplit():
@@ -280,7 +263,7 @@ class TreeNode(object):
                 self.failBranch.splitUntil(condition, depth + 1)
 
     def canSplit(self):
-        """Returns False if it is not possible to split the predictand."""
+        """Returns ``True`` if it is possible to split the predictand; ``False`` otherwise."""
 
         if self.predictand.tpe == numbers.Real:
             return len(self.predictandUnique) > 1
@@ -290,7 +273,7 @@ class TreeNode(object):
             raise RuntimeError
 
     def score(self):
-        """Returns the best score at this TreeNode, which might or might not be a leaf."""
+        """Returns the best score at this ``TreeNode``, which might or might not be a leaf."""
 
         if self.predictand.tpe == numbers.Real:
             return numpy.mean(self.predictand.data)
@@ -300,12 +283,10 @@ class TreeNode(object):
             raise RuntimeError
     
     def splitOnce(self):
-        """Compute an optimized split in one field, adding two new
-        TreeNodes below this one.
+        """Compute an optimized split in one field, adding two new ``TreeNodes`` below this one.
 
-        If the predictand is numerical (numbers.Real), the split
-        minimizes entropy; if categorical (basestring), it minimizes
-        n-times-variance."""
+        If the predictand is numerical (``numbers.Real``), the split minimizes entropy; if categorical (``basestring``), it minimizes n-times-variance.
+        """
 
         # build a regression tree using n-times-variance as the metric to optimize
         if self.predictand.tpe == numbers.Real:
@@ -392,8 +373,7 @@ class TreeNode(object):
         self.failBranch = TreeNode(failDataset, failPredictand, self.maxSubsetSize)
 
     def numericalEntropyGainTerm(self, field):
-        """Split a numerical predictor in such a way that maximizes
-        entropic gain above and below the threshold of the split."""
+        """Split a numerical predictor in such a way that maximizes entropic gain above and below the threshold of the split."""
 
         # sort values so that we can use running sums (numpy.cumsum)
         sortedIndexes = numpy.argsort(field.data, kind="heapsort")
@@ -453,14 +433,15 @@ class TreeNode(object):
         return gainTerm, cutValue
 
     def categoricalEntropyGainTerm(self, field, maxSubsetSize=None):
-        """Split a categorical predictor in such a way that maximizes
-        entropic gain inside and outside of a subset of predictor values.
+        """Split a categorical predictor in such a way that maximizes entropic gain inside and outside of a subset of predictor values.
 
-        maxSubsetSize, if not None, limits the maximum size of the
-        subsets considered.  Since the number of possible subsets is
-        exponential in the number of unique values of the predictor,
-        this helps to avoid long-running searches (at the expense of
-        finding the best-possible split)."""
+        :type field: titus.producer.cart.Dataset.Field
+        :param field: the field to consider when calculating the entropy gain term
+        :type maxSubsetSize: positive integer or ``None``
+        :param maxSubsetSize: maximum size of subset splits of categorical regressors (approximation for optimization in ``categoricalEntropyGainTerm`` and ``categoricalNVarianceGainTerm``)
+        :rtype: (number, list of strings)
+        :return: (best gain term, best combination of regressor categories)
+        """
 
         # get a selection array for each category of the variable we want to use to make the prediciton
         numPredictorCategories = len(field.strToInt)
@@ -533,9 +514,13 @@ class TreeNode(object):
         return bestGainTerm, bestCombination
 
     def numericalNVarianceGainTerm(self, field):
-        """Split a numerical predictor in such a way that maximizes
-        n-times-variance gain above and below the threshold of the
-        split."""
+        """Split a numerical predictor in such a way that maximizes n-times-variance gain above and below the threshold of the split.
+        
+        :type field: titus.producer.cart.Dataset.Field
+        :param field: the field to consider when calculating the n-times variance gain term
+        :rtype: (number, number)
+        :return: (best gain term, best cut value)
+        """
 
         # sort values so that we can use running sums (numpy.cumsum)
         sortedIndexes = numpy.argsort(field.data, kind="heapsort")
@@ -578,15 +563,15 @@ class TreeNode(object):
         return gainTerm, cutValue
 
     def categoricalNVarianceGainTerm(self, field, maxSubsetSize=None):
-        """Split a categorical predictor in such a way that maximizes
-        n-times-variance gain inside and outside of a subset of
-        predictor values.
+        """Split a categorical predictor in such a way that maximizes n-times-variance gain inside and outside of a subset of predictor values.
 
-        maxSubsetSize, if not None, limits the maximum size of the
-        subsets considered.  Since the number of possible subsets is
-        exponential in the number of unique values of the predictor,
-        this helps to avoid long-running searches (at the expense of
-        finding the best-possible split)."""
+        :type field: titus.producer.cart.Dataset.Field
+        :param field: the field to consider when calculating the n-times-variance gain term
+        :type maxSubsetSize: positive integer or ``None``
+        :param maxSubsetSize: maximum size of subset splits of categorical regressors (approximation for optimization in ``categoricalEntropyGainTerm`` and ``categoricalNVarianceGainTerm``)
+        :rtype: (number, list of strings)
+        :return: (best gain term, best combination of regressor categories)
+        """
 
         # find unique values of the predictor field
         try:
@@ -647,7 +632,13 @@ class TreeNode(object):
         return bestGainTerm, bestCombination
 
     def pfaValueType(self, dataType):
-        """Create a PFA type schema representing the comparison values."""
+        """Create an Avro schema representing the comparison value type.
+
+        :type dataType: Pythonized JSON
+        :param dataType: Avro record schema of the input data
+        :rtype: Pythonized JSON
+        :return: value type (``value`` field of the PFA ``TreeNode``)
+        """
 
         if dataType.get("type", None) != "record":
             raise TypeError("dataType must be a record")
@@ -682,6 +673,12 @@ class TreeNode(object):
         return LabelData.broadestType(astypes.values())
 
     def pfaScoreType(self):
+        """Create an Avro schema representing the score type.
+
+        :rtype: Pythonized JSON
+        :return: score type (part of the ``pass`` and ``fail`` unions of the PFA ``TreeNode``)
+        """
+
         if self.predictand.tpe == numbers.Real:
             return "double"
         elif self.predictand.tpe == basestring:
@@ -690,7 +687,29 @@ class TreeNode(object):
             raise RuntimeError
 
     def pfaType(self, dataType, treeTypeName, nodeScores=False, datasetSize=False, predictandDistribution=False, predictandUnique=False, entropy=False, nTimesVariance=False, gain=False):
-        """Create a PFA type schema representing this tree."""
+        """Create a PFA type schema representing this tree.
+
+        :type dataType: Pythonized JSON
+        :param dataType: Avro record schema of the input data
+        :type treeTypeName: string
+        :param treeTypeName: name of the tree node record (usually ``TreeNode``)
+        :type nodeScores: bool
+        :param nodeScores: if ``True``, include a field for intermediate node scores
+        :type datasetSize: bool
+        :param datasetSize: if ``True``, include a field for the size of the training dataset at each node
+        :type predictandDistribution: bool
+        :param predictandDistribution: if ``True``, include a field for the distribution of training predictand values (only for classification trees)
+        :type predictandUnique: bool
+        :param predictandUnique: if ``True``, include a field for unique predictand values at each node
+        :type entropy: bool
+        :param entropy: if ``True``, include an entropy term at each node (only for classification trees)
+        :type nTimesVariance: bool
+        :param nTimesVariance: if ``True``, include an n-times-variance term at each node (only for regression trees)
+        :type gain: bool
+        :param gain: if ``True``, include a gain term at each node
+        :rtype: Pythonized JSON
+        :return: Avro schema for the tree node type
+        """
 
         valueType = self.pfaValueType(dataType)
         scoreType = self.pfaScoreType()
@@ -735,7 +754,31 @@ class TreeNode(object):
         return out
 
     def pfaValue(self, dataType, treeTypeName, nodeScores=False, datasetSize=False, predictandDistribution=False, predictandUnique=False, entropy=False, nTimesVariance=False, gain=False, valueType=None):
-        """Create a PFA data structure representing this tree."""
+        """Create a PFA data structure representing this tree.
+
+        :type dataType: Pythonized JSON
+        :param dataType: Avro record schema of the input data
+        :type treeTypeName: string
+        :param treeTypeName: name of the tree node record (usually ``TreeNode``)
+        :type nodeScores: bool
+        :param nodeScores: if ``True``, include a field for intermediate node scores
+        :type datasetSize: bool
+        :param datasetSize: if ``True``, include a field for the size of the training dataset at each node
+        :type predictandDistribution: bool
+        :param predictandDistribution: if ``True``, include a field for the distribution of training predictand values (only for classification trees)
+        :type predictandUnique: bool
+        :param predictandUnique: if ``True``, include a field for unique predictand values at each node
+        :type entropy: bool
+        :param entropy: if ``True``, include an entropy term at each node (only for classification trees)
+        :type nTimesVariance: bool
+        :param nTimesVariance: if ``True``, include an n-times-variance term at each node (only for regression trees)
+        :type gain: bool
+        :param gain: if ``True``, include a gain term at each node
+        :type valueType: Pythonized JSON or ``None``
+        :param valueType: if ``None``, call ``self.pfaValueType(dataType)`` to generate a value type; otherwise, take the given value
+        :rtype: Pythonized JSON
+        :return: PFA data structure for the tree, to be inserted into the cell or pool's ``init`` field
+        """
 
         scoreType = self.pfaScoreType()
             
@@ -815,7 +858,33 @@ class TreeNode(object):
             return out
 
     def pfaDocument(self, inputType, treeTypeName, dataType=None, preprocess=None, nodeScores=False, datasetSize=False, predictandDistribution=False, predictandUnique=False, entropy=False, nTimesVariance=False, gain=False):
-        """Create a PFA document to score with this tree."""
+        """Create a PFA document to score with this tree.
+
+        :type inputType: Pythonized JSON
+        :param inputType: Avro record schema of the input data
+        :type treeTypeName: string
+        :param treeTypeName: name of the tree node record (usually ``TreeNode``)
+        :type dataType: Pythonized JSON
+        :param dataType: Avro record schema of the data that goes to the tree, possibly preprocessed
+        :type preprocess: PrettyPFA substitution or ``None``
+        :param preprocess: pre-processing expression
+        :type nodeScores: bool
+        :param nodeScores: if ``True``, include a field for intermediate node scores
+        :type datasetSize: bool
+        :param datasetSize: if ``True``, include a field for the size of the training dataset at each node
+        :type predictandDistribution: bool
+        :param predictandDistribution: if ``True``, include a field for the distribution of training predictand values (only for classification trees)
+        :type predictandUnique: bool
+        :param predictandUnique: if ``True``, include a field for unique predictand values at each node
+        :type entropy: bool
+        :param entropy: if ``True``, include an entropy term at each node (only for classification trees)
+        :type nTimesVariance: bool
+        :param nTimesVariance: if ``True``, include an n-times-variance term at each node (only for regression trees)
+        :type gain: bool
+        :param gain: if ``True``, include a gain term at each node
+        :rtype: Pythonized JSON
+        :return: complete PFA document for running tree classification or regression
+        """
 
         if dataType is None:
             dataType = inputType

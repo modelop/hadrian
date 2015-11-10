@@ -43,6 +43,13 @@ import org.apache.avro.io.Encoder
 import org.apache.avro.io.ResolvingDecoder
 import org.apache.avro.Schema
 
+import org.python.util.PythonInterpreter
+import org.python.core.PyList
+import org.python.core.PyDictionary
+import org.python.core.PyString
+import org.python.core.PyInteger
+import org.python.core.PyFunction
+
 import com.opendatagroup.hadrian.data.AnyPFAEnumSymbol
 import com.opendatagroup.hadrian.data.AnyPFAFixed
 import com.opendatagroup.hadrian.data.AnyPFARecord
@@ -51,13 +58,25 @@ import com.opendatagroup.hadrian.data.PFADatumWriter
 import com.opendatagroup.hadrian.data.PFASpecificData
 
 package data {
+  object jythonByteString extends Function1[Array[Byte], PyString] {
+    private val pythonInterpreter = PythonInterpreter.threadLocalStateInterpreter(new PyDictionary)
+    pythonInterpreter.exec("import array")
+    private val f = pythonInterpreter.eval("""lambda x: array.array("B", x).tostring()""").asInstanceOf[PyFunction]
+
+    def apply(x: Array[Byte]): PyString = {
+      val list = new PyList()
+      x foreach {xi => list.append(new PyInteger(if (xi >= 0) xi else xi + 256))}
+      f.__call__(list).asInstanceOf[PyString]
+    }
+  }
+
   class JythonFixed(val getSchema: Schema, val bytes: Array[Byte], pyType: PyType) extends PyObject(pyType) with AnyPFAFixed with GenericFixed {
     if (getSchema.getType != Schema.Type.FIXED)
       throw new IllegalArgumentException("non-fixed schema passed to JythonFixed constructor")
     if (bytes.size != getSchema.getFixedSize)
       throw new IllegalArgumentException("byte array of the wrong size passed to JythonFixed constructor")
 
-    override def __str__(): PyString = new PyString(new String(bytes))
+    override def __str__(): PyString = jythonByteString(bytes)
 
     override def equals(that: Any): Boolean = that match {
       case other: PyObject => __eq__(other) == Py.True
@@ -258,7 +277,7 @@ package data {
       case Schema.Type.FLOAT => new PyFloat(in.readFloat())
       case Schema.Type.DOUBLE => new PyFloat(in.readDouble())
       case Schema.Type.STRING => new PyUnicode(readString(old, expected, in).asInstanceOf[String])
-      case Schema.Type.BYTES => new PyString(new String(readBytes(old, in).asInstanceOf[Array[Byte]]))
+      case Schema.Type.BYTES => jythonByteString(readBytes(old, in).asInstanceOf[Array[Byte]])
       case Schema.Type.ARRAY => readArray(old, expected, in)
       case Schema.Type.MAP => readMap(old, expected, in)
       case Schema.Type.FIXED => readFixed(old, expected, in)

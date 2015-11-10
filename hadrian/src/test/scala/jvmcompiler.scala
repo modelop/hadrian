@@ -443,7 +443,7 @@ input: int
 output: string
 method: fold
 zero: "-"
-action: {s.concat: [tally, {s.number: input}]}
+action: {s.concat: [tally, {s.int: input}]}
 merge: {s.concat: [tallyOne, tallyTwo]}
 """, multiplicity = 2) map {_.asInstanceOf[PFAFoldEngine[AnyRef, AnyRef]]}
 
@@ -1340,6 +1340,7 @@ do:
     in: array
     do:
       - {set: {y: x}}
+    seq: false
   - y
 """, """"string"""") } should produce [PFASemanticException]
 
@@ -1350,7 +1351,6 @@ do:
     in: array
     do:
       - {set: {y: x}}
-    seq: true
   - y
 """, """"string"""").apply should be ("three")
 
@@ -2178,11 +2178,11 @@ then:
     evaluating { compileExpression("""{error: "This is bad"}""", """"null"""").apply } should produce [PFAUserException]
 
     try {
-      compileExpression("""{error: "This is bad", code: 12}""", """"null"""").apply
+      compileExpression("""{error: "This is bad", code: -12}""", """"null"""").apply
       true should be (false)
     }
     catch {
-      case err: PFAUserException => err.code should be (Some(12))
+      case err: PFAUserException => err.code should be (Some(-12))
     }
 
     evaluating { compileExpression("""
@@ -4200,6 +4200,36 @@ fcns:
 """).head.action("hey") should be (2)
   }
 
+  "pool-del" must "remove private pool items" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: string
+output: int
+pools:
+  x: {type: int, init: {whatever: 12}}
+action:
+  - {pool: x, del: input}
+  - {pool: x, path: [{string: "whatever"}]}
+""").head
+
+    engine.action("somesuch") should be (12)
+    evaluating { engine.action("whatever") } should produce [PFARuntimeException]
+  }
+
+  it must "remove public pool items" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: string
+output: int
+pools:
+  x: {type: int, init: {whatever: 12}, shared: true}
+action:
+  - {pool: x, del: input}
+  - {pool: x, path: [{string: "whatever"}]}
+""").head
+
+    engine.action("somesuch") should be (12)
+    evaluating { engine.action("whatever") } should produce [PFARuntimeException]
+  }
+
   "execution clock" must "stop int-running processes" taggedAs(JVMCompilation) in {
     evaluating { PFAEngine.fromYaml("""
 input: string
@@ -4730,6 +4760,28 @@ action:
     else: input
   filter:
     - ouch
+""").head
+    engine.action(java.lang.Integer.valueOf(1)) should be (java.lang.Integer.valueOf(1))
+    engine.action(java.lang.Integer.valueOf(2)) should be (java.lang.Integer.valueOf(2))
+    engine.action(java.lang.Integer.valueOf(3)) should be (null)
+    evaluating { engine.action(java.lang.Integer.valueOf(4)) } should produce [PFAUserException]
+    engine.action(java.lang.Integer.valueOf(5)) should be (java.lang.Integer.valueOf(5))
+  }
+
+  it must "work with filtering 2" taggedAs(JVMCompilation) in {
+    val engine = PFAEngine.fromYaml("""
+input: int
+output: [int, "null"]
+action:
+  try:
+    cond:
+      - if: {"==": [input, 3]}
+        then: {error: "ouch", code: -99}
+      - if: {"==": [input, 4]}
+        then: {error: "yowzers", code: -100}
+    else: input
+  filter:
+    - -99
 """).head
     engine.action(java.lang.Integer.valueOf(1)) should be (java.lang.Integer.valueOf(1))
     engine.action(java.lang.Integer.valueOf(2)) should be (java.lang.Integer.valueOf(2))

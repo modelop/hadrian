@@ -39,42 +39,61 @@ from titus.datatype import AvroRecord
 from titus.datatype import AvroField
 from titus.datatype import AvroUnion
 
-class Pattern(object): pass
+class Pattern(object):
+    """Trait for a type pattern.
+
+    A type pattern is something that a titus.datatype.AvroType is matched against when determining if a PFA function signature can be applied to a given set of arguments.
+
+    It could be as simple as the type itself (e.g. P.Int() matches AvroInt()) or it could be a complex wildcard.
+    """
+    pass
 
 class Null(Pattern):
+    """Matches titus.datatype.AvroNull."""
     def __repr__(self):
         return "P.Null()"
 
 class Boolean(Pattern):
+    """Matches titus.datatype.AvroBoolean."""
     def __repr__(self):
         return "P.Boolean()"
 
 class Int(Pattern):
+    """Matches titus.datatype.AvroInt."""
     def __repr__(self):
         return "P.Int()"
 
 class Long(Pattern):
+    """Matches titus.datatype.AvroLong."""
     def __repr__(self):
         return "P.Long()"
 
 class Float(Pattern):
+    """Matches titus.datatype.AvroFloat."""
     def __repr__(self):
         return "P.Float()"
 
 class Double(Pattern):
+    """Matches titus.datatype.AvroDouble."""
     def __repr__(self):
         return "P.Double()"
 
 class Bytes(Pattern):
+    """Matches titus.datatype.AvroBytes."""
     def __repr__(self):
         return "P.Bytes()"
 
 class String(Pattern):
+    """Matches titus.datatype.AvroString."""
     def __repr__(self):
         return "P.String()"
 
 class Array(Pattern):
+    """Matches titus.datatype.AvroArray with a given items pattern."""
     def __init__(self, items):
+        """:type items: titus.P
+        :param items: pattern for the array items
+        """
         self._items = items
     @property
     def items(self):
@@ -83,7 +102,11 @@ class Array(Pattern):
         return "P.Array(" + repr(self.items) + ")"
 
 class Map(Pattern):
+    """Matches titus.datatype.AvroMap with a given values pattern."""
     def __init__(self, values):
+        """:type values: titus.P
+        :param values: pattern for the map values
+        """
         self._values = values
     @property
     def values(self):
@@ -92,7 +115,11 @@ class Map(Pattern):
         return "P.Map(" + repr(self.values) + ")"
 
 class Union(Pattern):
+    """Matches titus.datatype.AvroUnion with a given set of sub-patterns."""
     def __init__(self, types):
+        """:type types: list of titus.P
+        :param types: patterns for the subtypes
+        """
         self._types = types
     @property
     def types(self):
@@ -101,7 +128,16 @@ class Union(Pattern):
         return "P.Union(" + repr(self.types) + ")"
 
 class Fixed(Pattern):
+    """Matches titus.datatype.AvroFixed with a given size and an optional name.
+    
+    Note: not used for any PFA patterns, and probably shouldn't be, even in the future. titus.P.WildFixed is used instead.
+    """
     def __init__(self, size, fullName=None):
+        """:type size: positive integer
+        :param size: width of the fixed-width byte array
+        :type fullName: string or ``None``
+        :param fullName: optional name of the fixed pattern (if not provided, fixed types of any name would match)
+        """
         self._size = size
         self._fullName = fullName
     @property
@@ -114,7 +150,16 @@ class Fixed(Pattern):
         return "P.Fixed(" + repr(self.size) + ", " + repr(self.fullName) + ")"
 
 class Enum(Pattern):
+    """Matches titus.datatype.AvroEnum with a given symbols and an optional name.
+    
+    Note: not used for any PFA patterns, and probably shouldn't be, even in the future. titus.P.WildEnum is used instead.
+    """
     def __init__(self, symbols, fullName=None):
+        """:type symbols: list of strings
+        :param symbols: names of the enum symbols
+        :type fullName: string or ``None``
+        :param fullName: optional name of the enum pattern (if not provided, enum types of any name would match)
+        """
         self._symbols = symbols
         self._fullName = fullName
     @property
@@ -127,7 +172,16 @@ class Enum(Pattern):
         return "P.Enum(" + repr(self.symbols) + ", " + repr(self.fullName) + ")"
 
 class Record(Pattern):
+    """Matches titus.datatype.AvroRecord with given fields and an optional name.
+    
+    Note: not used for any PFA patterns, and probably shouldn't be, even in the future. titus.P.WildRecord is used instead.
+    """
     def __init__(self, fields, fullName=None):
+        """:type fields: dict from field names to titus.P
+        :param fields: patterns for the record fields
+        :type fullName: string or ``None``
+        :param fullName: optional name of the record pattern (if not provided, record types of any name would match)
+        """
         self._fields = fields
         self._fullName = fullName
     @property
@@ -140,7 +194,13 @@ class Record(Pattern):
         return "P.Record(" + repr(self.fields) + ", " + repr(self.fullName) + ")"
 
 class Fcn(Pattern):
+    """Matches titus.datatype.FcnType with a given sequence of parameter patterns and return pattern."""
     def __init__(self, params, ret):
+        """:type params: list of titus.P
+        :param params: patterns for each of the slots in the function-argument's signature (must have only one signature with no wildcards)
+        :type ret: titus.P
+        :param ret: pattern for the return type of the function-argument
+        """
         self._params = params
         self._ret = ret
     @property
@@ -153,7 +213,16 @@ class Fcn(Pattern):
         return "P.Fcn(" + repr(self.params) + ", " + repr(self.ret) + ")"
 
 class Wildcard(Pattern):
+    """Matches any titus.datatype.AvroType or one of a restricted set.
+
+    Label letters are shared across a signature (e.g. if two wildcards are both labeled "A", then they both have to resolve to the same type).
+    """
     def __init__(self, label, oneOf=None):
+        """:type label: string
+        :param label: label letter (usually one character long, but in principle an arbitrary string)
+        :type oneOf: list of titus.datatype.AvroType or ``None``
+        :param oneOf: allowed types or ``None`` for unrestricted
+        """
         self._label = label
         self._oneOf = oneOf
     @property
@@ -166,7 +235,16 @@ class Wildcard(Pattern):
         return "P.Wildcard(" + repr(self.label) + ", " + repr(self.oneOf) + ")"
 
 class WildRecord(Pattern):
+    """Matches a titus.datatype.AvroRecord with *at least* the requested set of fields.
+
+    Label letters are shared across a signature (e.g. if two wildcards are both labeled "A", then they both have to resolve to the same type).
+    """
     def __init__(self, label, minimalFields=None):
+        """:type label: string
+        :param label: label letter (usually one character long, but in principle an arbitrary string)
+        :type minimalFields: dict from field name to titus.P
+        :param minimalFields: fields that a matching record must have and patterns for their respective types
+        """
         self._label = label
         self._minimalFields = minimalFields
     @property
@@ -179,7 +257,14 @@ class WildRecord(Pattern):
         return "P.WildRecord(" + repr(self.label) + ", " + repr(self.minimalFields) + ")"
 
 class WildEnum(Pattern):
+    """Matches a titus.datatype.AvroEnum without any constraint on the symbol names.
+
+    Label letters are shared across a signature (e.g. if two wildcards are both labeled "A", then they both have to resolve to the same type).
+    """
     def __init__(self, label):
+        """:type label: string
+        :param label: label letter (usually one character long, but in principle an arbitrary string)
+        """
         self._label = label
     @property
     def label(self):
@@ -188,7 +273,14 @@ class WildEnum(Pattern):
         return "P.WildEnum(" + repr(self.label) + ")"
 
 class WildFixed(Pattern):
+    """Matches a titus.datatype.AvroFixed without any constraint on the size.
+
+    Label letters are shared across a signature (e.g. if two wildcards are both labeled "A", then they both have to resolve to the same type).
+    """
     def __init__(self, label):
+        """:type label: string
+        :param label: label letter (usually one character long, but in principle an arbitrary string)
+        """
         self._label = label
     @property
     def label(self):
@@ -197,7 +289,16 @@ class WildFixed(Pattern):
         return "P.WildFixed(" + repr(self.label) + ")"
 
 class EnumFields(Pattern):
+    """Matches a titus.datatype.AvroEnum whose symbols match the fields of a given record
+
+    Label letters are shared across a signature (e.g. if two wildcards are both labeled "A", then they both have to resolve to the same type).
+    """
     def __init__(self, label, wildRecord):
+        """:type label: string
+        :param label: label letter (usually one character long, but in principle an arbitrary string)
+        :type wildRecord: string
+        :param wildRecord: label letter of the record (also a wildcard)
+        """
         self._label = label
         self._wildRecord = wildRecord
     @property
@@ -210,6 +311,14 @@ class EnumFields(Pattern):
         return "P.EnumFields(" + repr(self.label) + ", " + repr(self.wildRecord) + ")"
 
 def toType(pat):
+    """Convert a pattern to a type, if possible (wildcards can't be converted to types).
+
+    :type pat: titus.P
+    :param pat: pattern to convert
+    :rtype: titus.datatype.Type
+    :return: corresponding type (titus.datatype.Type rather than titus.datatype.AvroType to allow for titus.datatype.FcnType)
+    """
+
     if isinstance(pat, Null): return AvroNull()
     elif isinstance(pat, Boolean): return AvroBoolean()
     elif isinstance(pat, Int): return AvroInt()
@@ -255,6 +364,14 @@ def toType(pat):
     else: raise Exception
 
 def fromType(t, memo=None):
+    """Convert a type to a pattern.
+
+    :type t: titus.datatype.AvroType
+    :param t: type to convert
+    :rtype: titus.P
+    :return: corresponding pattern
+    """
+
     if memo is None:
         memo = set()
 
@@ -290,6 +407,13 @@ def fromType(t, memo=None):
     elif isinstance(t, ExceptionType): raise IncompatibleTypes("exception type cannot be used in argument patterns")
 
 def mustBeAvro(t):
+    """Raise a ``TypeError`` if a given titus.datatype.Type is not a titus.datatype.AvroType; otherwise, pass through.
+
+    :type t: titus.datatype.Type
+    :param t: type to check
+    :rtype: titus.datatype.AvroType
+    :return: the input ``t`` or raise an exception
+    """
     if not isinstance(t, AvroType):
         raise TypeError(repr(t) + " is not an Avro type")
     else:
