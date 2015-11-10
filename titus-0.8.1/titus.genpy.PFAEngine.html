@@ -1,0 +1,423 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.genpy.PFAEngine &mdash; Titus 0.8.1 documentation</title>
+    
+    <link rel="stylesheet" href="static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.1 documentation" href="index.html" />
+    <link rel="next" title="titus.genpy.PersistentStorageItem" href="titus.genpy.PersistentStorageItem.html" />
+    <link rel="prev" title="titus.genpy.MisalignedPacking" href="titus.genpy.MisalignedPacking.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.genpy.PersistentStorageItem.html" title="titus.genpy.PersistentStorageItem"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.genpy.MisalignedPacking.html" title="titus.genpy.MisalignedPacking"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-genpy-pfaengine">
+<h1>titus.genpy.PFAEngine<a class="headerlink" href="#titus-genpy-pfaengine" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.genpy.PFAEngine">
+<em class="property">class </em><tt class="descclassname">titus.genpy.</tt><tt class="descname">PFAEngine</tt><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.1/titus/titus/genpy.py#L1344"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.genpy.PFAEngine" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Base class for a Titus scoring engine.</p>
+<p>Create instances using one of PFAEngine&#8217;s staticmethods, then call <tt class="docutils literal"><span class="pre">begin</span></tt> once, <tt class="docutils literal"><span class="pre">action</span></tt> once for each datum in the data stream, and <tt class="docutils literal"><span class="pre">end</span></tt> once (if the stream ever ends). The rest of the functions are for</p>
+<blockquote>
+<div><ul class="simple">
+<li>examining the scoring engine (<tt class="docutils literal"><span class="pre">config</span></tt>, call graph),</li>
+<li>handling log output or emit output with callbacks, and</li>
+<li>taking snapshots of the scoring engine&#8217;s current state.</li>
+</ul>
+</div></blockquote>
+<p><strong>Examples:</strong></p>
+<p>Load a PFA file as a scoring engine. Note the <tt class="docutils literal"><span class="pre">,</span></tt> to extract the single scoring engine from the list this function returns.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">titus.genpy</span> <span class="kn">import</span> <span class="n">PFAEngine</span>
+<span class="n">engine</span><span class="p">,</span> <span class="o">=</span> <span class="n">PFAEngine</span><span class="o">.</span><span class="n">fromJson</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&quot;myModel.pfa&quot;</span><span class="p">)))</span>
+</pre></div>
+</div>
+<p>Assuming (and verifying) that <tt class="docutils literal"><span class="pre">method</span></tt> is map, run it over an Avro data stream.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">assert</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;map&quot;</span><span class="p">)</span>
+
+<span class="n">inputDataStream</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">avroInputIterator</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s">&quot;inputData.avro&quot;</span><span class="p">))</span>
+<span class="n">outputDataStream</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">avroOutputDataFileWriter</span><span class="p">(</span><span class="s">&quot;outputData.avro&quot;</span><span class="p">)</span>
+
+<span class="n">engine</span><span class="o">.</span><span class="n">begin</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">datum</span> <span class="ow">in</span> <span class="n">inputDataStream</span><span class="p">:</span>
+    <span class="n">outputDataStream</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">action</span><span class="p">(</span><span class="n">datum</span><span class="p">))</span>
+<span class="n">engine</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
+<span class="n">outputDataStream</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Handle the case of <tt class="docutils literal"><span class="pre">method</span></tt> = emit engines (map and fold are the same).</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">if</span> <span class="n">engine</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s">&quot;emit&quot;</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">emit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+        <span class="n">outputDataStream</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="n">engine</span><span class="o">.</span><span class="n">emit</span> <span class="o">=</span> <span class="n">emit</span>
+    <span class="n">engine</span><span class="o">.</span><span class="n">begin</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">datum</span> <span class="ow">in</span> <span class="n">inputDataStream</span><span class="p">:</span>
+        <span class="n">engine</span><span class="o">.</span><span class="n">action</span><span class="p">(</span><span class="n">datum</span><span class="p">)</span>
+    <span class="n">engine</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
+
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">engine</span><span class="o">.</span><span class="n">begin</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">datum</span> <span class="ow">in</span> <span class="n">inputDataStream</span><span class="p">:</span>
+        <span class="n">outputDataStream</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">action</span><span class="p">(</span><span class="n">datum</span><span class="p">))</span>
+    <span class="n">engine</span><span class="o">.</span><span class="n">end</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Take a snapshot of a changing model and write it as a new PFA file.</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="nb">open</span><span class="p">(</span><span class="s">&quot;snapshot.pfa&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">engine</span><span class="o">.</span><span class="n">snapshot</span><span class="p">()</span><span class="o">.</span><span class="n">toJson</span><span class="p">(</span><span class="n">lineNumbers</span><span class="o">=</span><span class="bp">False</span><span class="p">))</span>
+</pre></div>
+</div>
+<p><strong>Data format:</strong></p>
+<p>Data passed to <tt class="docutils literal"><span class="pre">action</span></tt> or accepted from <tt class="docutils literal"><span class="pre">action</span></tt> has to satisfy a particular form. That form is:</p>
+<blockquote>
+<div><ul class="simple">
+<li><strong>null:</strong> Python <tt class="docutils literal"><span class="pre">None</span></tt></li>
+<li><strong>boolean:</strong> Python <tt class="docutils literal"><span class="pre">True</span></tt> or <tt class="docutils literal"><span class="pre">False</span></tt></li>
+<li><strong>int:</strong> any Python <tt class="docutils literal"><span class="pre">int</span></tt> or <tt class="docutils literal"><span class="pre">long</span></tt> (no Numpy numbers, for instance)</li>
+<li><strong>long:</strong> any Python <tt class="docutils literal"><span class="pre">int</span></tt> or <tt class="docutils literal"><span class="pre">long</span></tt></li>
+<li><strong>float:</strong> any Python <tt class="docutils literal"><span class="pre">int</span></tt>, <tt class="docutils literal"><span class="pre">long</span></tt>, or <tt class="docutils literal"><span class="pre">float</span></tt></li>
+<li><strong>double:</strong> any Python <tt class="docutils literal"><span class="pre">int</span></tt>, <tt class="docutils literal"><span class="pre">long</span></tt>, or <tt class="docutils literal"><span class="pre">float</span></tt></li>
+<li><strong>string:</strong> any Python string or <tt class="docutils literal"><span class="pre">unicode</span></tt></li>
+<li><strong>bytes:</strong> any Python string</li>
+<li><strong>array(X):</strong> any Python <tt class="docutils literal"><span class="pre">list</span></tt> or <tt class="docutils literal"><span class="pre">tuple</span></tt> of <strong>X</strong></li>
+<li><strong>map(X):</strong> any Python dict of <strong>X</strong></li>
+<li><strong>enum:</strong> Python string or <tt class="docutils literal"><span class="pre">unicode</span></tt> of one of the symbols in this enumeration</li>
+<li><strong>fixed:</strong> Python string with length specified by this fixed-length type</li>
+<li><strong>record:</strong> Python dict with key-value pairs for all fields required by this record</li>
+<li><strong>union:</strong> if <strong>null</strong>, a Python <tt class="docutils literal"><span class="pre">None</span></tt>; otherwise, a dict with one key-value pair representing the type and value. For example, <tt class="docutils literal"><span class="pre">None</span></tt>, <tt class="docutils literal"><span class="pre">{&quot;int&quot;:</span> <span class="pre">12}</span></tt>, <tt class="docutils literal"><span class="pre">{&quot;double&quot;:</span> <span class="pre">12}</span></tt>, <tt class="docutils literal"><span class="pre">{&quot;fully.qualified.record&quot;:</span> <span class="pre">{&quot;field1&quot;:</span> <span class="pre">1,</span> <span class="pre">&quot;field2&quot;:</span> <span class="pre">2}}</span></tt>, <tt class="docutils literal"><span class="pre">{&quot;array&quot;:</span> <span class="pre">[1,</span> <span class="pre">2,</span> <span class="pre">3]}</span></tt>, etc.</li>
+</ul>
+</div></blockquote>
+<p>None of the types above are compiled (since this is Python), so anything can be directly created by the user.</p>
+<p>Although all of these types are immutable in PFA, list and dict are <em>mutable</em> in Python, but if you modify them, the behavior of the PFA engine is undefined and likely to be wrong. Do not change these objects in place!</p>
+<dl class="method">
+<dt id="titus.genpy.PFAEngine.avroInputIterator">
+<tt class="descname">avroInputIterator</tt><big>(</big><em>inputStream</em>, <em>interpreter='avro'</em><big>)</big><a class="headerlink" href="#titus.genpy.PFAEngine.avroInputIterator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a generator over Avro-serialized input data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>inputStream</strong> (<em>open filehandle</em>) &#8211; serialized data</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><tt class="docutils literal"><span class="pre">avro.datafile.DataFileReader</span></tt></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">generator of objects suitable for the <tt class="docutils literal"><span class="pre">action</span></tt> method</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.genpy.PFAEngine.avroOutputDataFileWriter">
+<tt class="descname">avroOutputDataFileWriter</tt><big>(</big><em>fileName</em><big>)</big><a class="headerlink" href="#titus.genpy.PFAEngine.avroOutputDataFileWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an output stream for Avro-serializing scoring engine output.</p>
+<p>Return values from the <tt class="docutils literal"><span class="pre">action</span></tt> method (or outputs captured by an <tt class="docutils literal"><span class="pre">emit</span></tt> callback) are suitable for writing to this stream.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fileName</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; name of the file that will be overwritten by Avro bytes</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><tt class="docutils literal"><span class="pre">avro.datafile.DataFileWriter</span></tt></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">an output stream with an <tt class="docutils literal"><span class="pre">append</span></tt> method for appending output data objects</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.genpy.PFAEngine.callDepth">
+<tt class="descname">callDepth</tt><big>(</big><em>fcnName</em>, <em>exclude=None</em>, <em>startingDepth=0</em><big>)</big><a class="headerlink" href="#titus.genpy.PFAEngine.callDepth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine call depth of a function by traversing the <tt class="docutils literal"><span class="pre">callGraph</span></tt>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fcnName</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; name of function to look up</li>
+<li><strong>exclude</strong> (<em>set of string</em>) &#8211; set of functions to exclude</li>
+<li><strong>startingDepth</strong> (<em>integer</em>) &#8211; used by recursion to count</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">integer or floating-point inf</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">number representing call depth, with positive infinity (which is a <tt class="docutils literal"><span class="pre">float</span></tt>) as a possible result</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.genpy.PFAEngine.calledBy">
+<tt class="descname">calledBy</tt><big>(</big><em>fcnName</em>, <em>exclude=None</em><big>)</big><a class="headerlink" href="#titus.genpy.PFAEngine.calledBy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine which functions are called by <tt class="docutils literal"><span class="pre">fcnName</span></tt> by traversing the <tt class="docutils literal"><span class="pre">callGraph</span></tt> backward.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fcnName</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; name of function to look up</li>
+<li><strong>exclude</strong> (<em>set of string</em>) &#8211; set of functions to exclude</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">set of string</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">set of functions that call <tt class="docutils literal"><span class="pre">fcnName</span></tt></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="titus.genpy.PFAEngine.fromAst">
+<em class="property">static </em><tt class="descname">fromAst</tt><big>(</big><em>engineConfig</em>, <em>options=None</em>, <em>version=None</em>, <em>sharedState=None</em>, <em>multiplicity=1</em>, <em>style='pure'</em>, <em>debug=False</em><big>)</big><a class="headerlink" href="#titus.genpy.PFAEngine.fromAst" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a collection of instances of this scoring engine from a PFA abstract syntax tree (<tt class="docutils literal"><span class="pre">titus.pfaast.EngineConfig</span></tt>).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>engineConfig</strong> (<a class="reference internal" href="titus.pfaast.EngineConfig.html#titus.pfaast.EngineConfig" title="titus.pfaast.EngineConfig"><em>titus.pfaast.EngineConfig</em></a>) &#8211; a parsed, interpreted PFA document, i.e. produced by <tt class="docutils literal"><span class="pre">titus.reader.jsonToAst</span></tt></li>
+<li><strong>options</strong> (<em>dict of Pythonized JSON</em>) &#8211; options that override those found in the PFA document</li>
+<li><strong>version</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; PFA version number as a &#8220;major.minor.release&#8221; string</li>
+<li><strong>sharedState</strong> (<a class="reference internal" href="titus.genpy.SharedState.html#titus.genpy.SharedState" title="titus.genpy.SharedState"><em>titus.genpy.SharedState</em></a>) &#8211; external state for shared cells and pools to initialize from and modify; pass <tt class="docutils literal"><span class="pre">None</span></tt> to limit sharing to instances of a single PFA file</li>
+<li><strong>multiplicity</strong> (<em>positive integer</em>) &#8211; number of instances to return (default is 1; a single-item collection)</li>
+<li><strong>style</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; style of scoring engine; only one currently supported: &#8220;pure&#8221; for pure-Python</li>
+<li><strong>debug</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, print the Python code generated by this PFA document before evaluating</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">PFAEngine</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a list of scoring engine instances</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="titus.genpy.PFAEngine.fromJson">
+<em class="property">static </em><tt class="descname">fromJson</tt><big>(</big><em>src</em>, <em>options=None</em>, <em>version=None</em>, <em>sharedState=None</em>, <em>multiplicity=1</em>, <em>style='pure'</em>, <em>debug=False</em><big>)</big><a class="headerlink" href="#titus.genpy.PFAEngine.fromJson" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a collection of instances of this scoring engine from a JSON-formatted PFA file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>src</strong> (<em>JSON string or Pythonized JSON</em>) &#8211; a PFA document in JSON-serialized form; may be a literal JSON string or the kind of Python structure that <tt class="docutils literal"><span class="pre">json.loads</span></tt> creates from a JSON string</li>
+<li><strong>options</strong> (<em>dict of Pythonized JSON</em>) &#8211; options that override those found in the PFA document</li>
+<li><strong>version</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; PFA version number as a &#8220;major.minor.release&#8221; string</li>
+<li><strong>sharedState</strong> (<a class="reference internal" href="titus.genpy.SharedState.html#titus.genpy.SharedState" title="titus.genpy.SharedState"><em>titus.genpy.SharedState</em></a>) &#8211; external state for shared cells and pools to initialize from and modify; pass <tt class="docutils literal"><span class="pre">None</span></tt> to limit sharing to instances of a single PFA file</li>
+<li><strong>multiplicity</strong> (<em>positive integer</em>) &#8211; number of instances to return (default is 1; a single-item collection)</li>
+<li><strong>style</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; style of scoring engine; only one currently supported: &#8220;pure&#8221; for pure-Python</li>
+<li><strong>debug</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, print the Python code generated by this PFA document before evaluating</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">PFAEngine</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a list of scoring engine instances</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="titus.genpy.PFAEngine.fromPmml">
+<em class="property">static </em><tt class="descname">fromPmml</tt><big>(</big><em>src</em>, <em>pmmlOptions=None</em>, <em>pfaOptions=None</em>, <em>version=None</em>, <em>sharedState=None</em>, <em>multiplicity=1</em>, <em>style='pure'</em>, <em>debug=False</em><big>)</big><a class="headerlink" href="#titus.genpy.PFAEngine.fromPmml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Translates some types of PMML documents into PFA and creates a collection of scoring engine instances.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>src</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; a PMML document in XML-serialized form; must be a string</li>
+<li><strong>pmmlOptions</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; directives for interpreting the PMML document</li>
+<li><strong>pfaOptions</strong> (<a class="reference external" href="http://docs.python.org/library/stdtypes.html#dict" title="(in Python v2.7)"><em>dict</em></a>) &#8211; options that override those found in the PFA document</li>
+<li><strong>version</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; PFA version number as a &#8220;major.minor.release&#8221; string</li>
+<li><strong>sharedState</strong> (<a class="reference internal" href="titus.genpy.SharedState.html#titus.genpy.SharedState" title="titus.genpy.SharedState"><em>titus.genpy.SharedState</em></a>) &#8211; external state for shared cells and pools to initialize from and modify; pass <tt class="docutils literal"><span class="pre">None</span></tt> to limit sharing to instances of a single PFA file</li>
+<li><strong>multiplicity</strong> (<em>positive integer</em>) &#8211; number of instances to return (default is 1; a single-item collection)</li>
+<li><strong>style</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; style of scoring engine; only one currently supported: &#8220;pure&#8221; for pure-Python</li>
+<li><strong>debug</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, print the Python code generated by this PFA document before evaluating</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">PFAEngine</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a list of scoring engine instances</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="titus.genpy.PFAEngine.fromYaml">
+<em class="property">static </em><tt class="descname">fromYaml</tt><big>(</big><em>src</em>, <em>options=None</em>, <em>version=None</em>, <em>sharedState=None</em>, <em>multiplicity=1</em>, <em>style='pure'</em>, <em>debug=False</em><big>)</big><a class="headerlink" href="#titus.genpy.PFAEngine.fromYaml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a collection of instances of this scoring engine from a YAML-formatted PFA file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>src</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; a PFA document in YAML-serialized form; must be a string</li>
+<li><strong>options</strong> (<em>dict of Pythonized JSON</em>) &#8211; options that override those found in the PFA document</li>
+<li><strong>version</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; PFA version number as a &#8220;major.minor.release&#8221; string</li>
+<li><strong>sharedState</strong> (<a class="reference internal" href="titus.genpy.SharedState.html#titus.genpy.SharedState" title="titus.genpy.SharedState"><em>titus.genpy.SharedState</em></a>) &#8211; external state for shared cells and pools to initialize from and modify; pass <tt class="docutils literal"><span class="pre">None</span></tt> to limit sharing to instances of a single PFA file</li>
+<li><strong>multiplicity</strong> (<em>positive integer</em>) &#8211; number of instances to return (default is 1; a single-item collection)</li>
+<li><strong>style</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; style of scoring engine; only one currently supported: &#8220;pure&#8221; for pure-Python</li>
+<li><strong>debug</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, print the Python code generated by this PFA document before evaluating</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">PFAEngine</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a list of scoring engine instances</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.genpy.PFAEngine.hasRecursive">
+<tt class="descname">hasRecursive</tt><big>(</big><em>fcnName</em><big>)</big><a class="headerlink" href="#titus.genpy.PFAEngine.hasRecursive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine if the call depth of a funciton is infinite.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fcnName</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; name of function to look up</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">True</span></tt> if the function can eventually call itself through a function that it calls, <tt class="docutils literal"><span class="pre">False</span></tt> otherwise</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.genpy.PFAEngine.hasSideEffects">
+<tt class="descname">hasSideEffects</tt><big>(</big><em>fcnName</em><big>)</big><a class="headerlink" href="#titus.genpy.PFAEngine.hasSideEffects" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine if a function modifies the scoring engine&#8217;s persistent state.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fcnName</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; name of function to look up</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">True</span></tt> if the function can eventually call <tt class="docutils literal"><span class="pre">(cell-to)</span></tt> or <tt class="docutils literal"><span class="pre">(pool-to)</span></tt> on any cell or pool.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.genpy.PFAEngine.isRecursive">
+<tt class="descname">isRecursive</tt><big>(</big><em>fcnName</em><big>)</big><a class="headerlink" href="#titus.genpy.PFAEngine.isRecursive" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine if a function is directly recursive.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fcnName</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; name of function to look up</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">True</span></tt> if the function directly calls itself, <tt class="docutils literal"><span class="pre">False</span></tt> otherwise</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.genpy.PFAEngine.snapshot">
+<tt class="descname">snapshot</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.genpy.PFAEngine.snapshot" title="Permalink to this definition">¶</a></dt>
+<dd><p>take a snapshot of the entire scoring engine (all cells and pools) and represent it as an abstract syntax tree that can be used to make new scoring engines.</p>
+<p>Note that you can call <tt class="docutils literal"><span class="pre">toJson</span></tt> on the <tt class="docutils literal"><span class="pre">EngineConfig</span></tt> to get a string that can be written to a PFA file.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.genpy.PersistentStorageItem.html" title="titus.genpy.PersistentStorageItem"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.genpy.MisalignedPacking.html" title="titus.genpy.MisalignedPacking"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

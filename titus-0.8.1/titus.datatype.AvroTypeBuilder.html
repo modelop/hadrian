@@ -1,0 +1,118 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.datatype.AvroTypeBuilder &mdash; Titus 0.8.1 documentation</title>
+    
+    <link rel="stylesheet" href="static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.1 documentation" href="index.html" />
+    <link rel="next" title="titus.datatype.AvroUnion" href="titus.datatype.AvroUnion.html" />
+    <link rel="prev" title="titus.datatype.AvroType" href="titus.datatype.AvroType.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.datatype.AvroUnion.html" title="titus.datatype.AvroUnion"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.datatype.AvroType.html" title="titus.datatype.AvroType"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-datatype-avrotypebuilder">
+<h1>titus.datatype.AvroTypeBuilder<a class="headerlink" href="#titus-datatype-avrotypebuilder" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.datatype.AvroTypeBuilder">
+<em class="property">class </em><tt class="descclassname">titus.datatype.</tt><tt class="descname">AvroTypeBuilder</tt><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.1/titus/titus/datatype.py#L807"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.datatype.AvroTypeBuilder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Factory that coordinates the process of collecting Avro strings, putting them in a titus.datatype.ForwardDeclarationParser, and then resolving them all at the end, independent of order.</p>
+<dl class="method">
+<dt id="titus.datatype.AvroTypeBuilder.__init__">
+<tt class="descname">__init__</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.datatype.AvroTypeBuilder.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.AvroTypeBuilder.makePlaceholder">
+<tt class="descname">makePlaceholder</tt><big>(</big><em>avroJsonString</em>, <em>memo=None</em><big>)</big><a class="headerlink" href="#titus.datatype.AvroTypeBuilder.makePlaceholder" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.AvroTypeBuilder.removeDuplicateNames">
+<tt class="descname">removeDuplicateNames</tt><big>(</big><em>x</em>, <em>memo</em><big>)</big><a class="headerlink" href="#titus.datatype.AvroTypeBuilder.removeDuplicateNames" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.AvroTypeBuilder.removeEmptyNamespaces">
+<tt class="descname">removeEmptyNamespaces</tt><big>(</big><em>x</em><big>)</big><a class="headerlink" href="#titus.datatype.AvroTypeBuilder.removeEmptyNamespaces" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.AvroTypeBuilder.resolveOneType">
+<tt class="descname">resolveOneType</tt><big>(</big><em>avroJsonString</em><big>)</big><a class="headerlink" href="#titus.datatype.AvroTypeBuilder.resolveOneType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.AvroTypeBuilder.resolveTypes">
+<tt class="descname">resolveTypes</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.datatype.AvroTypeBuilder.resolveTypes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.datatype.AvroUnion.html" title="titus.datatype.AvroUnion"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.datatype.AvroType.html" title="titus.datatype.AvroType"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

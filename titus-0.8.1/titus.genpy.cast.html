@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.genpy.cast &mdash; Titus 0.8.1 documentation</title>
+    
+    <link rel="stylesheet" href="static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.1 documentation" href="index.html" />
+    <link rel="next" title="titus.genpy.checkForDeadlock" href="titus.genpy.checkForDeadlock.html" />
+    <link rel="prev" title="titus.genpy.SharedState" href="titus.genpy.SharedState.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.genpy.checkForDeadlock.html" title="titus.genpy.checkForDeadlock"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.genpy.SharedState.html" title="titus.genpy.SharedState"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-genpy-cast">
+<h1>titus.genpy.cast<a class="headerlink" href="#titus-genpy-cast" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="titus.genpy.cast">
+<tt class="descclassname">titus.genpy.</tt><tt class="descname">cast</tt><big>(</big><em>state</em>, <em>scope</em>, <em>expr</em>, <em>fromType</em>, <em>cases</em>, <em>partial</em>, <em>parser</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.1/titus/titus/genpy.py#L951"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.genpy.cast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper function for type-safe casting as an expression.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>state</strong> (<a class="reference internal" href="titus.genpy.ExecutionState.html#titus.genpy.ExecutionState" title="titus.genpy.ExecutionState"><em>titus.genpy.ExecutionState</em></a>) &#8211; exeuction state</li>
+<li><strong>scope</strong> (<a class="reference internal" href="titus.util.DynamicScope.html#titus.util.DynamicScope" title="titus.util.DynamicScope"><em>titus.util.DynamicScope</em></a>) &#8211; dynamic scope object</li>
+<li><strong>expr</strong> (<em>evaluated expression</em>) &#8211; object to cast</li>
+<li><strong>fromType</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; JSON-serialized Avro type</li>
+<li><strong>cases</strong> (<em>list of (string, string, callable) triples</em>) &#8211; list of (new variable for one case, JSON-serialized subtype, function to call if type matches) triples</li>
+<li><strong>partial</strong> (<em>boolean</em>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, allow the set of cases to incompletely cover the <tt class="docutils literal"><span class="pre">fromType</span></tt></li>
+<li><strong>parser</strong> (<a class="reference internal" href="titus.datatype.ForwardDeclarationParser.html#titus.datatype.ForwardDeclarationParser" title="titus.datatype.ForwardDeclarationParser"><em>titus.datatype.ForwardDeclarationParser</em></a>) &#8211; used to interpret <tt class="docutils literal"><span class="pre">fromType</span></tt></li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><tt class="docutils literal"><span class="pre">None</span></tt> or result of one of the <tt class="docutils literal"><span class="pre">cases</span></tt> callable</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">if <tt class="docutils literal"><span class="pre">partial</span></tt>, returns <tt class="docutils literal"><span class="pre">None</span></tt>, else returns the result of the matching case</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.genpy.checkForDeadlock.html" title="titus.genpy.checkForDeadlock"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.genpy.SharedState.html" title="titus.genpy.SharedState"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

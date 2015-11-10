@@ -1,0 +1,107 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.pfaast.EmitFcn &mdash; Titus 0.8.1 documentation</title>
+    
+    <link rel="stylesheet" href="static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.1 documentation" href="index.html" />
+    <link rel="next" title="titus.pfaast.EngineConfig" href="titus.pfaast.EngineConfig.html" />
+    <link rel="prev" title="titus.pfaast.Doc" href="titus.pfaast.Doc.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.pfaast.EngineConfig.html" title="titus.pfaast.EngineConfig"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.pfaast.Doc.html" title="titus.pfaast.Doc"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-pfaast-emitfcn">
+<h1>titus.pfaast.EmitFcn<a class="headerlink" href="#titus-pfaast-emitfcn" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.pfaast.EmitFcn">
+<em class="property">class </em><tt class="descclassname">titus.pfaast.</tt><tt class="descname">EmitFcn</tt><big>(</big><em>outputType</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.1/titus/titus/pfaast.py#L346"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.pfaast.EmitFcn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.fcn.Fcn.html#titus.fcn.Fcn" title="titus.fcn.Fcn"><tt class="xref py py-class docutils literal"><span class="pre">titus.fcn.Fcn</span></tt></a></p>
+<p>The special <tt class="docutils literal"><span class="pre">emit</span></tt> function.</p>
+<dl class="method">
+<dt id="titus.pfaast.EmitFcn.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>outputType</em><big>)</big><a class="headerlink" href="#titus.pfaast.EmitFcn.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>outputType</strong> (<a class="reference internal" href="titus.datatype.AvroType.html#titus.datatype.AvroType" title="titus.datatype.AvroType"><em>titus.datatype.AvroType</em></a>) &#8211; output type of the PFA document, which is also the signature of the <tt class="docutils literal"><span class="pre">emit</span></tt> function</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.pfaast.EmitFcn.genpy">
+<tt class="descname">genpy</tt><big>(</big><em>paramTypes</em>, <em>args</em>, <em>pos=None</em><big>)</big><a class="headerlink" href="#titus.pfaast.EmitFcn.genpy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an executable Python string for this function; usually <tt class="docutils literal"><span class="pre">self.f[&quot;emit&quot;].engine.emit(argument)</span></tt>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.pfaast.EngineConfig.html" title="titus.pfaast.EngineConfig"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.pfaast.Doc.html" title="titus.pfaast.Doc"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

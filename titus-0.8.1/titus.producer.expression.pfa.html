@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.producer.expression.pfa &mdash; Titus 0.8.1 documentation</title>
+    
+    <link rel="stylesheet" href="static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.1 documentation" href="index.html" />
+    <link rel="next" title="titus.producer.kmeans.AbsDiff" href="titus.producer.kmeans.AbsDiff.html" />
+    <link rel="prev" title="titus.producer.expression.fcn" href="titus.producer.expression.fcn.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.producer.kmeans.AbsDiff.html" title="titus.producer.kmeans.AbsDiff"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.producer.expression.fcn.html" title="titus.producer.expression.fcn"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-producer-expression-pfa">
+<h1>titus.producer.expression.pfa<a class="headerlink" href="#titus-producer-expression-pfa" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="titus.producer.expression.pfa">
+<tt class="descclassname">titus.producer.expression.</tt><tt class="descname">pfa</tt><big>(</big><em>expr</em>, <em>subs=None</em>, <em>symbols=None</em>, <em>cells=None</em>, <em>pools=None</em>, <em>options=None</em>, <em>**kwds</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.1/titus/titus/producer/expression.py#L31"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.expression.pfa" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert Python code into a PFA expression (not a whole PFA document).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>expr</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; Python code in a string</li>
+<li><strong>subs</strong> (<em>dict from substitution strings to their values</em>) &#8211; Python identifiers to expand to given PFA structures</li>
+<li><strong>symbols</strong> (<em>list of strings</em>) &#8211; Python identifiers to assume are PFA expressions in scope</li>
+<li><strong>cells</strong> (<em>list of strings</em>) &#8211; Python identifiers to assume are PFA cell names</li>
+<li><strong>pools</strong> (<em>list of strings</em>) &#8211; Python identifiers to assume are PFA pool names</li>
+<li><strong>options</strong> (<em>dict from option names to their values</em>) &#8211; options for interpreting the Python and producing PFA, such as <tt class="docutils literal"><span class="pre">lineNumbers</span></tt> and <tt class="docutils literal"><span class="pre">wantArray</span></tt></li>
+<li><strong>kwds</strong> (<em>dict from substitution strings to their values</em>) &#8211; added to <tt class="docutils literal"><span class="pre">subs</span></tt> (a more convenient way to pass them)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">Pythonized JSON</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the resulting PFA expression</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.producer.kmeans.AbsDiff.html" title="titus.producer.kmeans.AbsDiff"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.producer.expression.fcn.html" title="titus.producer.expression.fcn"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

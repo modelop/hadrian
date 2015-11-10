@@ -1,0 +1,123 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.datatype.ForwardDeclarationParser &mdash; Titus 0.8.1 documentation</title>
+    
+    <link rel="stylesheet" href="static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.1 documentation" href="index.html" />
+    <link rel="next" title="titus.datatype.Type" href="titus.datatype.Type.html" />
+    <link rel="prev" title="titus.datatype.FcnType" href="titus.datatype.FcnType.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.datatype.Type.html" title="titus.datatype.Type"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.datatype.FcnType.html" title="titus.datatype.FcnType"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-datatype-forwarddeclarationparser">
+<h1>titus.datatype.ForwardDeclarationParser<a class="headerlink" href="#titus-datatype-forwarddeclarationparser" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.datatype.ForwardDeclarationParser">
+<em class="property">class </em><tt class="descclassname">titus.datatype.</tt><tt class="descname">ForwardDeclarationParser</tt><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.1/titus/titus/datatype.py#L687"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.datatype.ForwardDeclarationParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Container that stores Avro types as they&#8217;re collected from a PFA file, returning titus.datatype.AvroPlaceholder objects, and then resolves those types independent of the order in which they were read from the file.</p>
+<dl class="method">
+<dt id="titus.datatype.ForwardDeclarationParser.__init__">
+<tt class="descname">__init__</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.datatype.ForwardDeclarationParser.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.datatype.ForwardDeclarationParser.compiledTypes">
+<tt class="descname">compiledTypes</tt><a class="headerlink" href="#titus.datatype.ForwardDeclarationParser.compiledTypes" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.ForwardDeclarationParser.contains">
+<tt class="descname">contains</tt><big>(</big><em>original</em><big>)</big><a class="headerlink" href="#titus.datatype.ForwardDeclarationParser.contains" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.ForwardDeclarationParser.getAvroType">
+<tt class="descname">getAvroType</tt><big>(</big><em>description</em><big>)</big><a class="headerlink" href="#titus.datatype.ForwardDeclarationParser.getAvroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.ForwardDeclarationParser.getSchema">
+<tt class="descname">getSchema</tt><big>(</big><em>description</em><big>)</big><a class="headerlink" href="#titus.datatype.ForwardDeclarationParser.getSchema" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.ForwardDeclarationParser.lookup">
+<tt class="descname">lookup</tt><big>(</big><em>original</em><big>)</big><a class="headerlink" href="#titus.datatype.ForwardDeclarationParser.lookup" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.ForwardDeclarationParser.parse">
+<tt class="descname">parse</tt><big>(</big><em>jsonStrings</em><big>)</big><a class="headerlink" href="#titus.datatype.ForwardDeclarationParser.parse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.datatype.Type.html" title="titus.datatype.Type"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.datatype.FcnType.html" title="titus.datatype.FcnType"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>

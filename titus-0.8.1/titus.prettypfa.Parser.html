@@ -1,0 +1,151 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.prettypfa.Parser &mdash; Titus 0.8.1 documentation</title>
+    
+    <link rel="stylesheet" href="static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.1 documentation" href="index.html" />
+    <link rel="next" title="titus.prettypfa.ResolvedSubs" href="titus.prettypfa.ResolvedSubs.html" />
+    <link rel="prev" title="titus.prettypfa.MiniWhile" href="titus.prettypfa.MiniWhile.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.prettypfa.ResolvedSubs.html" title="titus.prettypfa.ResolvedSubs"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.prettypfa.MiniWhile.html" title="titus.prettypfa.MiniWhile"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-prettypfa-parser">
+<h1>titus.prettypfa.Parser<a class="headerlink" href="#titus-prettypfa-parser" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.prettypfa.Parser">
+<em class="property">class </em><tt class="descclassname">titus.prettypfa.</tt><tt class="descname">Parser</tt><big>(</big><em>wholeDocument</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.1/titus/titus/prettypfa.py#L1187"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.prettypfa.Parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Parser for the &#8220;ply&#8221; package, specialized for PrettyPFA (whole document or expression).</p>
+<p>Includes both the tokenizer and the parser.</p>
+<dl class="method">
+<dt id="titus.prettypfa.Parser.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>wholeDocument</em><big>)</big><a class="headerlink" href="#titus.prettypfa.Parser.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the <tt class="docutils literal"><span class="pre">Parser</span></tt>, but it is only ready to use after calling <tt class="docutils literal"><span class="pre">initialize</span></tt>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>wholeDocument</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, this parser expects a whole PFA document and <tt class="docutils literal"><span class="pre">parse</span></tt> returns a titus.pfaast.EngineConfig; otherwise, this parser expects a PFA expression and <tt class="docutils literal"><span class="pre">parse</span></tt> returns a titus.pfaast.Expression</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.prettypfa.Parser.initialize">
+<tt class="descname">initialize</tt><big>(</big><em>lex</em>, <em>yacc</em><big>)</big><a class="headerlink" href="#titus.prettypfa.Parser.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize the <tt class="docutils literal"><span class="pre">Parser</span></tt> by passing it the appropriate ply modules.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>lex</strong> (<em>Python module</em>) &#8211; <tt class="docutils literal"><span class="pre">ply.lex</span></tt> after <tt class="docutils literal"><span class="pre">import</span> <span class="pre">ply.lex</span></tt></li>
+<li><strong>yacc</strong> (<em>Python module</em>) &#8211; <tt class="docutils literal"><span class="pre">ply.yacc</span></tt> after <tt class="docutils literal"><span class="pre">import</span> <span class="pre">ply.yacc</span></tt></li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first"><tt class="docutils literal"><span class="pre">None</span></tt></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">nothing</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.prettypfa.Parser.parse">
+<tt class="descname">parse</tt><big>(</big><em>text</em>, <em>subs</em><big>)</big><a class="headerlink" href="#titus.prettypfa.Parser.parse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse the given text, returning a PFA abstract syntax tree.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>text</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; command line to parse</li>
+<li><strong>subs</strong> (<em>dict of substitutions</em>) &#8211; substitutions to apply to any strings in <tt class="docutils literal"><span class="pre">&lt;&lt;French</span> <span class="pre">quotes&gt;&gt;</span></tt></li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">titus.pfaast.EngineConfig or titus.pfaast.Expression</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">parsed text as an abstract syntax tree</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.prettypfa.ResolvedSubs.html" title="titus.prettypfa.ResolvedSubs"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.prettypfa.MiniWhile.html" title="titus.prettypfa.MiniWhile"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.2.
+    </div>
+  </body>
+</html>
