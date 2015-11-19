@@ -1,0 +1,317 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg style="stroke-linejoin:miter; stroke:black; stroke-width:2.5; text-anchor:middle; fill:none" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, FreeSans, Sans, sans, sans-serif" width="1000px" height="1000px" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1000 1000">
+<defs>
+    <clipPath id="Histogram_0_clip">
+        <rect x="120" y="50" width="830" height="870" />
+    </clipPath>
+    <clipPath id="Histogram_1_clip">
+        <rect x="120" y="50" width="830" height="870" />
+    </clipPath>
+</defs>
+<g id="whole_document">
+<rect id="background" x="0" y="0" width="1000" height="1000" stroke="none" fill="white" />
+<g id="Histogram_0" clip-path="url(#Histogram_0_clip)">
+    <path d="M 120 920 L 120 129.091 L 161.5 129.091 L 161.5 821.385 L 203 821.385 L 203 920 L 244.5 920 L 244.5 900.25 L 286 900.25 L 286 919.053 L 327.5 919.053 L 327.5 920 L 369 920 L 369 920 L 410.5 920 L 410.5 920 L 452 920 L 452 920 L 493.5 920 L 493.5 919.558 L 535 919.558 L 535 920 L 576.5 920 L 576.5 920 L 618 920 L 618 920 L 659.5 920 L 659.5 920 L 701 920 L 701 920 L 742.5 920 L 742.5 920 L 784 920 L 784 920 L 825.5 920 L 825.5 920 L 867 920 L 867 920 L 908.5 920 L 908.5 920 L 950 920 L 950 920" stroke-width="3" stroke-dasharray="" stroke="black" stroke-opacity="1" fill="DodgerBlue" fill-opacity="1" />
+</g>
+<g id="Histogram_1" clip-path="url(#Histogram_1_clip)">
+    <path d="M 120 920 L 120 920 L 161.5 920 L 161.5 920 L 203 920 L 203 920 L 244.5 920 L 244.5 900.25 L 286 900.25 L 286 919.053 L 327.5 919.053 L 327.5 920 L 369 920 L 369 920 L 410.5 920 L 410.5 920 L 452 920 L 452 920 L 493.5 920 L 493.5 919.558 L 535 919.558 L 535 920 L 576.5 920 L 576.5 920 L 618 920 L 618 920 L 659.5 920 L 659.5 920 L 701 920 L 701 920 L 742.5 920 L 742.5 920 L 784 920 L 784 920 L 825.5 920 L 825.5 920 L 867 920 L 867 920 L 908.5 920 L 908.5 920 L 950 920 L 950 920" stroke-width="3" stroke-dasharray="" stroke="black" stroke-opacity="1" fill="darkorange" fill-opacity="1" />
+</g>
+<g id="frame_0">
+    <rect id="frame_0_border" x="120" y="50" width="830" height="870" />
+    <text id="frame_0_bottomlabel" font-size="30" transform="translate(535, 989.6)" text-anchor="middle" dominant-baseline="middle" stroke="none" fill="black">microseconds</text>
+    <g id="frame_0_bottomticks">
+        <path d="M 120 920 L 120 900" />
+        <text font-size="30" transform="translate(120, 950)" text-anchor="middle" dominant-baseline="middle" stroke="none" fill="black">0</text>
+        <path d="M 136.6 920 L 136.6 910" />
+        <path d="M 153.2 920 L 153.2 910" />
+        <path d="M 169.8 920 L 169.8 910" />
+        <path d="M 186.4 920 L 186.4 910" />
+        <path d="M 203 920 L 203 910" />
+        <path d="M 219.6 920 L 219.6 910" />
+        <path d="M 236.2 920 L 236.2 910" />
+        <path d="M 252.8 920 L 252.8 910" />
+        <path d="M 269.4 920 L 269.4 910" />
+        <path d="M 286 920 L 286 900" />
+        <text font-size="30" transform="translate(286, 950)" text-anchor="middle" dominant-baseline="middle" stroke="none" fill="black">10</text>
+        <path d="M 302.6 920 L 302.6 910" />
+        <path d="M 319.2 920 L 319.2 910" />
+        <path d="M 335.8 920 L 335.8 910" />
+        <path d="M 352.4 920 L 352.4 910" />
+        <path d="M 369 920 L 369 910" />
+        <path d="M 385.6 920 L 385.6 910" />
+        <path d="M 402.2 920 L 402.2 910" />
+        <path d="M 418.8 920 L 418.8 910" />
+        <path d="M 435.4 920 L 435.4 910" />
+        <path d="M 452 920 L 452 900" />
+        <text font-size="30" transform="translate(452, 950)" text-anchor="middle" dominant-baseline="middle" stroke="none" fill="black">20</text>
+        <path d="M 468.6 920 L 468.6 910" />
+        <path d="M 485.2 920 L 485.2 910" />
+        <path d="M 501.8 920 L 501.8 910" />
+        <path d="M 518.4 920 L 518.4 910" />
+        <path d="M 535 920 L 535 910" />
+        <path d="M 551.6 920 L 551.6 910" />
+        <path d="M 568.2 920 L 568.2 910" />
+        <path d="M 584.8 920 L 584.8 910" />
+        <path d="M 601.4 920 L 601.4 910" />
+        <path d="M 618 920 L 618 900" />
+        <text font-size="30" transform="translate(618, 950)" text-anchor="middle" dominant-baseline="middle" stroke="none" fill="black">30</text>
+        <path d="M 634.6 920 L 634.6 910" />
+        <path d="M 651.2 920 L 651.2 910" />
+        <path d="M 667.8 920 L 667.8 910" />
+        <path d="M 684.4 920 L 684.4 910" />
+        <path d="M 701 920 L 701 910" />
+        <path d="M 717.6 920 L 717.6 910" />
+        <path d="M 734.2 920 L 734.2 910" />
+        <path d="M 750.8 920 L 750.8 910" />
+        <path d="M 767.4 920 L 767.4 910" />
+        <path d="M 784 920 L 784 900" />
+        <text font-size="30" transform="translate(784, 950)" text-anchor="middle" dominant-baseline="middle" stroke="none" fill="black">40</text>
+        <path d="M 800.6 920 L 800.6 910" />
+        <path d="M 817.2 920 L 817.2 910" />
+        <path d="M 833.8 920 L 833.8 910" />
+        <path d="M 850.4 920 L 850.4 910" />
+        <path d="M 867 920 L 867 910" />
+        <path d="M 883.6 920 L 883.6 910" />
+        <path d="M 900.2 920 L 900.2 910" />
+        <path d="M 916.8 920 L 916.8 910" />
+        <path d="M 933.4 920 L 933.4 910" />
+        <path d="M 950 920 L 950 900" />
+        <text font-size="30" transform="translate(950, 950)" text-anchor="middle" dominant-baseline="middle" stroke="none" fill="black">50</text>
+    </g>
+    <g id="frame_0_leftticks">
+        <path d="M 120 751.733 L 130 751.733" />
+        <path d="M 120 667.599 L 130 667.599" />
+        <path d="M 120 225.897 L 130 225.897" />
+        <path d="M 120 636.049 L 130 636.049" />
+        <path d="M 120 257.447 L 130 257.447" />
+        <path d="M 120 699.149 L 130 699.149" />
+        <path d="M 120 110.213 L 130 110.213" />
+        <path d="M 120 562.432 L 130 562.432" />
+        <path d="M 120 120.73 L 130 120.73" />
+        <path d="M 120 320.548 L 130 320.548" />
+        <path d="M 120 646.566 L 130 646.566" />
+        <path d="M 120 846.383 L 130 846.383" />
+        <path d="M 120 425.715 L 130 425.715" />
+        <path d="M 120 204.864 L 130 204.864" />
+        <path d="M 120 762.249 L 130 762.249" />
+        <path d="M 120 68.1466 L 130 68.1466" />
+        <path d="M 120 288.997 L 140 288.997" />
+        <text font-size="30" transform="translate(110, 298.997)" text-anchor="end" dominant-baseline="middle" stroke="none" fill="black">60000</text>
+        <path d="M 120 310.031 L 130 310.031" />
+        <path d="M 120 920 L 140 920" />
+        <text font-size="30" transform="translate(110, 930)" text-anchor="end" dominant-baseline="middle" stroke="none" fill="black">0</text>
+        <path d="M 120 615.015 L 130 615.015" />
+        <path d="M 120 593.982 L 130 593.982" />
+        <path d="M 120 509.848 L 130 509.848" />
+        <path d="M 120 877.933 L 130 877.933" />
+        <path d="M 120 688.632 L 130 688.632" />
+        <path d="M 120 99.6967 L 130 99.6967" />
+        <path d="M 120 457.265 L 130 457.265" />
+        <path d="M 120 814.833 L 140 814.833" />
+        <text font-size="30" transform="translate(110, 824.833)" text-anchor="end" dominant-baseline="middle" stroke="none" fill="black">10000</text>
+        <path d="M 120 299.514 L 130 299.514" />
+        <path d="M 120 825.35 L 130 825.35" />
+        <path d="M 120 604.499 L 140 604.499" />
+        <text font-size="30" transform="translate(110, 614.499)" text-anchor="end" dominant-baseline="middle" stroke="none" fill="black">30000</text>
+        <path d="M 120 499.332 L 140 499.332" />
+        <text font-size="30" transform="translate(110, 509.332)" text-anchor="end" dominant-baseline="middle" stroke="none" fill="black">40000</text>
+        <path d="M 120 541.398 L 130 541.398" />
+        <path d="M 120 194.347 L 130 194.347" />
+        <path d="M 120 772.766 L 130 772.766" />
+        <path d="M 120 867.416 L 130 867.416" />
+        <path d="M 120 488.815 L 130 488.815" />
+        <path d="M 120 720.183 L 130 720.183" />
+        <path d="M 120 215.381 L 130 215.381" />
+        <path d="M 120 183.83 L 140 183.83" />
+        <text font-size="30" transform="translate(110, 193.83)" text-anchor="end" dominant-baseline="middle" stroke="none" fill="black">70000</text>
+        <path d="M 120 404.681 L 130 404.681" />
+        <path d="M 120 572.949 L 130 572.949" />
+        <path d="M 120 835.866 L 130 835.866" />
+        <path d="M 120 625.532 L 130 625.532" />
+        <path d="M 120 657.082 L 130 657.082" />
+        <path d="M 120 278.481 L 130 278.481" />
+        <path d="M 120 173.314 L 130 173.314" />
+        <path d="M 120 783.283 L 130 783.283" />
+        <path d="M 120 520.365 L 130 520.365" />
+        <path d="M 120 78.6633 L 140 78.6633" />
+        <text font-size="30" transform="translate(110, 88.6633)" text-anchor="end" dominant-baseline="middle" stroke="none" fill="black">80000</text>
+        <path d="M 120 373.131 L 130 373.131" />
+        <path d="M 120 383.648 L 130 383.648" />
+        <path d="M 120 898.967 L 130 898.967" />
+        <path d="M 120 888.45 L 130 888.45" />
+        <path d="M 120 709.666 L 140 709.666" />
+        <text font-size="30" transform="translate(110, 719.666)" text-anchor="end" dominant-baseline="middle" stroke="none" fill="black">20000</text>
+        <path d="M 120 467.782 L 130 467.782" />
+        <path d="M 120 246.931 L 130 246.931" />
+        <path d="M 120 162.797 L 130 162.797" />
+        <path d="M 120 678.116 L 130 678.116" />
+        <path d="M 120 57.6299 L 130 57.6299" />
+        <path d="M 120 362.614 L 130 362.614" />
+        <path d="M 120 551.915 L 130 551.915" />
+        <path d="M 120 331.064 L 130 331.064" />
+        <path d="M 120 793.799 L 130 793.799" />
+        <path d="M 120 730.699 L 130 730.699" />
+        <path d="M 120 415.198 L 130 415.198" />
+        <path d="M 120 152.28 L 130 152.28" />
+        <path d="M 120 352.098 L 130 352.098" />
+        <path d="M 120 909.483 L 130 909.483" />
+        <path d="M 120 267.964 L 130 267.964" />
+        <path d="M 120 478.298 L 130 478.298" />
+        <path d="M 120 583.465 L 130 583.465" />
+        <path d="M 120 141.764 L 130 141.764" />
+        <path d="M 120 856.9 L 130 856.9" />
+        <path d="M 120 741.216 L 130 741.216" />
+        <path d="M 120 341.581 L 130 341.581" />
+        <path d="M 120 89.18 L 130 89.18" />
+        <path d="M 120 446.748 L 130 446.748" />
+        <path d="M 120 394.165 L 140 394.165" />
+        <text font-size="30" transform="translate(110, 404.165)" text-anchor="end" dominant-baseline="middle" stroke="none" fill="black">50000</text>
+        <path d="M 120 804.316 L 130 804.316" />
+        <path d="M 120 236.414 L 130 236.414" />
+        <path d="M 120 530.882 L 130 530.882" />
+        <path d="M 120 131.247 L 130 131.247" />
+        <path d="M 120 436.231 L 130 436.231" />
+    </g>
+    <text id="frame_0_toplabel" font-size="30" transform="translate(535, 32.6)" text-anchor="middle" dominant-baseline="middle" stroke="none" fill="black">a.sum</text>
+    <g id="frame_0_topticks">
+        <path d="M 120 50 L 120 70" />
+        <path d="M 136.6 50 L 136.6 60" />
+        <path d="M 153.2 50 L 153.2 60" />
+        <path d="M 169.8 50 L 169.8 60" />
+        <path d="M 186.4 50 L 186.4 60" />
+        <path d="M 203 50 L 203 60" />
+        <path d="M 219.6 50 L 219.6 60" />
+        <path d="M 236.2 50 L 236.2 60" />
+        <path d="M 252.8 50 L 252.8 60" />
+        <path d="M 269.4 50 L 269.4 60" />
+        <path d="M 286 50 L 286 70" />
+        <path d="M 302.6 50 L 302.6 60" />
+        <path d="M 319.2 50 L 319.2 60" />
+        <path d="M 335.8 50 L 335.8 60" />
+        <path d="M 352.4 50 L 352.4 60" />
+        <path d="M 369 50 L 369 60" />
+        <path d="M 385.6 50 L 385.6 60" />
+        <path d="M 402.2 50 L 402.2 60" />
+        <path d="M 418.8 50 L 418.8 60" />
+        <path d="M 435.4 50 L 435.4 60" />
+        <path d="M 452 50 L 452 70" />
+        <path d="M 468.6 50 L 468.6 60" />
+        <path d="M 485.2 50 L 485.2 60" />
+        <path d="M 501.8 50 L 501.8 60" />
+        <path d="M 518.4 50 L 518.4 60" />
+        <path d="M 535 50 L 535 60" />
+        <path d="M 551.6 50 L 551.6 60" />
+        <path d="M 568.2 50 L 568.2 60" />
+        <path d="M 584.8 50 L 584.8 60" />
+        <path d="M 601.4 50 L 601.4 60" />
+        <path d="M 618 50 L 618 70" />
+        <path d="M 634.6 50 L 634.6 60" />
+        <path d="M 651.2 50 L 651.2 60" />
+        <path d="M 667.8 50 L 667.8 60" />
+        <path d="M 684.4 50 L 684.4 60" />
+        <path d="M 701 50 L 701 60" />
+        <path d="M 717.6 50 L 717.6 60" />
+        <path d="M 734.2 50 L 734.2 60" />
+        <path d="M 750.8 50 L 750.8 60" />
+        <path d="M 767.4 50 L 767.4 60" />
+        <path d="M 784 50 L 784 70" />
+        <path d="M 800.6 50 L 800.6 60" />
+        <path d="M 817.2 50 L 817.2 60" />
+        <path d="M 833.8 50 L 833.8 60" />
+        <path d="M 850.4 50 L 850.4 60" />
+        <path d="M 867 50 L 867 60" />
+        <path d="M 883.6 50 L 883.6 60" />
+        <path d="M 900.2 50 L 900.2 60" />
+        <path d="M 916.8 50 L 916.8 60" />
+        <path d="M 933.4 50 L 933.4 60" />
+        <path d="M 950 50 L 950 70" />
+    </g>
+    <g id="frame_0_rightticks">
+        <path d="M 950 751.733 L 940 751.733" />
+        <path d="M 950 667.599 L 940 667.599" />
+        <path d="M 950 225.897 L 940 225.897" />
+        <path d="M 950 636.049 L 940 636.049" />
+        <path d="M 950 257.447 L 940 257.447" />
+        <path d="M 950 699.149 L 940 699.149" />
+        <path d="M 950 110.213 L 940 110.213" />
+        <path d="M 950 562.432 L 940 562.432" />
+        <path d="M 950 120.73 L 940 120.73" />
+        <path d="M 950 320.548 L 940 320.548" />
+        <path d="M 950 646.566 L 940 646.566" />
+        <path d="M 950 846.383 L 940 846.383" />
+        <path d="M 950 425.715 L 940 425.715" />
+        <path d="M 950 204.864 L 940 204.864" />
+        <path d="M 950 762.249 L 940 762.249" />
+        <path d="M 950 68.1466 L 940 68.1466" />
+        <path d="M 950 288.997 L 930 288.997" />
+        <path d="M 950 310.031 L 940 310.031" />
+        <path d="M 950 920 L 930 920" />
+        <path d="M 950 615.015 L 940 615.015" />
+        <path d="M 950 593.982 L 940 593.982" />
+        <path d="M 950 509.848 L 940 509.848" />
+        <path d="M 950 877.933 L 940 877.933" />
+        <path d="M 950 688.632 L 940 688.632" />
+        <path d="M 950 99.6967 L 940 99.6967" />
+        <path d="M 950 457.265 L 940 457.265" />
+        <path d="M 950 814.833 L 930 814.833" />
+        <path d="M 950 299.514 L 940 299.514" />
+        <path d="M 950 825.35 L 940 825.35" />
+        <path d="M 950 604.499 L 930 604.499" />
+        <path d="M 950 499.332 L 930 499.332" />
+        <path d="M 950 541.398 L 940 541.398" />
+        <path d="M 950 194.347 L 940 194.347" />
+        <path d="M 950 772.766 L 940 772.766" />
+        <path d="M 950 867.416 L 940 867.416" />
+        <path d="M 950 488.815 L 940 488.815" />
+        <path d="M 950 720.183 L 940 720.183" />
+        <path d="M 950 215.381 L 940 215.381" />
+        <path d="M 950 183.83 L 930 183.83" />
+        <path d="M 950 404.681 L 940 404.681" />
+        <path d="M 950 572.949 L 940 572.949" />
+        <path d="M 950 835.866 L 940 835.866" />
+        <path d="M 950 625.532 L 940 625.532" />
+        <path d="M 950 657.082 L 940 657.082" />
+        <path d="M 950 278.481 L 940 278.481" />
+        <path d="M 950 173.314 L 940 173.314" />
+        <path d="M 950 783.283 L 940 783.283" />
+        <path d="M 950 520.365 L 940 520.365" />
+        <path d="M 950 78.6633 L 930 78.6633" />
+        <path d="M 950 373.131 L 940 373.131" />
+        <path d="M 950 383.648 L 940 383.648" />
+        <path d="M 950 898.967 L 940 898.967" />
+        <path d="M 950 888.45 L 940 888.45" />
+        <path d="M 950 709.666 L 930 709.666" />
+        <path d="M 950 467.782 L 940 467.782" />
+        <path d="M 950 246.931 L 940 246.931" />
+        <path d="M 950 162.797 L 940 162.797" />
+        <path d="M 950 678.116 L 940 678.116" />
+        <path d="M 950 57.6299 L 940 57.6299" />
+        <path d="M 950 362.614 L 940 362.614" />
+        <path d="M 950 551.915 L 940 551.915" />
+        <path d="M 950 331.064 L 940 331.064" />
+        <path d="M 950 793.799 L 940 793.799" />
+        <path d="M 950 730.699 L 940 730.699" />
+        <path d="M 950 415.198 L 940 415.198" />
+        <path d="M 950 152.28 L 940 152.28" />
+        <path d="M 950 352.098 L 940 352.098" />
+        <path d="M 950 909.483 L 940 909.483" />
+        <path d="M 950 267.964 L 940 267.964" />
+        <path d="M 950 478.298 L 940 478.298" />
+        <path d="M 950 583.465 L 940 583.465" />
+        <path d="M 950 141.764 L 940 141.764" />
+        <path d="M 950 856.9 L 940 856.9" />
+        <path d="M 950 741.216 L 940 741.216" />
+        <path d="M 950 341.581 L 940 341.581" />
+        <path d="M 950 89.18 L 940 89.18" />
+        <path d="M 950 446.748 L 940 446.748" />
+        <path d="M 950 394.165 L 930 394.165" />
+        <path d="M 950 804.316 L 940 804.316" />
+        <path d="M 950 236.414 L 940 236.414" />
+        <path d="M 950 530.882 L 940 530.882" />
+        <path d="M 950 131.247 L 940 131.247" />
+        <path d="M 950 436.231 L 940 436.231" />
+    </g>
+</g>
+</g>
+</svg>
