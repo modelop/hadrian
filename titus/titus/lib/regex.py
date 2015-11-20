@@ -55,7 +55,7 @@ class RegexSpecs(object):
             self.importSuccessfull = True
         elif system == "darwin":
             # tested on
-            self.libname = "libc.dylib"
+            self.libname = "/usr/lib/libc.dylib"
             self._darwinSpecs()
             self.importSuccessfull = True
         else:
