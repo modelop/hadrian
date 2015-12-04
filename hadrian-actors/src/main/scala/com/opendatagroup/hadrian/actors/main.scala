@@ -42,6 +42,8 @@ package main {
           .action((x, c) => c.copy(topologyConfig = stringToURL(x)))
           .text("topology description file")
 
+        help("help") text("print this help message")
+
         note("""
 Hadrian-Actors builds an actor-based workflow within a single process.
 The workflow can be as general as a directed acyclic graph (DAG), can
