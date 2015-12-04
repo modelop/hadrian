@@ -18,7 +18,7 @@
 
 package com.opendatagroup.antinous
 
-import java.util.Base64
+import javax.xml.bind.DatatypeConverter
 
 import scala.language.postfixOps
 
@@ -116,7 +116,7 @@ package pfainterface {
       }
 
       case AvroBytes() => data match {
-        case x: Array[Byte] => new PyString(Base64.getEncoder.encodeToString(x))
+        case x: Array[Byte] => new PyString(DatatypeConverter.printBase64Binary(x))
         case _ => throw Py.TypeError(s"expecting PFA bytes ($avroType), not $data (${data.getClass.getName})")
       }
 
@@ -146,7 +146,7 @@ package pfainterface {
 
       case fixed: AvroFixed => data match {
         case x: PFAFixed =>
-          new PyString(Base64.getEncoder.encodeToString(x.bytes))
+          new PyString(DatatypeConverter.printBase64Binary(x.bytes))
         case _ => throw Py.TypeError(s"expecting PFA fixed ($avroType), not $data (${data.getClass.getName})")
       }
 
