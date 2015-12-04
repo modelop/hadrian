@@ -2768,14 +2768,13 @@ catch (java.util.NoSuchElementException err) {
       case AttrTo.Context(retType, _, expr, exprType, setType, path, to, toType, pos) => {
         val toFcn =
           if (toType.isInstanceOf[AvroType])
-            """(new scala.runtime.AbstractFunction1<%s, %s>() { public %s apply(%s dummy) { return %s; } public Object apply(Object dummy) { return apply((%s)(%s)); } })""".format(
+            """(new scala.runtime.AbstractFunction1<%s, %s>() { public %s apply(%s dummy) { return %s; } public Object apply(Object dummy) { return apply(%s); } })""".format(
               javaType(setType, true, true, true),
               javaType(setType, true, true, true),
               javaType(setType, true, true, true),
               javaType(setType, true, true, true),
-              to.toString,
-              javaType(setType, true, true, true),
-              to.toString)
+              W.wrapExpr(to.toString, setType, true),
+              W.wrapExpr(to.toString, setType, true))
           else
             to.toString
 
@@ -2834,14 +2833,13 @@ catch (java.util.NoSuchElementException err) {
       case CellTo.Context(retType, _, cell, cellType, setType, path, to, toType, shared, pos) => {
         val toFcn =
           if (toType.isInstanceOf[AvroType])
-            """(new scala.runtime.AbstractFunction1<%s, %s>() { public %s apply(%s dummy) { return %s; } public Object apply(Object dummy) { return apply((%s)(%s)); } })""".format(
+            """(new scala.runtime.AbstractFunction1<%s, %s>() { public %s apply(%s dummy) { return %s; } public Object apply(Object dummy) { return apply(%s); } })""".format(
               javaType(setType, true, true, true),
               javaType(setType, true, true, true),
               javaType(setType, true, true, true),
               javaType(setType, true, true, true),
-              to.toString,
-              javaType(setType, true, true, true),
-              to.toString)
+              W.wrapExpr(to.toString, setType, true),
+              W.wrapExpr(to.toString, setType, true))
           else
             to.toString
 
@@ -2908,14 +2906,13 @@ catch (java.util.NoSuchElementException err) {
       case PoolTo.Context(retType, _, pool, poolType, setType, path, to, toType, init, shared, pos) => {
         val toFcn =
           if (toType.isInstanceOf[AvroType])
-            """(new scala.runtime.AbstractFunction1<%s, %s>() { public %s apply(%s dummy) { return %s; } public Object apply(Object dummy) { return apply((%s)(%s)); } })""".format(
+            """(new scala.runtime.AbstractFunction1<%s, %s>() { public %s apply(%s dummy) { return %s; } public Object apply(Object dummy) { return apply(%s); } })""".format(
               javaType(setType, true, true, true),
               javaType(setType, true, true, true),
               javaType(setType, true, true, true),
               javaType(setType, true, true, true),
-              to.toString,
-              javaType(setType, true, true, true),
-              to.toString)
+              W.wrapExpr(to.toString, setType, true),
+              W.wrapExpr(to.toString, setType, true))
           else
             to.toString
 

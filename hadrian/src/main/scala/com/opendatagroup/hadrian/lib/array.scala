@@ -553,7 +553,7 @@ package object array {
   ////   shuffle (Shuffle)
   object Shuffle {
     class Sorter(randomGenerator: Random) {
-      def apply[X](a: PFAArray[X]): PFAArray[X] = PFAArray.fromVector(a.toVector.sortWith((x: X, y: X) => randomGenerator.nextBoolean()))
+      def apply[X](a: PFAArray[X]): PFAArray[X] = PFAArray.fromVector(randomGenerator.shuffle(a.toVector))
     }
   }
   class Shuffle(val pos: Option[String] = None) extends LibFcn {
