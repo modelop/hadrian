@@ -428,4 +428,14 @@
 
   * Added s.int and deprecated integer signature of s.number, so that s.number can be labeled unstable without affecting s.int (Hadrian, Titus, and PFA).
 
+**After tag v0.8.1:**
+
+  * Fixed loading of libc library under Mac OS 10.11 El Capitan (Titus)
+
+  * Fixed compiler in casting case to use WrapExpr
+
+  * Removed 1.8 java.util.Base64 from antinous
+
+  * Made Antinous tests insensitive to map order
+
 **Future:**
