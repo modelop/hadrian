@@ -568,7 +568,7 @@ def _readArgument(data, dot, avroTypeBuilder):
         return LiteralNull(dot)
     elif isinstance(data, bool):
         return LiteralBoolean(data, dot)
-    elif isinstance(data, int):
+    elif isinstance(data, (int, long)):
         if -2147483648 <= data <= 2147483647:
             return LiteralInt(data, dot)
         elif -9223372036854775808 <= data <= 9223372036854775807:
