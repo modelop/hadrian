@@ -474,7 +474,7 @@ output: int
 action: 12
 ''')
         self.assertEqual(engine.action(None), 12)
-        self.assertTrue(isinstance(engine.action(None), int))
+        self.assertTrue(isinstance(engine.action(None), (int, long)))
 
     def testLiteralLong(self):
         engine, = PFAEngine.fromYaml('''
@@ -483,7 +483,7 @@ output: long
 action: {long: 12}
 ''')
         self.assertEqual(engine.action(None), 12)
-        self.assertTrue(isinstance(engine.action(None), int))
+        self.assertTrue(isinstance(engine.action(None), (int, long)))
 
     def testLiteralFloat(self):
         engine, = PFAEngine.fromYaml('''
