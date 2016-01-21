@@ -1,0 +1,131 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.genpy.GeneratePython &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="index.html" />
+    <link rel="next" title="titus.genpy.GeneratePythonPure" href="titus.genpy.GeneratePythonPure.html" />
+    <link rel="prev" title="titus.genpy.FastAvroCorrector" href="titus.genpy.FastAvroCorrector.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.genpy.GeneratePythonPure.html" title="titus.genpy.GeneratePythonPure"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.genpy.FastAvroCorrector.html" title="titus.genpy.FastAvroCorrector"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-genpy-generatepython">
+<h1>titus.genpy.GeneratePython<a class="headerlink" href="#titus-genpy-generatepython" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.genpy.GeneratePython">
+<em class="property">class </em><tt class="descclassname">titus.genpy.</tt><tt class="descname">GeneratePython</tt><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.3/titus/titus/genpy.py#L100"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.genpy.GeneratePython" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.pfaast.Task.html#titus.pfaast.Task" title="titus.pfaast.Task"><tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Task</span></tt></a></p>
+<p>A <tt class="docutils literal"><span class="pre">titus.pfaast.Task</span></tt> for turning PFA into executable Python.</p>
+<dl class="method">
+<dt id="titus.genpy.GeneratePython.commandsBeginEnd">
+<tt class="descname">commandsBeginEnd</tt><big>(</big><em>codes</em>, <em>indent</em><big>)</big><a class="headerlink" href="#titus.genpy.GeneratePython.commandsBeginEnd" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concatenate commands for the begin or end method.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.genpy.GeneratePython.commandsEmit">
+<tt class="descname">commandsEmit</tt><big>(</big><em>codes</em>, <em>indent</em><big>)</big><a class="headerlink" href="#titus.genpy.GeneratePython.commandsEmit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concatenate commands for an emit-type engine.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.genpy.GeneratePython.commandsFold">
+<tt class="descname">commandsFold</tt><big>(</big><em>codes</em>, <em>indent</em><big>)</big><a class="headerlink" href="#titus.genpy.GeneratePython.commandsFold" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concatenate commands for a fold-type engine.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.genpy.GeneratePython.commandsFoldMerge">
+<tt class="descname">commandsFoldMerge</tt><big>(</big><em>codes</em>, <em>indent</em><big>)</big><a class="headerlink" href="#titus.genpy.GeneratePython.commandsFoldMerge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concatenate commands for the merge section of a fold-type engine.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.genpy.GeneratePython.commandsMap">
+<tt class="descname">commandsMap</tt><big>(</big><em>codes</em>, <em>indent</em><big>)</big><a class="headerlink" href="#titus.genpy.GeneratePython.commandsMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concatenate commands for a map-type engine.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="titus.genpy.GeneratePython.makeTask">
+<em class="property">static </em><tt class="descname">makeTask</tt><big>(</big><em>style</em><big>)</big><a class="headerlink" href="#titus.genpy.GeneratePython.makeTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a <tt class="docutils literal"><span class="pre">titus.genpy.GeneratePython</span></tt> Task with a particular style.</p>
+<p>Currently, the only style is &#8220;pure&#8221; (<tt class="docutils literal"><span class="pre">titus.genpy.GeneratePythonPure</span></tt>).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.genpy.GeneratePython.reprPath">
+<tt class="descname">reprPath</tt><big>(</big><em>path</em><big>)</big><a class="headerlink" href="#titus.genpy.GeneratePython.reprPath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build a path for &#8220;attr&#8221;, &#8220;cell&#8221;, or &#8220;pool&#8221; special forms.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.genpy.GeneratePythonPure.html" title="titus.genpy.GeneratePythonPure"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.genpy.FastAvroCorrector.html" title="titus.genpy.FastAvroCorrector"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>

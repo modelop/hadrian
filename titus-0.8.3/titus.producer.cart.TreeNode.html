@@ -1,0 +1,442 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.producer.cart.TreeNode &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="index.html" />
+    <link rel="next" title="titus.producer.chain.PFAChainError" href="titus.producer.chain.PFAChainError.html" />
+    <link rel="prev" title="titus.producer.cart.Dataset" href="titus.producer.cart.Dataset.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.producer.chain.PFAChainError.html" title="titus.producer.chain.PFAChainError"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.producer.cart.Dataset.html" title="titus.producer.cart.Dataset"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-producer-cart-treenode">
+<h1>titus.producer.cart.TreeNode<a class="headerlink" href="#titus-producer-cart-treenode" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.producer.cart.TreeNode">
+<em class="property">class </em><tt class="descclassname">titus.producer.cart.</tt><tt class="descname">TreeNode</tt><big>(</big><em>dataset</em>, <em>predictand</em>, <em>maxSubsetSize=None</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.3/titus/titus/producer/cart.py#L169"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.producer.cart.TreeNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Represents a tree node and applies the CART algorithm to build decision and regression trees.</p>
+<p>The constructors are <tt class="docutils literal"><span class="pre">__init__</span></tt> and <tt class="docutils literal"><span class="pre">fromWholeDataset</span></tt>.</p>
+<p>Tree-building is initiated by calling <tt class="docutils literal"><span class="pre">splitUntil(condition)</span></tt>, where <tt class="docutils literal"><span class="pre">condition(node,</span> <span class="pre">depth)</span></tt> is a user-supplied function that takes a node (titus.producer.cart.TreeNode) and depth (integer) and returns bool (<tt class="docutils literal"><span class="pre">True</span></tt>: continue splitting; <tt class="docutils literal"><span class="pre">False</span></tt>: stop splitting).</p>
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>dataset</em>, <em>predictand</em>, <em>maxSubsetSize=None</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for a tree from a dataset of regressors (that which we split) and a predictand (that which we try to purify in the leaves).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>dataset</strong> (<a class="reference internal" href="titus.producer.cart.Dataset.html#titus.producer.cart.Dataset" title="titus.producer.cart.Dataset"><em>titus.producer.cart.Dataset</em></a>) &#8211; dataset of regressors only</li>
+<li><strong>predictand</strong> (<em>1-d Numpy array</em>) &#8211; predictands in a separate array with the same number of rows as the <tt class="docutils literal"><span class="pre">dataset</span></tt></li>
+<li><strong>maxSubsetSize</strong> (positive integer or <tt class="docutils literal"><span class="pre">None</span></tt>) &#8211; maximum size of subset splits of categorical regressors (approximation for optimization in <tt class="docutils literal"><span class="pre">categoricalEntropyGainTerm</span></tt> and <tt class="docutils literal"><span class="pre">categoricalNVarianceGainTerm</span></tt>)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.canSplit">
+<tt class="descname">canSplit</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.canSplit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns <tt class="docutils literal"><span class="pre">True</span></tt> if it is possible to split the predictand; <tt class="docutils literal"><span class="pre">False</span></tt> otherwise.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.categoricalEntropyGainTerm">
+<tt class="descname">categoricalEntropyGainTerm</tt><big>(</big><em>field</em>, <em>maxSubsetSize=None</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.categoricalEntropyGainTerm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split a categorical predictor in such a way that maximizes entropic gain inside and outside of a subset of predictor values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>field</strong> (<a class="reference internal" href="titus.producer.cart.Dataset.html#titus.producer.cart.Dataset.Field" title="titus.producer.cart.Dataset.Field"><em>titus.producer.cart.Dataset.Field</em></a>) &#8211; the field to consider when calculating the entropy gain term</li>
+<li><strong>maxSubsetSize</strong> (positive integer or <tt class="docutils literal"><span class="pre">None</span></tt>) &#8211; maximum size of subset splits of categorical regressors (approximation for optimization in <tt class="docutils literal"><span class="pre">categoricalEntropyGainTerm</span></tt> and <tt class="docutils literal"><span class="pre">categoricalNVarianceGainTerm</span></tt>)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(number, list of strings)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(best gain term, best combination of regressor categories)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.categoricalNVarianceGainTerm">
+<tt class="descname">categoricalNVarianceGainTerm</tt><big>(</big><em>field</em>, <em>maxSubsetSize=None</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.categoricalNVarianceGainTerm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split a categorical predictor in such a way that maximizes n-times-variance gain inside and outside of a subset of predictor values.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>field</strong> (<a class="reference internal" href="titus.producer.cart.Dataset.html#titus.producer.cart.Dataset.Field" title="titus.producer.cart.Dataset.Field"><em>titus.producer.cart.Dataset.Field</em></a>) &#8211; the field to consider when calculating the n-times-variance gain term</li>
+<li><strong>maxSubsetSize</strong> (positive integer or <tt class="docutils literal"><span class="pre">None</span></tt>) &#8211; maximum size of subset splits of categorical regressors (approximation for optimization in <tt class="docutils literal"><span class="pre">categoricalEntropyGainTerm</span></tt> and <tt class="docutils literal"><span class="pre">categoricalNVarianceGainTerm</span></tt>)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(number, list of strings)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(best gain term, best combination of regressor categories)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="titus.producer.cart.TreeNode.fromWholeDataset">
+<em class="property">classmethod </em><tt class="descname">fromWholeDataset</tt><big>(</big><em>wholeDataset</em>, <em>predictandName</em>, <em>maxSubsetSize=None</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.fromWholeDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructor for a tree from a dataset that includes the predictand (that which we try to purify in the leaves) as one of its fields.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>wholeDataset</strong> (<a class="reference internal" href="titus.producer.cart.Dataset.html#titus.producer.cart.Dataset" title="titus.producer.cart.Dataset"><em>titus.producer.cart.Dataset</em></a>) &#8211; dataset including the predictand</li>
+<li><strong>predictandName</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; name of the predictand, to be taken out of the dataset</li>
+<li><strong>maxSubsetSize</strong> (positive integer or <tt class="docutils literal"><span class="pre">None</span></tt>) &#8211; maximum size of subset splits of categorical regressors (approximation for optimization in <tt class="docutils literal"><span class="pre">categoricalEntropyGainTerm</span></tt> and <tt class="docutils literal"><span class="pre">categoricalNVarianceGainTerm</span></tt>)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">titus.producer.cart.TreeNode</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">an unsplit tree</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.numericalEntropyGainTerm">
+<tt class="descname">numericalEntropyGainTerm</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.numericalEntropyGainTerm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split a numerical predictor in such a way that maximizes entropic gain above and below the threshold of the split.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.numericalNVarianceGainTerm">
+<tt class="descname">numericalNVarianceGainTerm</tt><big>(</big><em>field</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.numericalNVarianceGainTerm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Split a numerical predictor in such a way that maximizes n-times-variance gain above and below the threshold of the split.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>field</strong> (<a class="reference internal" href="titus.producer.cart.Dataset.html#titus.producer.cart.Dataset.Field" title="titus.producer.cart.Dataset.Field"><em>titus.producer.cart.Dataset.Field</em></a>) &#8211; the field to consider when calculating the n-times variance gain term</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(number, number)</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(best gain term, best cut value)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.pfaDocument">
+<tt class="descname">pfaDocument</tt><big>(</big><em>inputType</em>, <em>treeTypeName</em>, <em>dataType=None</em>, <em>preprocess=None</em>, <em>nodeScores=False</em>, <em>datasetSize=False</em>, <em>predictandDistribution=False</em>, <em>predictandUnique=False</em>, <em>entropy=False</em>, <em>nTimesVariance=False</em>, <em>gain=False</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.pfaDocument" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a PFA document to score with this tree.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inputType</strong> (<em>Pythonized JSON</em>) &#8211; Avro record schema of the input data</li>
+<li><strong>treeTypeName</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; name of the tree node record (usually <tt class="docutils literal"><span class="pre">TreeNode</span></tt>)</li>
+<li><strong>dataType</strong> (<em>Pythonized JSON</em>) &#8211; Avro record schema of the data that goes to the tree, possibly preprocessed</li>
+<li><strong>preprocess</strong> (PrettyPFA substitution or <tt class="docutils literal"><span class="pre">None</span></tt>) &#8211; pre-processing expression</li>
+<li><strong>nodeScores</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a field for intermediate node scores</li>
+<li><strong>datasetSize</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a field for the size of the training dataset at each node</li>
+<li><strong>predictandDistribution</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a field for the distribution of training predictand values (only for classification trees)</li>
+<li><strong>predictandUnique</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a field for unique predictand values at each node</li>
+<li><strong>entropy</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include an entropy term at each node (only for classification trees)</li>
+<li><strong>nTimesVariance</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include an n-times-variance term at each node (only for regression trees)</li>
+<li><strong>gain</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a gain term at each node</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">Pythonized JSON</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">complete PFA document for running tree classification or regression</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.pfaScoreType">
+<tt class="descname">pfaScoreType</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.pfaScoreType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an Avro schema representing the score type.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">Pythonized JSON</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">score type (part of the <tt class="docutils literal"><span class="pre">pass</span></tt> and <tt class="docutils literal"><span class="pre">fail</span></tt> unions of the PFA <tt class="docutils literal"><span class="pre">TreeNode</span></tt>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.pfaType">
+<tt class="descname">pfaType</tt><big>(</big><em>dataType</em>, <em>treeTypeName</em>, <em>nodeScores=False</em>, <em>datasetSize=False</em>, <em>predictandDistribution=False</em>, <em>predictandUnique=False</em>, <em>entropy=False</em>, <em>nTimesVariance=False</em>, <em>gain=False</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.pfaType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a PFA type schema representing this tree.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>dataType</strong> (<em>Pythonized JSON</em>) &#8211; Avro record schema of the input data</li>
+<li><strong>treeTypeName</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; name of the tree node record (usually <tt class="docutils literal"><span class="pre">TreeNode</span></tt>)</li>
+<li><strong>nodeScores</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a field for intermediate node scores</li>
+<li><strong>datasetSize</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a field for the size of the training dataset at each node</li>
+<li><strong>predictandDistribution</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a field for the distribution of training predictand values (only for classification trees)</li>
+<li><strong>predictandUnique</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a field for unique predictand values at each node</li>
+<li><strong>entropy</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include an entropy term at each node (only for classification trees)</li>
+<li><strong>nTimesVariance</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include an n-times-variance term at each node (only for regression trees)</li>
+<li><strong>gain</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a gain term at each node</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">Pythonized JSON</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Avro schema for the tree node type</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.pfaValue">
+<tt class="descname">pfaValue</tt><big>(</big><em>dataType</em>, <em>treeTypeName</em>, <em>nodeScores=False</em>, <em>datasetSize=False</em>, <em>predictandDistribution=False</em>, <em>predictandUnique=False</em>, <em>entropy=False</em>, <em>nTimesVariance=False</em>, <em>gain=False</em>, <em>valueType=None</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.pfaValue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a PFA data structure representing this tree.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>dataType</strong> (<em>Pythonized JSON</em>) &#8211; Avro record schema of the input data</li>
+<li><strong>treeTypeName</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; name of the tree node record (usually <tt class="docutils literal"><span class="pre">TreeNode</span></tt>)</li>
+<li><strong>nodeScores</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a field for intermediate node scores</li>
+<li><strong>datasetSize</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a field for the size of the training dataset at each node</li>
+<li><strong>predictandDistribution</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a field for the distribution of training predictand values (only for classification trees)</li>
+<li><strong>predictandUnique</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a field for unique predictand values at each node</li>
+<li><strong>entropy</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include an entropy term at each node (only for classification trees)</li>
+<li><strong>nTimesVariance</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include an n-times-variance term at each node (only for regression trees)</li>
+<li><strong>gain</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include a gain term at each node</li>
+<li><strong>valueType</strong> (Pythonized JSON or <tt class="docutils literal"><span class="pre">None</span></tt>) &#8211; if <tt class="docutils literal"><span class="pre">None</span></tt>, call <tt class="docutils literal"><span class="pre">self.pfaValueType(dataType)</span></tt> to generate a value type; otherwise, take the given value</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">Pythonized JSON</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">PFA data structure for the tree, to be inserted into the cell or pool&#8217;s <tt class="docutils literal"><span class="pre">init</span></tt> field</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.pfaValueType">
+<tt class="descname">pfaValueType</tt><big>(</big><em>dataType</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.pfaValueType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an Avro schema representing the comparison value type.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>dataType</strong> (<em>Pythonized JSON</em>) &#8211; Avro record schema of the input data</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">Pythonized JSON</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">value type (<tt class="docutils literal"><span class="pre">value</span></tt> field of the PFA <tt class="docutils literal"><span class="pre">TreeNode</span></tt>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.score">
+<tt class="descname">score</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the best score at this <tt class="docutils literal"><span class="pre">TreeNode</span></tt>, which might or might not be a leaf.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.splitComplete">
+<tt class="descname">splitComplete</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.splitComplete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function for building up a tree until each leaf has only one unique value. Calls <tt class="docutils literal"><span class="pre">splitUntil</span></tt>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.splitField">
+<tt class="descname">splitField</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.splitField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the name of the input field at this split or <tt class="docutils literal"><span class="pre">None</span></tt> if this is a leaf node.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.splitMaxDepth">
+<tt class="descname">splitMaxDepth</tt><big>(</big><em>maxDepth</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.splitMaxDepth" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function for building up trees until each leaf has only one unique value or the depth reaches <tt class="docutils literal"><span class="pre">maxDepth</span></tt>. Calls <tt class="docutils literal"><span class="pre">splitUntil</span></tt>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>maxDepth</strong> (<em>positive integer</em>) &#8211; maximum allowed depth of the tree</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.splitOnce">
+<tt class="descname">splitOnce</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.splitOnce" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute an optimized split in one field, adding two new <tt class="docutils literal"><span class="pre">TreeNodes</span></tt> below this one.</p>
+<p>If the predictand is numerical (<tt class="docutils literal"><span class="pre">numbers.Real</span></tt>), the split minimizes entropy; if categorical (<tt class="docutils literal"><span class="pre">basestring</span></tt>), it minimizes n-times-variance.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.splitUntil">
+<tt class="descname">splitUntil</tt><big>(</big><em>condition</em>, <em>depth=1</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.splitUntil" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs a recursive tree-split, calling the user-supplied <tt class="docutils literal"><span class="pre">condition(node,</span> <span class="pre">depth)</span></tt> at each new node.</p>
+<p>If the predictand is numerical (<tt class="docutils literal"><span class="pre">numbers.Real</span></tt>), the node has attributes: <tt class="docutils literal"><span class="pre">datasetSize</span></tt>, <tt class="docutils literal"><span class="pre">predictandUnique</span></tt>, <tt class="docutils literal"><span class="pre">nTimesVariance</span></tt>, and <tt class="docutils literal"><span class="pre">gain</span></tt>.</p>
+<p>If the predictand is categorical (<tt class="docutils literal"><span class="pre">basestring</span></tt>), the node has attributes: <tt class="docutils literal"><span class="pre">datasetSize</span></tt>, <tt class="docutils literal"><span class="pre">predictandDistribution</span></tt>, <tt class="docutils literal"><span class="pre">entropy</span></tt>, and <tt class="docutils literal"><span class="pre">gain</span></tt>.</p>
+<p>Splits are performed <em>in-place</em>, changing this <tt class="docutils literal"><span class="pre">TreeNode</span></tt>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>condition</strong> (callable that takes node (titus.producer.cart.TreeNode) and depth (integer) and returns bool (<tt class="docutils literal"><span class="pre">True</span></tt>: continue splitting; <tt class="docutils literal"><span class="pre">False</span></tt>: stop splitting).) &#8211; splitting condition function</li>
+<li><strong>depth</strong> (<em>positive integer</em>) &#8211; current depth</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.walkLeaves">
+<tt class="descname">walkLeaves</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.walkLeaves" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a generator that walks over all leaves in the tree, yielding a 2-tuple of node and depth.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">generator of (titus.producer.cart.TreeNode, int)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">generator of (node, depth)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.producer.cart.TreeNode.walkNodes">
+<tt class="descname">walkNodes</tt><big>(</big><em>topDown=True</em>, <em>depth=0</em><big>)</big><a class="headerlink" href="#titus.producer.cart.TreeNode.walkNodes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a generator that walks over all nodes in the tree, yielding a 2-tuple of node and depth.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>topDown</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, do a depth-first walk from root to leaf; if <tt class="docutils literal"><span class="pre">False</span></tt>, do a depth-first walk from leaf to root</li>
+<li><strong>depth</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#int" title="(in Python v2.7)"><em>int</em></a>) &#8211; starting value for reporting depth</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">generator of (titus.producer.cart.TreeNode, int)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">generator of (node, depth)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.producer.chain.PFAChainError.html" title="titus.producer.chain.PFAChainError"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.producer.cart.Dataset.html" title="titus.producer.cart.Dataset"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>

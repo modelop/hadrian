@@ -1,0 +1,466 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Titus 0.8.3 &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="#" />
+    <link rel="next" title="titus.P.Array" href="titus.P.Array.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.P.Array.html" title="titus.P.Array"
+             accesskey="N">next</a> |</li>
+        <li><a href="#">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-version">
+<h1>Titus 0.8.3<a class="headerlink" href="#titus-version" title="Permalink to this headline">¶</a></h1>
+<p><a class="reference internal" href="genindex.html"><em>Index</em></a></p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Array.html">titus.P.Array</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Boolean.html">titus.P.Boolean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Bytes.html">titus.P.Bytes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Double.html">titus.P.Double</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Enum.html">titus.P.Enum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.EnumFields.html">titus.P.EnumFields</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Fcn.html">titus.P.Fcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Fixed.html">titus.P.Fixed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Float.html">titus.P.Float</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Int.html">titus.P.Int</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Long.html">titus.P.Long</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Map.html">titus.P.Map</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Null.html">titus.P.Null</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Pattern.html">titus.P.Pattern</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Record.html">titus.P.Record</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.String.html">titus.P.String</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Union.html">titus.P.Union</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.WildEnum.html">titus.P.WildEnum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.WildFixed.html">titus.P.WildFixed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.WildRecord.html">titus.P.WildRecord</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.Wildcard.html">titus.P.Wildcard</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.fromType.html">titus.P.fromType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.mustBeAvro.html">titus.P.mustBeAvro</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.P.toType.html">titus.P.toType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroArray.html">titus.datatype.AvroArray</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroBoolean.html">titus.datatype.AvroBoolean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroBytes.html">titus.datatype.AvroBytes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroCompiled.html">titus.datatype.AvroCompiled</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroContainer.html">titus.datatype.AvroContainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroDouble.html">titus.datatype.AvroDouble</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroEnum.html">titus.datatype.AvroEnum</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroField.html">titus.datatype.AvroField</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroFilledPlaceholder.html">titus.datatype.AvroFilledPlaceholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroFixed.html">titus.datatype.AvroFixed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroFloat.html">titus.datatype.AvroFloat</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroIdentifier.html">titus.datatype.AvroIdentifier</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroInt.html">titus.datatype.AvroInt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroLong.html">titus.datatype.AvroLong</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroMap.html">titus.datatype.AvroMap</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroMapping.html">titus.datatype.AvroMapping</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroNull.html">titus.datatype.AvroNull</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroNumber.html">titus.datatype.AvroNumber</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroPlaceholder.html">titus.datatype.AvroPlaceholder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroRaw.html">titus.datatype.AvroRaw</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroRecord.html">titus.datatype.AvroRecord</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroString.html">titus.datatype.AvroString</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroType.html">titus.datatype.AvroType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroTypeBuilder.html">titus.datatype.AvroTypeBuilder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.AvroUnion.html">titus.datatype.AvroUnion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.ExceptionType.html">titus.datatype.ExceptionType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.FcnType.html">titus.datatype.FcnType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.ForwardDeclarationParser.html">titus.datatype.ForwardDeclarationParser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.Type.html">titus.datatype.Type</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.avroTypeToSchema.html">titus.datatype.avroTypeToSchema</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.checkData.html">titus.datatype.checkData</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.compare.html">titus.datatype.compare</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.jsonDecoder.html">titus.datatype.jsonDecoder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.jsonEncoder.html">titus.datatype.jsonEncoder</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.jsonNodeToAvroType.html">titus.datatype.jsonNodeToAvroType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.jsonToAvroType.html">titus.datatype.jsonToAvroType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.parseAvroType.html">titus.datatype.parseAvroType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.datatype.schemaToAvroType.html">titus.datatype.schemaToAvroType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.errors.AvroException.html">titus.errors.AvroException</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.errors.PFAException.html">titus.errors.PFAException</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.errors.PFAInitializationException.html">titus.errors.PFAInitializationException</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.errors.PFARuntimeException.html">titus.errors.PFARuntimeException</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.errors.PFASemanticException.html">titus.errors.PFASemanticException</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.errors.PFASyntaxException.html">titus.errors.PFASyntaxException</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.errors.PFATimeoutException.html">titus.errors.PFATimeoutException</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.errors.PFAUserException.html">titus.errors.PFAUserException</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.errors.PrettyPfaException.html">titus.errors.PrettyPfaException</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.errors.SchemaParseException.html">titus.errors.SchemaParseException</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.fcn.Fcn.html">titus.fcn.Fcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.fcn.LibFcn.html">titus.fcn.LibFcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.Cell.html">titus.genpy.Cell</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.ExecutionState.html">titus.genpy.ExecutionState</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.FakeEmitForExecution.html">titus.genpy.FakeEmitForExecution</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.FastAvroCorrector.html">titus.genpy.FastAvroCorrector</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.GeneratePython.html">titus.genpy.GeneratePython</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.GeneratePythonPure.html">titus.genpy.GeneratePythonPure</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.MisalignedPacking.html">titus.genpy.MisalignedPacking</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.PFAEngine.html">titus.genpy.PFAEngine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.PersistentStorageItem.html">titus.genpy.PersistentStorageItem</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.Pool.html">titus.genpy.Pool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.SharedState.html">titus.genpy.SharedState</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.cast.html">titus.genpy.cast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.checkForDeadlock.html">titus.genpy.checkForDeadlock</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.cond.html">titus.genpy.cond</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.condElse.html">titus.genpy.condElse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.do.html">titus.genpy.do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.doFor.html">titus.genpy.doFor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.doForeach.html">titus.genpy.doForeach</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.doForkeyval.html">titus.genpy.doForkeyval</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.doUntil.html">titus.genpy.doUntil</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.doWhile.html">titus.genpy.doWhile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.error.html">titus.genpy.error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.genericEmit.html">titus.genpy.genericEmit</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.genericLog.html">titus.genpy.genericLog</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.get.html">titus.genpy.get</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.ifNotNull.html">titus.genpy.ifNotNull</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.ifNotNullElse.html">titus.genpy.ifNotNullElse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.ifThen.html">titus.genpy.ifThen</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.ifThenElse.html">titus.genpy.ifThenElse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.labeledFcn.html">titus.genpy.labeledFcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.pack.html">titus.genpy.pack</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.tryCatch.html">titus.genpy.tryCatch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.unpack.html">titus.genpy.unpack</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.unpackElse.html">titus.genpy.unpackElse</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.unpackOne.html">titus.genpy.unpackOne</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.untagUnions.html">titus.genpy.untagUnions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.update.html">titus.genpy.update</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.genpy.wrapAsUnion.html">titus.genpy.wrapAsUnion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.Command.html">titus.inspector.defs.Command</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.CommandGroup.html">titus.inspector.defs.CommandGroup</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.Gadget.html">titus.inspector.defs.Gadget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.InspectorError.html">titus.inspector.defs.InspectorError</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.Mode.html">titus.inspector.defs.Mode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.Model.html">titus.inspector.defs.Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.SimpleCommand.html">titus.inspector.defs.SimpleCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.TabCompleter.html">titus.inspector.defs.TabCompleter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.do.html">titus.inspector.defs.do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.exception.html">titus.inspector.defs.exception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.extaction.html">titus.inspector.defs.extaction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.extcomplete.html">titus.inspector.defs.extcomplete</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.getcomplete.html">titus.inspector.defs.getcomplete</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.getwords.html">titus.inspector.defs.getwords</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.maybe.html">titus.inspector.defs.maybe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.pathcomplete.html">titus.inspector.defs.pathcomplete</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.pipe.html">titus.inspector.defs.pipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.pipewait.html">titus.inspector.defs.pipewait</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.run.html">titus.inspector.defs.run</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.defs.switch.html">titus.inspector.defs.switch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.jsongadget.ChangeCommand.html">titus.inspector.jsongadget.ChangeCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.jsongadget.CountCommand.html">titus.inspector.jsongadget.CountCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.jsongadget.FindCommand.html">titus.inspector.jsongadget.FindCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.jsongadget.IndexCommand.html">titus.inspector.jsongadget.IndexCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.jsongadget.JsonGadget.html">titus.inspector.jsongadget.JsonGadget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.jsongadget.LookCommand.html">titus.inspector.jsongadget.LookCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.jsongadget.depthGreaterThan.html">titus.inspector.jsongadget.depthGreaterThan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.main.InspectorMode.html">titus.inspector.main.InspectorMode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.AndChain.html">titus.inspector.parser.AndChain</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Approx.html">titus.inspector.parser.Approx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Ast.html">titus.inspector.parser.Ast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.DotDotDot.html">titus.inspector.parser.DotDotDot</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Extract.html">titus.inspector.parser.Extract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.FilePath.html">titus.inspector.parser.FilePath</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Floating.html">titus.inspector.parser.Floating</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Group.html">titus.inspector.parser.Group</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Integer.html">titus.inspector.parser.Integer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.JsonArray.html">titus.inspector.parser.JsonArray</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.JsonObject.html">titus.inspector.parser.JsonObject</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Option.html">titus.inspector.parser.Option</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.OrChain.html">titus.inspector.parser.OrChain</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Pair.html">titus.inspector.parser.Pair</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Parser.html">titus.inspector.parser.Parser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.ParserError.html">titus.inspector.parser.ParserError</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.PlusOrMinus.html">titus.inspector.parser.PlusOrMinus</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Range.html">titus.inspector.parser.Range</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Regex.html">titus.inspector.parser.Regex</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Replacement.html">titus.inspector.parser.Replacement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.StartExtract.html">titus.inspector.parser.StartExtract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.String.html">titus.inspector.parser.String</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Switches.html">titus.inspector.parser.Switches</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Underscore.html">titus.inspector.parser.Underscore</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.parser.Word.html">titus.inspector.parser.Word</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.pfagadget.CallsCommand.html">titus.inspector.pfagadget.CallsCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.pfagadget.CellsPoolsCommand.html">titus.inspector.pfagadget.CellsPoolsCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.pfagadget.ExternalizeCommand.html">titus.inspector.pfagadget.ExternalizeCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.pfagadget.InputOutputCommand.html">titus.inspector.pfagadget.InputOutputCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.pfagadget.InternalizeCommand.html">titus.inspector.pfagadget.InternalizeCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.pfagadget.PFAGadget.html">titus.inspector.pfagadget.PFAGadget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.pfagadget.TypesCommand.html">titus.inspector.pfagadget.TypesCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.pfagadget.UserFcnsCommand.html">titus.inspector.pfagadget.UserFcnsCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.inspector.pfagadget.ValidCommand.html">titus.inspector.pfagadget.ValidCommand</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.options.EngineOptions.html">titus.options.EngineOptions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Argument.html">titus.pfaast.Argument</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.ArgumentContext.html">titus.pfaast.ArgumentContext</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.ArrayIndex.html">titus.pfaast.ArrayIndex</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Ast.html">titus.pfaast.Ast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.AstContext.html">titus.pfaast.AstContext</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.AttrGet.html">titus.pfaast.AttrGet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.AttrTo.html">titus.pfaast.AttrTo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.BinaryFormatter.html">titus.pfaast.BinaryFormatter</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Call.html">titus.pfaast.Call</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.CallUserFcn.html">titus.pfaast.CallUserFcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.CastBlock.html">titus.pfaast.CastBlock</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.CastCase.html">titus.pfaast.CastCase</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Cell.html">titus.pfaast.Cell</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.CellGet.html">titus.pfaast.CellGet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.CellPoolSource.html">titus.pfaast.CellPoolSource</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.CellTo.html">titus.pfaast.CellTo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Cond.html">titus.pfaast.Cond</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Do.html">titus.pfaast.Do</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.DoUntil.html">titus.pfaast.DoUntil</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Doc.html">titus.pfaast.Doc</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.EmitFcn.html">titus.pfaast.EmitFcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.EngineConfig.html">titus.pfaast.EngineConfig</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Error.html">titus.pfaast.Error</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Expression.html">titus.pfaast.Expression</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.ExpressionContext.html">titus.pfaast.ExpressionContext</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.FcnContext.html">titus.pfaast.FcnContext</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.FcnDef.html">titus.pfaast.FcnDef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.FcnRef.html">titus.pfaast.FcnRef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.FcnRefFill.html">titus.pfaast.FcnRefFill</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.For.html">titus.pfaast.For</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Foreach.html">titus.pfaast.Foreach</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Forkeyval.html">titus.pfaast.Forkeyval</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.FunctionTable.html">titus.pfaast.FunctionTable</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.HasPath.html">titus.pfaast.HasPath</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.If.html">titus.pfaast.If</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.IfNotNull.html">titus.pfaast.IfNotNull</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Let.html">titus.pfaast.Let</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Literal.html">titus.pfaast.Literal</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.LiteralBase64.html">titus.pfaast.LiteralBase64</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.LiteralBoolean.html">titus.pfaast.LiteralBoolean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.LiteralDouble.html">titus.pfaast.LiteralDouble</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.LiteralFloat.html">titus.pfaast.LiteralFloat</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.LiteralInt.html">titus.pfaast.LiteralInt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.LiteralLong.html">titus.pfaast.LiteralLong</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.LiteralNull.html">titus.pfaast.LiteralNull</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.LiteralString.html">titus.pfaast.LiteralString</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.LiteralValue.html">titus.pfaast.LiteralValue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Log.html">titus.pfaast.Log</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.MapIndex.html">titus.pfaast.MapIndex</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Method.html">titus.pfaast.Method</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.NewArray.html">titus.pfaast.NewArray</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.NewObject.html">titus.pfaast.NewObject</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.NoTask.html">titus.pfaast.NoTask</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Pack.html">titus.pfaast.Pack</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.PathIndex.html">titus.pfaast.PathIndex</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Pool.html">titus.pfaast.Pool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.PoolDel.html">titus.pfaast.PoolDel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.PoolGet.html">titus.pfaast.PoolGet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.PoolTo.html">titus.pfaast.PoolTo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.RecordIndex.html">titus.pfaast.RecordIndex</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Ref.html">titus.pfaast.Ref</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.SetVar.html">titus.pfaast.SetVar</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Subs.html">titus.pfaast.Subs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.SymbolTable.html">titus.pfaast.SymbolTable</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Task.html">titus.pfaast.Task</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.TaskResult.html">titus.pfaast.TaskResult</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Try.html">titus.pfaast.Try</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Unpack.html">titus.pfaast.Unpack</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.Upcast.html">titus.pfaast.Upcast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.UserFcn.html">titus.pfaast.UserFcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.While.html">titus.pfaast.While</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.check.html">titus.pfaast.check</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.inferType.html">titus.pfaast.inferType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.isValid.html">titus.pfaast.isValid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.validFunctionName.html">titus.pfaast.validFunctionName</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.pfaast.validSymbolName.html">titus.pfaast.validSymbolName</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.InterpretationState.html">titus.prettypfa.InterpretationState</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniAsBlock.html">titus.prettypfa.MiniAsBlock</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniAssignment.html">titus.prettypfa.MiniAssignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniAst.html">titus.prettypfa.MiniAst</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniBlock.html">titus.prettypfa.MiniBlock</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniBracketedArgs.html">titus.prettypfa.MiniBracketedArgs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniCall.html">titus.prettypfa.MiniCall</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniCast.html">titus.prettypfa.MiniCast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniCellPool.html">titus.prettypfa.MiniCellPool</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniDotName.html">titus.prettypfa.MiniDotName</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniEnumSymbol.html">titus.prettypfa.MiniEnumSymbol</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniFcnDef.html">titus.prettypfa.MiniFcnDef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniFor.html">titus.prettypfa.MiniFor</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniForeach.html">titus.prettypfa.MiniForeach</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniGenAssignment.html">titus.prettypfa.MiniGenAssignment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniGenGet.html">titus.prettypfa.MiniGenGet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniGet.html">titus.prettypfa.MiniGet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniIf.html">titus.prettypfa.MiniIf</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniIfNotNull.html">titus.prettypfa.MiniIfNotNull</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniNamedFcnDef.html">titus.prettypfa.MiniNamedFcnDef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniNumber.html">titus.prettypfa.MiniNumber</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniParam.html">titus.prettypfa.MiniParam</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniString.html">titus.prettypfa.MiniString</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniTo.html">titus.prettypfa.MiniTo</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniTry.html">titus.prettypfa.MiniTry</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniUnpack.html">titus.prettypfa.MiniUnpack</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.MiniWhile.html">titus.prettypfa.MiniWhile</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.Parser.html">titus.prettypfa.Parser</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.ResolvedSubs.html">titus.prettypfa.ResolvedSubs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.Section.html">titus.prettypfa.Section</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.Token.html">titus.prettypfa.Token</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.ast.html">titus.prettypfa.ast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.engine.html">titus.prettypfa.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.expr.html">titus.prettypfa.expr</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.json.html">titus.prettypfa.json</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.jsonNode.html">titus.prettypfa.jsonNode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.pfa.html">titus.prettypfa.pfa</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.pfas.html">titus.prettypfa.pfas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.ppfa.html">titus.prettypfa.ppfa</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.ppfas.html">titus.prettypfa.ppfas</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.prettypfa.subs.html">titus.prettypfa.subs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.cart.Dataset.html">titus.producer.cart.Dataset</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.cart.TreeNode.html">titus.producer.cart.TreeNode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.chain.PFAChainError.html">titus.producer.chain.PFAChainError</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.chain.ast.html">titus.producer.chain.ast</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.chain.engine.html">titus.producer.chain.engine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.chain.json.html">titus.producer.chain.json</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.chain.jsonNode.html">titus.producer.chain.jsonNode</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.expression.PythonToPfaException.html">titus.producer.expression.PythonToPfaException</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.expression.fcn.html">titus.producer.expression.fcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.expression.pfa.html">titus.producer.expression.pfa</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.AbsDiff.html">titus.producer.kmeans.AbsDiff</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.Chebyshev.html">titus.producer.kmeans.Chebyshev</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.Euclidean.html">titus.producer.kmeans.Euclidean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.GaussianSimilarity.html">titus.producer.kmeans.GaussianSimilarity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.KMeans.html">titus.producer.kmeans.KMeans</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.Metric.html">titus.producer.kmeans.Metric</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.Minkowski.html">titus.producer.kmeans.Minkowski</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.Similarity.html">titus.producer.kmeans.Similarity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.SquaredEuclidean.html">titus.producer.kmeans.SquaredEuclidean</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.Taxicab.html">titus.producer.kmeans.Taxicab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.allChange.html">titus.producer.kmeans.allChange</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.clusterJumped.html">titus.producer.kmeans.clusterJumped</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.halfChange.html">titus.producer.kmeans.halfChange</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.maxIterations.html">titus.producer.kmeans.maxIterations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.moving.html">titus.producer.kmeans.moving</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.printChange.html">titus.producer.kmeans.printChange</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.printValue.html">titus.producer.kmeans.printValue</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.whileall.html">titus.producer.kmeans.whileall</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.kmeans.whileany.html">titus.producer.kmeans.whileany</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.And.html">titus.producer.tools.And</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.Any.html">titus.producer.tools.Any</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.Approx.html">titus.producer.tools.Approx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.End.html">titus.producer.tools.End</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.GE.html">titus.producer.tools.GE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.GT.html">titus.producer.tools.GT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.Group.html">titus.producer.tools.Group</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.LE.html">titus.producer.tools.LE</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.LT.html">titus.producer.tools.LT</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.Match.html">titus.producer.tools.Match</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.Matcher.html">titus.producer.tools.Matcher</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.Min.html">titus.producer.tools.Min</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.Or.html">titus.producer.tools.Or</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.RegEx.html">titus.producer.tools.RegEx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.Start.html">titus.producer.tools.Start</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.assign.html">titus.producer.tools.assign</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.assignAt.html">titus.producer.tools.assignAt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.assigned.html">titus.producer.tools.assigned</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.assignedAt.html">titus.producer.tools.assignedAt</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.contains.html">titus.producer.tools.contains</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.count.html">titus.producer.tools.count</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.findAllCopy.html">titus.producer.tools.findAllCopy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.findAllRef.html">titus.producer.tools.findAllRef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.findCopy.html">titus.producer.tools.findCopy</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.findRef.html">titus.producer.tools.findRef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.get.html">titus.producer.tools.get</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.getmatch.html">titus.producer.tools.getmatch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.index.html">titus.producer.tools.index</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.indexes.html">titus.producer.tools.indexes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.look.html">titus.producer.tools.look</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.remove.html">titus.producer.tools.remove</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.removed.html">titus.producer.tools.removed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.search.html">titus.producer.tools.search</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.searchFirst.html">titus.producer.tools.searchFirst</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.tools.splitIndex.html">titus.producer.tools.splitIndex</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.producer.transformation.Transformation.html">titus.producer.transformation.Transformation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.reader.jsonToAst.html">titus.reader.jsonToAst</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.reader.jsonToExpressionAst.html">titus.reader.jsonToExpressionAst</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.reader.jsonToExpressionsAst.html">titus.reader.jsonToExpressionsAst</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.reader.jsonToFcnDef.html">titus.reader.jsonToFcnDef</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.reader.jsonToFcnDefs.html">titus.reader.jsonToFcnDefs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.reader.yamlToAst.html">titus.reader.yamlToAst</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.signature.IncompatibleTypes.html">titus.signature.IncompatibleTypes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.signature.LabelData.html">titus.signature.LabelData</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.signature.Lifespan.html">titus.signature.Lifespan</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.signature.PFAVersion.html">titus.signature.PFAVersion</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.signature.Sig.html">titus.signature.Sig</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.signature.Signature.html">titus.signature.Signature</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.signature.Sigs.html">titus.signature.Sigs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.signature.toText.html">titus.signature.toText</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.signature.toTextType.html">titus.signature.toTextType</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.DynamicScope.html">titus.util.DynamicScope</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.avscToPretty.html">titus.util.avscToPretty</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.callfcn.html">titus.util.callfcn</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.case.html">titus.util.case</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.div.html">titus.util.div</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.flatten.html">titus.util.flatten</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.negativeIndex.html">titus.util.negativeIndex</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.pos.html">titus.util.pos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.startEnd.html">titus.util.startEnd</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.ts.html">titus.util.ts</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.uniqueEngineName.html">titus.util.uniqueEngineName</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.uniqueEnumName.html">titus.util.uniqueEnumName</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.uniqueFixedName.html">titus.util.uniqueFixedName</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.uniqueRecordName.html">titus.util.uniqueRecordName</a></li>
+<li class="toctree-l1"><a class="reference internal" href="titus.util.untagUnion.html">titus.util.untagUnion</a></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.P.Array.html" title="titus.P.Array"
+             >next</a> |</li>
+        <li><a href="#">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>

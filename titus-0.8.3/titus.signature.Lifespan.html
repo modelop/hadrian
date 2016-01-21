@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.signature.Lifespan &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="index.html" />
+    <link rel="next" title="titus.signature.PFAVersion" href="titus.signature.PFAVersion.html" />
+    <link rel="prev" title="titus.signature.LabelData" href="titus.signature.LabelData.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.signature.PFAVersion.html" title="titus.signature.PFAVersion"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.signature.LabelData.html" title="titus.signature.LabelData"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-signature-lifespan">
+<h1>titus.signature.Lifespan<a class="headerlink" href="#titus-signature-lifespan" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.signature.Lifespan">
+<em class="property">class </em><tt class="descclassname">titus.signature.</tt><tt class="descname">Lifespan</tt><big>(</big><em>birth</em>, <em>deprecation</em>, <em>death</em>, <em>contingency</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.3/titus/titus/signature.py#L104"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.signature.Lifespan" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Describes the range of support of a function signature (or, in the future, special form) in terms of an optional beginning of life (birth), and optional deprecation and end of life (death).</p>
+<p>If a deprecation is specified, a death must be as well, and vice-versa. Whether or not a birth is specified is independent.</p>
+<p>At a given titus.signature.PFAVersion, the Lifespan has three possible states: current (method <tt class="docutils literal"><span class="pre">current</span></tt> returns <tt class="docutils literal"><span class="pre">True</span></tt>), deprecated (method <tt class="docutils literal"><span class="pre">deprecated</span></tt> returns <tt class="docutils literal"><span class="pre">True</span></tt>), and non-existent (both <tt class="docutils literal"><span class="pre">current</span></tt> and <tt class="docutils literal"><span class="pre">deprecated</span></tt> return <tt class="docutils literal"><span class="pre">False</span></tt>). Method <tt class="docutils literal"><span class="pre">current</span></tt> and <tt class="docutils literal"><span class="pre">deprecated</span></tt> are mutually exclusive; for a given titus.signature.PFAVersion, they would never both return <tt class="docutils literal"><span class="pre">True</span></tt>.</p>
+<dl class="method">
+<dt id="titus.signature.Lifespan.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>birth</em>, <em>deprecation</em>, <em>death</em>, <em>contingency</em><big>)</big><a class="headerlink" href="#titus.signature.Lifespan.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a Lifespan from a birth, deprecation, death, and contingency.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>birth</strong> (titus.signature.PFAVersion or <tt class="docutils literal"><span class="pre">None</span></tt>) &#8211; first PFA version number in which this signature (or special form) is valid; <tt class="docutils literal"><span class="pre">None</span></tt> means the beginning of time</li>
+<li><strong>deprecation</strong> (titus.signature.PFAVersion or <tt class="docutils literal"><span class="pre">None</span></tt>) &#8211; first PFA version number in which this signature should raise a deprecation warning; <tt class="docutils literal"><span class="pre">None</span></tt> means never</li>
+<li><strong>death</strong> (titus.signature.PFAVersion or <tt class="docutils literal"><span class="pre">None</span></tt>) &#8211; first PFA version number in which this signature is skipped over as not existing; <tt class="docutils literal"><span class="pre">None</span></tt> means the end of time</li>
+<li><strong>contingency</strong> (string or <tt class="docutils literal"><span class="pre">None</span></tt>) &#8211; message to accompany the deprecation warning; usually tells the user which function to use instead</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.signature.Lifespan.current">
+<tt class="descname">current</tt><big>(</big><em>now</em><big>)</big><a class="headerlink" href="#titus.signature.Lifespan.current" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>now</strong> (<a class="reference internal" href="titus.signature.PFAVersion.html#titus.signature.PFAVersion" title="titus.signature.PFAVersion"><em>titus.signature.PFAVersion</em></a>) &#8211; the version number to query</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">True</span></tt> if the feature exists and is not deprecated in version <tt class="docutils literal"><span class="pre">now</span></tt>, <tt class="docutils literal"><span class="pre">False</span></tt> otherwise.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.signature.Lifespan.deprecated">
+<tt class="descname">deprecated</tt><big>(</big><em>now</em><big>)</big><a class="headerlink" href="#titus.signature.Lifespan.deprecated" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>now</strong> (<a class="reference internal" href="titus.signature.PFAVersion.html#titus.signature.PFAVersion" title="titus.signature.PFAVersion"><em>titus.signature.PFAVersion</em></a>) &#8211; the version number to query</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><tt class="docutils literal"><span class="pre">True</span></tt> if the feature exists and is deprecated in version <tt class="docutils literal"><span class="pre">now</span></tt>, <tt class="docutils literal"><span class="pre">False</span></tt> otherwise.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.signature.PFAVersion.html" title="titus.signature.PFAVersion"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.signature.LabelData.html" title="titus.signature.LabelData"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>

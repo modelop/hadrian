@@ -1,0 +1,405 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.pfaast.BinaryFormatter &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="static/jquery.js"></script>
+    <script type="text/javascript" src="static/underscore.js"></script>
+    <script type="text/javascript" src="static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="index.html" />
+    <link rel="next" title="titus.pfaast.Call" href="titus.pfaast.Call.html" />
+    <link rel="prev" title="titus.pfaast.AttrTo" href="titus.pfaast.AttrTo.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.pfaast.Call.html" title="titus.pfaast.Call"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.pfaast.AttrTo.html" title="titus.pfaast.AttrTo"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-pfaast-binaryformatter">
+<h1>titus.pfaast.BinaryFormatter<a class="headerlink" href="#titus-pfaast-binaryformatter" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter">
+<em class="property">class </em><tt class="descclassname">titus.pfaast.</tt><tt class="descname">BinaryFormatter</tt><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.3/titus/titus/pfaast.py#L5490"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.pfaast.BinaryFormatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Helper class for <tt class="docutils literal"><span class="pre">pack</span></tt> and <tt class="docutils literal"><span class="pre">unpack</span></tt> that checks format strings.</p>
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.Declare">
+<em class="property">class </em><tt class="descname">Declare</tt><a class="headerlink" href="#titus.pfaast.BinaryFormatter.Declare" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Trait for binary format declaration.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.DeclareBoolean">
+<em class="property">class </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">DeclareBoolean</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareBoolean" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Declare</span></tt></p>
+<p>Binary format declaration for a boolean byte.</p>
+<dl class="method">
+<dt id="titus.pfaast.BinaryFormatter.DeclareBoolean.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareBoolean.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.DeclareBoolean.avroType">
+<tt class="descname">avroType</tt><em class="property"> = &quot;boolean&quot;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareBoolean.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.DeclareByte">
+<em class="property">class </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">DeclareByte</tt><big>(</big><em>value</em>, <em>unsigned</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareByte" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Declare</span></tt></p>
+<p>Binary format declaration for an integer byte.</p>
+<dl class="method">
+<dt id="titus.pfaast.BinaryFormatter.DeclareByte.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>value</em>, <em>unsigned</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareByte.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.DeclareByte.avroType">
+<tt class="descname">avroType</tt><em class="property"> = &quot;int&quot;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareByte.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.DeclareDouble">
+<em class="property">class </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">DeclareDouble</tt><big>(</big><em>value</em>, <em>littleEndian</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareDouble" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Declare</span></tt></p>
+<p>Binary format declaration for a double-precision (64-bit) floating point number.</p>
+<dl class="method">
+<dt id="titus.pfaast.BinaryFormatter.DeclareDouble.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>value</em>, <em>littleEndian</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareDouble.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.DeclareDouble.avroType">
+<tt class="descname">avroType</tt><em class="property"> = &quot;double&quot;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareDouble.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.DeclareFloat">
+<em class="property">class </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">DeclareFloat</tt><big>(</big><em>value</em>, <em>littleEndian</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareFloat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Declare</span></tt></p>
+<p>Binary format declaration for a single-precision (32-bit) floating point number.</p>
+<dl class="method">
+<dt id="titus.pfaast.BinaryFormatter.DeclareFloat.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>value</em>, <em>littleEndian</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareFloat.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.DeclareFloat.avroType">
+<tt class="descname">avroType</tt><em class="property"> = &quot;float&quot;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareFloat.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.DeclareInt">
+<em class="property">class </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">DeclareInt</tt><big>(</big><em>value</em>, <em>littleEndian</em>, <em>unsigned</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareInt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Declare</span></tt></p>
+<p>Binary format declaration for a regular (32-bit) integer.</p>
+<dl class="method">
+<dt id="titus.pfaast.BinaryFormatter.DeclareInt.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>value</em>, <em>littleEndian</em>, <em>unsigned</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareInt.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.DeclareInt.avroType">
+<tt class="descname">avroType</tt><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareInt.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.DeclareLong">
+<em class="property">class </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">DeclareLong</tt><big>(</big><em>value</em>, <em>littleEndian</em>, <em>unsigned</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareLong" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Declare</span></tt></p>
+<p>Binary format declaration for a long (64-bit) integer.</p>
+<dl class="method">
+<dt id="titus.pfaast.BinaryFormatter.DeclareLong.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>value</em>, <em>littleEndian</em>, <em>unsigned</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareLong.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.DeclareLong.avroType">
+<tt class="descname">avroType</tt><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareLong.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.DeclarePad">
+<em class="property">class </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">DeclarePad</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclarePad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Declare</span></tt></p>
+<p>Binary format declaration for a padded byte.</p>
+<dl class="method">
+<dt id="titus.pfaast.BinaryFormatter.DeclarePad.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclarePad.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.DeclarePad.avroType">
+<tt class="descname">avroType</tt><em class="property"> = &quot;null&quot;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclarePad.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.DeclarePrefixed">
+<em class="property">class </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">DeclarePrefixed</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclarePrefixed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Declare</span></tt></p>
+<p>Binary format declaration for length-prefixed raw data.</p>
+<dl class="method">
+<dt id="titus.pfaast.BinaryFormatter.DeclarePrefixed.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclarePrefixed.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.DeclarePrefixed.avroType">
+<tt class="descname">avroType</tt><em class="property"> = &quot;bytes&quot;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclarePrefixed.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.DeclareRaw">
+<em class="property">class </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">DeclareRaw</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareRaw" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Declare</span></tt></p>
+<p>Binary format declaration for arbitrary-width raw data.</p>
+<dl class="method">
+<dt id="titus.pfaast.BinaryFormatter.DeclareRaw.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareRaw.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.DeclareRaw.avroType">
+<tt class="descname">avroType</tt><em class="property"> = &quot;bytes&quot;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareRaw.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.DeclareRawSize">
+<em class="property">class </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">DeclareRawSize</tt><big>(</big><em>value</em>, <em>size</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareRawSize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Declare</span></tt></p>
+<p>Binary format declaration for fixed-width raw data.</p>
+<dl class="method">
+<dt id="titus.pfaast.BinaryFormatter.DeclareRawSize.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>value</em>, <em>size</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareRawSize.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.DeclareRawSize.avroType">
+<tt class="descname">avroType</tt><em class="property"> = &quot;bytes&quot;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareRawSize.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.DeclareShort">
+<em class="property">class </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">DeclareShort</tt><big>(</big><em>value</em>, <em>littleEndian</em>, <em>unsigned</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareShort" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Declare</span></tt></p>
+<p>Binary format declaration for a short (16-bit) integer.</p>
+<dl class="method">
+<dt id="titus.pfaast.BinaryFormatter.DeclareShort.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>value</em>, <em>littleEndian</em>, <em>unsigned</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareShort.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.DeclareShort.avroType">
+<tt class="descname">avroType</tt><em class="property"> = &quot;int&quot;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareShort.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="titus.pfaast.BinaryFormatter.DeclareToNull">
+<em class="property">class </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">DeclareToNull</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareToNull" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Declare</span></tt></p>
+<p>Binary format declaration for null-terminated raw data.</p>
+<dl class="method">
+<dt id="titus.pfaast.BinaryFormatter.DeclareToNull.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>value</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareToNull.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.DeclareToNull.avroType">
+<tt class="descname">avroType</tt><em class="property"> = &quot;bytes&quot;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.DeclareToNull.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatBoolean">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatBoolean</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x7faece6fba80&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatBoolean" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatByte">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatByte</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x7faece78e750&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatByte" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatDouble">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatDouble</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x2c967c0&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatDouble" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatFloat">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatFloat</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x353c950&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatFloat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatInt">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatInt</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x2c7ea40&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatInt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatLong">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatLong</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x3525b00&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatLong" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatPad">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatPad</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x7faece46f200&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatPad" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatPrefixed">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatPrefixed</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x7faece45c030&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatPrefixed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatRaw">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatRaw</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x7faece4d7618&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatRaw" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatRawSize">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatRawSize</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x7faed15b2df0&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatRawSize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatShort">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatShort</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x3482150&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatShort" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="titus.pfaast.BinaryFormatter.formatToDeclare">
+<em class="property">static </em><tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatToDeclare</tt><big>(</big><em>value</em>, <em>f</em>, <em>pos</em>, <em>output</em><big>)</big><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatToDeclare" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a format string to a titus.pfaast.BinaryFormatter.Declare object.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>value</strong> (<a class="reference internal" href="titus.pfaast.TaskResult.html#titus.pfaast.TaskResult" title="titus.pfaast.TaskResult"><em>titus.pfaast.TaskResult</em></a>) &#8211; task result, usually Python code in a string, passed to the format declarer</li>
+<li><strong>f</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; format string</li>
+<li><strong>pos</strong> (string or <tt class="docutils literal"><span class="pre">None</span></tt>) &#8211; source file location from the locator mark for error messages</li>
+<li><strong>output</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; <tt class="docutils literal"><span class="pre">True</span></tt> for <tt class="docutils literal"><span class="pre">pack</span></tt>, <tt class="docutils literal"><span class="pre">False</span></tt> for <tt class="docutils literal"><span class="pre">unpack</span></tt></li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">titus.pfaast.BinaryFormatter.Declare subclass</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">format declarer</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatToNull">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatToNull</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x7faece45c1b0&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatToNull" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatUnsignedByte">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatUnsignedByte</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x7faece5e6b58&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatUnsignedByte" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatUnsignedInt">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatUnsignedInt</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x340c390&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatUnsignedInt" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatUnsignedLong">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatUnsignedLong</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x2c2c070&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatUnsignedLong" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.pfaast.BinaryFormatter.formatUnsignedShort">
+<tt class="descclassname">BinaryFormatter.</tt><tt class="descname">formatUnsignedShort</tt><em class="property"> = &lt;_sre.SRE_Pattern object at 0x35340e0&gt;</em><a class="headerlink" href="#titus.pfaast.BinaryFormatter.formatUnsignedShort" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.pfaast.Call.html" title="titus.pfaast.Call"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.pfaast.AttrTo.html" title="titus.pfaast.AttrTo"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>
