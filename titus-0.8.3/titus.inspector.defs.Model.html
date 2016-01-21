@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.inspector.defs.Model &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="index.html" />
+    <link rel="next" title="titus.inspector.defs.SimpleCommand" href="titus.inspector.defs.SimpleCommand.html" />
+    <link rel="prev" title="titus.inspector.defs.Mode" href="titus.inspector.defs.Mode.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.inspector.defs.SimpleCommand.html" title="titus.inspector.defs.SimpleCommand"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.inspector.defs.Mode.html" title="titus.inspector.defs.Mode"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-inspector-defs-model">
+<h1>titus.inspector.defs.Model<a class="headerlink" href="#titus-inspector-defs-model" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.inspector.defs.Model">
+<em class="property">class </em><tt class="descclassname">titus.inspector.defs.</tt><tt class="descname">Model</tt><big>(</big><em>obj</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.3/titus/titus/inspector/defs.py#L339"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.defs.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>A loaded JSON or PFA file.</p>
+<p>Always has an <tt class="docutils literal"><span class="pre">obj</span></tt> member, representing the Pythonized JSON that was loaded from the file.</p>
+<p>Lazy-evaluates an <tt class="docutils literal"><span class="pre">engineConfig</span></tt> member the first time it is requested. This is a titus.pfaast.EngineConfig representing the abstract syntax tree of the PFA file. If the PFA file contains an error, attempting to access the <tt class="docutils literal"><span class="pre">engineConfig</span></tt> property yields an exception (titus.errors.AvroException, titus.errors.SchemaParseException, or titus.errors.PFAException).</p>
+<p>Lazy-evaluates an <tt class="docutils literal"><span class="pre">engine</span></tt> member the first time it is requested. This is a titus.genpy.PFAEngine representing an executable scoring engine. If the PFA file contains an error, attempting to access the <tt class="docutils literal"><span class="pre">engineConfig</span></tt> property yields an exception (titus.errors.AvroException, titus.errors.SchemaParseException, or titus.errors.PFAException).</p>
+<dl class="method">
+<dt id="titus.inspector.defs.Model.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>obj</em><big>)</big><a class="headerlink" href="#titus.inspector.defs.Model.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.inspector.defs.Model.engine">
+<tt class="descname">engine</tt><a class="headerlink" href="#titus.inspector.defs.Model.engine" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.inspector.defs.Model.engineConfig">
+<tt class="descname">engineConfig</tt><a class="headerlink" href="#titus.inspector.defs.Model.engineConfig" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.defs.Model.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.inspector.defs.Model.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.inspector.defs.SimpleCommand.html" title="titus.inspector.defs.SimpleCommand"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.inspector.defs.Mode.html" title="titus.inspector.defs.Mode"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>

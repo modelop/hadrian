@@ -1,0 +1,150 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.datatype.AvroField &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="index.html" />
+    <link rel="next" title="titus.datatype.AvroFilledPlaceholder" href="titus.datatype.AvroFilledPlaceholder.html" />
+    <link rel="prev" title="titus.datatype.AvroEnum" href="titus.datatype.AvroEnum.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.datatype.AvroFilledPlaceholder.html" title="titus.datatype.AvroFilledPlaceholder"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.datatype.AvroEnum.html" title="titus.datatype.AvroEnum"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-datatype-avrofield">
+<h1>titus.datatype.AvroField<a class="headerlink" href="#titus-datatype-avrofield" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.datatype.AvroField">
+<em class="property">class </em><tt class="descclassname">titus.datatype.</tt><tt class="descname">AvroField</tt><big>(</big><em>name</em>, <em>avroType</em>, <em>default=None</em>, <em>order=None</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.3/titus/titus/datatype.py#L578"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.datatype.AvroField" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Field of a titus.datatype.AvroRecord.</p>
+<dl class="method">
+<dt id="titus.datatype.AvroField.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>name</em>, <em>avroType</em>, <em>default=None</em>, <em>order=None</em><big>)</big><a class="headerlink" href="#titus.datatype.AvroField.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create an AvroField manually.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; field name</li>
+<li><strong>avroType</strong> (<a class="reference internal" href="titus.datatype.AvroType.html#titus.datatype.AvroType" title="titus.datatype.AvroType"><em>titus.datatype.AvroType</em></a>) &#8211; field type</li>
+<li><strong>default</strong> (value or <tt class="docutils literal"><span class="pre">NoneType</span></tt>) &#8211; default value or <tt class="docutils literal"><span class="pre">None</span></tt></li>
+<li><strong>order</strong> (<em>&#8220;ascending&#8221;, &#8220;descending&#8221;, or &#8220;ignore&#8221;</em>) &#8211; sort order (used in Hadoop secondary sort)</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="titus.datatype.AvroField.avroType">
+<tt class="descname">avroType</tt><a class="headerlink" href="#titus.datatype.AvroField.avroType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the field type as a titus.datatype.AvroType.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="titus.datatype.AvroField.default">
+<tt class="descname">default</tt><a class="headerlink" href="#titus.datatype.AvroField.default" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the field default value.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="titus.datatype.AvroField.fromSchema">
+<em class="property">static </em><tt class="descname">fromSchema</tt><big>(</big><em>schema</em><big>)</big><a class="headerlink" href="#titus.datatype.AvroField.fromSchema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a field from an avro.schema.Schema.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.AvroField.jsonNode">
+<tt class="descname">jsonNode</tt><big>(</big><em>memo</em><big>)</big><a class="headerlink" href="#titus.datatype.AvroField.jsonNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the field as a Python-encoded JSON node.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="titus.datatype.AvroField.name">
+<tt class="descname">name</tt><a class="headerlink" href="#titus.datatype.AvroField.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the field name.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="titus.datatype.AvroField.order">
+<tt class="descname">order</tt><a class="headerlink" href="#titus.datatype.AvroField.order" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the field order.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="titus.datatype.AvroField.schema">
+<tt class="descname">schema</tt><a class="headerlink" href="#titus.datatype.AvroField.schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the field type as an avro.schema.Schema.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.datatype.AvroFilledPlaceholder.html" title="titus.datatype.AvroFilledPlaceholder"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.datatype.AvroEnum.html" title="titus.datatype.AvroEnum"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>

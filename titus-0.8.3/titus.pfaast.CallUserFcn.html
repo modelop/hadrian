@@ -1,0 +1,204 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.pfaast.CallUserFcn &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="index.html" />
+    <link rel="next" title="titus.pfaast.CastBlock" href="titus.pfaast.CastBlock.html" />
+    <link rel="prev" title="titus.pfaast.Call" href="titus.pfaast.Call.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.pfaast.CastBlock.html" title="titus.pfaast.CastBlock"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.pfaast.Call.html" title="titus.pfaast.Call"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-pfaast-calluserfcn">
+<h1>titus.pfaast.CallUserFcn<a class="headerlink" href="#titus-pfaast-calluserfcn" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.pfaast.CallUserFcn">
+<em class="property">class </em><tt class="descclassname">titus.pfaast.</tt><tt class="descname">CallUserFcn</tt><big>(</big><em>name</em>, <em>args</em>, <em>pos=None</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.3/titus/titus/pfaast.py#L1762"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.pfaast.CallUserFcn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.pfaast.Expression.html#titus.pfaast.Expression" title="titus.pfaast.Expression"><tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.Expression</span></tt></a></p>
+<p>Abstract syntax tree for calling a user-defined function; choice of function determined at runtime.</p>
+<dl class="class">
+<dt id="titus.pfaast.CallUserFcn.Context">
+<em class="property">class </em><tt class="descname">Context</tt><big>(</big><em>retType</em>, <em>calls</em>, <em>name</em>, <em>nameToNum</em>, <em>nameToFcn</em>, <em>args</em>, <em>argContext</em>, <em>nameToParamTypes</em>, <em>nameToRetTypes</em><big>)</big><a class="headerlink" href="#titus.pfaast.CallUserFcn.Context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.pfaast.ExpressionContext.html#titus.pfaast.ExpressionContext" title="titus.pfaast.ExpressionContext"><tt class="xref py py-class docutils literal"><span class="pre">titus.pfaast.ExpressionContext</span></tt></a></p>
+<dl class="method">
+<dt id="titus.pfaast.CallUserFcn.Context.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>retType</em>, <em>calls</em>, <em>name</em>, <em>nameToNum</em>, <em>nameToFcn</em>, <em>args</em>, <em>argContext</em>, <em>nameToParamTypes</em>, <em>nameToRetTypes</em><big>)</big><a class="headerlink" href="#titus.pfaast.CallUserFcn.Context.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.pfaast.CallUserFcn.__init__">
+<tt class="descclassname">CallUserFcn.</tt><tt class="descname">__init__</tt><big>(</big><em>name</em>, <em>args</em>, <em>pos=None</em><big>)</big><a class="headerlink" href="#titus.pfaast.CallUserFcn.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.pfaast.CallUserFcn.collect">
+<tt class="descclassname">CallUserFcn.</tt><tt class="descname">collect</tt><big>(</big><em>pf</em><big>)</big><a class="headerlink" href="#titus.pfaast.CallUserFcn.collect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Walk over tree applying a partial function, returning a list of results in its domain.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pf</strong> (callable with <tt class="docutils literal"><span class="pre">isDefinedAt</span></tt> method) &#8211; partial function that takes any titus.pfaast.Ast as an argument, returning anything</li>
+<li><strong>pf.isDefinedAt</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#callable" title="(in Python v2.7)"><em>callable</em></a>) &#8211; domain that takes any titus.pfaast.Ast as an argument, returning <tt class="docutils literal"><span class="pre">True</span></tt> if this item is in the domain, <tt class="docutils literal"><span class="pre">False</span></tt> otherwise</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">list of function results</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a result for each abstract syntax tree node in the <tt class="docutils literal"><span class="pre">pf</span></tt> function&#8217;s domain</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.pfaast.CallUserFcn.jsonNode">
+<tt class="descclassname">CallUserFcn.</tt><tt class="descname">jsonNode</tt><big>(</big><em>lineNumbers</em>, <em>memo</em><big>)</big><a class="headerlink" href="#titus.pfaast.CallUserFcn.jsonNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert this abstract syntax tree to Pythonized JSON.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>lineNumbers</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if <tt class="docutils literal"><span class="pre">True</span></tt>, include locator marks in each JSON object</li>
+<li><strong>memo</strong> (<em>set of string</em>) &#8211; used to avoid recursion; provide an empty set if unsure</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">Pythonized JSON</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">JSON representation</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.pfaast.CallUserFcn.replace">
+<tt class="descclassname">CallUserFcn.</tt><tt class="descname">replace</tt><big>(</big><em>pf</em><big>)</big><a class="headerlink" href="#titus.pfaast.CallUserFcn.replace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Walk over tree applying a partial function, returning a transformed copy of the tree.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pf</strong> (callable with <tt class="docutils literal"><span class="pre">isDefinedAt</span></tt> method) &#8211; partial function that takes any titus.pfaast.Ast as an argument, returning a replacement titus.pfaast.Ast</li>
+<li><strong>pf.isDefinedAt</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#callable" title="(in Python v2.7)"><em>callable</em></a>) &#8211; domain that takes any titus.pfaast.Ast as an argument, returning <tt class="docutils literal"><span class="pre">True</span></tt> if this item is in the domain, <tt class="docutils literal"><span class="pre">False</span></tt> otherwise</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">new titus.pfaast.Ast tree</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">tree with nodes in the <tt class="docutils literal"><span class="pre">pf</span></tt> function&#8217;s domain transformed; everything else left as-is</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.pfaast.CallUserFcn.walk">
+<tt class="descclassname">CallUserFcn.</tt><tt class="descname">walk</tt><big>(</big><em>task</em>, <em>symbolTable</em>, <em>functionTable</em>, <em>engineOptions</em>, <em>version</em><big>)</big><a class="headerlink" href="#titus.pfaast.CallUserFcn.walk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Walk over tree applying a titus.pfaast.Task while checking for semantic errors.</p>
+<p>This is how Python is generated from an abstract syntax tree: the titus.pfaast.Task in that case is titus.genpy.GeneratePython.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>task</strong> (<a class="reference internal" href="titus.pfaast.Task.html#titus.pfaast.Task" title="titus.pfaast.Task"><em>titus.pfaast.Task</em></a>) &#8211; generic task to perform on this abstract syntax tree node&#8217;s context</li>
+<li><strong>symbolTable</strong> (<a class="reference internal" href="titus.pfaast.SymbolTable.html#titus.pfaast.SymbolTable" title="titus.pfaast.SymbolTable"><em>titus.pfaast.SymbolTable</em></a>) &#8211; used to look up symbols, cells, and pools</li>
+<li><strong>functionTable</strong> (<a class="reference internal" href="titus.pfaast.FunctionTable.html#titus.pfaast.FunctionTable" title="titus.pfaast.FunctionTable"><em>titus.pfaast.FunctionTable</em></a>) &#8211; used to look up functions</li>
+<li><strong>engineOptions</strong> (<a class="reference internal" href="titus.options.EngineOptions.html#titus.options.EngineOptions" title="titus.options.EngineOptions"><em>titus.options.EngineOptions</em></a>) &#8211; implementation options</li>
+<li><strong>version</strong> (<a class="reference internal" href="titus.signature.PFAVersion.html#titus.signature.PFAVersion" title="titus.signature.PFAVersion"><em>titus.signature.PFAVersion</em></a>) &#8211; version of the PFA language in which to interpret this PFA</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(titus.pfaast.AstContext, titus.pfaast.TaskResult)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(information about this abstract syntax tree node after type-checking, result of the generic task)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.pfaast.CastBlock.html" title="titus.pfaast.CastBlock"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.pfaast.Call.html" title="titus.pfaast.Call"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>

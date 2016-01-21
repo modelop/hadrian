@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.datatype.jsonEncoder &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="index.html" />
+    <link rel="next" title="titus.datatype.jsonNodeToAvroType" href="titus.datatype.jsonNodeToAvroType.html" />
+    <link rel="prev" title="titus.datatype.jsonDecoder" href="titus.datatype.jsonDecoder.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.datatype.jsonNodeToAvroType.html" title="titus.datatype.jsonNodeToAvroType"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.datatype.jsonDecoder.html" title="titus.datatype.jsonDecoder"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-datatype-jsonencoder">
+<h1>titus.datatype.jsonEncoder<a class="headerlink" href="#titus-datatype-jsonencoder" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="titus.datatype.jsonEncoder">
+<tt class="descclassname">titus.datatype.</tt><tt class="descname">jsonEncoder</tt><big>(</big><em>avroType</em>, <em>value</em>, <em>tagged=True</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.3/titus/titus/datatype.py#L956"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.datatype.jsonEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encode an object as JSON, given titus.datatype.AvroType.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>avroType</strong> (<a class="reference internal" href="titus.datatype.AvroType.html#titus.datatype.AvroType" title="titus.datatype.AvroType"><em>titus.datatype.AvroType</em></a>) &#8211; type of this object</li>
+<li><strong>value</strong> (dicts, lists, strings, numbers, <tt class="docutils literal"><span class="pre">True</span></tt>, <tt class="docutils literal"><span class="pre">False</span></tt>, <tt class="docutils literal"><span class="pre">None</span></tt>) &#8211; the object returned from PFAEngine.action</li>
+<li><strong>tagged</strong> (<a class="reference external" href="http://docs.python.org/library/functions.html#bool" title="(in Python v2.7)"><em>bool</em></a>) &#8211; if True, represent unions as <tt class="docutils literal"><span class="pre">{tag:</span> <span class="pre">value}</span></tt>; if False, represent them simply as <tt class="docutils literal"><span class="pre">value</span></tt>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">dicts, lists, strings, numbers, <tt class="docutils literal"><span class="pre">True</span></tt>, <tt class="docutils literal"><span class="pre">False</span></tt>, <tt class="docutils literal"><span class="pre">None</span></tt></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">the JSON object in Python encoding</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.datatype.jsonNodeToAvroType.html" title="titus.datatype.jsonNodeToAvroType"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.datatype.jsonDecoder.html" title="titus.datatype.jsonDecoder"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>

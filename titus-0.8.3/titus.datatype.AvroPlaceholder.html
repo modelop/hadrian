@@ -1,0 +1,125 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.datatype.AvroPlaceholder &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="index.html" />
+    <link rel="next" title="titus.datatype.AvroRaw" href="titus.datatype.AvroRaw.html" />
+    <link rel="prev" title="titus.datatype.AvroNumber" href="titus.datatype.AvroNumber.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.datatype.AvroRaw.html" title="titus.datatype.AvroRaw"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.datatype.AvroNumber.html" title="titus.datatype.AvroNumber"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-datatype-avroplaceholder">
+<h1>titus.datatype.AvroPlaceholder<a class="headerlink" href="#titus-datatype-avroplaceholder" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.datatype.AvroPlaceholder">
+<em class="property">class </em><tt class="descclassname">titus.datatype.</tt><tt class="descname">AvroPlaceholder</tt><big>(</big><em>original</em>, <em>forwardDeclarationParser</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.3/titus/titus/datatype.py#L632"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.datatype.AvroPlaceholder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="http://docs.python.org/library/functions.html#object" title="(in Python v2.7)"><tt class="xref py py-class docutils literal"><span class="pre">object</span></tt></a></p>
+<p>Represents a type that can&#8217;t be resolved yet because JSON objects may be streamed in an unknown order.</p>
+<dl class="method">
+<dt id="titus.datatype.AvroPlaceholder.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>original</em>, <em>forwardDeclarationParser</em><big>)</big><a class="headerlink" href="#titus.datatype.AvroPlaceholder.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="titus.datatype.AvroPlaceholder.avroType">
+<tt class="descname">avroType</tt><a class="headerlink" href="#titus.datatype.AvroPlaceholder.avroType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called after <tt class="docutils literal"><span class="pre">titus.datatype.AvroTypeBuilder</span></tt> <tt class="docutils literal"><span class="pre">resolveTypes</span></tt> to get the resolved type.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.AvroPlaceholder.jsonNode">
+<tt class="descname">jsonNode</tt><big>(</big><em>memo=set([])</em><big>)</big><a class="headerlink" href="#titus.datatype.AvroPlaceholder.jsonNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represent the resolved type as a Jackson node.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>memo</strong> (<em>set of strings</em>) &#8211; used to avoid infinite loops with recursive records</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="titus.datatype.AvroPlaceholder.parser">
+<tt class="descname">parser</tt><a class="headerlink" href="#titus.datatype.AvroPlaceholder.parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>The <tt class="docutils literal"><span class="pre">titus.datatype.ForwardDeclarationParser</span></tt> responsible for this placeholder.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.AvroPlaceholder.toJson">
+<tt class="descname">toJson</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.datatype.AvroPlaceholder.toJson" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represent the resolved type as a JSON string.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.datatype.AvroRaw.html" title="titus.datatype.AvroRaw"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.datatype.AvroNumber.html" title="titus.datatype.AvroNumber"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>

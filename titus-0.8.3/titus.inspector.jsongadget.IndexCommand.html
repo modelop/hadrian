@@ -1,0 +1,135 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.inspector.jsongadget.IndexCommand &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="index.html" />
+    <link rel="next" title="titus.inspector.jsongadget.JsonGadget" href="titus.inspector.jsongadget.JsonGadget.html" />
+    <link rel="prev" title="titus.inspector.jsongadget.FindCommand" href="titus.inspector.jsongadget.FindCommand.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.inspector.jsongadget.JsonGadget.html" title="titus.inspector.jsongadget.JsonGadget"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.inspector.jsongadget.FindCommand.html" title="titus.inspector.jsongadget.FindCommand"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-inspector-jsongadget-indexcommand">
+<h1>titus.inspector.jsongadget.IndexCommand<a class="headerlink" href="#titus-inspector-jsongadget-indexcommand" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.inspector.jsongadget.IndexCommand">
+<em class="property">class </em><tt class="descclassname">titus.inspector.jsongadget.</tt><tt class="descname">IndexCommand</tt><big>(</big><em>mode</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.3/titus/titus/inspector/jsongadget.py#L226"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.inspector.jsongadget.IndexCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.inspector.defs.Command.html#titus.inspector.defs.Command" title="titus.inspector.defs.Command"><tt class="xref py py-class docutils literal"><span class="pre">titus.inspector.defs.Command</span></tt></a></p>
+<p>The &#8216;json index&#8217; command in pfainspector.</p>
+<dl class="method">
+<dt id="titus.inspector.jsongadget.IndexCommand.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>mode</em><big>)</big><a class="headerlink" href="#titus.inspector.jsongadget.IndexCommand.__init__" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.jsongadget.IndexCommand.action">
+<tt class="descname">action</tt><big>(</big><em>args</em><big>)</big><a class="headerlink" href="#titus.inspector.jsongadget.IndexCommand.action" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform the action associated with this command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>args</strong> (<em>list of titus.inspector.parser.Ast</em>) &#8211; arguments passed to the command</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><tt class="docutils literal"><span class="pre">None</span></tt></td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">nothing; results must be printed to the screen</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.inspector.jsongadget.IndexCommand.complete">
+<tt class="descname">complete</tt><big>(</big><em>established</em>, <em>active</em><big>)</big><a class="headerlink" href="#titus.inspector.jsongadget.IndexCommand.complete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handle tab-complete for this command&#8217;s arguments.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>established</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; part of the text that has been established</li>
+<li><strong>active</strong> (<a class="reference external" href="http://docs.python.org/library/string.html#module-string" title="(in Python v2.7)"><em>string</em></a>) &#8211; part of the text to be completed</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">list of strings</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">potential completions</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.inspector.jsongadget.JsonGadget.html" title="titus.inspector.jsongadget.JsonGadget"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.inspector.jsongadget.FindCommand.html" title="titus.inspector.jsongadget.FindCommand"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>

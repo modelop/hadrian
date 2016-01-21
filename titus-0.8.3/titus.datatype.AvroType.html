@@ -1,0 +1,144 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.datatype.AvroType &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="index.html" />
+    <link rel="next" title="titus.datatype.AvroTypeBuilder" href="titus.datatype.AvroTypeBuilder.html" />
+    <link rel="prev" title="titus.datatype.AvroString" href="titus.datatype.AvroString.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.datatype.AvroTypeBuilder.html" title="titus.datatype.AvroTypeBuilder"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.datatype.AvroString.html" title="titus.datatype.AvroString"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-datatype-avrotype">
+<h1>titus.datatype.AvroType<a class="headerlink" href="#titus-datatype-avrotype" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="titus.datatype.AvroType">
+<em class="property">class </em><tt class="descclassname">titus.datatype.</tt><tt class="descname">AvroType</tt><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.3/titus/titus/datatype.py#L160"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.datatype.AvroType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="titus.datatype.Type.html#titus.datatype.Type" title="titus.datatype.Type"><tt class="xref py py-class docutils literal"><span class="pre">titus.datatype.Type</span></tt></a></p>
+<p>Base class for types of all PFA/Avro values.</p>
+<p>Thin wrapper around a avro.schema.Schema, providing a different Python class for each Avro kind.</p>
+<dl class="method">
+<dt id="titus.datatype.AvroType.accepts">
+<tt class="descname">accepts</tt><big>(</big><em>other</em>, <em>memo=None</em>, <em>checkRecord=True</em><big>)</big><a class="headerlink" href="#titus.datatype.AvroType.accepts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform type resolution: would PFA objects of type <tt class="docutils literal"><span class="pre">other</span></tt> be accepted where a PFA object of type <tt class="docutils literal"><span class="pre">self</span></tt> is expected?</p>
+<p>If <tt class="docutils literal"><span class="pre">x.accepts(y)</span> <span class="pre">and</span> <span class="pre">y.accepts(x)</span></tt>, then <tt class="docutils literal"><span class="pre">x</span></tt> and <tt class="docutils literal"><span class="pre">y</span></tt> are equal. In general, acceptability is not symmetric.</p>
+<p>The <tt class="docutils literal"><span class="pre">memo</span></tt> and <tt class="docutils literal"><span class="pre">checkRecord</span></tt> parameters are only used to avoid infinite recursion.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>self</strong> (<a class="reference internal" href="#titus.datatype.AvroType" title="titus.datatype.AvroType"><em>titus.datatype.AvroType</em></a>) &#8211; the expected signature to be matched</li>
+<li><strong>other</strong> (<a class="reference internal" href="#titus.datatype.AvroType" title="titus.datatype.AvroType"><em>titus.datatype.AvroType</em></a>) &#8211; the given argument to be accepted or rejected</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">boolean</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><tt class="docutils literal"><span class="pre">True</span></tt> if <tt class="docutils literal"><span class="pre">other</span></tt> is an acceptable substitute for <tt class="docutils literal"><span class="pre">self</span></tt> (or is exactly the same); <tt class="docutils literal"><span class="pre">False</span></tt> if incompatible</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="titus.datatype.AvroType.avroType">
+<tt class="descname">avroType</tt><a class="headerlink" href="#titus.datatype.AvroType.avroType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.AvroType.jsonNode">
+<tt class="descname">jsonNode</tt><big>(</big><em>memo</em><big>)</big><a class="headerlink" href="#titus.datatype.AvroType.jsonNode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert the type to a Python-encoded Avro type.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="titus.datatype.AvroType.name">
+<tt class="descname">name</tt><a class="headerlink" href="#titus.datatype.AvroType.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return &#8220;name&#8221; of this type, which is used as a key in tagged unions.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="titus.datatype.AvroType.schema">
+<tt class="descname">schema</tt><a class="headerlink" href="#titus.datatype.AvroType.schema" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the avro.schema.Schema object.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="titus.datatype.AvroType.toJson">
+<tt class="descname">toJson</tt><big>(</big><big>)</big><a class="headerlink" href="#titus.datatype.AvroType.toJson" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert the type to a JSON-encoded string, suitable for an AVSC file.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.datatype.AvroTypeBuilder.html" title="titus.datatype.AvroTypeBuilder"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.datatype.AvroString.html" title="titus.datatype.AvroString"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>

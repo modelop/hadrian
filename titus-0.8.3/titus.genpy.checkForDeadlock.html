@@ -1,0 +1,88 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>titus.genpy.checkForDeadlock &mdash; Titus 0.8.3 documentation</title>
+    
+    <link rel="stylesheet" href="_static/sphinxdoc.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.8.3',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="Titus 0.8.3 documentation" href="index.html" />
+    <link rel="next" title="titus.genpy.cond" href="titus.genpy.cond.html" />
+    <link rel="prev" title="titus.genpy.cast" href="titus.genpy.cast.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="titus.genpy.cond.html" title="titus.genpy.cond"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="titus.genpy.cast.html" title="titus.genpy.cast"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+
+    <div class="document">
+      <div class="documentwrapper">
+          <div class="body">
+            
+  <div class="section" id="titus-genpy-checkfordeadlock">
+<h1>titus.genpy.checkForDeadlock<a class="headerlink" href="#titus-genpy-checkfordeadlock" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="titus.genpy.checkForDeadlock">
+<tt class="descclassname">titus.genpy.</tt><tt class="descname">checkForDeadlock</tt><big>(</big><em>engineConfig</em>, <em>engine</em><big>)</big><a class="reference external" href="http://github.com/opendatagroup/hadrian/blob/0.8.3/titus/titus/genpy.py#L1309"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#titus.genpy.checkForDeadlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks a titus.pfaast.EngineConfig for the possibility of deadlock.</p>
+<p>If any function used as an updator eventually calls some other function that would update state, this function raises titus.errors.PFAInitializationException.</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="titus.genpy.cond.html" title="titus.genpy.cond"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="titus.genpy.cast.html" title="titus.genpy.cast"
+             >previous</a> |</li>
+        <li><a href="index.html">Titus 0.8.3 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, Open Data Group.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.
+    </div>
+  </body>
+</html>
