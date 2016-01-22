@@ -27,44 +27,80 @@ import org.codehaus.jackson.map.ObjectMapper
 package object util {
   private val objectMapper = new ObjectMapper
 
+  /** Generate an engine name like `"Engine_12"` by incrementing a counter (starting with 1).
+    * 
+    * This name is not ''guaranteed'' to be unique in some space, but this function will never generate the same name twice.
+    */
   object uniqueEngineName extends Function0[String] {
     private var counter = 0
+    /** Get a unique name.
+      */
     def apply(): String = {
       counter = counter + 1
       "Engine_%d".format(counter)
     }
   }
 
+  /** Generate a record type name like `"Record_12"` by incrementing a counter (starting with 1).
+    * 
+    * This name is not ''guaranteed'' to be unique in some space, but this function will never generate the same name twice.
+    */
   object uniqueRecordName extends Function0[String] {
     private var counter = 0
+    /** Get a unique name.
+      */
     def apply(): String = {
       counter = counter + 1
       "Record_%d".format(counter)
     }
   }
 
+  /** Generate an enum type name like `"Enum_12"` by incrementing a counter (starting with 1).
+    * 
+    * This name is not ''guaranteed'' to be unique in some space, but this function will never generate the same name twice.
+    */
   object uniqueEnumName extends Function0[String] {
     private var counter = 0
+    /** Get a unique name.
+      */
     def apply(): String = {
       counter = counter + 1
       "Enum_%d".format(counter)
     }
   }
 
+  /** Generate a fixed type name like `"Fixed_12"` by incrementing a counter (starting with 1).
+    * 
+    * This name is not ''guaranteed'' to be unique in some space, but this function will never generate the same name twice.
+    */
   object uniqueFixedName extends Function0[String] {
     private var counter = 0
+    /** Get a unique name.
+      */
     def apply(): String = {
       counter = counter + 1
       "Fixed_%d".format(counter)
     }
   }
 
+  /** Generate a position string from locator mark data and PFA path index.
+    * 
+    * Replaces `"%%"` with `"PERCENT-PERCENT"` and  `"%"` with `"PERCENT"` so that they can be used in format strings.
+    */
   def pos(dot: String, at: String): String =
     "at " + at + (if (dot == "") "" else " (PFA field \"" + dot.replace("%%", "PERCENT-PERCENT").replace("%", "PERCENT") + "\")")
 
+  /** Escapes string `x` so that it can be used in JSON.
+    * 
+    * Turns special characters such as `"` into escape sequences like `\"`, but ''does not'' add quotes around the whole string.
+    */
   def escapeJson(x: String): String = new String(JsonStringEncoder.getInstance.quoteAsString(x))
 
+  /** Unescapes string `json`, turning escape sequences like `\"` into `"` and removes quotes around the whole string.
+    */
   object unescapeJson extends Function1[String, Option[String]] {
+    /** @return `Some(result)` if successful; `None` otherwise
+      */
     def apply(json: String): Option[String] =
       try {
         Some(objectMapper.readValue(json, classOf[String]))
@@ -75,6 +111,10 @@ package object util {
     def unapply(json: String): Option[String] = apply(json)
   }
 
+  /** Convert `intermediate` object into a JSON string.
+    */
   def convertToJson(intermediate: AnyRef): String = objectMapper.writeValueAsString(intermediate)
+  /** Convert a JSON string into a Jackson node.
+    */
   def convertFromJson(json: String): JsonNode = objectMapper.readTree(json)
 }

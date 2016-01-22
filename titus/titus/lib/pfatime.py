@@ -22,7 +22,9 @@
 import math
 import datetime
 
-import pytz
+def pytz():
+    import pytz as p
+    return p
 
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
@@ -51,8 +53,8 @@ def tz(dt, zone, code, name, pos):
         return dt
     else:
         try:
-            return dt.astimezone(pytz.timezone(zone))
-        except pytz.exceptions.UnknownTimeZoneError:
+            return dt.astimezone(pytz().timezone(zone))
+        except pytz().exceptions.UnknownTimeZoneError:
             raise PFARuntimeException("unrecognized timezone string", code, name, pos)
 
 def tscheck(ts, code, name, pos):
@@ -135,8 +137,8 @@ class MakeTimestamp(LibFcn):
             if zone == "":
                 dt = datetime.datetime(year, month, day, hour, minute, second, microsecond, UTC())
             else:
-                dt = pytz.timezone(zone).localize(datetime.datetime(year, month, day, hour, minute, second, microsecond))
-        except pytz.exceptions.UnknownTimeZoneError:
+                dt = pytz().timezone(zone).localize(datetime.datetime(year, month, day, hour, minute, second, microsecond))
+        except pytz().exceptions.UnknownTimeZoneError:
             raise PFARuntimeException("unrecognized timezone string", self.errcodeBase + 0, self.name, pos)
         except ValueError:
             raise PFARuntimeException("timestamp undefined for given parameters", self.errcodeBase + 1, self.name, pos)

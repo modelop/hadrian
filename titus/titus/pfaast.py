@@ -300,7 +300,7 @@ class SymbolTable(object):
         :rtype: titus.pfaast.SymbolTable
         :return: a symbol table containing nothing
         """
-        SymbolTable(None, {}, {}, {}, True, False)
+        return SymbolTable(None, {}, {}, {}, True, False)
 
 ############################################################ functions
 
@@ -4834,7 +4834,7 @@ class Forkeyval(Expression):
         :type map: titus.pfaast.Expression
         :param map: expression that evaluates to a map
         :type body: list of titus.pfaast.Expression
-        :param body: expressions to evaluate for each item of the array
+        :param body: expressions to evaluate for each item of the map
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
@@ -6094,7 +6094,7 @@ class Try(Expression):
         """:type exprs: list of titus.pfaast.Expression
         :param exprs: expressions to evaluate that might raise an exception
         :type filter: ``None`` or a list of strings and integers
-        :param filter: optional filter for error messages
+        :param filter: optional filter for error messages or error codes
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """

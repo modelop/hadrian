@@ -332,7 +332,7 @@ action:
         #             [1, 0, 0],
         #             [1, 1, 1]])
         # Y = array([ 1.,  1.,  2.,  2.,  3.,  3.])
-        # clf = BernoulliNB(alpha=.01)
+        # clf = BernoulliNB()
         # clf.fit(X,Y)
         engine, = PFAEngine.fromYaml("""
 input: {type: array, items: string}

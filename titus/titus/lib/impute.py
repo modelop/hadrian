@@ -45,7 +45,10 @@ class ErrorOnNull(LibFcn):
             if isinstance(paramTypes[-1], (list, tuple)):
                 return x
             else:
-                return x.values()[0]
+                if isinstance(x, dict):
+                    return x.values()[0]
+                else:
+                    return x
 provide(ErrorOnNull())
 
 class DefaultOnNull(LibFcn):
@@ -59,7 +62,10 @@ class DefaultOnNull(LibFcn):
             if isinstance(paramTypes[-1], (list, tuple)):
                 return x
             else:
-                return x.values()[0]
+                if isinstance(x, dict):
+                    return x.values()[0]
+                else:
+                    return x
 provide(DefaultOnNull())
 
 class IsNan(LibFcn):

@@ -174,25 +174,55 @@ import com.opendatagroup.hadrian.util.escapeJson
 import com.opendatagroup.hadrian.yaml.yamlToJson
 
 package object jvmcompiler {
+  /** Version of the PFA language that this Hadrian JAR attempts to use by default.
+    */
   var defaultPFAVersion = "0.8.1"
 
   //////////////////////////////////////////////////////////// Janino-based compiler tools
 
+  /** Wraps debugging Java code with line numbers for readability.
+    * 
+    * @param src source code string for a Java in-memory file that needs line numbers for readability
+    */
   def lineNumbers(src: String): String =
     src.split("\n").zipWithIndex map { case (line, i) => "%3d:  %s".format(i + 1, line) } mkString("\n")
 
+  /** Collection of functions for prefixing names in Java, to avoid name conflicts.
+    */
   object JVMNameMangle {
+    /** Prefixes symbol names (variables) with `"s_"` to avoid name conflicts.
+      */
     def s(symbolName: String): String = "s_" + symbolName
+    /** Prefixes function parameter names with `"par_"` to avoid name conflicts.
+      */
     def par(parameterName: String): String = "par_" + parameterName
+    /** Prefixes cell names with `"c_"` to avoid name conflicts.
+      */
     def c(cellName: String): String = "c_" + cellName
+    /** Prefixes pool names with `"p_"` to avoid name conflicts.
+      */
     def p(poolName: String): String = "p_" + poolName
+    /** Prefixes user-defined function names with `"f_"` to avoid name conflicts.
+      */
     def f(functionName: String): String = "f_" + functionName.replace(".", "$")
 
     // Type names must be equal to the fully-qualified name from the Schema or else
     // Avro does bad things (SpecificData.createSchema, comment mentions "hack").
+    /** Fully qualifies Avro type names (but does not prefix them, because those names can be used outside of PFA).
+      * 
+      * @param namespace optional namespace
+      * @param name name of the type
+      * @param qualified if `true`, apply qualification; if `false`, just pass through
+      */
     def t(namespace: Option[String], name: String, qualified: Boolean): String =
       t(namespace match {case None => null.asInstanceOf[String]; case Some(x) => x}, name, qualified)
 
+    /** Fully qualifies Avro type names (but does not prefix them, because those names can be used outside of PFA).
+      * 
+      * @param namespace optional namespace (`null` or empty string are taken as no namespace)
+      * @param name name of the type
+      * @param qualified if `true`, apply qualification; if `false`, just pass through
+      */
     def t(namespace: String, name: String, qualified: Boolean): String =
       if (qualified)
         (namespace match {case null | "" => ""; case x => x + "."}) + name
@@ -200,6 +230,13 @@ package object jvmcompiler {
         name
   }
 
+  /** Express a [[com.opendatagroup.hadrian.datatype.AvroType AvroType]] as its corresponding Java type.
+    * 
+    * @param avroType the type to express as a Java code string
+    * @param boxed if `true`, use boxed primitives; if `false`, use raw primitives
+    * @param qualified if `true`, fully qualify the name; if `false`, do not
+    * @param generic if `true`, use a generic (abstract superclass) name; if `false`, use the most specific name
+    */
   def javaType(avroType: AvroType, boxed: Boolean, qualified: Boolean, generic: Boolean): String = avroType match {
     case _: AvroNull => "Void"
     case _: AvroBoolean => if (boxed) "Boolean" else "boolean"
@@ -220,6 +257,11 @@ package object jvmcompiler {
     case _: AvroUnion => "Object"
   }
 
+  /** Express a [[com.opendatagroup.hadrian.datatype.AvroType AvroType]] as Java code that constructs the corresponding `org.apache.avro.Schema` inline.
+    * 
+    * @param avroType the type to express as Java code that builds an Avro library Schema
+    * @param construct if `true`, actually build named types; if `false`, merely qutoe their names
+    */
   def javaSchema(avroType: AvroType, construct: Boolean): String = avroType match {
     case _: AvroNull => "org.apache.avro.Schema.create(org.apache.avro.Schema.Type.NULL)"
     case _: AvroBoolean => "org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BOOLEAN)"
@@ -239,6 +281,11 @@ package object jvmcompiler {
     case AvroUnion(types) => "org.apache.avro.Schema.createUnion(java.util.Arrays.asList(%s))".format(types.map(javaSchema(_, construct)).mkString(","))
   }
 
+  /** Create Java code to create a locator mark, pointing to the line number in the original source code.
+    * 
+    * @param pos optional position
+    * @return Java code to call `"scala.Option.apply(string)"` to make `Some(string)` or `"scala.Option.apply(null)"` to make a `None`
+    */
   def posToJava(pos: Option[String]): String = pos match {
     case None => "scala.Option.apply((String)null)"
     case Some(x) => "scala.Option.apply(\"" + StringEscapeUtils.escapeJava(x) + "\")"
@@ -247,19 +294,45 @@ package object jvmcompiler {
 
 package jvmcompiler {
   //////////////////////////////////////////////////////////// interfaces to be used on the Java side
+  /** Collection of utility functions to make Java code or be called by Java for routine tasks.
+    * 
+    * Don't ask why it's called `W`.
+    */
   object W {
+    /** Take an expression and return nothing (`Unit`, like a Java void function).
+      */
     def s[X](x: X): Unit = {}
 
+    /** Take an expression and return `null`.
+      */
     def n[X](x: X): java.lang.Void = null
+    /** Take two expressions and return `null`.
+      */
     def nn[X, Y](x: X, y: Y): java.lang.Void = null
 
+    /** Take two expressions and return the value of the second one.
+      */
     def do2[X, Y](x: X, y: Y): Y = y
 
+    /** Take a Scala `Either[Exception, X]` and throw the exception, if it contains an exception, or return the value if it contains a value.
+      */
     def either[X](value: Either[Exception, X]): X = value match {
       case Left(err) => throw err
       case Right(x) => x
     }
 
+    /** Take a Scala `Either[Exception, X]` and throw the exception, if it contains an exception, or return the value if it contains a value.
+      * 
+      * If the exception is `java.lang.IndexOutOfBoundsException` or `java.util.NoSuchElementException`, use the given error strings and error codes to make an informative [[com.opendatagroup.hadrian.errors.PFARuntimeException PFARuntimeException]].
+      * 
+      * @param value the tagged union of an exception or value
+      * @param arrayErrStr string to use in the case of a `java.lang.IndexOutOfBoundsException`
+      * @param arrayErrCode code to use in the case of a `java.lang.IndexOutOfBoundsException`
+      * @param mapErrStr string to use in the case of a `java.util.NoSuchElementException`
+      * @param mapErrCode code to use in the case of a `java.util.NoSuchElementException`
+      * @param fcnName function name to report in the PFARuntimeException
+      * @param pos source file location from the locator mark
+      */
     def either[X](value: Either[Exception, X], arrayErrStr: String, arrayErrCode: Int, mapErrStr: String, mapErrCode: Int, fcnName: String, pos: Option[String]): X = value match {
       case Left(err: java.lang.IndexOutOfBoundsException) => throw new PFARuntimeException(arrayErrStr, arrayErrCode, fcnName, pos, err)
       case Left(err: java.util.NoSuchElementException) => throw new PFARuntimeException(mapErrStr, mapErrCode, fcnName, pos, err)
@@ -267,12 +340,28 @@ package jvmcompiler {
       case Right(x) => x
     }
 
+    /** Attempt to extract a value by key from a map, returning `orElse` if it's not there.
+      * 
+      * @param map the map to extract from
+      * @param get the key to extract
+      * @param orElse the alternate value
+      */
     def getOrElse(map: java.util.Map[String, AnyRef], get: String, orElse: AnyRef): AnyRef = {
       if (map.containsKey(get))
         map.get(get)
       else
         orElse
     }
+    /** Attempt to extract a value by key from a map (assuming it's a pool), raising a [[com.opendatagroup.hadrian.errors.PFARuntimeException PFARuntimeException]] (with appropriate error string and code) if it's not there.
+      * 
+      * @param map the map to extract from
+      * @param get the key to extract
+      * @param name the name of the pool (not used)
+      * @param poolErrStr string to use for the [[com.opendatagroup.hadrian.errors.PFARuntimeException PFARuntimeException]]
+      * @param poolErrCode code to use for the [[com.opendatagroup.hadrian.errors.PFARuntimeException PFARuntimeException]]
+      * @param fcnName function name to use for the [[com.opendatagroup.hadrian.errors.PFARuntimeException PFARuntimeException]]
+      * @param pos source file location from the locator mark
+      */
     def getOrFailPool(map: java.util.Map[String, AnyRef], get: String, name: String, poolErrStr: String, poolErrCode: Int, fcnName: String, pos: Option[String]): AnyRef = {
       if (map.containsKey(get))
         map.get(get)
@@ -280,72 +369,128 @@ package jvmcompiler {
         throw new PFARuntimeException(poolErrStr, poolErrCode, fcnName, pos)
     }
 
+    /** Convert any boolean `x` as a raw primitive boolean.
+      */
     def asBool(x: Boolean): Boolean = x
+    /** Convert any boolean `x` as a raw primitive boolean.
+      */
     def asBool(x: java.lang.Boolean): Boolean = x.booleanValue
+    /** Convert any boolean `x` as a raw primitive boolean.
+      */
     def asBool(x: AnyRef): Boolean = x.asInstanceOf[java.lang.Boolean].booleanValue
 
+    /** Convert any boolean `x` as a boxed primitive boolean.
+      */
     def asJBool(x: Boolean): java.lang.Boolean = java.lang.Boolean.valueOf(x)
+    /** Convert any boolean `x` as a boxed primitive boolean.
+      */
     def asJBool(x: java.lang.Boolean): java.lang.Boolean = x
+    /** Convert any boolean `x` as a boxed primitive boolean.
+      */
     def asJBool(x: AnyRef): java.lang.Boolean = x.asInstanceOf[java.lang.Boolean]
 
+    /** Convert any integer `x` as a raw primitive int.
+      */
     def asInt(x: Int): Int = x
+    /** Convert any integer `x` as a raw primitive int.
+      */
     def asInt(x: Long): Int =
       if (x > java.lang.Integer.MAX_VALUE  ||  x < java.lang.Integer.MIN_VALUE)
         throw new PFARuntimeException("integer out of range", 1000, "", None)
       else
         x.toInt
+    /** Convert any integer `x` as a raw primitive int.
+      */
     def asInt(x: java.lang.Integer): Int = x.intValue
+    /** Convert any integer `x` as a raw primitive int.
+      */
     def asInt(x: java.lang.Long): Int =
       if (x > java.lang.Integer.MAX_VALUE  ||  x < java.lang.Integer.MIN_VALUE)
         throw new PFARuntimeException("integer out of range", 1000, "", None)
       else
         x.intValue
+    /** Convert any integer `x` as a raw primitive int.
+      */
     def asInt(x: AnyRef): Int = x match {
       case x1: java.lang.Integer => x1.intValue
       case x2: java.lang.Long => asInt(x2)
     }
 
+    /** Convert any integer `x` as a boxed primitive int.
+      */
     def asJInt(x: Int): java.lang.Integer = java.lang.Integer.valueOf(x)
+    /** Convert any integer `x` as a boxed primitive int.
+      */
     def asJInt(x: Long): java.lang.Integer =
       if (x > java.lang.Integer.MAX_VALUE  ||  x < java.lang.Integer.MIN_VALUE)
         throw new PFARuntimeException("integer out of range", 1000, "", None)
       else
         java.lang.Integer.valueOf(x.toInt)
+    /** Convert any integer `x` as a boxed primitive int.
+      */
     def asJInt(x: java.lang.Integer): java.lang.Integer = x
+    /** Convert any integer `x` as a boxed primitive int.
+      */
     def asJInt(x: java.lang.Long): java.lang.Integer =
       if (x > java.lang.Integer.MAX_VALUE  ||  x < java.lang.Integer.MIN_VALUE)
         throw new PFARuntimeException("integer out of range", 1000, "", None)
       else
         java.lang.Integer.valueOf(x.intValue)
+    /** Convert any integer `x` as a boxed primitive int.
+      */
     def asJInt(x: AnyRef): java.lang.Integer = x match {
       case x1: java.lang.Integer => x1
       case x2: java.lang.Long => asJInt(x2)
     }
 
+    /** Convert an object `x` into a boxed primitive int if it is a boxed number.
+      */
     def maybeJInt(x: AnyRef): AnyRef = x match {
       case null => x
       case x1: java.lang.Integer => x1
       case _ => x
     }
 
+    /** Convert any integer `x` as a raw primitive long.
+      */
     def asLong(x: Int): Long = x.toLong
+    /** Convert any integer `x` as a raw primitive long.
+      */
     def asLong(x: Long): Long = x
+    /** Convert any integer `x` as a raw primitive long.
+      */
     def asLong(x: java.lang.Integer): Long = x.longValue
+    /** Convert any integer `x` as a raw primitive long.
+      */
     def asLong(x: java.lang.Long): Long = x.longValue
+    /** Convert any integer `x` as a raw primitive long.
+      */
     def asLong(x: AnyRef): Long = x match {
       case x1: java.lang.Integer => x1.longValue
       case x2: java.lang.Long => x2.longValue
     }
 
+    /** Convert any integer `x` as a boxed primitive long.
+      */
     def asJLong(x: Int): java.lang.Long = java.lang.Long.valueOf(x)
+    /** Convert any integer `x` as a boxed primitive long.
+      */
     def asJLong(x: Long): java.lang.Long = java.lang.Long.valueOf(x)
+    /** Convert any integer `x` as a boxed primitive long.
+      */
     def asJLong(x: java.lang.Integer): java.lang.Long = java.lang.Long.valueOf(x.intValue)
+    /** Convert any integer `x` as a boxed primitive long.
+      */
     def asJLong(x: java.lang.Long): java.lang.Long = x
+    /** Convert any integer `x` as a boxed primitive long.
+      */
     def asJLong(x: AnyRef): java.lang.Long = x match {
       case x1: java.lang.Integer => java.lang.Long.valueOf(x1.longValue)
       case x2: java.lang.Long => x2
     }
 
+    /** Convert object `x` into a boxed primitive long if it is a boxed number.
+      */
     def maybeJLong(x: AnyRef): AnyRef = x match {
       case null => x
       case x1: java.lang.Integer => java.lang.Long.valueOf(x1.longValue)
@@ -353,30 +498,60 @@ package jvmcompiler {
       case _ => x
     }
 
+    /** Convert any number `x` as a raw primitive float.
+      */
     def asFloat(x: Int): Float = x.toFloat
+    /** Convert any number `x` as a raw primitive float.
+      */
     def asFloat(x: Long): Float = x.toFloat
+    /** Convert any number `x` as a raw primitive float.
+      */
     def asFloat(x: Float): Float = x
+    /** Convert any number `x` as a raw primitive float.
+      */
     def asFloat(x: java.lang.Integer): Float = x.floatValue
+    /** Convert any number `x` as a raw primitive float.
+      */
     def asFloat(x: java.lang.Long): Float = x.floatValue
+    /** Convert any number `x` as a raw primitive float.
+      */
     def asFloat(x: java.lang.Float): Float = x.floatValue
+    /** Convert any number `x` as a raw primitive float.
+      */
     def asFloat(x: AnyRef): Float = x match {
       case x1: java.lang.Integer => x1.floatValue
       case x2: java.lang.Long => x2.floatValue
       case x3: java.lang.Float => x3.floatValue
     }
 
+    /** Convert any number `x` as a boxed primitive float.
+      */
     def asJFloat(x: Int): java.lang.Float = java.lang.Float.valueOf(x)
+    /** Convert any number `x` as a boxed primitive float.
+      */
     def asJFloat(x: Long): java.lang.Float = java.lang.Float.valueOf(x)
+    /** Convert any number `x` as a boxed primitive float.
+      */
     def asJFloat(x: Float): java.lang.Float = java.lang.Float.valueOf(x)
+    /** Convert any number `x` as a boxed primitive float.
+      */
     def asJFloat(x: java.lang.Integer): java.lang.Float = java.lang.Float.valueOf(x.intValue)
+    /** Convert any number `x` as a boxed primitive float.
+      */
     def asJFloat(x: java.lang.Long): java.lang.Float = java.lang.Float.valueOf(x.longValue)
+    /** Convert any number `x` as a boxed primitive float.
+      */
     def asJFloat(x: java.lang.Float): java.lang.Float = x
+    /** Convert any number `x` as a boxed primitive float.
+      */
     def asJFloat(x: AnyRef): java.lang.Float = x match {
       case x1: java.lang.Integer => java.lang.Float.valueOf(x1.floatValue)
       case x2: java.lang.Long => java.lang.Float.valueOf(x2.floatValue)
       case x3: java.lang.Float => x3
     }
 
+    /** Convert object `x` into a boxed primtive float if it is a boxed number.
+      */
     def maybeJFloat(x: AnyRef): AnyRef = x match {
       case null => x
       case x1: java.lang.Integer => java.lang.Float.valueOf(x1.floatValue)
@@ -385,14 +560,32 @@ package jvmcompiler {
       case _ => x
     }
 
+    /** Convert any number `x` as a raw primitive double.
+      */
     def asDouble(x: Int): Double = x.toDouble
+    /** Convert any number `x` as a raw primitive double.
+      */
     def asDouble(x: Long): Double = x.toDouble
+    /** Convert any number `x` as a raw primitive double.
+      */
     def asDouble(x: Float): Double = x.toDouble
+    /** Convert any number `x` as a raw primitive double.
+      */
     def asDouble(x: Double): Double = x
+    /** Convert any number `x` as a raw primitive double.
+      */
     def asDouble(x: java.lang.Integer): Double = x.doubleValue
+    /** Convert any number `x` as a raw primitive double.
+      */
     def asDouble(x: java.lang.Long): Double = x.doubleValue
+    /** Convert any number `x` as a raw primitive double.
+      */
     def asDouble(x: java.lang.Float): Double = x.doubleValue
+    /** Convert any number `x` as a raw primitive double.
+      */
     def asDouble(x: java.lang.Double): Double = x.doubleValue
+    /** Convert any number `x` as a raw primitive double.
+      */
     def asDouble(x: AnyRef): Double = x match {
       case x1: java.lang.Integer => x1.doubleValue
       case x2: java.lang.Long => x2.doubleValue
@@ -400,14 +593,32 @@ package jvmcompiler {
       case x4: java.lang.Double => x4.doubleValue
     }
 
+    /** Convert any number `x` as a boxed primtive double.
+      */
     def asJDouble(x: Int): java.lang.Double = java.lang.Double.valueOf(x)
+    /** Convert any number `x` as a boxed primtive double.
+      */
     def asJDouble(x: Long): java.lang.Double = java.lang.Double.valueOf(x)
+    /** Convert any number `x` as a boxed primtive double.
+      */
     def asJDouble(x: Float): java.lang.Double = java.lang.Double.valueOf(x)
+    /** Convert any number `x` as a boxed primtive double.
+      */
     def asJDouble(x: Double): java.lang.Double = java.lang.Double.valueOf(x)
+    /** Convert any number `x` as a boxed primtive double.
+      */
     def asJDouble(x: java.lang.Integer): java.lang.Double = java.lang.Double.valueOf(x.intValue)
+    /** Convert any number `x` as a boxed primtive double.
+      */
     def asJDouble(x: java.lang.Long): java.lang.Double = java.lang.Double.valueOf(x.longValue)
+    /** Convert any number `x` as a boxed primtive double.
+      */
     def asJDouble(x: java.lang.Float): java.lang.Double = java.lang.Double.valueOf(x.floatValue)
+    /** Convert any number `x` as a boxed primtive double.
+      */
     def asJDouble(x: java.lang.Double): java.lang.Double = x
+    /** Convert any number `x` as a boxed primtive double.
+      */
     def asJDouble(x: AnyRef): java.lang.Double = x match {
       case x1: java.lang.Integer => java.lang.Double.valueOf(x1.doubleValue)
       case x2: java.lang.Long => java.lang.Double.valueOf(x2.doubleValue)
@@ -415,6 +626,8 @@ package jvmcompiler {
       case x4: java.lang.Double => x4
     }
 
+    /** Convert object `x` into a boxed primtive double if it is a boxed number.
+      */
     def maybeJDouble(x: AnyRef): AnyRef = x match {
       case null => x
       case x1: java.lang.Integer => java.lang.Double.valueOf(x1.doubleValue)
@@ -424,6 +637,13 @@ package jvmcompiler {
       case _ => x
     }
 
+    /** Create Java code that casts `Strings` or converts numbers to a given type.
+      * 
+      * @param x Java code for an expression that needs to be cast or converted
+      * @param avroType type to cast or convert it into
+      * @param boxed if `true`, produce boxed primitives; if `false`, produce raw primitives
+      * @return Java code as a `String`
+      */
     def wrapExpr(x: String, avroType: AvroType, boxed: Boolean): String = (avroType, boxed) match {
       case (_: AvroBoolean, false) => "com.opendatagroup.hadrian.jvmcompiler.W.asBool(" + x + ")"
       case (_: AvroInt, false) => "com.opendatagroup.hadrian.jvmcompiler.W.asInt(" + x + ")"
@@ -450,6 +670,12 @@ package jvmcompiler {
       case _ => x
     }
 
+    /** Determine if runtime exception `err` is included in a list of `filters`.
+      * 
+      * @param err the runtime exception to check
+      * @param filters exception texts or code numbers (as strings)
+      * @return `true` if `err` is included in the `filters`; `false` otherwise
+      */
     def containsException(err: PFARuntimeException, filters: Array[String]) = filters exists {filter =>
       try {
         val code = java.lang.Integer.parseInt(filter)
@@ -460,6 +686,14 @@ package jvmcompiler {
       }
     }
 
+    /** Determine if user-defined exception `err` is included in a list of `filters`.
+      * 
+      * User-defined exceptions do not necessarily have code numbers; in which case, only text strings are checked.
+      * 
+      * @param err the user-defined exception to check
+      * @param filters exception texts or code numbers (as strings)
+      * @return `true` if `err` is included in the `filters`; `false` otherwise
+      */
     def containsException(err: PFAUserException, filters: Array[String]) = filters exists {filter =>
       err.code match {
         case None => err.message == filter
@@ -474,6 +708,12 @@ package jvmcompiler {
       }
     }
 
+    /** Try to evaluate function `f` and catch any PFA exceptions.
+      * 
+      * @param f the function to evaluate (code wrapped in a Scala function object)
+      * @param hasFilter if `true`, only catch exceptions referred to in `filters`; if `false`, catch any [[com.opendatagroup.hadrian.errors.PFARuntimeException PFARuntimeException]] or [[com.opendatagroup.hadrian.errors.PFAUserException PFAUserException]]
+      * @param filters array of exceptions to catch, referred to by exception text or code number, represented as a string
+      */
     def trycatch[X <: AnyRef](f: () => X, hasFilter: Boolean, filters: Array[String]): X = {
       try {
         f()
@@ -486,35 +726,79 @@ package jvmcompiler {
     }
   }
 
+  /** Abstract class for interface [[com.opendatagroup.hadrian.jvmcompiler.PFAEngine PFAEngine]]; defines some functions in the Hadrian JAR so they don't have to be defined in auto-generated Java.
+    */
   abstract class PFAEngineBase {
+    /** An `org.apache.avro.specific.SpecificData` object specialized for this PFAEngine in its personal `java.lang.ClassLoader`.
+      */
     val specificData = new PFASpecificData(getClass.getClassLoader)
+    /** A `org.apache.avro.specific.SpecificDatumReader` object specialized for this PFAEngine in its personal `java.lang.ClassLoader`.
+      */
     def datumReader[INPUT <: AnyRef]: DatumReader[INPUT] = new PFADatumReader[INPUT](specificData)
 
+    /** Check the clock and raise a [[com.opendatagroup.hadrian.errors.PFATimeoutException PFATimeoutException]] if a method has taken too long.
+      * 
+      * Called in loops and user-defined functions.
+      */
     def checkClock(): Unit
 
+    /** Externally supplied function for handling log output from PFA.
+      * 
+      * By default, prints to standard out.
+      * 
+      * '''Arguments:'''
+      * 
+      *  - String to write to log
+      *  - `Some(namespace)` for filtering log messages or `None`
+      */
     var log: Function2[String, Option[String], Unit] =
       (str, namespace) => namespace match {
         case Some(x) => println(x + ": " + str)
         case None => println(str)
       }
 
-    private var _config: EngineConfig = null
+    /** Abstract syntax tree that was used to create this engine.
+      */
     def config: EngineConfig = _config
-    private var _options: EngineOptions = null
+    private var _config: EngineConfig = null
+    /** Implementation-specific configuration options.
+      */
     def options: EngineOptions = _options
-    private var _callGraph: Map[String, Set[String]] = null
+    private var _options: EngineOptions = null
+    /** Graph of which functions can call which other functions in the engine.
+      * 
+      * Map from function name (special forms in parentheses) to the set of all functions it calls. This map can be traversed as a graph by repeated application.
+      */
     def callGraph: Map[String, Set[String]] = _callGraph
-    private var _typeParser: ForwardDeclarationParser = null
+    private var _callGraph: Map[String, Set[String]] = null
+    /** The parser used to interpret Avro types in the PFA document, which may be used to find compiled types used by this engine.
+      */
     def typeParser: ForwardDeclarationParser = _typeParser
+    private var _typeParser: ForwardDeclarationParser = null
 
-    var _instance: Int = -1
+    /** Instance number, non-zero if this engine is part of a collection of scoring engines make from the same PFA file.
+      */
     def instance: Int = _instance
+    var _instance: Int = -1
+    /** The "metadata" field of the original PFA file as a [[com.opendatagroup.hadrian.data.PFAMap PFAMap]] that can be accessed within PFA.
+      */
+    def metadata: PFAMap[String] = _metadata
     var _metadata: PFAMap[String] = null
-    var _actionsStarted: Long = 0L
-    var _actionsFinished: Long = 0L
+    /** The "actionsStarted" symbol, counting the number of times the "action" method has started, which can be accessed within PFA.
+      */
     def actionsStarted: Long = _actionsStarted
+    var _actionsStarted: Long = 0L
+    /** The "actionsFinished" symbol, counting the number of times the "action" method has finished without exceptions, which can be accessed within PFA.
+      */
     def actionsFinished: Long = _actionsFinished
+    var _actionsFinished: Long = 0L
 
+    /** Determine which functions are called by `fcnName` by traversing the `callGraph` backward.
+      * 
+      * @param fcnName name of function to look up
+      * @param exclude set of functions to exclude
+      * @return set of functions that can call `fcnName`
+      */
     def calledBy(fcnName: String, exclude: Set[String] = Set[String]()): Set[String] =
       if (exclude.contains(fcnName))
         Set[String]()
@@ -527,6 +811,14 @@ package jvmcompiler {
             functions ++ nextLevel
           }
         }
+
+    /** Determine call depth of a function by traversing the `callGraph`.
+      * 
+      * @param fcnName name of function to look up
+      * @param exclude set of functions to exclude
+      * @param startingDepth used by recursion to count
+      * @return integral number representing call depth as a `Double`, with positive infinity as a possible result
+      */
     def callDepth(fcnName: String, exclude: Set[String] = Set[String](), startingDepth: Double = 0): Double =
       if (exclude.contains(fcnName))
         java.lang.Double.POSITIVE_INFINITY
@@ -544,28 +836,59 @@ package jvmcompiler {
             deepest
           }
         }
+    /** Determine if a function is directly recursive.
+      * 
+      * @param fcnName name of function to check
+      * @return `true` if the function directly calls itself, `false` otherwise
+      */
     def isRecursive(fcnName: String): Boolean = calledBy(fcnName).contains(fcnName)
+    /** Determine if the call depth of a function is infinite.
+      * 
+      * @param fcnName name of function to check
+      * @return `true` if the function can eventually call itself through a function that it calls, `false` otherwise
+      */
     def hasRecursive(fcnName: String): Boolean = callDepth(fcnName) == java.lang.Double.POSITIVE_INFINITY
+    /** Determine if a function modifies the scoring engine's persistent state.
+      * 
+      * @param fcnName name of function to check
+      * @return `true` if the function can eventually call `(cell-to)` or `(pool-to)` on any cell or pool.
+      */
     def hasSideEffects(fcnName: String): Boolean = {
       val reach = calledBy(fcnName)
       reach.contains(CellTo.desc)  ||  reach.contains(PoolTo.desc)  ||  reach.contains(PoolDel.desc)
     }
 
-    private var _namedTypes: Map[String, AvroType] = null
+    /** Get the [[com.opendatagroup.hadrian.datatype.AvroType AvroType]] of each compiled type. */
     def namedTypes: Map[String, AvroType] = _namedTypes
-    private var _inputType: AvroType = null
+    private var _namedTypes: Map[String, AvroType] = null
+    /** Get the [[com.opendatagroup.hadrian.datatype.AvroType AvroType]] of the input. */
     def inputType: AvroType = _inputType
-    private var _outputType: AvroType = null
+    private var _inputType: AvroType = null
+    /** Get the [[com.opendatagroup.hadrian.datatype.AvroType AvroType]] of the output. */
     def outputType: AvroType = _outputType
-    private var _method: Method.Method = null
+    private var _outputType: AvroType = null
+    /** Report whether this is a [[com.opendatagroup.hadrian.jvmcompiler.PFAMapEngine PFAMapEngine]], [[com.opendatagroup.hadrian.jvmcompiler.PFAEmitEngine PFAEmitEngine]], or a [[com.opendatagroup.hadrian.jvmcompiler.PFAFoldEngine PFAFoldEngine]] */
     def method: Method.Method = _method
+    private var _method: Method.Method = null
 
-    private var _randomGenerator: Random = null
+    /** The random number generator used by this particular scoring engine instance.
+      * 
+      * Note that if a `randseed` is given in the PFA file but a collection of scoring engines are generated from it, each scoring engine instance will have a ''different'' random generator seeded by a ''different'' seed.
+      */
     def randomGenerator = _randomGenerator
+    private var _randomGenerator: Random = null
 
+    /** Map from cell name to reflected Java field for the cells that should be rolled back in case of an exception.
+      */
     val cellsToRollback = mutable.Map[String, java.lang.reflect.Field]()
+    /** Map from pool name to reflected Java field for the pools that should be rolled back in case of an exception.
+      */
     val poolsToRollback = mutable.Map[String, java.lang.reflect.Field]()
+    /** Temporary copies of initial cell state for cells to be rolled back.
+      */
     val savedCells = mutable.Map[String, Any]()
+    /** Temporary copies of initial pool state for cells to be rolled back.
+      */
     val savedPools = mutable.Map[String, java.util.HashMap[String, AnyRef]]()
     private val privateCells = mutable.Map[String, java.lang.reflect.Field]()
     private var publicCells: SharedMap = null
@@ -575,7 +898,13 @@ package jvmcompiler {
     private var _thisClass: java.lang.Class[_] = null
     private var _context: EngineConfig.Context = null
 
+    /** Revert a scoring engine to the state it had when it was first initialized.
+      */
     def revert(): Unit = revert(None)
+    /** Revert a scoring engine to the state it had when it was first initialized.
+      * 
+      * @param sharedState shared state object to use in re-initialization
+      */
     def revert(sharedState: Option[SharedState]): Unit = {
       // get arguments for call to initialize
       val config = _config
@@ -629,6 +958,15 @@ package jvmcompiler {
       initialize(config, options, sharedState, thisClass, context, index)
     }
 
+    /** Internally called by a new PFAEngine when it is first created.
+      * 
+      * @param config abstract syntax tree representing the contents of the PFA file
+      * @param options initialization options that will be used to ''override'' any found in the PFA file
+      * @param sharedState optional shared state object used to link scoring engines (can include objects that maintain state through external databases)
+      * @param thisClass reference to this instance's class, via Java reflection
+      * @param context context object from the type-checked abstract syntax tree
+      * @param index instance number to assign
+      */
     def initialize(config: EngineConfig, options: EngineOptions, sharedState: Option[SharedState], thisClass: java.lang.Class[_], context: EngineConfig.Context, index: Int): Unit = {
       _config = config
       _options = options
@@ -776,6 +1114,8 @@ package jvmcompiler {
       }
     }
 
+    /** Internally called to save the state of some cells and pools so that they can be rolled back in case of an exception.
+      */
     def rollbackSave() {
       savedCells.clear()
       savedPools.clear()
@@ -797,6 +1137,8 @@ package jvmcompiler {
         savedPools(pname) = field.get(this).asInstanceOf[java.util.HashMap[String, AnyRef]].clone().asInstanceOf[java.util.HashMap[String, AnyRef]]
     }
 
+    /** Internally called to actually roll back the state of the scoring engine.
+      */
     def rollback() {
       // roll back the cells
       for ((cname, field) <- cellsToRollback) {
@@ -815,6 +1157,10 @@ package jvmcompiler {
         field.set(this, savedPools(pname))
     }
 
+    /** Access to the scoring engine's global lock.
+      * 
+      * Used by `snapshot` and other methods that need to block changes in the scoring engine.
+      */
     def getRunlock: AnyRef
 
     private def cellState(cell: String): Any = cellState(cell, config.cells(cell).shared)
@@ -844,18 +1190,48 @@ package jvmcompiler {
       case y: AnyRef => y
     }
 
+    /** Perform an analysis of a cell using a user-defined function.
+      * 
+      * @param name the name of the cell
+      * @param analysis a function to perform some analysis of the cell to which it is applied; note that this function '''must not''' change the cell's state
+      * @return whatever `analysis` returns
+      * 
+      * Note that the `analysis` function is called exactly once.
+      */
     def analyzeCell[X](name: String, analysis: Any => X): X = getRunlock.synchronized {
       analysis(cellState(name, config.cells(name).shared))
     }
 
+    /** Perform an analysis of a pool using a user-defined functions.
+      * 
+      * @param name the name of the pool
+      * @param analysis a function to perform some analysis of each item in the pool; note that this function '''must not''' change the pool's state
+      * @return a map from pool item name to whatever `analysis` returns for that pool item
+      * 
+      * Note that the `analysis` function is called as many times as there are items in the pool.
+      */
     def analyzePool[X](name: String, analysis: Any => X): Map[String, X] = getRunlock.synchronized {
       poolState(name, config.pools(name).shared) map {case (k, v) => (k, analysis(v))}
     }
 
+    /** Take a snapshot of one cell and represent it using objects specialized to this class (see above).
+      * 
+      * @param name the name of the cell
+      * @return an object that may contain internal PFA data, such as instances of classes that are only found in this engine's custom `classLoader`.
+      */
     def snapshotCell(name: String): AnyRef = toBoxed(cellState(name))
 
+    /** Take a snapshot of one pool and represent it using objects specialized to this class (see above).
+      * 
+      * @param name the name of the pool
+      * @return a Map from pool item name to objects that may contain internal PFA data, such as instances of classes that are only found in this engine's custom `classLoader`.
+      */
     def snapshotPool(name: String): Map[String, AnyRef] = getRunlock.synchronized { poolState(name) } map {case (k, v) => (k, toBoxed(v))}
 
+    /** Take a snapshot of the entire scoring engine (all cells and pools) and represent it as an abstract syntax tree that can be used to make new scoring engines.
+      * 
+      * Note that you can call `toJson` on the `EngineConfig` to get a string that can be written to a PFA file.
+      */
     def snapshot(): EngineConfig = getRunlock.synchronized {
       val newCells = config.cells map {
         case (cname, Cell(avroPlaceholder, _, shared, rollback, source, _)) =>
@@ -888,6 +1264,12 @@ package jvmcompiler {
         config.pos)
     }
 
+    /** Convert data from JSON to a live object using this engine's custom classes.
+      * 
+      * @param json JSON data
+      * @param schema Avro schema
+      * @return object that can be used in this engine
+      */
     def fromJson(json: Array[Byte], schema: Schema): AnyRef = {
       val reader = datumReader[AnyRef]
       reader.setSchema(schema)
@@ -895,6 +1277,12 @@ package jvmcompiler {
       reader.read(null, decoder)
     }
 
+    /** Convert data to JSON.
+      * 
+      * @param obj object reference
+      * @param schema Avro schema
+      * @return JSON string
+      */
     def toJson(obj: AnyRef, schema: Schema): String = {
       val out = new java.io.ByteArrayOutputStream
       val encoder = EncoderFactory.get.jsonEncoder(schema, out)
@@ -904,6 +1292,12 @@ package jvmcompiler {
       out.toString
     }
 
+    /** Convert data from Avro to a live object using this engine's custom classes.
+      * 
+      * @param avro Avro data
+      * @param schema Avro schema
+      * @return object that can be used in this engine
+      */
     def fromAvro(avro: Array[Byte], schema: Schema): AnyRef = {
       val reader = datumReader[AnyRef]
       reader.setSchema(schema)
@@ -911,6 +1305,12 @@ package jvmcompiler {
       reader.read(null, decoder)
     }
 
+    /** Convert data to Avro.
+      * 
+      * @param obj object reference
+      * @param schema Avro schema
+      * @return Avro bytes
+      */
     def toAvro(obj: AnyRef, schema: Schema): Array[Byte] = {
       val out = new java.io.ByteArrayOutputStream
       val encoder = EncoderFactory.get.validatingEncoder(schema, EncoderFactory.get.binaryEncoder(out, null))
@@ -920,11 +1320,42 @@ package jvmcompiler {
       out.toByteArray
     }
 
+    /** Convert data from JSON to a live object using this engine's custom classes.
+      * 
+      * @param json JSON data
+      * @param avroType data type
+      * @return object that can be used in this engine
+      */
     def fromJson(json: Array[Byte], avroType: AvroType): AnyRef = fromJson(json, avroType.schema)
+    /** Convert data from Avro to a live object using this engine's custom classes.
+      * 
+      * @param avro Avro data
+      * @param avroType data type
+      * @return object that can be used in this engine
+      */
     def fromAvro(avro: Array[Byte], avroType: AvroType): AnyRef = fromAvro(avro, avroType.schema)
+    /** Convert data to JSON.
+      * 
+      * @param obj object reference
+      * @param avroType data type
+      * @return JSON string
+      */
     def toJson(obj: AnyRef, avroType: AvroType): String         = toJson(obj, avroType.schema)
+    /** Convert data to Avro.
+      * 
+      * @param obj object reference
+      * @param avroType data type
+      * @return Avro bytes
+      */
     def toAvro(obj: AnyRef, avroType: AvroType): Array[Byte]    = toAvro(obj, avroType.schema)
 
+    /** Create an Avro iterator (subclass of `java.util.Iterator`) over Avro-serialized input data.
+      * 
+      * The objects produced by this iterator are suitable inputs to the `action` method.
+      * 
+      * @param inputStream serialized data
+      * @return unserialized data
+      */
     def avroInputIterator[X <: AnyRef](inputStream: InputStream): DataFileStream[X] = {    // DataFileStream is a java.util.Iterator
       val reader = datumReader[X]
       reader.setSchema(inputType.schema)
@@ -936,6 +1367,13 @@ package jvmcompiler {
       out
     }
 
+    /** Create an iterator over JSON-serialized input data.
+      * 
+      * The objects produced by this iterator are suitable inputs to the `action` method.
+      * 
+      * @param inputStream serialized data
+      * @return unserialized data
+      */
     def jsonInputIterator[X <: AnyRef](inputStream: InputStream): java.util.Iterator[X] = {
       val reader = datumReader[X]
       reader.setSchema(inputType.schema)
@@ -952,6 +1390,13 @@ package jvmcompiler {
       }
     }
 
+    /** Create an iterator over JSON-serialized input data.
+      * 
+      * The objects produced by this iterator are suitable inputs to the `action` method.
+      * 
+      * @param inputStream serialized data
+      * @return unserialized data
+      */
     def jsonInputIterator[X <: AnyRef](inputIterator: java.util.Iterator[String]): java.util.Iterator[X] = {
       val reader = datumReader[X]
       reader.setSchema(inputType.schema)
@@ -967,6 +1412,13 @@ package jvmcompiler {
       }
     }
 
+    /** Create an iterator over JSON-serialized input data.
+      * 
+      * The objects produced by this iterator are suitable inputs to the `action` method.
+      * 
+      * @param inputStream serialized data
+      * @return unserialized data
+      */
     def jsonInputIterator[X <: AnyRef](inputIterator: scala.collection.Iterator[String]): scala.collection.Iterator[X] = {
       val reader = datumReader[X]
       reader.setSchema(inputType.schema)
@@ -981,6 +1433,16 @@ package jvmcompiler {
       }
     }
 
+    /** Create an iterator over CSV-serialized input data.
+      * 
+      * The objects produced by this iterator are suitable inputs to the `action` method.
+      * 
+      * Note that only records of primitives can be read from CSV because of the nature of the CSV format.
+      * 
+      * @param inputStream serialized data
+      * @param csvFormat format description for [[https://commons.apache.org/proper/commons-csv/ Apache `commons-csv`]]
+      * @return unserialized data
+      */
     def csvInputIterator[X <: AnyRef](inputStream: InputStream, csvFormat: CSVFormat = CSVFormat.DEFAULT.withHeader()): java.util.Iterator[X] = {
       val constructor = inputClass.getConstructor(classOf[Array[AnyRef]])
       constructor.setAccessible(true)
@@ -990,9 +1452,20 @@ package jvmcompiler {
       data.csvInputIterator(inputStream, inputType, csvFormat, None, Some(makeRecord))
     }
 
+    /** Deserialize one JSON datum as suitable input to the `action` method.
+      */
     def jsonInput[INPUT <: AnyRef](json: Array[Byte]): INPUT = fromJson(json, inputType.schema).asInstanceOf[INPUT]
+    /** Deserialize one JSON datum as suitable input to the `action` method.
+      */
     def jsonInput[INPUT <: AnyRef](json: String): INPUT = fromJson(json.getBytes, inputType.schema).asInstanceOf[INPUT]
 
+    /** Create an output stream for Avro-serializing scoring engine output.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * @param outputStream the raw output stream onto which Avro bytes will be written.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
+      */
     def avroOutputDataStream(outputStream: java.io.OutputStream): AvroOutputDataStream = {
       val writer = new PFADatumWriter[AnyRef](outputType.schema, specificData)
       val out = new AvroOutputDataStream(writer)
@@ -1000,6 +1473,13 @@ package jvmcompiler {
       out
     }
 
+    /** Create an output stream for Avro-serializing scoring engine output.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * @param file a file that will be overwritten by output.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
+      */
     def avroOutputDataStream(file: java.io.File): AvroOutputDataStream = {
       val writer = new PFADatumWriter[AnyRef](outputType.schema, specificData)
       val out = new AvroOutputDataStream(writer)
@@ -1007,8 +1487,24 @@ package jvmcompiler {
       out
     }
 
+    /** Create an output stream for Avro-serializing scoring engine output.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * @param fileName the name of a file that will be overwritten by output.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
+      */
     def avroOutputDataStream(fileName: String): AvroOutputDataStream = avroOutputDataStream(new java.io.File(fileName))
 
+    /** Create an output stream for JSON-serializing scoring engine output.
+      * 
+      * Writes one JSON object per line.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * @param outputStream the raw output stream onto which Avro bytes will be written.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
+      */
     def jsonOutputDataStream(outputStream: java.io.OutputStream, writeSchema: Boolean): JsonOutputDataStream = {
       val encoder = EncoderFactory.get.jsonEncoder(outputType.schema, outputStream)
       val writer = new PFADatumWriter[AnyRef](outputType.schema, specificData)
@@ -1020,6 +1516,15 @@ package jvmcompiler {
       out
     }
 
+    /** Create an output stream for JSON-serializing scoring engine output.
+      * 
+      * Writes one JSON object per line.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * @param file a file that will be overwritten by output.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
+      */
     def jsonOutputDataStream(file: java.io.File, writeSchema: Boolean): JsonOutputDataStream = {
       val outputStream = new java.io.FileOutputStream(file)
       val encoder = EncoderFactory.get.jsonEncoder(outputType.schema, outputStream)
@@ -1032,22 +1537,57 @@ package jvmcompiler {
       out
     }
 
+    /** Create an output stream for JSON-serializing scoring engine output.
+      * 
+      * Writes one JSON object per line.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * @param fileName the name of a file that will be overwritten by output.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
+      */
     def jsonOutputDataStream(fileName: String, writeSchema: Boolean): JsonOutputDataStream = jsonOutputDataStream(new java.io.File(fileName), writeSchema)
 
+    /** Create an output stream for CSV-serializing scoring engine output.
+      * 
+      * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
+      * 
+      * Note that only records of primitives can be written to CSV because of the nature of the CSV format.
+      * 
+      * @param outputStream the raw output stream onto which CSV bytes will be written.
+      * @param csvFormat format description for [[https://commons.apache.org/proper/commons-csv/ Apache `commons-csv`]]
+      * @param writeHeader if `true`, write field names as the first line of the file.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
+      */
     def csvOutputDataStream(outputStream: java.io.OutputStream, csvFormat: CSVFormat = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.MINIMAL), writeHeader: Boolean = true): CsvOutputDataStream =
       data.csvOutputDataStream(outputStream, outputType, csvFormat, writeHeader)
 
+    /** Serialize one datum from the `action` method as JSON. */
     def jsonOutput[OUTPUT <: AnyRef](obj: OUTPUT): String = toJson(obj.asInstanceOf[AnyRef], outputType.schema)
 
-    var _inputClass: java.lang.Class[AnyRef] = null
-    var _outputClass: java.lang.Class[AnyRef] = null
+    /** Class object for the input type. */
     def inputClass = _inputClass
+    var _inputClass: java.lang.Class[AnyRef] = null
+    /** Class object for the output type. */
     def outputClass = _outputClass
+    var _outputClass: java.lang.Class[AnyRef] = null
 
+    /** ClassLoader in which this scoring engine and its compiled types are compiled. */
     val classLoader: java.lang.ClassLoader
     private var pfaInputTranslator: PFADataTranslator = null
     private var avroInputTranslator: AvroDataTranslator = null
+
+    /** Translate data that might have come from any PFAEngine class (not necessarily this one) into objects suitable for this PFAEngine's `action`.
+      * 
+      * @param datum objects that may have been output from another type of PFAEngine's `action`, `snapshotCell`, or `snapshotPool`.
+      * @return objects that can be input for this PFAEngine's `action`.
+      */
     def fromPFAData[INPUT <: AnyRef](datum: AnyRef): INPUT = pfaInputTranslator.translate(datum).asInstanceOf[INPUT]
+    /** Translate data that might have been deserialized by Avro into objects suitable for this PFAEngine's `action`.
+      * 
+      * @param datum objects that may be Avro generic or Avro specific objects (note that Avro specific objects are subclasses of Avro generic objects)
+      * @return objects that can be input for this PFAEngine's `action`.
+      */
     def fromGenericAvroData[INPUT <: AnyRef](datum: AnyRef): INPUT = avroInputTranslator.translate(datum).asInstanceOf[INPUT]
   }
 
@@ -1152,11 +1692,11 @@ package jvmcompiler {
     *  - '''double:''' `java.lang.Double`
     *  - '''string:''' `String` 
     *  - '''bytes:''' `Array[Byte]`
-    *  - '''array(X):''' [[com.opendatagroup.hadrian.data.PFAArray `PFAArray[X]`]] where `X` is an unboxed primitive if a primitive
-    *  - '''map(X):''' [[com.opendatagroup.hadrian.data.PFAMap `PFAMap[X]`]] where `X` is a boxed primitive if a primitive
-    *  - '''enum:''' subclass of [[com.opendatagroup.hadrian.data.PFAEnumSymbol `PFAEnumSymbol`]] that can only be found in this specific `PFAEngine`'s custom ClassLoader (cannot be created by external agent)
-    *  - '''fixed:''' subclass of [[com.opendatagroup.hadrian.data.PFAFixed `PFAFixed`]] that can only be found in the custom ClassLoader
-    *  - '''record:''' subclass of [[com.opendatagroup.hadrian.data.PFARecord `PFARecord`]] that can only be found in the custom ClassLoader
+    *  - '''array(X):''' [[com.opendatagroup.hadrian.data.PFAArray PFAArray[X]]] where `X` is an unboxed primitive if a primitive
+    *  - '''map(X):''' [[com.opendatagroup.hadrian.data.PFAMap PFAMap[X]]] where `X` is a boxed primitive if a primitive
+    *  - '''enum:''' subclass of [[com.opendatagroup.hadrian.data.PFAEnumSymbol PFAEnumSymbol]] that can only be found in this specific `PFAEngine`'s custom ClassLoader (cannot be created by external agent)
+    *  - '''fixed:''' subclass of [[com.opendatagroup.hadrian.data.PFAFixed PFAFixed]] that can only be found in the custom ClassLoader
+    *  - '''record:''' subclass of [[com.opendatagroup.hadrian.data.PFARecord PFARecord]] that can only be found in the custom ClassLoader
     *  - '''union:''' any of the above as an `AnyRef`
     * 
     * Compiled types, namely '''enum''', '''fixed''', and '''record''', have to be converted using `fromPFAData` or `fromGenericAvroData`.
@@ -1206,7 +1746,7 @@ package jvmcompiler {
     /** Determine if a function is directly recursive.
       * 
       * @param fcnName name of function to check
-      * @return `true` if the function directly calls itself, `false otherwise
+      * @return `true` if the function directly calls itself, `false` otherwise
       */
     def isRecursive(fcnName: String): Boolean
 
@@ -1396,7 +1936,7 @@ package jvmcompiler {
       * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
       * 
       * @param outputStream the raw output stream onto which Avro bytes will be written.
-      * @return an output stream with an `append` method for appending output data objects.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
       * 
       */
     def avroOutputDataStream(outputStream: java.io.OutputStream): AvroOutputDataStream
@@ -1406,7 +1946,7 @@ package jvmcompiler {
       * Return values from the `action` method (or outputs captured by an `emit` callback) are suitable for writing to this stream.
       * 
       * @param file a file that will be overwritten by output.
-      * @return an output stream with an `append` method for appending output data objects.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
       * 
       */
     def avroOutputDataStream(file: java.io.File): AvroOutputDataStream
@@ -1419,7 +1959,7 @@ package jvmcompiler {
       * 
       * @param outputStream the raw output stream onto which JSON bytes will be written.
       * @param writeSchema if `true`, write an Avro schema as the first line of the file for interpreting the JSON objects.
-      * @return an output stream with an `append` method for appending output data objects.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
       * 
       */
     def jsonOutputDataStream(outputStream: java.io.OutputStream, writeSchema: Boolean): JsonOutputDataStream
@@ -1432,7 +1972,7 @@ package jvmcompiler {
       * 
       * @param file a file that will be overwritten by output.
       * @param writeSchema if `true`, write an Avro schema as the first line of the file for interpreting the JSON objects.
-      * @return an output stream with an `append` method for appending output data objects.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
       * 
       */
     def jsonOutputDataStream(file: java.io.File, writeSchema: Boolean): JsonOutputDataStream
@@ -1445,7 +1985,7 @@ package jvmcompiler {
       * 
       * @param fileName the name of a file that will be overwritten by output.
       * @param writeSchema if `true`, write an Avro schema as the first line of the file for interpreting the JSON objects.
-      * @return an output stream with an `append` method for appending output data objects.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
       * 
       */
     def jsonOutputDataStream(fileName: String, writeSchema: Boolean): JsonOutputDataStream
@@ -1459,7 +1999,7 @@ package jvmcompiler {
       * @param outputStream the raw output stream onto which CSV bytes will be written.
       * @param csvFormat format description for [[https://commons.apache.org/proper/commons-csv/ Apache `commons-csv`]]
       * @param writeHeader if `true`, write field names as the first line of the file.
-      * @return an output stream with an `append` method for appending output data objects.
+      * @return an output stream with an `append` method for appending output data objects and a `close` method for flushing the buffer and closing the stream.
       * 
       */
     def csvOutputDataStream(outputStream: java.io.OutputStream, csvFormat: CSVFormat = CSVFormat.DEFAULT.withQuoteMode(QuoteMode.MINIMAL), writeHeader: Boolean = true): CsvOutputDataStream
@@ -1572,7 +2112,7 @@ package jvmcompiler {
       * 
       * This is a Java convenience function, like the other `factoryFromAst` but accepting Java collections and `null` instead of `None` for missing parameters.
       * 
-      * @param engineConfig a parsed, interpreted PFA document, i.e. produced by [[com.opendatagroup.hadrian.reader.jsonToAst]]
+      * @param engineConfig a parsed, interpreted PFA document, i.e. produced by [[com.opendatagroup.hadrian.reader.jsonToAst jsonToAst]]
       * @param options options that override those found in the PFA document as a Java Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
       * @param version PFA version number as a "major.minor.release" string
       * @param sharedState external state for shared cells and pools to initialize from and modify; pass `null` to limit sharing to instances of a single PFA file
@@ -1588,7 +2128,7 @@ package jvmcompiler {
       * 
       * This function is intended for use in Scala; see the other `factoryFromAst` if calling from Java.
       * 
-      * @param engineConfig a parsed, interpreted PFA document, i.e. produced by [[com.opendatagroup.hadrian.reader.jsonToAst]]
+      * @param engineConfig a parsed, interpreted PFA document, i.e. produced by [[com.opendatagroup.hadrian.reader.jsonToAst jsonToAst]]
       * @param options options that override those found in the PFA document as a Scala Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
       * @param version PFA version number as a "major.minor.release" string
       * @param sharedState external state for shared cells and pools to initialize from and modify; pass `None` to limit sharing to instances of a single PFA file
@@ -1729,7 +2269,7 @@ package jvmcompiler {
       * 
       * This is a Java convenience function, like the other `fromAst` but accepting Java collections and `null` instead of `None` for missing parameters.
       * 
-      * @param engineConfig a parsed, interpreted PFA document, i.e. produced by [[com.opendatagroup.hadrian.reader.jsonToAst]]
+      * @param engineConfig a parsed, interpreted PFA document, i.e. produced by [[com.opendatagroup.hadrian.reader.jsonToAst jsonToAst]]
       * @param options options that override those found in the PFA document as a Java Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
       * @param version PFA version number as a "major.minor.release" string
       * @param sharedState external state for shared cells and pools to initialize from and modify; pass `null` to limit sharing to instances of a single PFA file
@@ -1746,7 +2286,7 @@ package jvmcompiler {
       * 
       * This function is intended for use in Scala; see the other `fromAst` if calling from Java.
       * 
-      * @param engineConfig a parsed, interpreted PFA document, i.e. produced by [[com.opendatagroup.hadrian.reader.jsonToAst]]
+      * @param engineConfig a parsed, interpreted PFA document, i.e. produced by [[com.opendatagroup.hadrian.reader.jsonToAst jsonToAst]]
       * @param options options that override those found in the PFA document as a Scala Map of [[http://fasterxml.github.io/jackson-databind/javadoc/2.2.0/com/fasterxml/jackson/databind/JsonNode.html JsonNodes]]
       * @param version PFA version number as a "major.minor.release" string
       * @param sharedState external state for shared cells and pools to initialize from and modify; pass `None` to limit sharing to instances of a single PFA file
@@ -1873,14 +2413,25 @@ package jvmcompiler {
 
   //////////////////////////////////////////////////////////// transformation of individual forms
 
+  /** TaskResult for [[com.opendatagroup.hadrian.jvmcompiler.JVMCompiler JVMCompiler]], which represents Java code.
+    * 
+    * Not consistently used; some partial Java code results are in plain `Strings`. This class is a thin wrapper around `Strings`.
+    * 
+    * In some cases, Java code can't be created bottom up and temporary "placeholders" have to be used. These should not appear in the final Java string.
+    * 
+    */
   case class JavaCode(format: String, contents: String*) extends TaskResult {
+    /** Name of the in-memory Java file. Only used at the top level. */
     var name: Option[String] = None
+    /** Set the `name` member and return self. */
+    def setName(n: String): JavaCode = {name = Some(n); this}
+    /** Dependencies for the in-memory Java file. Only used at the top level. */
     var dependencies = Map[String, JavaCode]()
     var placeholder: Boolean = false
-    def setName(n: String): JavaCode = {name = Some(n); this}
     def setDependencies(d: Map[String, JavaCode]): JavaCode = {dependencies = d; this}
     def setAsPlaceholder(): JavaCode = {placeholder = true; this}
 
+    /** Throws an exception if any "placeholders" are still in use. */
     override def toString() =
       if (placeholder)
         throw new Exception("attempt to use JavaCode placeholder")
@@ -1888,6 +2439,8 @@ package jvmcompiler {
         format.format(contents: _*)
   }
 
+  /** Most common [[com.opendatagroup.hadrian.ast.Task Task]] for [[com.opendatagroup.hadrian.ast.Ast Ast]] `walk`; generates Java code from a PFA AST.
+    */
   class JVMCompiler extends Task {
     import JVMNameMangle._
 
@@ -1896,6 +2449,12 @@ package jvmcompiler {
       val NONE, RETURN = Value
     }
 
+    /** Helper function to format a sequence of expressions as a Java string.
+      * 
+      * @param exprs Java code for each expression.
+      * @param returnMethod if `NONE`, return `null`; if `RETURN`, return the value of the last expression
+      * @param retType return type
+      */
     def block(exprs: Seq[TaskResult], returnMethod: ReturnMethod.ReturnMethod, retType: AvroType): String = returnMethod match {
       case ReturnMethod.NONE =>
         (exprs map {"com.opendatagroup.hadrian.jvmcompiler.W.s(" + _.toString + ");"}).mkString("\n")
@@ -1909,17 +2468,36 @@ package jvmcompiler {
         }))).mkString("\n")
     }
 
+    /** Helper function to write symbols as fields of a Java class.
+      * 
+      * @param symbols symbol names and types
+      * @return Java code as a `String`
+      */
     def symbolFields(symbols: Map[String, AvroType]): String =
       symbols.map({case (n, t) => javaType(t, false, true, true) + " " + s(n) + ";"}).mkString("\n")
 
+    /** Helper function to chain path indexes together.
+      * 
+      * @param path path indexes
+      * @return Java code as a `String`
+      */
     def makePathIndex(path: Seq[PathIndex]): String = path.map(_ match {
       case ArrayIndex(expr, t) => """new com.opendatagroup.hadrian.shared.I(com.opendatagroup.hadrian.jvmcompiler.W.asInt(%s))""".format(expr.toString)
       case MapIndex(expr, t) => """new com.opendatagroup.hadrian.shared.M(%s)""".format(expr.toString)
       case RecordIndex(name, t) => """new com.opendatagroup.hadrian.shared.R("%s")""".format(StringEscapeUtils.escapeJava(name))
     }).mkString(", ")
 
+    /** Table of literal values in a PFA file; used to create a table of cached literals in Java.
+      */
     val literals = mutable.Map[String, JavaCode]()
 
+    /** Create Java code from a PFA AST context.
+      * 
+      * @param astContext the context (post-semantics check data) about an abstract syntax tree node
+      * @param engineOptions implementation options
+      * @param resolvedType sometimes used when Java code can't be built from bottom-up
+      * @return Java code
+      */
     def apply(astContext: AstContext, engineOptions: EngineOptions, resolvedType: Option[Type] = None): TaskResult = astContext match {
       case EngineConfig.Context(
         engineName: String,

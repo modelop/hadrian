@@ -38,13 +38,24 @@ import com.opendatagroup.hadrian.reader.jsonToAst
 import com.opendatagroup.hadrian.util.convertToJson
 
 package yaml {
+  /** Converts a YAML file into its equivalent JSON (if possible).
+    */
   object yamlToJson extends Function1[String, String] {
     private val safeConstructor = new SafeConstructor
 
     private def yaml: Yaml = new Yaml(new ConstructorForJsonConversion)
 
+    /** @param in input YAML
+      * @return equivalent JSON
+      */
     def apply(in: java.io.InputStream): String = convertToJson(yaml.load(in))
+    /** @param in input YAML
+      * @return equivalent JSON
+      */
     def apply(in: java.io.Reader): String = convertToJson(yaml.load(in))
+    /** @param in input YAML
+      * @return equivalent JSON
+      */
     def apply(in: String): String = convertToJson(yaml.load(in))
 
     private class ConstructorForJsonConversion extends SafeConstructor {
@@ -133,13 +144,24 @@ package yaml {
     }
   }
 
+  /** Reads PFA from serialized YAML into an abstract syntax tree.
+    */
   object yamlToAst extends Function1[String, EngineConfig] {
+    /** @param src input YAML
+      * @return a PFA configuration that has passed syntax but not semantics checks
+      */
     def apply(src: java.io.File): EngineConfig =
       jsonToAst(yamlToJson(new Scanner(src).useDelimiter("\\A").next()))
 
+    /** @param src input YAML
+      * @return a PFA configuration that has passed syntax but not semantics checks
+      */
     def apply(src: java.io.InputStream): EngineConfig =
       jsonToAst(yamlToJson(new Scanner(src).useDelimiter("\\A").next()))
 
+    /** @param src input YAML
+      * @return a PFA configuration that has passed syntax but not semantics checks
+      */
     def apply(src: String): EngineConfig = jsonToAst(yamlToJson(src))
   }
 }

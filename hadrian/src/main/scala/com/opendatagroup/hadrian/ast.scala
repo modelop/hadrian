@@ -109,6 +109,15 @@ import com.opendatagroup.hadrian.reader.JsonLong
 import com.opendatagroup.hadrian.reader.JsonDouble
 
 package object ast {
+  /** Utility function to infer the type of a given expression.
+    * 
+    * @param expr expression to examine
+    * @param symbols data types of variables used in the expression
+    * @param cells data types of cells used in the expression
+    * @param pools data types of pools used in the expression
+    * @param fcns functions used in the expression
+    * @return data type of the expression's return value
+    */
   def inferType(
     expr: Expression,
     symbols: Map[String, AvroType] = Map[String, AvroType](),
@@ -127,22 +136,61 @@ package object ast {
 
 package ast {
   //////////////////////////////////////////////////////////// symbols
-
+  /** Determine if a symbol name is valid.
+    */
   object validSymbolName extends Function1[String, Boolean] {
+    /** `[A-Za-z_][A-Za-z0-9_]*`
+      */
     val pattern = "[A-Za-z_][A-Za-z0-9_]*".r
+    /** @param test symbol (variable) name to check
+      * @return `true` if valid; `false` otherwise
+      */
     def apply(test: String): Boolean =
       pattern.unapplySeq(test) != None
   }
 
+  /** Represents the symbols (variables) and their data types in a lexical scope.
+    * 
+    * @param parent enclosing scope; symbol lookup defers to the parent scope if not found here
+    * @param symbols internal symbol names and their types
+    * @param cells initial cell names and their types
+    * @param pools initial pool names and their types
+    * @param sealedAbove if `true`, symbols in the parent scope cannot be modified (but can be accessed); if `false`, this scope does not restrict access (but a parent might)
+    */
   case class SymbolTable(parent: Option[SymbolTable], symbols: mutable.Map[String, AvroType], cells: Map[String, Cell], pools: Map[String, Pool], sealedAbove: Boolean, sealedWithin: Boolean) {
+    /** Get a symbol's type specifically from '''this''' scope.
+      * 
+      * @param name name of the symbol
+      * @return the symbol's type if defined in '''this''' scope, `None` otherwise
+      */
     def getLocal(name: String): Option[AvroType] = symbols.get(name)
+    /** Get a symbol's type specifically from a '''parent's''' sopce, not this one.
+      * 
+      * @param name name of the symbol
+      * @return the symbol's type if defined in a '''parent's''' scope, `None` otherwise
+      */
     def getAbove(name: String): Option[AvroType] = parent match {
       case Some(p) => p.get(name)
       case None => None
     }
+    /** Get a symbol's type from this scope or a parent's.
+      * 
+      * @param name name of the symbol
+      * @return the symbol's type if defined, `None` otherwise
+      */
     def get(name: String): Option[AvroType] = getLocal(name) orElse getAbove(name)
+    /** Get a symbol's type from this scope or a parent's and raise a `java.util.NoSuchElementException` if not defined
+      * 
+      * @param name name of the symbol
+      * @return the symbol's type if defined, raise a `java.util.NoSuchElementException` otherwise
+      */
     def apply(name: String): AvroType = get(name).get
 
+    /** Determine if a symbol can be modified in this scope.
+      * 
+      * @param name name of the symbol
+      * @return `true` if the symbol can be modified; `false` otherwise
+      */
     def writable(name: String): Boolean =
       if (sealedWithin)
         false
@@ -159,66 +207,158 @@ package ast {
               }
         }
 
+    /** Creaste or overwrite a symbol's type in the table.
+      * 
+      * @param name name of the symbol
+      * @param avroType the data type to associate with this symbol
+      */
     def put(name: String, avroType: AvroType): Unit = symbols.put(name, avroType)
 
+    /** Get a cell's type from this scope or a parent's.
+      * 
+      * @param name name of the cell
+      * @return the cell's type if defined, `None` otherwise
+      */
     def cell(name: String): Option[Cell] = cells.get(name) orElse (parent match {
       case Some(p) => p.cell(name)
       case None => None
     })
 
+    /** Get a pool's type from this scope or a parent's.
+      * 
+      * @param name name of the cell
+      * @return the pool's type if defined, `None` otherwise
+      */
     def pool(name: String): Option[Pool] = pools.get(name) orElse (parent match {
       case Some(p) => p.pool(name)
       case None => None
     })
 
+    /** Create a new scope with this as parent.
+      * 
+      * @param sealedAbove if `true`, symbols in the parent scope cannot be modified (but can be accessed); if `false`, this scope does not restrict access (but a parent might)
+      * @param sealedWithin if `true`, new symbols cannot be created in this scope
+      * @return a new scope, linked to this one
+      */
     def newScope(sealedAbove: Boolean, sealedWithin: Boolean): SymbolTable =
       SymbolTable(Some(this), mutable.Map[String, AvroType](), Map[String, Cell](), Map[String, Pool](), sealedAbove, sealedWithin)
 
+    /** All symbols (and their types) that are defined in this scope ('''not''' in any parents).
+      * 
+      * @return symbols and their types
+      */
     def inThisScope: Map[String, AvroType] = symbols.toMap
+    /** All symbols (and their types) that are defined in this scope and all parents.
+      * 
+      * @return symbols and their types
+      */
     def allInScope: Map[String, AvroType] = parent match {
       case Some(p) => p.allInScope ++ symbols.toMap
       case None => symbols.toMap
     }
   }
   object SymbolTable {
+    /** Create a blank symbol table.
+      * 
+      * @return a symbol table containing nothing
+      */
     def blank = new SymbolTable(None, mutable.Map[String, AvroType](), Map[String, Cell](), Map[String, Pool](), true, false)
   }
 
   //////////////////////////////////////////////////////////// functions
 
+  /** Determine if a function name is valid.
+    */
   object validFunctionName extends Function1[String, Boolean] {
+    /** `[A-Za-z_]([A-Za-z0-9_]|\\.[A-Za-z][A-Za-z0-9_]*)*`
+      */
     val pattern = "[A-Za-z_]([A-Za-z0-9_]|\\.[A-Za-z][A-Za-z0-9_]*)*".r
+    /** @param test function name to check
+    * @return `true` if valid; `false` otherwise
+    */
     def apply(test: String): Boolean =
       pattern.unapplySeq(test) != None
   }
 
+  /** Trait for a function in PFA: could be a library function, user-defined function, or emit.
+    */
   trait Fcn {
+    /** Signature of the function as used in PFA.
+      */
     def sig: Signature
+    /** Java code for a reference to this function (not a call of this function).
+      * 
+      * @param fcnType argument and return types after generics-resolution
+      * @return Java code for a reference to this function
+      */
     def javaRef(fcnType: FcnType): JavaCode
+    /** Java code for a call of this function (not a reference to the function).
+      * 
+      * @param args Java code for each argument
+      * @param argContext context objects for the arguments, after semantics checks
+      * @param paramTypes argument types after generics-resolution
+      * @param retType return type after generics-resolution
+      * @param engineOptions global options for this scoring engine (may be set in PFA or overridden by host environment)
+      * @return Java code for a call of this function
+      */
     def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode
 
+    /** Utility function for adding explicit casts to each argument.
+      * 
+      * @param args Java code for each argument
+      * @param paramTypes argument types after generics-resolution
+      * @param boxed if `true`, cast with boxed primitives; if `false`, use the raw primitives
+      * @return Java code for the arguments (as a String)
+      */
     def wrapArgs(args: Seq[JavaCode], paramTypes: Seq[Type], boxed: Boolean): String =
       args zip paramTypes map {
         case (j, t: AvroType) => W.wrapExpr(j.toString, t, boxed)
         case (j, t) => j.toString
       } mkString(", ")
 
+    /** Utility function for adding an explicit cast to one argument.
+      * 
+      * @param i argument number
+      * @param args Java code for each argument
+      * @param paramTypes argument types after generics-resolution
+      * @param boxed if `true`, cast as a boxed primitive; if `false` use a raw primitive
+      * @return Java code for one argument (as a String)
+      */
     def wrapArg(i: Int, args: Seq[JavaCode], paramTypes: Seq[Type], boxed: Boolean): String = (args(i), paramTypes(i)) match {
       case (j, t: AvroType) => W.wrapExpr(j.toString, t, boxed)
       case (j, t) => j.toString
     }
 
+    /** Write a deprecation warning on standard error if a matched signature is in the deprecated interval of its lifespan, given the requested PFA version.
+      * 
+      * @param sig the signature (we assume that is has already been matched)
+      * @param version the requested PFA version
+      */
     def deprecationWarning(sig: Sig, version: PFAVersion) {}
   }
 
+  /** Trait for a library function in PFA.
+    * 
+    * Each library function is a class inheriting from this trait and each library function used in a live scoring engine is an instance of that class with a different `pos`.
+    */
   trait LibFcn extends Fcn {
+    /** PFA name of the function, with prefix (e.g. `"model.tree.simpleTree"`).
+      */
     def name: String
+    /** Documentation XML for the function.
+      */
     def doc: scala.xml.Elem
+    /** First error code number for runtime errors in this function (if any). Used only as a baseline for counting.
+      */
     def errcodeBase: Int
     def javaRef(fcnType: FcnType): JavaCode = JavaCode("(new " + this.getClass.getName + "(" + posToJava + "))")
     def javaCode(args: Seq[JavaCode], argContext: Seq[AstContext], paramTypes: Seq[Type], retType: AvroType, engineOptions: EngineOptions): JavaCode =
       JavaCode("%s.apply(%s)", javaRef(FcnType(argContext collect {case x: ExpressionContext => x.retType}, retType)).toString, wrapArgs(args, paramTypes, true))
+    /** Keeps track of the original source code line number where this function was called.
+      */
     def pos: Option[String]
+    /** Utility function to write the `pos` as Java code.
+      */
     def posToJava: String = pos match {
       case None => "scala.Option.apply((String)null)"
       case Some(x) => "scala.Option.apply(\"" + StringEscapeUtils.escapeJava(x) + "\")"
@@ -234,6 +374,11 @@ package ast {
     }
   }
 
+  /** Represents a user-defined function.
+    * 
+    * @param name name of the function
+    * @param sig function signature (note that [[com.opendatagroup.hadrian.signature.Sigs Sigs]] is not allowed for user-defined functions)
+    */
   case class UserFcn(name: String, sig: Sig) extends Fcn {
     import JVMNameMangle._
     def javaRef(fcnType: FcnType) = JavaCode("(new %s())", f(name))
@@ -241,10 +386,20 @@ package ast {
       JavaCode("""(new %s()).apply(%s)""", f(name), wrapArgs(args, paramTypes, true))
   }
   object UserFcn {
+    /** Create an executable function object from an abstract syntax tree of a function definition.
+      * 
+      * @param n name of the new function
+      * @param fcnDef the abstract syntax tree function definition
+      * @return the executable function
+      */
     def fromFcnDef(n: String, fcnDef: FcnDef): UserFcn =
       UserFcn(n, Sig(fcnDef.params.map({case (k, t) => (k, P.fromType(t))}), P.fromType(fcnDef.ret)))
   }
 
+  /** The special `emit` function.
+    * 
+    * @param outputType output type of the PFA document, which is also known as the signature of the `emit` function
+    */
   case class EmitFcn(outputType: AvroType) extends Fcn {
     val sig = Sig(List(("output", P.fromType(outputType))), P.Null)
     def javaRef(fcnType: FcnType): JavaCode = throw new PFASemanticException("cannot reference the emit function", None)
@@ -252,8 +407,16 @@ package ast {
       JavaCode("com.opendatagroup.hadrian.jvmcompiler.W.n(f_emit.apply(%s))", wrapArg(0, args, paramTypes, true).toString)
   }
 
+  /** Represents a table of all accessible PFA function names, such as library functions, user-defined functions, and possibly emit.
+    * 
+    * @param functions function lookup table
+    */
   case class FunctionTable(functions: Map[String, Fcn])
   object FunctionTable {
+    /** Create a function table containing nothing but library functions.
+      * 
+      * This is where all the PFA library modules are enumerated.
+      */
     def blank = new FunctionTable(
       lib.core.provides ++
       lib.math.provides ++
@@ -291,52 +454,149 @@ package ast {
 
   //////////////////////////////////////////////////////////// type-checking and transforming ASTs
 
+  /** Trait for [[com.opendatagroup.hadrian.ast.Ast Ast]] context classes.
+    */
   trait AstContext
+  /** Subtrait for context classes of [[com.opendatagroup.hadrian.ast.Argument Argument]].
+    */
   trait ArgumentContext extends AstContext {
     val calls: Set[String]
   }
+  /** Subtrait for context classes of [[com.opendatagroup.hadrian.ast.Expression Expression]].
+    */
   trait ExpressionContext extends ArgumentContext {
     val retType: AvroType
   }
+  /** Subtrait for context classes of [[com.opendatagroup.hadrian.ast.FcnDef FcnDef]].
+    */
   trait FcnContext extends ArgumentContext {
     val fcnType: FcnType
   }
+  /** Trait for result of a generic task, passed to [[com.opendatagroup.hadrian.ast.Ast Ast]] `walk`.
+    */
   trait TaskResult
 
+  /** Trait for a generic task, passed to [[com.opendatagroup.hadrian.ast.Ast Ast]] `walk`.
+    */
   trait Task extends Function3[AstContext, EngineOptions, Option[Type], TaskResult] {
+    /** Perform a task from context generated by a [[com.opendatagroup.hadrian.ast.Ast Ast]] `walk`.
+      * 
+      * @param astContext data about the [[com.opendatagroup.hadrian.ast.Ast Ast]] node after type-checking
+      * @param engineOptions implementation options
+      * @param resolvedType ?
+      * @return the result of this task
+      */
     def apply(astContext: AstContext, engineOptions: EngineOptions, resolvedType: Option[Type] = None): TaskResult
   }
 
+  /** Concrete [[com.opendatagroup.hadrian.ast.Task Task]] that does nothing, used for type-checking without producing an engine.
+    */
   object NoTask extends Task {
+    /** Concrete [[com.opendatagroup.hadrian.ast.TaskResult TaskResult]] that contains no result.
+      */
     case object EmptyResult extends TaskResult
+    /** Do nothing.
+      * 
+      * @param astContext data about the [[com.opendatagroup.hadrian.ast.Ast Ast]] node after type-checking
+      * @param engineOptions implementation options
+      * @param resolvedType ?
+      * @return empty result object
+      */
     def apply(astContext: AstContext, engineOptions: EngineOptions, resolvedType: Option[Type] = None): TaskResult = {EmptyResult}
   }
 
   //////////////////////////////////////////////////////////// AST nodes
 
+  /** Abstract base class for a PFA abstract syntax tree.
+    */
   trait Ast {
+    /** Position in the original source code where this AST element resides (if any).
+      */
     def pos: Option[String]
+    /** Check equality for all fields ''except'' `pos`.
+      */
     override def equals(other: Any): Boolean
+    /** Compute hash code for all fields ''except'' `pos`.
+      */
     override def hashCode(): Int
+    /** Walk over tree applying a partial function, returning a list of results in its domain.
+      * 
+      * @param pf partial function that takes any [[com.opendatagroup.hadrian.ast.Ast Ast]] as an argument, returning anything
+      * @return a result for each abstract syntax tree node in the `pf` function's domain
+      */
     def collect[X](pf: PartialFunction[Ast, X]): Seq[X] =
       if (pf.isDefinedAt(this)) List(pf.apply(this)) else List[X]()
+    /** Walk over tree applying a partial function, returning a transformed copy of the tree.
+      * 
+      * @param pf partial function that takes any [[com.opendatagroup.hadrian.ast.Ast Ast]] as an argument, returning a replacement [[com.opendatagroup.hadrian.ast.Ast Ast]]
+      * @return tree with nodes in the `pf` function's domain transformed; everything else left as-is
+      */
     def replace(pf: PartialFunction[Ast, Ast]): Ast =
       if (pf.isDefinedAt(this)) pf.apply(this) else this
 
+    /** Walk over tree applying a [[com.opendatagroup.hadrian.ast.Task Task]] while checking for semantic errors.
+      * 
+      * This is how Java is generated from an abstract syntax tree: the [[com.opendatagroup.hadrian.ast.Task Task]] in that case is [[com.opendatagroup.hadrian.jvmcompiler.JVMCompiler JVMCompiler]].
+      * 
+      * @param task generic task to perform on this abstract syntax tree node's context
+      * @param symbolTable used to look up symbols, cells, and pools
+      * @param functionTable used to look up functions
+      * @param engineOptions implementation options
+      * @param version version of the PFA language in which to interpret this PFA
+      * @return (information about this abstract syntax tree node after type-checking, result of the generic task)
+      */
     def walk(task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AstContext, TaskResult)
+    /** Walk with a blank `symbolTable`, a blank `functionTable`, and empty `engineOptions`
+      */
     def walk(task: Task, version: PFAVersion): TaskResult = walk(task, SymbolTable.blank, FunctionTable.blank, new EngineOptions(Map[String, JsonNode](), Map[String, JsonNode]()), version)._2
 
+    /** Serialize this abstract syntax tree as a JSON string.
+      * 
+      * @param lineNumbers if `true`, include locator marks at the beginning of each JSON object
+      * @return JSON string
+      */
     def toJson(lineNumbers: Boolean = true) = convertToJson(jsonNode(lineNumbers, mutable.Set[String]()))
+    /** Convert this abstract syntax tree into a Jackson node
+      * 
+      * @param lineNumbers if `true`, include locator marks at the beginning of each JSON object
+      * @param memo used to avoid recursion; provide an empty set if unsure
+      * @return Jackson representation of the JSON
+      */
     def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode
 
+    /** Calls `toJson(false)`.
+      */
     override def toString(): String = toJson(false)
   }
 
+  /** PFA execution method may be "map", "emit", or "fold".
+    */
   object Method extends Enumeration {
     type Method = Value
     val MAP, EMIT, FOLD = Value
   }
 
+  /** Abstract syntax tree for a whole PFA document.
+    * 
+    * @param name name of the PFA engine (may be auto-generated)
+    * @param method execution method ("map", "emit", or "fold")
+    * @param inputPlaceholder input type as a placeholder (so it can exist before type resolution)
+    * @param outputPlaceholder output type as a placeholder (so it can exist before type resolution)
+    * @param begin "begin" algorithm
+    * @param action "action" algorithm
+    * @param end "end" algorithm
+    * @param fcns user-defined functions
+    * @param zero initial value for "fold" `tally`
+    * @param merge "merge" algorithm for "fold"
+    * @param cells "cell" definitions
+    * @param pools "pool" definitions
+    * @param randseed random number seed
+    * @param doc optional documentation string
+    * @param version optional version number
+    * @param metadata computer-readable documentation
+    * @param options implementation options
+    * @param pos source file location from the locator mark
+    */
   case class EngineConfig(
     name: String,
     method: Method.Method,
@@ -357,7 +617,11 @@ package ast {
     options: Map[String, JsonNode],
     pos: Option[String] = None) extends Ast {
 
+    /** Input type after type resolution.
+      */
     def input: AvroType = inputPlaceholder.avroType
+    /** Output type after type resolution.
+      */
     def output: AvroType = outputPlaceholder.avroType
 
     override def equals(other: Any): Boolean = other match {
@@ -649,24 +913,49 @@ package ast {
     ) extends AstContext
   }
 
+  /** Source methods for cells and pools.
+    */
   object CellPoolSource extends Enumeration {
     type CellPoolSource = Value
     val EMBEDDED, JSON, AVRO = Value
   }
 
   trait CellSource {
+    /** Express the cell data as a Jackson node.
+      */
     def jsonNode: JsonNode
+    /** Create a live object from the cell data.
+      * 
+      * @param specificData used to make the live objects
+      */
     def value(specificData: PFASpecificData): AnyRef
   }
 
   trait PoolSource {
+    /** Express the pool data as a Jackson node.
+      */
     def jsonNode: JsonNode
+    /** Start the process of creating live objects from the pool data (step 1).
+      * 
+      * @param specificData used to make the live objects
+      */
     def initialize(specificData: PFASpecificData): Unit
+    /** Get all the keys in the pool (step 2).
+      */
     def keys: Set[String]
+    /** Get the value of each key from the pool (step 3).
+      */
     def value(key: String): AnyRef
   }
 
+  /** Source for cell data embedded in the original PFA document.
+    * 
+    * @param jsonDom already-loaded JSON data
+    * @param avroPlaceholder cell type as a placeholder (so it can exist before type resolution)
+    */
   case class EmbeddedJsonDomCellSource(jsonDom: JsonDom, avroPlaceholder: AvroPlaceholder) extends CellSource {
+    /** Cell type after type resolution
+      */
     def avroType = avroPlaceholder.avroType
     def jsonNode = jsonDom.jsonNode
     def value(specificData: PFASpecificData): AnyRef = interpret(avroType, jsonDom, specificData)
@@ -723,7 +1012,14 @@ package ast {
     }
   }
 
+  /** Source for pool data embedded in the original PFA document.
+    * 
+    * @param jsonDom already-loaded JSON data
+    * @param avroPlaceholder pool type as a placeholder (so it can exist before type resolution)
+    */
   case class EmbeddedJsonDomPoolSource(jsonDoms: Map[String, JsonDom], avroPlaceholder: AvroPlaceholder) extends PoolSource {
+    /** Pool type after type resolution
+      */
     def avroType = avroPlaceholder.avroType
     def jsonNode = {
       val out = JsonNodeFactory.instance.objectNode
@@ -739,7 +1035,14 @@ package ast {
       EmbeddedJsonDomCellSource(jsonDoms(key), avroPlaceholder).value(specificData)
   }
 
+  /** Source for cell data in an Avro file outside of the original PFA document.
+    * 
+    * @param url location of the data
+    * @param avroPlaceholder cell type as a placeholder (so it can exist before type resolution)
+    */
   case class ExternalAvroCellSource(url: java.net.URL, avroPlaceholder: AvroPlaceholder) extends CellSource {
+    /** Cell type after type resolution
+      */
     def avroType = avroPlaceholder.avroType
     def jsonNode = JsonNodeFactory.instance.textNode(url.toString)
     def value(specificData: PFASpecificData): AnyRef = {
@@ -757,7 +1060,14 @@ package ast {
     }
   }
 
+  /** Source for pool data in an Avro file outside of the original PFA document.
+    * 
+    * @param url location of the data
+    * @param avroPlaceholder pool type as a placeholder (so it can exist before type resolution)
+    */
   case class ExternalAvroPoolSource(url: java.net.URL, avroPlaceholder: AvroPlaceholder) extends PoolSource {
+    /** Pool type after type resolution
+      */
     def avroType = avroPlaceholder.avroType
     def jsonNode = JsonNodeFactory.instance.textNode(url.toString)
     private val data = new java.util.HashMap[String, AnyRef]()
@@ -784,7 +1094,20 @@ package ast {
     }
   }
 
+  /** Interpreter for cell or pool data in a JSON file outside of the original PFA document.
+    * 
+    * Streams the external JSON data directly into live objects, skipping the [[com.opendatagroup.hadrian.reader.JsonDom JsonDom]] intermediary.
+    */
   trait DirectJsonToData {
+    /** Interpret the external JSON data as a live object (recursive function).
+      * 
+      * @param t type of the object
+      * @param parser streaming JSON parser
+      * @param token current token in the streaming JSON document
+      * @param specificData used to make the live objects
+      * @param strings cache of (manually) interned strings, to avoid memory overhead of many identical strings
+      * @param dot breadcrumbs for position in the file, for error reporting
+      */
     def interpret(t: AvroType, parser: JsonParser, token: JsonToken, specificData: PFASpecificData, strings: mutable.Map[String, String], dot: String): AnyRef = (t, token) match {
       case (_: AvroNull, JsonToken.VALUE_NULL) => null
       case (_: AvroBoolean, JsonToken.VALUE_TRUE) => java.lang.Boolean.TRUE
@@ -886,7 +1209,14 @@ package ast {
     }
   }
 
+  /** Source for cell data in a JSON file outside of the original PFA document.
+    * 
+    * @param url location of the data
+    * @param avroPlaceholder cell type as a placeholder (so it can exist before type resolution)
+    */
   case class ExternalJsonCellSource(url: java.net.URL, avroPlaceholder: AvroPlaceholder) extends CellSource with DirectJsonToData {
+    /** Cell type after type resolution
+      */
     def avroType = avroPlaceholder.avroType
     def jsonNode = reader.jsonToAst.objectMapper.readTree(url.openStream())
     def value(specificData: PFASpecificData): AnyRef = {
@@ -900,7 +1230,14 @@ package ast {
     }
   }
 
+  /** Source for pool data in a JSON file outside of the original PFA document.
+    * 
+    * @param url location of the data
+    * @param avroPlaceholder cell type as a placeholder (so it can exist before type resolution)
+    */
   case class ExternalJsonPoolSource(url: java.net.URL, avroPlaceholder: AvroPlaceholder) extends PoolSource with DirectJsonToData {
+    /** Pool type after type resolution
+      */
     def avroType = avroPlaceholder.avroType
     def jsonNode = reader.jsonToAst.objectMapper.readTree(url.openStream())
     private val data = new java.util.HashMap[String, AnyRef]()
@@ -930,7 +1267,18 @@ package ast {
     }
   }
 
+  /** Abstract syntax tree for a `cell` definition.
+    * 
+    * @param avroPlaceholder cell type as a placeholeder (so it can exist before type resolution)
+    * @param init initial cell state (embedded or external)
+    * @param shared if `true`, this cell shares data with all others in the same [[com.opendatagroup.hadrian.shared.SharedState SharedState]]
+    * @param rollback if `true`, this cell rolls back its value when it encounters an exception
+    * @param source value of cell's `source` field
+    * @param pos source file location from the locator mark
+    */
   case class Cell(avroPlaceholder: AvroPlaceholder, init: CellSource, shared: Boolean, rollback: Boolean, source: CellPoolSource.CellPoolSource, pos: Option[String] = None) extends Ast {
+    /** Cell type after type resolution.
+      */
     def avroType: AvroType = avroPlaceholder.avroType
 
     if (shared && rollback)
@@ -969,7 +1317,18 @@ package ast {
     case class Context() extends AstContext
   }
 
+  /** Abstract syntax tree for a `pool` definition.
+    * 
+    * @param avroPlaceholder pool type as a placeholeder (so it can exist before type resolution)
+    * @param init initial pool state (embedded or external)
+    * @param shared if `true`, this pool shares data with all others in the same [[com.opendatagroup.hadrian.shared.SharedState SharedState]]
+    * @param rollback if `true`, this pool rolls back its value when it encounters an exception
+    * @param source value of pool's `source` field
+    * @param pos source file location from the locator mark
+    */
   case class Pool(avroPlaceholder: AvroPlaceholder, init: PoolSource, shared: Boolean, rollback: Boolean, source: CellPoolSource.CellPoolSource, pos: Option[String] = None) extends Ast {
+    /** Pool type after type resolution
+      */
     def avroType: AvroType = avroPlaceholder.avroType
 
     if (shared && rollback)
@@ -1012,18 +1371,44 @@ package ast {
     case class Context() extends AstContext
   }
 
+  /** Trait for all function arguments, which can be expressions or function references.
+   */
   trait Argument extends Ast
+  /** Trait for all PFA expressions, which resolve to Avro-typed values.
+    */
   trait Expression extends Argument
+  /** Trait for all PFA literal values, which are known constants at compile-time.
+    */
   trait LiteralValue extends Expression
+  /** Trait for path index elements, which can be used in `attr`, `cell`, and `pool` `path` arrays.
+    */
   trait PathIndex
+  /** Array indexes, which are concrete [[com.opendatagroup.hadrian.ast.PathIndex PathIndex]] elements that dereference arrays (expressions of `int` type).
+    */
   case class ArrayIndex(i: TaskResult, t: AvroType) extends PathIndex
+  /** Map indexes, which are concrete [[com.opendatagroup.hadrian.ast.PathIndex PathIndex]] elements that dereference maps (expressions of `string` type).
+    */
   case class MapIndex(k: TaskResult, t: AvroType) extends PathIndex
+  /** Record indexes, which are concrete [[com.opendatagroup.hadrian.ast.PathIndex PathIndex]] elements that dereference records (literal `string` expressions).
+    */
   case class RecordIndex(f: String, t: AvroType) extends PathIndex
 
+  /** Mixin for [[com.opendatagroup.hadrian.ast.Ast Ast]] classes taht have paths (`attr`, `cell`, `pool`).
+    */
   trait HasPath {
     def path: Seq[Expression]
     def pos: Option[String]
 
+    /** Dereference a `path`, checking all types along the way.
+      * 
+      * @param avroType data type of the base expression or cell/pool
+      * @param task generic task to perform on each expression in the path
+      * @param symbolTable used to look up symbols, cells, and pools
+      * @param functionTable used to look up functions
+      * @param engineOptions implementation options
+      * @param version version of the PFA language in which to interpret this PFA
+      * @return (type of dereferenced object, functions called, path indexes)
+      */
     def walkPath(avroType: AvroType, task: Task, symbolTable: SymbolTable, functionTable: FunctionTable, engineOptions: EngineOptions, version: PFAVersion): (AvroType, Set[String], Seq[PathIndex]) = {
       val calls = mutable.Set[String]()
       val scope = symbolTable.newScope(true, true)
@@ -1063,9 +1448,22 @@ package ast {
     }
   }
 
+  /** Abstract syntax tree for a fucntion definition.
+    * 
+    * @param paramsPlaceholder function parameter types as placeholders (so they can exist before type resolution)
+    * @param retPlaceholder return type as a placeholder (so it can exist before type resolution)
+    * @param body expressions to evaluate
+    * @param pos source file location from the locator mark
+    */
   case class FcnDef(paramsPlaceholder: Seq[(String, AvroPlaceholder)], retPlaceholder: AvroPlaceholder, body: Seq[Expression], pos: Option[String] = None) extends Argument {
+    /** Names fo the parameters (list of strings).
+      */
     def paramNames: Seq[String] = paramsPlaceholder.map({case (k, v) => k})
+    /** Resolved parameter types (list of string -> [[com.opendatagroup.hadrian.datatype.AvroType AvroType]] singletons).
+      */
     def params: Seq[(String, AvroType)] = paramsPlaceholder.map({case (k, v) => (k, v.avroType)})
+    /** Resolved return type.
+      */
     def ret: AvroType = retPlaceholder.avroType
 
     override def equals(other: Any): Boolean = other match {
@@ -1139,6 +1537,11 @@ package ast {
     case class Context(fcnType: FcnType, calls: Set[String], paramNames: Seq[String], params: Seq[(String, AvroType)], ret: AvroType, symbols: Map[String, AvroType], exprs: Seq[TaskResult]) extends FcnContext
   }
 
+  /** Abstract syntax tree for a function reference.
+    * 
+    * @param name name of the function to reference
+    * @param pos source file location from the locator mark
+    */
   case class FcnRef(name: String, pos: Option[String] = None) extends Argument {
     override def equals(other: Any): Boolean = other match {
       case that: FcnRef => this.name == that.name  // but not pos
@@ -1191,6 +1594,12 @@ package ast {
     case class Context(fcnType: FcnType, calls: Set[String], fcn: Fcn) extends FcnContext
   }
 
+  /** Abstract syntax tree for a function reference with partial application.
+    * 
+    * @param name name of function to reference
+    * @param fill parameters to partially apply
+    * @param pos source file location from the locator mark
+    */
   case class FcnRefFill(name: String, fill: Map[String, Argument], pos: Option[String] = None) extends Argument {
     override def equals(other: Any): Boolean = other match {
       case that: FcnRefFill => this.name == that.name  &&  this.fill == that.fill  // but not pos
@@ -1284,6 +1693,12 @@ package ast {
     case class Context(fcnType: FcnType, calls: Set[String], fcn: Fcn, originalParamNames: Seq[String], argTypeResult: Map[String, (Type, TaskResult)]) extends FcnContext
   }
 
+  /** Abstract syntax tree for calling a user-defined function; choice of function determined at runtime.
+    * 
+    * @param name resolves to an enum type with each enum specifying a user-defined function
+    * @param args arguments to pass to the chosen function
+    * @param pos source file location from the locator mark
+    */
   case class CallUserFcn(name: Expression, args: Seq[Expression], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: CallUserFcn => this.name == that.name  &&  this.args == that.args  // but not pos
@@ -1376,6 +1791,12 @@ package ast {
     case class Context(retType: AvroType, calls: Set[String], name: TaskResult, nameToNum: Map[String, Int], nameToFcn: Map[String, Fcn], args: Seq[TaskResult], argContext: Seq[AstContext], nameToParamTypes: Map[String, Seq[Type]], nameToRetTypes: Map[String, AvroType], engineOptions: EngineOptions) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a function call.
+    * 
+    * @param name name of the function to call
+    * @param args arguemtns to pass to the function
+    * @param pos source file location from the locator mark
+    */
   case class Call(name: String, args: Seq[Argument], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Call => this.name == that.name  &&  this.args == that.args  // but not pos
@@ -1453,6 +1874,11 @@ package ast {
     case class Context(retType: AvroType, calls: Set[String], fcn: Fcn, args: Seq[TaskResult], argContext: Seq[AstContext], paramTypes: Seq[Type], engineOptions: EngineOptions) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a variable (symbol) reference.
+    * 
+    * @param variable (symbol) to reference
+    * @param pos source file location from the locator mark
+    */
   case class Ref(name: String, pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Ref => this.name == that.name  // but not pos
@@ -1473,6 +1899,10 @@ package ast {
     case class Context(retType: AvroType, calls: Set[String], name: String) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a literal `null`.
+    * 
+    * @param pos source file location from the locator mark.
+    */
   case class LiteralNull(pos: Option[String] = None) extends LiteralValue {
     override def equals(other: Any): Boolean = other match {
       case that: LiteralNull => true  // but not pos
@@ -1488,10 +1918,17 @@ package ast {
     override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = NullNode.getInstance
   }
   object LiteralNull {
+    /** `"(null)"`
+      */
     val desc = "(null)"
     case class Context(retType: AvroType, calls: Set[String]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a literal `true` or `false`.
+    * 
+    * @param value `true` or `false`
+    * @param pos source file location from the locator mark.
+    */
   case class LiteralBoolean(value: Boolean, pos: Option[String] = None) extends LiteralValue {
     override def equals(other: Any): Boolean = other match {
       case that: LiteralBoolean => this.value == that.value  // but not pos
@@ -1507,10 +1944,17 @@ package ast {
     override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = if (value) BooleanNode.getTrue else BooleanNode.getFalse
   }
   object LiteralBoolean {
+    /** `"(boolean)"`
+      */
     val desc = "(boolean)"
     case class Context(retType: AvroType, calls: Set[String], value: Boolean) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a literal integer.
+    * 
+    * @param value value
+    * @param pos source file location from the locator mark.
+    */
   case class LiteralInt(value: Int, pos: Option[String] = None) extends LiteralValue {
     override def equals(other: Any): Boolean = other match {
       case that: LiteralInt => this.value == that.value  // but not pos
@@ -1526,10 +1970,17 @@ package ast {
     override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = new IntNode(value)
   }
   object LiteralInt {
+    /** `"(int)"`
+      */
     val desc = "(int)"
     case class Context(retType: AvroType, calls: Set[String], value: Int) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a literal long.
+    * 
+    * @param value value
+    * @param pos source file location from the locator mark.
+    */
   case class LiteralLong(value: Long, pos: Option[String] = None) extends LiteralValue {
     override def equals(other: Any): Boolean = other match {
       case that: LiteralLong => this.value == that.value  // but not pos
@@ -1553,10 +2004,17 @@ package ast {
       new LongNode(value)
   }
   object LiteralLong {
+    /** `"(long)"`
+      */
     val desc = "(long)"
     case class Context(retType: AvroType, calls: Set[String], value: Long) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a literal float.
+    * 
+    * @param value value
+    * @param pos source file location from the locator mark.
+    */
   case class LiteralFloat(value: Float, pos: Option[String] = None) extends LiteralValue {
     override def equals(other: Any): Boolean = other match {
       case that: LiteralFloat => this.value == that.value  // but not pos
@@ -1577,10 +2035,17 @@ package ast {
     }
   }
   object LiteralFloat {
+    /** `"(float)"`
+      */
     val desc = "(float)"
     case class Context(retType: AvroType, calls: Set[String], value: Float) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a literal double.
+    * 
+    * @param value value
+    * @param pos source file location from the locator mark.
+    */
   case class LiteralDouble(value: Double, pos: Option[String] = None) extends LiteralValue {
     override def equals(other: Any): Boolean = other match {
       case that: LiteralDouble => this.value == that.value  // but not pos
@@ -1596,10 +2061,17 @@ package ast {
     override def jsonNode(lineNumbers: Boolean, memo: mutable.Set[String]): JsonNode = new DoubleNode(value)
   }
   object LiteralDouble {
+    /** `"(double)"`
+      */
     val desc = "(double)"
     case class Context(retType: AvroType, calls: Set[String], value: Double) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a literal string.
+    * 
+    * @param value value
+    * @param pos source file location from the locator mark.
+    */
   case class LiteralString(value: String, pos: Option[String] = None) extends LiteralValue {
     override def equals(other: Any): Boolean = other match {
       case that: LiteralString => this.value == that.value  // but not pos
@@ -1620,10 +2092,17 @@ package ast {
     }
   }
   object LiteralString {
+    /** `"(string)"`
+      */
     val desc = "(string)"
     case class Context(retType: AvroType, calls: Set[String], value: String) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a literal base-64 encoded binary.
+    * 
+    * @param value already base-64 decoded value
+    * @param pos source file location from the locator mark.
+    */
   case class LiteralBase64(value: Array[Byte], pos: Option[String] = None) extends LiteralValue {
     override def equals(other: Any): Boolean = other match {
       case that: LiteralBase64 => this.value.sameElements(that.value)  // but not pos
@@ -1646,11 +2125,21 @@ package ast {
     }
   }
   object LiteralBase64 {
+    /** `"(bytes)"`
+      */
     val desc = "(bytes)"
     case class Context(retType: AvroType, calls: Set[String], value: Array[Byte]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for an arbitrary literal value.
+    * 
+    * @param avroPlaceholder data type as a placeholder (so it can exist before type resolution)
+    * @param literal value encoded as a JSON string
+    * @param pos source file location from the locator mark
+    */
   case class Literal(avroPlaceholder: AvroPlaceholder, value: String, pos: Option[String] = None) extends LiteralValue {
+    /** Resolved data type.
+      */
     def avroType: AvroType = avroPlaceholder.avroType
 
     override def equals(other: Any): Boolean = other match {
@@ -1675,11 +2164,21 @@ package ast {
     }
   }
   object Literal {
+    /** `"(literal)"`
+      */
     val desc = "(literal)"
     case class Context(retType: AvroType, calls: Set[String], value: String) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a new map or record expression.
+    * 
+    * @param fields values to fill
+    * @param avroPlaceholder mapr or record type as a placeholder (so it can exist before type resolution)
+    * @param pos source file location from the locator mark
+    */
   case class NewObject(fields: Map[String, Expression], avroPlaceholder: AvroPlaceholder, pos: Option[String] = None) extends Expression {
+    /** Resolved map or record type.
+      */
     def avroType: AvroType = avroPlaceholder.avroType
 
     override def equals(other: Any): Boolean = other match {
@@ -1751,11 +2250,21 @@ package ast {
     }
   }
   object NewObject {
+    /** `"new (object)"`
+      */
     val desc = "new (object)"
     case class Context(retType: AvroType, calls: Set[String], fields: Map[String, TaskResult]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a new array expression.
+    * 
+    * @param items items to fill
+    * @param avroPlaceholder array type as a placeholder (so it can exist before type resolution)
+    * @param pos source file location from the locator mark
+    */
   case class NewArray(items: Seq[Expression], avroPlaceholder: AvroPlaceholder, pos: Option[String] = None) extends Expression {
+    /** Resolved array type.
+      */
     def avroType: AvroType = avroPlaceholder.avroType
 
     override def equals(other: Any): Boolean = other match {
@@ -1814,10 +2323,17 @@ package ast {
     }
   }
   object NewArray {
+    /** `"new (array)"`
+      */
     val desc = "new (array)"
     case class Context(retType: AvroType, calls: Set[String], items: Seq[TaskResult]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `do` block.
+    * 
+    * @param body expressions to evaluate.
+    * @param pos source file location from the locator mark
+    */
   case class Do(body: Seq[Expression], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Do => this.body == that.body  // but not pos
@@ -1866,10 +2382,17 @@ package ast {
     }
   }
   object Do {
+    /** `"do"`
+      */
     val desc = "do"
     case class Context(retType: AvroType, calls: Set[String], symbols: Map[String, AvroType], exprs: Seq[TaskResult]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `let` variable declaration.
+    * 
+    * @param values new variables and their initial values
+    * @param pos source file location from the locator mark
+    */
   case class Let(values: Map[String, Expression], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Let => this.values == that.values  // but not pos
@@ -1940,10 +2463,17 @@ package ast {
     }
   }
   object Let {
+    /** `"let"`
+      */
     val desc = "let"
     case class Context(retType: AvroType, calls: Set[String], nameTypeExpr: Seq[(String, AvroType, TaskResult)]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `set` variable update.
+    * 
+    * @param values variables and their updated values
+    * @param pos source file location from the locator mark
+    */
   case class SetVar(values: Map[String, Expression], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: SetVar => this.values == that.values  // but not pos
@@ -2003,10 +2533,18 @@ package ast {
     }
   }
   object SetVar {
+    /** `"set"`
+      */
     val desc = "set"
     case class Context(retType: AvroType, calls: Set[String], nameTypeExpr: Seq[(String, AvroType, TaskResult)]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for an `attr` array, map, record extraction.
+    * 
+    * @param expr base object to extract from
+    * @param path array, map, and record indexes to extract from the base object
+    * @param pos source file location from the locator mark
+    */
   case class AttrGet(expr: Expression, path: Seq[Expression], pos: Option[String] = None) extends Expression with HasPath {
     override def equals(other: Any): Boolean = other match {
       case that: AttrGet => this.expr == that.expr  &&  this.path == that.path  // but not pos
@@ -2059,10 +2597,19 @@ package ast {
     }
   }
   object AttrGet {
+    /** `"attr"`
+      */
     val desc = "attr"
     case class Context(retType: AvroType, calls: Set[String], expr: TaskResult, exprType: AvroType, path: Seq[PathIndex], pos: Option[String]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for an `attr-to` update.
+    * 
+    * @param expr base object to extract from
+    * @param path array, map, and record indexes to extract from the base object
+    * @param to expression for a replacement object or function reference to use as an updator
+    * @param pos source file location from the locator mark
+    */
   case class AttrTo(expr: Expression, path: Seq[Expression], to: Argument, pos: Option[String] = None) extends Expression with HasPath {
     override def equals(other: Any): Boolean = other match {
       case that: AttrTo => this.expr == that.expr  &&  this.path == that.path  &&  this.to == that.to  // but not pos
@@ -2146,10 +2693,18 @@ package ast {
     }
   }
   object AttrTo {
+    /** `"attr-to"`
+      */
     val desc = "attr-to"
     case class Context(retType: AvroType, calls: Set[String], expr: TaskResult, exprType: AvroType, setType: AvroType, path: Seq[PathIndex], to: TaskResult, toType: Type, pos: Option[String]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `cell` reference or extraction.
+    * 
+    * @param cell cell name
+    * @param path array, map, and record indexes to extract from the cell
+    * @param pos source file location from the locator mark
+    */
   case class CellGet(cell: String, path: Seq[Expression], pos: Option[String] = None) extends Expression with HasPath {
     override def equals(other: Any): Boolean = other match {
       case that: CellGet => this.cell == that.cell  &&  this.path == that.path  // but not pos
@@ -2196,10 +2751,19 @@ package ast {
     }
   }
   object CellGet {
+    /** `"cell"`
+      */
     val desc = "cell"
     case class Context(retType: AvroType, calls: Set[String], cell: String, cellType: AvroType, path: Seq[PathIndex], shared: Boolean, pos: Option[String]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `cell-to` update.
+    * 
+    * @param cell cell name
+    * @param path array, map, and record indexes to extract from the cell
+    * @param to expression for a replacement object or function reference to use as an updator
+    * @param pos souce file location from the locator mark
+    */
   case class CellTo(cell: String, path: Seq[Expression], to: Argument, pos: Option[String] = None) extends Expression with HasPath {
     override def equals(other: Any): Boolean = other match {
       case that: CellTo => this.cell == that.cell  &&  this.path == that.path  &&  this.to == that.to  // but not pos
@@ -2277,10 +2841,18 @@ package ast {
     }
   }
   object CellTo {
+    /** `"cell-to"`
+      */
     val desc = "cell-to"
     case class Context(retType: AvroType, calls: Set[String], cell: String, cellType: AvroType, setType: AvroType, path: Seq[PathIndex], to: TaskResult, toType: Type, shared: Boolean, pos: Option[String]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `pool` reference or extraction.
+    * 
+    * @param pool pool name
+    * @param path array, map, and record indexes to extract from the pool
+    * @param pos souce file location from the locator mark
+    */
   case class PoolGet(pool: String, path: Seq[Expression], pos: Option[String] = None) extends Expression with HasPath {
     override def equals(other: Any): Boolean = other match {
       case that: PoolGet => this.pool == that.pool  &&  this.path == that.path  // but not pos
@@ -2328,10 +2900,20 @@ package ast {
     }
   }
   object PoolGet {
+    /** `"pool"`
+      */
     val desc = "pool"
     case class Context(retType: AvroType, calls: Set[String], pool: String, path: Seq[PathIndex], shared: Boolean, pos: Option[String]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `pool-to` update.
+    * 
+    * @param pool pool name
+    * @param path array, map, and record indexes to extract from the pol
+    * @param to expression for a replacement object or function reference to use as an updator
+    * @param init initial value provided in case the desired pool item is empty
+    * @param pos souce file location from the locator mark
+    */
   case class PoolTo(pool: String, path: Seq[Expression], to: Argument, init: Expression, pos: Option[String] = None) extends Expression with HasPath {
     override def equals(other: Any): Boolean = other match {
       case that: PoolTo => this.pool == that.pool  &&  this.path == that.path  &&  this.to == that.to  &&  this.init == that.init  // but not pos
@@ -2417,10 +2999,18 @@ package ast {
     }
   }
   object PoolTo {
+    /** `"pool-to"`
+      */
     val desc = "pool-to"
     case class Context(retType: AvroType, calls: Set[String], pool: String, poolType: AvroType, setType: AvroType, path: Seq[PathIndex], to: TaskResult, toType: Type, init: TaskResult, shared: Boolean, pos: Option[String]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `pool-del` removal.
+    * 
+    * @param pool pool name
+    * @param del item to delete
+    * @param pos source file location from the locator mark
+    */
   case class PoolDel(pool: String, del: Expression, pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: PoolDel => this.pool == that.pool  &&  this.del == that.del  // but not pos
@@ -2464,10 +3054,19 @@ package ast {
     }
   }
   object PoolDel {
+    /** `"pool-del"`
+      */
     val desc = "pool-del"
     case class Context(retType: AvroType, calls: Set[String], pool: String, del: TaskResult, shared: Boolean) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for an `if` branch.
+    * 
+    * @param predicate test expression taht evaluates to `boolean`
+    * @param thenClause expressions to evaluate if the `predicate` evaluates to `true`
+    * @param elseClause expressions to evaluate if present and the `predicate` evaluates to `false`
+    * @param pos source file location from the locator mark
+    */
   case class If(predicate: Expression, thenClause: Seq[Expression], elseClause: Option[Seq[Expression]], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: If =>
@@ -2568,10 +3167,18 @@ package ast {
     }
   }
   object If {
+    /** `"if"`
+      */
     val desc = "if"
     case class Context(retType: AvroType, calls: Set[String], thenSymbols: Map[String, AvroType], predicate: TaskResult, thenClause: Seq[TaskResult], elseSymbols: Option[Map[String, AvroType]], elseClause: Option[Seq[TaskResult]]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `cond` branch.
+    * 
+    * @param ifthens if-then pairs without else clauses
+    * @param elseClause expressions to evaluate if present and all if-then predicates evaluate to `false`
+    * @param pos source file location from the locator mark
+    */
   case class Cond(ifthens: Seq[If], elseClause: Option[Seq[Expression]], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Cond =>
@@ -2679,11 +3286,19 @@ package ast {
     }
   }
   object Cond {
+    /** `"cond"`
+      */
     val desc = "cond"
     case class WalkBlock(retType: AvroType, symbols: Map[String, AvroType], pred: Option[TaskResult], exprs: Seq[TaskResult])
     case class Context(retType: AvroType, calls: Set[String], complete: Boolean, walkBlocks: Seq[WalkBlock]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `while` loop.
+    * 
+    * @param predicate test expression that evaluates to `boolean`
+    * @param body expressions to evaluate while `predicate` evaluates to `true`
+    * @param pos source file location from the locator mark
+    */
   case class While(predicate: Expression, body: Seq[Expression], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: While =>
@@ -2741,10 +3356,18 @@ package ast {
     }
   }
   object While {
+    /** `"while"`
+      */
     val desc = "while"
     case class Context(retType: AvroType, calls: Set[String], symbols: Map[String, AvroType], predicate: TaskResult, loopBody: Seq[TaskResult]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `do-until` post-test loop.
+    * 
+    * @param body expressions to evaluate until `predicate` evaluates to `true`
+    * @param predicate test expression that evaluates to `boolean`
+    * @param pos source file location from the locator mark
+    */
   case class DoUntil(body: Seq[Expression], predicate: Expression, pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: DoUntil =>
@@ -2802,10 +3425,20 @@ package ast {
     }
   }
   object DoUntil {
+    /** `"do-until"`
+      */
     val desc = "do-until"
     case class Context(retType: AvroType, calls: Set[String], symbols: Map[String, AvroType], loopBody: Seq[TaskResult], predicate: TaskResult) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `for` loop.
+    * 
+    * @param init initial values for the dummy variables
+    * @param predicate test expression that evaluates to `boolean`
+    * @param step update expressions for the dummy variables
+    * @param body expressions to evaluate while `predicate` evaluates to `true`
+    * @param pos source file locadtion from the locator mark
+    */
   case class For(init: Map[String, Expression], predicate: Expression, step: Map[String, Expression], body: Seq[Expression], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: For =>
@@ -2924,10 +3557,20 @@ package ast {
     }
   }
   object For {
+    /** `"for"`
+      */
     val desc = "for"
     case class Context(retType: AvroType, calls: Set[String], symbols: Map[String, AvroType], initNameTypeExpr: Seq[(String, AvroType, TaskResult)], predicate: TaskResult, loopBody: Seq[TaskResult], stepNameTypeExpr: Seq[(String, AvroType, TaskResult)]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `foreach` loop.
+    * 
+    * @param name new variable name for array items
+    * @param array expression that evaluates to an array
+    * @param body expressions to evaluate for each item of the array
+    * @param seq if `false`, seal the scope from above and allow implementations to parallelize (Hadrian doesn't)
+    * @param pos source file location from the locator mark
+    */
   case class Foreach(name: String, array: Expression, body: Seq[Expression], seq: Boolean, pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Foreach =>
@@ -3002,10 +3645,20 @@ package ast {
     }
   }
   object Foreach {
+    /** `"foreach"`
+      */
     val desc = "foreach"
     case class Context(retType: AvroType, calls: Set[String], symbols: Map[String, AvroType], objType: AvroType, objExpr: TaskResult, itemType: AvroType, name: String, loopBody: Seq[TaskResult]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for `forkey-forval` loops.
+    * 
+    * @param forkey new variable name for map keys
+    * @param forval new variable name for map values
+    * @param map expression that evaluates to a map
+    * @param body expressions that evaluate for each item of the map
+    * @param pos source file location from the locator mark
+    */
   case class Forkeyval(forkey: String, forval: String, map: Expression, body: Seq[Expression], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Forkeyval =>
@@ -3084,10 +3737,19 @@ package ast {
     }
   }
   object Forkeyval {
+    /** `"forkey-forval"`
+      */
     val desc = "forkey-forval"
     case class Context(retType: AvroType, calls: Set[String], symbols: Map[String, AvroType], objType: AvroType, objExpr: TaskResult, valueType: AvroType, forkey: String, forval: String, loopBody: Seq[TaskResult]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for one `case` of a `cast-case` block.
+    * 
+    * @param avroPlaceholder subtype cast as a placeholder (so it can exist before type resolution)
+    * @param named new variable name to hold the casted value
+    * @param body expressions to evaluate if casting to this subtype is possible
+    * @param pos source file location from the locator mark
+    */
   case class CastCase(avroPlaceholder: AvroPlaceholder, named: String, body: Seq[Expression], pos: Option[String] = None) extends Ast {
     def avroType: AvroType = avroPlaceholder.avroType
 
@@ -3146,6 +3808,13 @@ package ast {
     case class Context(retType: AvroType, name: String, toType: AvroType, calls: Set[String], symbols: Map[String, AvroType], clause: Seq[TaskResult]) extends AstContext
   }
 
+  /** Abstract syntax tree for a `cast-case` block.
+    * 
+    * @param expr expression to cast
+    * @param castCases subtype cases to attempt to cast
+    * @param partial if `true`, allow subtype cases to not fully cover the expression type
+    * @param pos source file location from the locator mark
+    */
   case class CastBlock(expr: Expression, castCases: Seq[CastCase], partial: Boolean, pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: CastBlock =>
@@ -3241,11 +3910,21 @@ package ast {
     }
   }
   object CastBlock {
+    /** `"cast-cases"`
+      */
     val desc = "cast-cases"
     case class Context(retType: AvroType, calls: Set[String], exprType: AvroType, expr: TaskResult, cases: Seq[(CastCase.Context, TaskResult)], partial: Boolean) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for an `upcast`.
+    * 
+    * @param expr expression to up-cast
+    * @param avroPlaceholder supertype as a placeholder (so it can exist before type resolution)
+    * @param pos source file location from the locator mark
+    */
   case class Upcast(expr: Expression, avroPlaceholder: AvroPlaceholder, pos: Option[String] = None) extends Expression {
+    /** Resolved supertype.
+      */
     def avroType: AvroType = avroPlaceholder.avroType
 
     override def equals(other: Any): Boolean = other match {
@@ -3289,10 +3968,19 @@ package ast {
     }
   }
   object Upcast {
+    /** `"upcast"`
+      */
     val desc = "upcast"
     case class Context(retType: AvroType, calls: Set[String], expr: TaskResult) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for an `ifnotnull` block.
+    * 
+    * @param exprs variables to check for `null`
+    * @param thenClause expressions to evaluate if all variables are not `null`
+    * @param elseClause expressions to evaluate if present and any variable is `null`
+    * @param pos source file location from the locator mark
+    */
   case class IfNotNull(exprs: Map[String, Expression], thenClause: Seq[Expression], elseClause: Option[Seq[Expression]], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: IfNotNull => this.exprs == that.exprs  &&  this.thenClause == that.thenClause  &&  this.elseClause == that.elseClause  // but not pos
@@ -3411,10 +4099,14 @@ package ast {
     }
   }
   object IfNotNull {
+    /** `"ifnotnull"`
+      */
     val desc = "ifnotnull"
     case class Context(retType: AvroType, calls: Set[String], symbolTypeResult: Seq[(String, AvroType, TaskResult)], thenSymbols: Map[String, AvroType], thenClause: Seq[TaskResult], elseSymbols: Option[Map[String, AvroType]], elseClause: Option[Seq[TaskResult]]) extends ExpressionContext
   }
 
+  /** Helper object for `pack` and `unpack` that checks format strings.
+    */
   object BinaryFormatter {
     val FormatPad = """\s*(pad)\s*""".r
     val FormatBoolean = """\s*(boolean)\s*""".r
@@ -3435,48 +4127,82 @@ package ast {
 
     def isLittleEndian(endianness: String) = (endianness == "<"  ||  endianness == "little")
 
+    /** Trait for binary format declaration.
+      */
     trait Declare[T] {
       val value: T
       val avroType: AvroType
     }
 
+    /** Binary format declaration for a padded byte.
+      */
     case class DeclarePad[T](value: T) extends Declare[T] {
       val avroType = AvroNull()
     }
+    /** Binary format declaration for a boolean type.
+      */
     case class DeclareBoolean[T](value: T) extends Declare[T] {
       val avroType = AvroBoolean()
     }
+    /** Binary format declaration for an integer byte.
+      */
     case class DeclareByte[T](value: T, unsigned: Boolean) extends Declare[T] {
       val avroType = AvroInt()
     }
+    /** Binary format declaration for a short (16-bit) integer.
+      */
     case class DeclareShort[T](value: T, littleEndian: Boolean, unsigned: Boolean) extends Declare[T] {
       val avroType = AvroInt()
     }
+    /** Binary format declaration for a regular (32-bit) integer.
+      */
     case class DeclareInt[T](value: T, littleEndian: Boolean, unsigned: Boolean) extends Declare[T] {
       val avroType = if (unsigned) AvroLong() else AvroInt()
     }
+    /** Binary format declaration for a long (64-bit) integer.
+      */
     case class DeclareLong[T](value: T, littleEndian: Boolean, unsigned: Boolean) extends Declare[T] {
       val avroType = if (unsigned) AvroDouble() else AvroLong()
     }
+    /** Binary format declaration for a single-precision (32-bit) floating point number.
+      */
     case class DeclareFloat[T](value: T, littleEndian: Boolean) extends Declare[T] {
       val avroType = AvroFloat()
     }
+    /** Binary format declaration for a double-precision (64-bit) floating point number.
+      */
     case class DeclareDouble[T](value: T, littleEndian: Boolean) extends Declare[T] {
       val avroType = AvroDouble()
     }
+    /** Binary format declaration for arbitrary-width raw data.
+      */
     case class DeclareRaw[T](value: T) extends Declare[T] {
       val avroType = AvroBytes()
     }
+    /** Binary format declaration for fixed-width raw data.
+      */
     case class DeclareRawSize[T](value: T, size: Int) extends Declare[T] {
       val avroType = AvroBytes()
     }
+    /** Binary format declaration for null-terminated raw data.
+      */
     case class DeclareToNull[T](value: T) extends Declare[T] {
       val avroType = AvroBytes()
     }
+    /** Binary format declaration for length-prefixed raw data.
+      */
     case class DeclarePrefixed[T](value: T) extends Declare[T] {
       val avroType = AvroBytes()
     }
 
+    /** Convert a format string to a [[com.opendatagroup.hadrian.ast.BinaryFormatter.Declare Declare]] object.
+      * 
+      * @param value task result, usually Java code, passed to the format declarer
+      * @param f format string
+      * @param pos source file location from the locator mark
+      * @param output `true` for `pack`; `false` for `unpack`
+      * @return format declarer
+      */
     def formatToDeclare[T](value: T, f: String, pos: Option[String], output: Boolean): Declare[T] = f match {
       case FormatPad(_) =>                       DeclarePad(value)
       case FormatBoolean(_) =>                   DeclareBoolean(value)
@@ -3502,6 +4228,11 @@ package ast {
     }
   }
 
+  /** Abstract syntax tree for a `pack` construct.
+    * 
+    * @param exprs (format, expression) pairs
+    * @param pos source file location from the locator mark
+    */
   case class Pack(exprs: Seq[(String, Expression)], pos: Option[String]) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Pack => this.exprs == that.exprs  // but not pos
@@ -3560,10 +4291,20 @@ package ast {
     }
   }
   object Pack {
+    /** `"pack"`
+      */
     val desc = "pack"
     case class Context(retType: AvroType, calls: Set[String], exprsDeclareRes: Seq[BinaryFormatter.Declare[TaskResult]], pos: Option[String]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for the `unpack` construct.
+    * 
+    * @param bytes expression that evaluates to a `bytes` object
+    * @param format (new bariable name, formatter) pairs
+    * @param thenClause expressions to evaluate if the `bytes` matches the format
+    * @param elseClause expressions to evalaute if present and the `bytes` does not match the format
+    * @param pos source file location from the locator mark
+    */
   case class Unpack(bytes: Expression, format: Seq[(String, String)], thenClause: Seq[Expression], elseClause: Option[Seq[Expression]], pos: Option[String]) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Unpack => this.bytes == that.bytes  &&  this.format == that.format  &&  this.thenClause == that.thenClause  &&  this.elseClause == that.elseClause  // but not pos
@@ -3688,10 +4429,17 @@ package ast {
     }
   }
   object Unpack {
+    /** `"unpack"`
+      */
     val desc = "unpack"
     case class Context(retType: AvroType, calls: Set[String], bytes: TaskResult, formatter: Seq[BinaryFormatter.Declare[String]], thenSymbols: Map[String, AvroType], thenClause: Seq[TaskResult], elseSymbols: Option[Map[String, AvroType]], elseClause: Option[Seq[TaskResult]], pos: Option[String]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for inline documentation.
+    * 
+    * @param comment inline documentation
+    * @param pos source file location from the locator mark
+    */
   case class Doc(comment: String, pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Doc =>
@@ -3715,10 +4463,18 @@ package ast {
     }
   }
   object Doc {
+    /** `"doc"`
+      */
     val desc = "doc"
     case class Context(retType: AvroType, calls: Set[String]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a user-defined error.
+    * 
+    * @param message error message
+    * @param code optional error code
+    * @param pos source file location from the locator mark
+    */
   case class Error(message: String, code: Option[Int], pos: Option[String] = None) extends Expression {
     if (code.exists(_ >= 0))
       throw new PFASyntaxException("\"code\" for user-defined errors must be negative", pos)
@@ -3750,10 +4506,18 @@ package ast {
     }
   }
   object Error {
+    /** `"error"`
+      */
     val desc = "error"
     case class Context(retType: AvroType, calls: Set[String], message: String, code: Option[Int], pos: Option[String]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for a `try` form.
+    * 
+    * @param exprs exprssions to evaluate taht might raise an exception
+    * @param filter optional filter for error messages or error codes
+    * @param pos source file locationn from the locator mark
+    */
   case class Try(exprs: Seq[Expression], filter: Option[Seq[Either[String, Int]]], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Try =>
@@ -3819,10 +4583,18 @@ package ast {
     }
   }
   object Try {
+    /** `"try"`
+      */
     val desc = "try"
     case class Context(retType: AvroType, calls: Set[String], symbols: Map[String, AvroType], exprs: Seq[TaskResult], exprType: AvroType, filter: Option[Seq[Either[String, Int]]]) extends ExpressionContext
   }
 
+  /** Abstract syntax tree for log messages.
+    * 
+    * @param exprs expressions to print to the log
+    * @param namespace optional namespace string
+    * @param pos source file location from the locator mark
+    */
   case class Log(exprs: Seq[Expression], namespace: Option[String], pos: Option[String] = None) extends Expression {
     override def equals(other: Any): Boolean = other match {
       case that: Log =>
@@ -3868,6 +4640,8 @@ package ast {
     }
   }
   object Log {
+    /** `"log"`
+      */
     val desc = "log"
     case class Context(retType: AvroType, calls: Set[String], symbols: Map[String, AvroType], exprTypes: Seq[(TaskResult, AvroType)], namespace: Option[String]) extends ExpressionContext
   }

@@ -125,7 +125,7 @@ package object bytes {
   //////////////////////////////////////////////////////////////////// encoding/decoding
 
   case class Decoder(charset: String) {
-    val decoder = java.nio.charset.Charset.forName(charset).newDecoder
+    def decoder = java.nio.charset.Charset.forName(charset).newDecoder
     def check(x: Array[Byte]): Boolean =
       try {
         decoder.decode(java.nio.ByteBuffer.wrap(x))
@@ -144,7 +144,7 @@ package object bytes {
   }
 
   case class Encoder(charset: String) {
-    val encoder = java.nio.charset.Charset.forName(charset).newEncoder
+    def encoder = java.nio.charset.Charset.forName(charset).newEncoder
     def check(x: String): Boolean =
       try {
         encoder.encode(java.nio.CharBuffer.wrap(x))

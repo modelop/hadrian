@@ -57,7 +57,7 @@ class Dataset(object):
             self.data = []
 
         def __repr__(self):
-            return "<Dataset.Field of type {0} at 0x{:08x}>".format("float" if self.tpe == numbers.Real else "str", id(self))
+            return "<Dataset.Field of type {0} at 0x{1:08x}>".format("float" if self.tpe == numbers.Real else "str", id(self))
 
         def add(self, v):
             self.data.append(v)
@@ -108,7 +108,7 @@ class Dataset(object):
                 converter = numpy.array([x for i, x in sorted(self.intToStr.items())], dtype=numpy.dtype(object))
                 self.data = list(converter[self.data])
             return self
-
+        
     def __init__(self, fields, names):
         self.fields = fields
         self.names = names
@@ -160,8 +160,11 @@ class Dataset(object):
 
         return cls([x.toNumpy() for x in fields], names)
 
+    def __len__(self):
+        return len(self.fields[0].data)
+
     def __repr__(self):
-        return "<Dataset with {0} fields at 0x{:08x}>".format(len(self.fields), id(self))
+        return "<Dataset with {0} fields at 0x{1:08x}>".format(len(self.fields), id(self))
 
 class TreeNode(object):
     """Represents a tree node and applies the CART algorithm to build decision and regression trees.
@@ -258,7 +261,7 @@ class TreeNode(object):
 
         if self.canSplit():
             self.splitOnce()
-            if condition(self, depth):
+            if hasattr(self, "passBranch") and hasattr(self, "failBranch") and condition(self, depth):
                 self.passBranch.splitUntil(condition, depth + 1)
                 self.failBranch.splitUntil(condition, depth + 1)
 
@@ -364,13 +367,14 @@ class TreeNode(object):
         failDataset = Dataset([], self.dataset.names)
         for field in self.dataset.fields:
             failDataset.fields.append(field.select(failSelection))
-        
-        passPredictand = self.predictand.select(passSelection)
-        failPredictand = self.predictand.select(failSelection)
 
-        # create two new tree nodes, one with the data that pass the cut, the other with the data that fail
-        self.passBranch = TreeNode(passDataset, passPredictand, self.maxSubsetSize)
-        self.failBranch = TreeNode(failDataset, failPredictand, self.maxSubsetSize)
+        if len(passDataset) > 0 and len(failDataset) > 0:
+            passPredictand = self.predictand.select(passSelection)
+            failPredictand = self.predictand.select(failSelection)
+
+            # create two new tree nodes, one with the data that pass the cut, the other with the data that fail
+            self.passBranch = TreeNode(passDataset, passPredictand, self.maxSubsetSize)
+            self.failBranch = TreeNode(failDataset, failPredictand, self.maxSubsetSize)
 
     def numericalEntropyGainTerm(self, field):
         """Split a numerical predictor in such a way that maximizes entropic gain above and below the threshold of the split."""
@@ -631,6 +635,39 @@ class TreeNode(object):
 
         return bestGainTerm, bestCombination
 
+    def walkNodes(self, topDown=True, depth=0):
+        """Return a generator that walks over all nodes in the tree, yielding a 2-tuple of node and depth.
+
+        :type topDown: bool
+        :param topDown: if ``True``, do a depth-first walk from root to leaf; if ``False``, do a depth-first walk from leaf to root
+        :type depth: int
+        :param depth: starting value for reporting depth
+        :rtype: generator of (titus.producer.cart.TreeNode, int)
+        :return: generator of (node, depth)
+        """
+
+        if topDown:
+            yield self, depth
+        if hasattr(self, "passBranch"):
+            for n, d in self.passBranch.walkNodes(topDown, depth + 1):
+                yield n, d
+        if hasattr(self, "failBranch"):
+            for n, d in self.failBranch.walkNodes(topDown, depth + 1):
+                yield n, d
+        if not topDown:
+            yield self, depth
+
+    def walkLeaves(self):
+        """Return a generator that walks over all leaves in the tree, yielding a 2-tuple of node and depth.
+
+        :rtype: generator of (titus.producer.cart.TreeNode, int)
+        :return: generator of (node, depth)
+        """
+
+        for node, depth in self.walkNodes():
+            if not hasattr(node, "passBranch") and not hasattr(node, "failBranch"):
+                yield node, depth
+
     def pfaValueType(self, dataType):
         """Create an Avro schema representing the comparison value type.
 
@@ -753,6 +790,13 @@ class TreeNode(object):
 
         return out
 
+    def splitField(self):
+        """Return the name of the input field at this split or ``None`` if this is a leaf node."""
+        if hasattr(self, "fieldIndex"):
+            return self.dataset.names[self.fieldIndex]
+        else:
+            return None
+
     def pfaValue(self, dataType, treeTypeName, nodeScores=False, datasetSize=False, predictandDistribution=False, predictandUnique=False, entropy=False, nTimesVariance=False, gain=False, valueType=None):
         """Create a PFA data structure representing this tree.
 
@@ -805,6 +849,8 @@ class TreeNode(object):
                 valueType = self.pfaValueType(dataType)
             if isinstance(valueType, AvroUnion):
                 specificType, = [x["type"] for x in dataType["fields"] if x["name"] == fieldName]
+                if operator == "in" or operator == "notIn":
+                    specificType = {"type": "array", "items": specificType}
                 if isinstance(specificType, dict):
                     specificType = specificType["type"]
                 value = {specificType: value}

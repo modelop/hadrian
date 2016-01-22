@@ -428,14 +428,24 @@
 
   * Added s.int and deprecated integer signature of s.number, so that s.number can be labeled unstable without affecting s.int (Hadrian, Titus, and PFA).
 
+  * Added docstrings to all Titus functions except unit tests and titus.lib.* libraries (Titus).
+
 **After tag v0.8.1:**
 
-  * Fixed loading of libc library under Mac OS 10.11 El Capitan (Titus)
+  * Fixed loading of libc library under Mac OS 10.11 El Capitan (Titus).
 
-  * Fixed compiler in casting case to use WrapExpr
+  * Fixed compiler in casting case to use W.wrapExpr.
 
-  * Removed 1.8 java.util.Base64 from antinous
+  * Removed 1.8 java.util.Base64 from antinous.
 
-  * Made Antinous tests insensitive to map order
+  * Made Antinous tests insensitive to map order.
 
-**Future:**
+  * Added docstrings to all Scala functions except unit tests and com.opendatagroup.hadrian.lib._ libraries (Hadrian).
+
+  * Check for 'long' everywhere we check for 'int' (Titus).
+
+**After tag v0.8.2:**
+
+  * Don't assume that nio.Encoder and nio.Decoder are thread-safe (Hadrian).
+
+  * Fixed a bug in map.values that prevented the Janino Java compiler from recognizing a type-safe situation (Hadrian).

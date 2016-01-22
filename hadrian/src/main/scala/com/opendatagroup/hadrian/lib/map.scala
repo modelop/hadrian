@@ -141,7 +141,24 @@ package object map {
         <nondeterministic type="unordered" />
       </doc>
     def errcodeBase = 26020
-    def apply[X <: AnyRef, Y](m: PFAMap[X]): PFAArray[Y] = PFAArray.fromVector(m.toMap.values.map(unbox).asInstanceOf[Seq[Y]].toVector)
+    def apply(m: AnyRef): PFAArray[_] = apply(m.asInstanceOf[PFAMap[AnyRef]])
+    def apply[X <: AnyRef](m: PFAMap[X]): PFAArray[_] = {
+      val out = m.toMap.values.toVector
+      if (out.isEmpty)
+        PFAArray.fromVector(out)
+      else if (out.forall(_.isInstanceOf[java.lang.Boolean]))
+        PFAArray.fromVector(out.map(_.asInstanceOf[java.lang.Boolean].booleanValue))
+      else if (out.forall(_.isInstanceOf[java.lang.Integer]))
+        PFAArray.fromVector(out.map(_.asInstanceOf[java.lang.Integer].intValue))
+      else if (out.forall(_.isInstanceOf[java.lang.Long]))
+        PFAArray.fromVector(out.map(_.asInstanceOf[java.lang.Long].longValue))
+      else if (out.forall(_.isInstanceOf[java.lang.Float]))
+        PFAArray.fromVector(out.map(_.asInstanceOf[java.lang.Float].floatValue))
+      else if (out.forall(_.isInstanceOf[java.lang.Double]))
+        PFAArray.fromVector(out.map(_.asInstanceOf[java.lang.Double].doubleValue))
+      else
+        PFAArray.fromVector(out)
+    }
   }
   provide(new Values)
 

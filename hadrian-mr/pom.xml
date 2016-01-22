@@ -4,7 +4,7 @@
 
     <groupId>com.opendatagroup</groupId>
     <artifactId>hadrian-mr</artifactId>
-    <version>0.8.1</version>
+    <version>0.8.3</version>
     <packaging>jar</packaging>
 
     <name>hadrian-mr</name>
@@ -53,13 +53,13 @@
         <dependency>
             <groupId>com.opendatagroup</groupId>
             <artifactId>hadrian</artifactId>
-            <version>0.8.1</version>
+            <version>0.8.3</version>
         </dependency>
 
         <dependency>
             <groupId>com.opendatagroup</groupId>
             <artifactId>antinous</artifactId>
-            <version>0.8.1</version>
+            <version>0.8.3</version>
         </dependency>
 
         <dependency>

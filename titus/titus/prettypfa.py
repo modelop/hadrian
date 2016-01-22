@@ -2126,11 +2126,13 @@ class Parser(object):
         if self.wholeDocument:
             return out
         else:
+            state = InterpretationState()
             if isinstance(out, (list, tuple)):
-                state = InterpretationState()
-                return [x.asExpr(state) for x in out]
+                out2 = [x.asExpr(state) for x in out]
             else:
-                return out.asExpr(InterpretationState())
+                out2 = out.asExpr(state)
+            state.avroTypeBuilder.resolveTypes()
+            return out2
 
 ###
 

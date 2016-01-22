@@ -130,6 +130,8 @@ import com.opendatagroup.hadrian.util.convertToJson
 import com.opendatagroup.hadrian.yaml.yamlToJson
 
 package reader {
+  /** Reads PFA from serialized JSON into an abstract syntax tree.
+    */
   object jsonToAst extends Function1[String, EngineConfig] {
     val jsonFactory = new JsonFactory
     jsonFactory.enable(JsonParser.Feature.ALLOW_NON_NUMERIC_NUMBERS)
@@ -139,8 +141,17 @@ package reader {
 
     private val NumberPattern = "[0-9]+".r
     
+    /** @param src input JSON
+      * @return a PFA configuration that has passed syntax but not semantics checks
+      */
     def apply(src: java.io.File): EngineConfig = parserToAst(jsonFactory.createJsonParser(src))
+    /** @param src input JSON
+      * @return a PFA configuration that has passed syntax but not semantics checks
+      */
     def apply(src: java.io.InputStream): EngineConfig = parserToAst(jsonFactory.createJsonParser(src))
+    /** @param src input JSON
+      * @return a PFA configuration that has passed syntax but not semantics checks
+      */
     def apply(src: String): EngineConfig = parserToAst(jsonFactory.createJsonParser(src))
 
     private def parserToAst(parser: JsonParser): EngineConfig = {
@@ -156,6 +167,11 @@ package reader {
       result
     }
 
+    /** Read a single expression from JSON, not a whole PFA document.
+      * 
+      * @param src input JSON
+      * @return a PFA configuration that has passed syntax but not semantics checks
+      */
     def expr(src: String): Expression = {
       val parser = jsonFactory.createJsonParser(src)
       val avroTypeBuilder = new AvroTypeBuilder
@@ -170,6 +186,11 @@ package reader {
       result
     }
 
+    /** Read a list of expressions from JSON, not a whole PFA document.
+      * 
+      * @param src input JSON
+      * @return a PFA configuration that has passed syntax but not semantics checks
+      */
     def exprs(src: String): Seq[Expression] = {
       val parser = jsonFactory.createJsonParser(src)
       val avroTypeBuilder = new AvroTypeBuilder
@@ -184,6 +205,11 @@ package reader {
       result
     }
 
+    /** Read a user-defined function from JSON, not a whole PFA document.
+      * 
+      * @param src input JSON
+      * @return a PFA configuration that has passed syntax but not semantics checks
+      */
     def fcn(src: String): FcnDef = {
       val parser = jsonFactory.createJsonParser(src)
       val avroTypeBuilder = new AvroTypeBuilder
@@ -301,7 +327,7 @@ package reader {
       case x => throw new PFASyntaxException("PFA engine must be a JSON object, not %s".format(tokenMessage.getOrElse(x, x.toString)), Some(pos("", jsonAt(parser))))
     }
 
-    def ingestJsonAndIgnore(parser: JsonParser, token: JsonToken, dot: String): Unit = token match {
+    private[hadrian] def ingestJsonAndIgnore(parser: JsonParser, token: JsonToken, dot: String): Unit = token match {
       case JsonToken.START_ARRAY =>
         var subtoken = parser.nextToken()
         while (subtoken != JsonToken.END_ARRAY) {
@@ -1351,11 +1377,19 @@ package reader {
     }
   }
 
+  /** Storage for uninterpreted JSON, such as cell or pool data whose types have not been established yet.
+    */
   trait JsonDom {
+  /** Convert to a Jackson JSON node.
+    */
     def jsonNode: JsonNode
+  /** Convert to a JSON string.
+    */
     def json: String = convertToJson(jsonNode)
   }
 
+  /** Represents a JSON object (i.e. map, dict, associative array...).
+    */
   case class JsonObject(entries: Map[JsonString, JsonDom]) extends JsonDom {
     def jsonNode = {
       val factory = JsonNodeFactory.instance
@@ -1365,6 +1399,8 @@ package reader {
     }
   }
 
+  /** Represents a JSON array.
+    */
   case class JsonArray(entries: Seq[JsonDom]) extends JsonDom {
     def jsonNode = {
       val factory = JsonNodeFactory.instance
@@ -1374,22 +1410,32 @@ package reader {
     }
   }
 
+  /** Represents JSON `null`.
+    */
   case object JsonNull extends JsonDom {
     val jsonNode = JsonNodeFactory.instance.nullNode
   }
 
+  /** Represents JSON `true`.
+    */
   case object JsonTrue extends JsonDom {
     val jsonNode = JsonNodeFactory.instance.booleanNode(true)
   }
 
+  /** Represents JSON `false`.
+    */
   case object JsonFalse extends JsonDom {
     val jsonNode = JsonNodeFactory.instance.booleanNode(false)
   }
 
+  /** Represents a JSON string.
+    */
   case class JsonString(value: String) extends JsonDom {
     def jsonNode = JsonNodeFactory.instance.textNode(value)
   }
 
+  /** Represents a JSON whole number.
+    */
   case class JsonLong(value: Long) extends JsonDom {
     def jsonNode = JsonNodeFactory.instance.numberNode(value)
     private val internal: java.lang.Integer =
@@ -1397,6 +1443,8 @@ package reader {
         java.lang.Integer.valueOf(value.toInt)
       else
         null
+  /** Convert to a `java.lang.Integer` object.
+    */
     def asJavaInteger: java.lang.Integer =
       if (internal != null)
         internal
@@ -1404,6 +1452,8 @@ package reader {
         java.lang.Integer.valueOf(value.toInt)
   }
 
+  /** Represents a JSON floating point number.
+    */
   case class JsonDouble(value: Double) extends JsonDom {
     def jsonNode = JsonNodeFactory.instance.numberNode(value)
   }
