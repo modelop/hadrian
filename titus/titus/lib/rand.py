@@ -205,7 +205,7 @@ class RandomUUID4(LibFcn):
     sig = Sig([], P.String())
     errcodeBase = 34110
     def __call__(self, state, scope, pos, paramTypes):
-        return "{0:08x}-{1:04x}-4{2:03x}-8{3:03x}-{4:016x}".format(state.rand.getrandbits(32), state.rand.getrandbits(16), state.rand.getrandbits(12), state.rand.getrandbits(12), state.rand.getrandbits(64))
+        return "{0:08x}-{1:04x}-4{2:03x}-8{3:03x}-{4:012x}".format(state.rand.getrandbits(32), state.rand.getrandbits(16), state.rand.getrandbits(12), state.rand.getrandbits(12), state.rand.getrandbits(48))
 provide(RandomUUID4())
 
 ########################################################### common probability distributions

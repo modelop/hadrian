@@ -259,9 +259,9 @@ output: string
 randseed: 12345
 action: {rand.uuid4: []}
 ''')
-        self.assertEqual(engine1.action(None), "6aa79987-bb91-4029-8d1f-cd8778e7d340bbcd")
-        self.assertEqual(engine1.action(None), "4c73a942-daea-45e5-8ee8-452ec40a3193ca54")
-        self.assertEqual(engine1.action(None), "90e5e945-6fac-4296-85f8-dfc9e3b11fcff454")
+        self.assertEqual(engine1.action(None), "6aa79987-bb91-4029-8d1f-cd87d340bbcd")
+        self.assertEqual(engine1.action(None), "4c73a942-daea-45e5-8ee8-452e3193ca54")
+        self.assertEqual(engine1.action(None), "90e5e945-6fac-4296-85f8-dfc91fcff454")
 
         engine2, = PFAEngine.fromYaml('''
 input: "null"
