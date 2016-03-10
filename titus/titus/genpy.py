@@ -443,9 +443,9 @@ class GeneratePython(titus.pfaast.Task):
 
         elif isinstance(context, IfNotNull.Context):
             if context.elseClause is None:
-                return "ifNotNull(state, scope, {" + ", ".join(repr(n) + ": " + e for n, t, e in context.symbolTypeResult) + "}, {" + ", ".join(repr(n) + ": '" + repr(t) + "'" for n, t, e in context.symbolTypeResult) + "}, lambda state, scope: do(" + ", ".join(context.thenClause) + "))"
+                return "ifNotNull(state, scope, {" + ", ".join(repr(n) + ": " + e for n, t, e in context.symbolTypeResult) + "}, {" + ", ".join(repr(n) + ": " + repr(repr(t)) for n, t, e in context.symbolTypeResult) + "}, lambda state, scope: do(" + ", ".join(context.thenClause) + "))"
             else:
-                return "ifNotNullElse(state, scope, {" + ", ".join(repr(n) + ": " + e for n, t, e in context.symbolTypeResult) + "}, {" + ", ".join(repr(n) + ": '" + repr(t) + "'" for n, t, e in context.symbolTypeResult) + "}, lambda state, scope: do(" + ", ".join(context.thenClause) + "), lambda state, scope: do(" + ", ".join(context.elseClause) + "))"
+                return "ifNotNullElse(state, scope, {" + ", ".join(repr(n) + ": " + e for n, t, e in context.symbolTypeResult) + "}, {" + ", ".join(repr(n) + ": " + repr(repr(t)) for n, t, e in context.symbolTypeResult) + "}, lambda state, scope: do(" + ", ".join(context.thenClause) + "), lambda state, scope: do(" + ", ".join(context.elseClause) + "))"
 
         elif isinstance(context, Pack.Context):
             return "pack(state, scope, [" + ", ".join("(" + str(d.value) + ", " + str(d) + ")" for d in context.exprsDeclareRes) + "], " + repr(context.pos) + ")"
