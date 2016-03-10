@@ -4,7 +4,7 @@
 
     <groupId>com.opendatagroup</groupId>
     <artifactId>hadrian-mr</artifactId>
-    <version>0.8.3</version>
+    <version>0.8.3-post</version>
     <packaging>jar</packaging>
 
     <name>hadrian-mr</name>
@@ -21,79 +21,6 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.apache.avro</groupId>
-            <artifactId>avro</artifactId>
-            <version>1.7.7</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.avro</groupId>
-            <artifactId>avro-mapred</artifactId>
-            <version>1.7.7</version>
-            <classifier>hadoop2</classifier>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-core</artifactId>
-            <version>2.4.1-mapr-1408</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-            <version>2.4.1-mapr-1408</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.opendatagroup</groupId>
-            <artifactId>hadrian</artifactId>
-            <version>0.8.3</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.opendatagroup</groupId>
-            <artifactId>antinous</artifactId>
-            <version>0.8.3</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-compiler</artifactId>
-            <version>2.10.4</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.scala-lang</groupId>
-            <artifactId>scala-library</artifactId>
-            <version>2.10.4</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.scopt</groupId>
-            <artifactId>scopt_2.10</artifactId>
-            <version>3.3.0</version>
-        </dependency>
-
-    </dependencies>
-
-    <repositories>
-        <repository>
-            <id>opendatagroup</id>
-            <url>http://repository.opendatagroup.com/maven</url>
-        </repository>
-
-        <repository>
-            <id>mapr</id>
-            <url>http://repository.mapr.com/maven</url>
-        </repository>
-
-    </repositories>
 
     <build>
         <plugins>
@@ -161,6 +88,7 @@
                     </execution>
                 </executions>
             </plugin>
+
         </plugins>
 
         <resources>
@@ -169,5 +97,81 @@
                 <targetPath>resources</targetPath>
             </resource>
         </resources>
+
     </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+            <version>1.7.7</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro-mapred</artifactId>
+            <version>1.7.7</version>
+            <classifier>hadoop2</classifier>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-mapreduce-client-core</artifactId>
+            <version>2.7.0-mapr-1506</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>2.7.0-mapr-1506</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.opendatagroup</groupId>
+            <artifactId>hadrian</artifactId>
+            <version>0.8.3-post</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.opendatagroup</groupId>
+            <artifactId>antinous</artifactId>
+            <version>0.8.3-post</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-compiler</artifactId>
+            <version>2.10.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>2.10.4</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.scopt</groupId>
+            <artifactId>scopt_2.10</artifactId>
+            <version>3.3.0</version>
+        </dependency>
+
+    </dependencies>
+
+    <repositories>
+        <repository>
+            <id>opendatagroup</id>
+            <url>http://repository.opendatagroup.com/maven</url>
+        </repository>
+
+        <repository>
+            <id>mapr</id>
+            <url>http://repository.mapr.com/maven</url>
+        </repository>
+
+    </repositories>
+
+
 </project>

@@ -7,7 +7,7 @@
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian-standalone</artifactId>
-  <version>0.8.3</version>
+  <version>0.8.3-post</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -27,45 +27,6 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
-  <dependencies>
-    <dependency>
-      <groupId>com.opendatagroup</groupId>
-      <artifactId>hadrian</artifactId>
-      <version>0.8.3</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.opendatagroup</groupId>
-      <artifactId>antinous</artifactId>
-      <version>0.8.3</version>
-    </dependency>
-
-    <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-simple</artifactId>
-        <version>1.7.7</version>
-    </dependency>
-
-    <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>1.7.7</version>
-    </dependency>
-
-    <dependency>
-        <groupId>com.github.scopt</groupId>
-        <artifactId>scopt_2.10</artifactId>
-        <version>3.3.0</version>
-    </dependency>
-
-  </dependencies>
-
-  <repositories>
-    <repository>
-      <id>opendatagroup</id>
-      <url>http://repository.opendatagroup.com/maven</url>
-    </repository>
-  </repositories>
 
   <build>
     <plugins>
@@ -127,4 +88,46 @@
       
     </plugins>
   </build>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>com.opendatagroup</groupId>
+      <artifactId>hadrian</artifactId>
+      <version>0.8.3-post</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.opendatagroup</groupId>
+      <artifactId>antinous</artifactId>
+      <version>0.8.3-post</version>
+    </dependency>
+
+    <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-simple</artifactId>
+        <version>1.7.7</version>
+    </dependency>
+
+    <dependency>
+        <groupId>org.slf4j</groupId>
+        <artifactId>slf4j-api</artifactId>
+        <version>1.7.7</version>
+    </dependency>
+
+    <dependency>
+        <groupId>com.github.scopt</groupId>
+        <artifactId>scopt_2.10</artifactId>
+        <version>3.3.0</version>
+    </dependency>
+
+  </dependencies>
+
+  <repositories>
+    <repository>
+      <id>opendatagroup</id>
+      <url>http://repository.opendatagroup.com/maven</url>
+    </repository>
+  </repositories>
+
 </project>

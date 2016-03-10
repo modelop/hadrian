@@ -27,7 +27,7 @@ limitations under the License.
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>antinous</artifactId>
-  <version>0.8.3</version>
+  <version>0.8.3-post</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -51,7 +51,7 @@ limitations under the License.
     <dependency>
       <groupId>com.opendatagroup</groupId>
       <artifactId>hadrian</artifactId>
-      <version>0.8.3</version>
+      <version>0.8.3-post</version>
     </dependency>
 
     <dependency>
