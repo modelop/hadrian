@@ -1,8 +1,8 @@
 Package: aurelius
 Type: Package
 Title: Generates PFA documents from R code and optionally runs them.
-Version: 0.8.3
-Date: 2016-01-19
+Version: 0.0
+Date: TODAY
 Author: Open Data
 Maintainer: Open Data Group <info@opendatagroup.com>
 Description: Converts R syntax into PFA and provides tools for assembling a PFA
