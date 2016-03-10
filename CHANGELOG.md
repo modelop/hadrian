@@ -449,3 +449,11 @@
   * Don't assume that nio.Encoder and nio.Decoder are thread-safe (Hadrian).
 
   * Fixed a bug in map.values that prevented the Janino Java compiler from recognizing a type-safe situation (Hadrian).
+
+**After tag v.0.8.3:**
+
+  * Fixed a bug in ifnotnull implementation that causes Python syntax errors for types with apostrophes in their doc strings (Titus).
+
+  * Fixed a bug in Titus implementation that returns a malformed UUID4.  The last block (as a hex string) was too long.  Updated Titus' tests
+
+  * Changed hadrian-servlet to pull hadrian dependency from the online repository rather than requiring that it be built and installed locally.
