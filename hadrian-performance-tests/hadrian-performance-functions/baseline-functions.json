@@ -1,0 +1,445 @@
+{"pfa-version": "0.8.1",
+ "pfa-tests": [
+     
+     {"function": "(nothing)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+
+                ]},
+           "output":
+               "null",
+           "action":
+               null
+          },
+      "trials": [
+          {"sample": {}, "result": null}
+      ]
+     },
+     
+     {"function": "(nothing)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": {"type": "array", "items": "int"}}
+                ]},
+           "output":
+               "null",
+           "action":
+               null
+          },
+      "trials": [
+          {"sample": {"a": []}, "result": null},
+          {"sample": {"a": [0]}, "result": null},
+          {"sample": {"a": [1, -1]}, "result": null},
+          {"sample": {"a": [2, 2, -2, 17, -17, 5, -5, -100, 100, 100]}, "result": null}
+      ]
+     },
+     
+     {"function": "(nothing)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": {"type": "array", "items": {"type": "array", "items": "string"}}}
+                ]},
+           "output":
+               "null",
+           "action":
+               null
+          },
+      "trials": [
+          {"sample": {"a": []}, "result": null},
+          {"sample": {"a": [[]]}, "result": null},
+          {"sample": {"a": [[""], ["o", "hello"]]}, "result": null},
+          {"sample": {"a": [["oneee\u2212two", "oneee\u2212two", "oneee\u2212two"], ["oneee\u2212two", "oneee\u2212two", "oneee\u2212two"], ["oneee\u2212two", "oneee\u2212two", "oneee\u2212two"]]}, "result": null}
+      ]
+     },
+     
+     {"function": "(nothing)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": {"type": "array", "items": {"type": "record", "name": "Record1", "fields": [{"name": "x", "type": "int"}, {"name": "y", "type": "string"}]}}}
+                ]},
+           "output":
+               "null",
+           "action":
+               null
+          },
+      "trials": [
+          {"sample": {"a": []}, "result": null},
+          {"sample": {"a": [{"x": 0, "y": ""}]}, "result": null},
+          {"sample": {"a": [{"x": 0, "y": "o"}, {"x": 0, "y": "hello"}]}, "result": null},
+          {"sample": {"a": [{"x": 0, "y": "oneee\u2212two"}, {"x": 0, "y": "oneee\u2212two"}, {"x": 1, "y": ""}, {"x": 1, "y": "o"}, {"x": 1, "y": "hello"}, {"x": 1, "y": "oneee\u2212two"}, {"x": -1, "y": ""}, {"x": -1, "y": "o"}, {"x": -1, "y": "hello"}, {"x": -1, "y": "oneee\u2212two"}, {"x": 2, "y": ""}, {"x": 2, "y": "o"}, {"x": 2, "y": "hello"}, {"x": 2, "y": "oneee\u2212two"}, {"x": -2, "y": ""}, {"x": -2, "y": "o"}, {"x": -2, "y": "hello"}, {"x": -2, "y": "oneee\u2212two"}, {"x": 17, "y": ""}, {"x": 17, "y": "o"}, {"x": 17, "y": "hello"}, {"x": 17, "y": "oneee\u2212two"}, {"x": -17, "y": ""}, {"x": -17, "y": "o"}, {"x": -17, "y": "hello"}, {"x": -17, "y": "oneee\u2212two"}, {"x": 5, "y": ""}, {"x": 5, "y": "o"}, {"x": 5, "y": "hello"}, {"x": 5, "y": "oneee\u2212two"}, {"x": -5, "y": ""}, {"x": -5, "y": "o"}, {"x": -5, "y": "hello"}, {"x": -5, "y": "oneee\u2212two"}, {"x": -100, "y": ""}, {"x": -100, "y": "o"}, {"x": -100, "y": "hello"}, {"x": -100, "y": "oneee\u2212two"}, {"x": 100, "y": ""}, {"x": 100, "y": "o"}, {"x": 100, "y": "hello"}, {"x": 100, "y": "oneee\u2212two"}, {"x": 100, "y": "oneee\u2212two"}]}, "result": null}
+      ]
+     },
+     
+     {"function": "(nothing)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": {"type": "array", "items": ["null", "double"]}}
+                ]},
+           "output":
+               "null",
+           "action":
+               null
+          },
+      "trials": [
+          {"sample": {"a": []}, "result": null},
+          {"sample": {"a": [null]}, "result": null},
+          {"sample": {"a": [{"double": 0.0}, {"double": 1e-05}]}, "result": null},
+          {"sample": {"a": [{"double": 0.99999}, {"double": 0.99999}, {"double": 1.0}, {"double": 1.00001}, {"double": -1e-05}, {"double": -0.99999}, {"double": -1.0}, {"double": -1.00001}, {"double": 17.0}, {"double": -17.0}, {"double": 100.0}, {"double": -100.0}, {"double": 0.1}, {"double": 0.5}, {"double": 0.9}, {"double": -0.1}, {"double": -0.5}, {"double": -0.9}, {"double": "inf"}, {"double": "-inf"}, {"double": "nan"}, {"double": "nan"}]}, "result": null}
+      ]
+     },
+     
+     {"function": "(nothing)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": "int"}
+                ]},
+           "output":
+               "null",
+           "action":
+               null
+          },
+      "trials": [
+          {"sample": {"a": 0}, "result": null},
+          {"sample": {"a": 1}, "result": null},
+          {"sample": {"a": -1}, "result": null},
+          {"sample": {"a": 2}, "result": null},
+          {"sample": {"a": -2}, "result": null},
+          {"sample": {"a": 17}, "result": null},
+          {"sample": {"a": -17}, "result": null},
+          {"sample": {"a": -100}, "result": null},
+          {"sample": {"a": 100}, "result": null}
+      ]
+     },
+     
+     {"function": "(nothing)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": {"type": "array", "items": "string"}}
+                ]},
+           "output":
+               "null",
+           "action":
+               null
+          },
+      "trials": [
+          {"sample": {"a": []}, "result": null},
+          {"sample": {"a": [""]}, "result": null},
+          {"sample": {"a": ["", "o", "hello"]}, "result": null},
+          {"sample": {"a": ["o", "hello"]}, "result": null},
+          {"sample": {"a": ["oneee\u2212two", "oneee\u2212two", "oneee\u2212two"]}, "result": null}
+      ]
+     },
+     
+     {"function": "(nothing)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": {"type": "record", "name": "Record1", "fields": [{"name": "x", "type": "int"}, {"name": "y", "type": "string"}]}}
+                ]},
+           "output":
+               "null",
+           "action":
+               null
+          },
+      "trials": [
+          {"sample": {"a": {"x": 0, "y": ""}}, "result": null},
+          {"sample": {"a": {"x": 0, "y": "o"}}, "result": null},
+          {"sample": {"a": {"x": 0, "y": "hello"}}, "result": null},
+          {"sample": {"a": {"x": 0, "y": "oneee\u2212two"}}, "result": null},
+          {"sample": {"a": {"x": 1, "y": ""}}, "result": null},
+          {"sample": {"a": {"x": 1, "y": "o"}}, "result": null},
+          {"sample": {"a": {"x": 1, "y": "hello"}}, "result": null},
+          {"sample": {"a": {"x": 1, "y": "oneee\u2212two"}}, "result": null},
+          {"sample": {"a": {"x": -1, "y": ""}}, "result": null},
+          {"sample": {"a": {"x": -1, "y": "o"}}, "result": null},
+          {"sample": {"a": {"x": -1, "y": "hello"}}, "result": null},
+          {"sample": {"a": {"x": -1, "y": "oneee\u2212two"}}, "result": null},
+          {"sample": {"a": {"x": 17, "y": ""}}, "result": null},
+          {"sample": {"a": {"x": 17, "y": "o"}}, "result": null},
+          {"sample": {"a": {"x": 17, "y": "hello"}}, "result": null},
+          {"sample": {"a": {"x": 17, "y": "oneee\u2212two"}}, "result": null},
+          {"sample": {"a": {"x": -17, "y": ""}}, "result": null},
+          {"sample": {"a": {"x": -17, "y": "o"}}, "result": null},
+          {"sample": {"a": {"x": -17, "y": "hello"}}, "result": null},
+          {"sample": {"a": {"x": -17, "y": "oneee\u2212two"}}, "result": null},
+          {"sample": {"a": {"x": 100, "y": ""}}, "result": null},
+          {"sample": {"a": {"x": 100, "y": "o"}}, "result": null},
+          {"sample": {"a": {"x": 100, "y": "hello"}}, "result": null},
+          {"sample": {"a": {"x": 100, "y": "oneee\u2212two"}}, "result": null},
+          {"sample": {"a": {"x": -100, "y": ""}}, "result": null},
+          {"sample": {"a": {"x": -100, "y": "o"}}, "result": null},
+          {"sample": {"a": {"x": -100, "y": "hello"}}, "result": null},
+          {"sample": {"a": {"x": -100, "y": "oneee\u2212two"}}, "result": null}
+      ]
+     },
+     
+     {"function": "(nothing)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": ["null", "double"]}
+                ]},
+           "output":
+               "null",
+           "action":
+               null
+          },
+      "trials": [
+          {"sample": {"a": null}, "result": null},
+          {"sample": {"a": {"double": 0.0}}, "result": null},
+          {"sample": {"a": {"double": 1e-5}}, "result": null},
+          {"sample": {"a": {"double": 0.99999}}, "result": null},
+          {"sample": {"a": {"double": 1.00001}}, "result": null},
+          {"sample": {"a": {"double": "inf"}}, "result": null},
+          {"sample": {"a": {"double": "-inf"}}, "result": null},
+          {"sample": {"a": {"double": "nan"}}, "result": null},
+          {"sample": {"a": {"double": -17.0}}, "result": null}
+      ]
+     },
+     
+     {"function": "(pass-through)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+
+                ]},
+           "output":
+               "Input",
+           "action":
+               "input"
+          },
+      "trials": [
+          {"sample": {}, "result": {}}
+      ]
+     },
+     
+     {"function": "(pass-through)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": {"type": "array", "items": "int"}}
+                ]},
+           "output":
+               "Input",
+           "action":
+               "input"
+          },
+      "trials": [
+          {"sample": {"a": []}, "result": {"a": []}},
+          {"sample": {"a": [0]}, "result": {"a": [0]}},
+          {"sample": {"a": [1, -1]}, "result": {"a": [1, -1]}},
+          {"sample": {"a": [2, 2, -2, 17, -17, 5, -5, -100, 100, 100]}, "result": {"a": [2, 2, -2, 17, -17, 5, -5, -100, 100, 100]}}
+      ]
+     },
+     
+     {"function": "(pass-through)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": {"type": "array", "items": {"type": "array", "items": "string"}}}
+                ]},
+           "output":
+               "Input",
+           "action":
+               "input"
+          },
+      "trials": [
+          {"sample": {"a": []}, "result": {"a": []}},
+          {"sample": {"a": [[]]}, "result": {"a": [[]]}},
+          {"sample": {"a": [[""], ["o", "hello"]]}, "result": {"a": [[""], ["o", "hello"]]}},
+          {"sample": {"a": [["oneee\u2212two", "oneee\u2212two", "oneee\u2212two"], ["oneee\u2212two", "oneee\u2212two", "oneee\u2212two"], ["oneee\u2212two", "oneee\u2212two", "oneee\u2212two"]]}, "result": {"a": [["oneee\u2212two", "oneee\u2212two", "oneee\u2212two"], ["oneee\u2212two", "oneee\u2212two", "oneee\u2212two"], ["oneee\u2212two", "oneee\u2212two", "oneee\u2212two"]]}}
+      ]
+     },
+     
+     {"function": "(pass-through)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": {"type": "array", "items": {"type": "record", "name": "Record1", "fields": [{"name": "x", "type": "int"}, {"name": "y", "type": "string"}]}}}
+                ]},
+           "output":
+               "Input",
+           "action":
+               "input"
+          },
+      "trials": [
+          {"sample": {"a": []}, "result": {"a": []}},
+          {"sample": {"a": [{"x": 0, "y": ""}]}, "result": {"a": [{"x": 0, "y": ""}]}},
+          {"sample": {"a": [{"x": 0, "y": "o"}, {"x": 0, "y": "hello"}]}, "result": {"a": [{"x": 0, "y": "o"}, {"x": 0, "y": "hello"}]}},
+          {"sample": {"a": [{"x": 0, "y": "oneee\u2212two"}, {"x": 0, "y": "oneee\u2212two"}, {"x": 1, "y": ""}, {"x": 1, "y": "o"}, {"x": 1, "y": "hello"}, {"x": 1, "y": "oneee\u2212two"}, {"x": -1, "y": ""}, {"x": -1, "y": "o"}, {"x": -1, "y": "hello"}, {"x": -1, "y": "oneee\u2212two"}, {"x": 2, "y": ""}, {"x": 2, "y": "o"}, {"x": 2, "y": "hello"}, {"x": 2, "y": "oneee\u2212two"}, {"x": -2, "y": ""}, {"x": -2, "y": "o"}, {"x": -2, "y": "hello"}, {"x": -2, "y": "oneee\u2212two"}, {"x": 17, "y": ""}, {"x": 17, "y": "o"}, {"x": 17, "y": "hello"}, {"x": 17, "y": "oneee\u2212two"}, {"x": -17, "y": ""}, {"x": -17, "y": "o"}, {"x": -17, "y": "hello"}, {"x": -17, "y": "oneee\u2212two"}, {"x": 5, "y": ""}, {"x": 5, "y": "o"}, {"x": 5, "y": "hello"}, {"x": 5, "y": "oneee\u2212two"}, {"x": -5, "y": ""}, {"x": -5, "y": "o"}, {"x": -5, "y": "hello"}, {"x": -5, "y": "oneee\u2212two"}, {"x": -100, "y": ""}, {"x": -100, "y": "o"}, {"x": -100, "y": "hello"}, {"x": -100, "y": "oneee\u2212two"}, {"x": 100, "y": ""}, {"x": 100, "y": "o"}, {"x": 100, "y": "hello"}, {"x": 100, "y": "oneee\u2212two"}, {"x": 100, "y": "oneee\u2212two"}]}, "result": {"a": [{"x": 0, "y": "oneee\u2212two"}, {"x": 0, "y": "oneee\u2212two"}, {"x": 1, "y": ""}, {"x": 1, "y": "o"}, {"x": 1, "y": "hello"}, {"x": 1, "y": "oneee\u2212two"}, {"x": -1, "y": ""}, {"x": -1, "y": "o"}, {"x": -1, "y": "hello"}, {"x": -1, "y": "oneee\u2212two"}, {"x": 2, "y": ""}, {"x": 2, "y": "o"}, {"x": 2, "y": "hello"}, {"x": 2, "y": "oneee\u2212two"}, {"x": -2, "y": ""}, {"x": -2, "y": "o"}, {"x": -2, "y": "hello"}, {"x": -2, "y": "oneee\u2212two"}, {"x": 17, "y": ""}, {"x": 17, "y": "o"}, {"x": 17, "y": "hello"}, {"x": 17, "y": "oneee\u2212two"}, {"x": -17, "y": ""}, {"x": -17, "y": "o"}, {"x": -17, "y": "hello"}, {"x": -17, "y": "oneee\u2212two"}, {"x": 5, "y": ""}, {"x": 5, "y": "o"}, {"x": 5, "y": "hello"}, {"x": 5, "y": "oneee\u2212two"}, {"x": -5, "y": ""}, {"x": -5, "y": "o"}, {"x": -5, "y": "hello"}, {"x": -5, "y": "oneee\u2212two"}, {"x": -100, "y": ""}, {"x": -100, "y": "o"}, {"x": -100, "y": "hello"}, {"x": -100, "y": "oneee\u2212two"}, {"x": 100, "y": ""}, {"x": 100, "y": "o"}, {"x": 100, "y": "hello"}, {"x": 100, "y": "oneee\u2212two"}, {"x": 100, "y": "oneee\u2212two"}]}}
+      ]
+     },
+     
+     {"function": "(pass-through)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": {"type": "array", "items": ["null", "double"]}}
+                ]},
+           "output":
+               "Input",
+           "action":
+               "input"
+          },
+      "trials": [
+          {"sample": {"a": []}, "result": {"a": []}},
+          {"sample": {"a": [null]}, "result": {"a": [null]}},
+          {"sample": {"a": [{"double": 0.0}, {"double": 1e-05}]}, "result": {"a": [{"double": 0.0}, {"double": 1e-05}]}},
+          {"sample": {"a": [{"double": 0.99999}, {"double": 0.99999}, {"double": 1.0}, {"double": 1.00001}, {"double": -1e-05}, {"double": -0.99999}, {"double": -1.0}, {"double": -1.00001}, {"double": 17.0}, {"double": -17.0}, {"double": 100.0}, {"double": -100.0}, {"double": 0.1}, {"double": 0.5}, {"double": 0.9}, {"double": -0.1}, {"double": -0.5}, {"double": -0.9}, {"double": "inf"}, {"double": "-inf"}, {"double": "nan"}, {"double": "nan"}]}, "result": {"a": [{"double": 0.99999}, {"double": 0.99999}, {"double": 1.0}, {"double": 1.00001}, {"double": -1e-05}, {"double": -0.99999}, {"double": -1.0}, {"double": -1.00001}, {"double": 17.0}, {"double": -17.0}, {"double": 100.0}, {"double": -100.0}, {"double": 0.1}, {"double": 0.5}, {"double": 0.9}, {"double": -0.1}, {"double": -0.5}, {"double": -0.9}, {"double": "inf"}, {"double": "-inf"}, {"double": "nan"}, {"double": "nan"}]}}
+      ]
+     },
+
+     {"function": "(pass-through)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": "int"}
+                ]},
+           "output":
+               "Input",
+           "action":
+               "input"
+          },
+      "trials": [
+          {"sample": {"a": 0}, "result": {"a": 0}},
+          {"sample": {"a": 1}, "result": {"a": 1}},
+          {"sample": {"a": -1}, "result": {"a": -1}},
+          {"sample": {"a": 2}, "result": {"a": 2}},
+          {"sample": {"a": -2}, "result": {"a": -2}},
+          {"sample": {"a": 17}, "result": {"a": 17}},
+          {"sample": {"a": -17}, "result": {"a": -17}},
+          {"sample": {"a": -100}, "result": {"a": -100}},
+          {"sample": {"a": 100}, "result": {"a": 100}}
+      ]
+     },
+     
+     {"function": "(pass-through)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": {"type": "array", "items": "string"}}
+                ]},
+           "output":
+               "Input",
+           "action":
+               "input"
+          },
+      "trials": [
+          {"sample": {"a": []}, "result": {"a": []}},
+          {"sample": {"a": [""]}, "result": {"a": [""]}},
+          {"sample": {"a": ["", "o", "hello"]}, "result": {"a": ["", "o", "hello"]}},
+          {"sample": {"a": ["o", "hello"]}, "result": {"a": ["o", "hello"]}},
+          {"sample": {"a": ["oneee\u2212two", "oneee\u2212two", "oneee\u2212two"]}, "result": {"a": ["oneee\u2212two", "oneee\u2212two", "oneee\u2212two"]}}
+      ]
+     },
+     
+     {"function": "(pass-through)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": {"type": "record", "name": "Record1", "fields": [{"name": "x", "type": "int"}, {"name": "y", "type": "string"}]}}
+                ]},
+           "output":
+               "Input",
+           "action":
+               "input"
+          },
+      "trials": [
+          {"sample": {"a": {"x": 0, "y": ""}}, "result": {"a": {"x": 0, "y": ""}}},
+          {"sample": {"a": {"x": 0, "y": "o"}}, "result": {"a": {"x": 0, "y": "o"}}},
+          {"sample": {"a": {"x": 0, "y": "hello"}}, "result": {"a": {"x": 0, "y": "hello"}}},
+          {"sample": {"a": {"x": 0, "y": "oneee\u2212two"}}, "result": {"a": {"x": 0, "y": "oneee\u2212two"}}},
+          {"sample": {"a": {"x": 1, "y": ""}}, "result": {"a": {"x": 1, "y": ""}}},
+          {"sample": {"a": {"x": 1, "y": "o"}}, "result": {"a": {"x": 1, "y": "o"}}},
+          {"sample": {"a": {"x": 1, "y": "hello"}}, "result": {"a": {"x": 1, "y": "hello"}}},
+          {"sample": {"a": {"x": 1, "y": "oneee\u2212two"}}, "result": {"a": {"x": 1, "y": "oneee\u2212two"}}},
+          {"sample": {"a": {"x": -1, "y": ""}}, "result": {"a": {"x": -1, "y": ""}}},
+          {"sample": {"a": {"x": -1, "y": "o"}}, "result": {"a": {"x": -1, "y": "o"}}},
+          {"sample": {"a": {"x": -1, "y": "hello"}}, "result": {"a": {"x": -1, "y": "hello"}}},
+          {"sample": {"a": {"x": -1, "y": "oneee\u2212two"}}, "result": {"a": {"x": -1, "y": "oneee\u2212two"}}},
+          {"sample": {"a": {"x": 17, "y": ""}}, "result": {"a": {"x": 17, "y": ""}}},
+          {"sample": {"a": {"x": 17, "y": "o"}}, "result": {"a": {"x": 17, "y": "o"}}},
+          {"sample": {"a": {"x": 17, "y": "hello"}}, "result": {"a": {"x": 17, "y": "hello"}}},
+          {"sample": {"a": {"x": 17, "y": "oneee\u2212two"}}, "result": {"a": {"x": 17, "y": "oneee\u2212two"}}},
+          {"sample": {"a": {"x": -17, "y": ""}}, "result": {"a": {"x": -17, "y": ""}}},
+          {"sample": {"a": {"x": -17, "y": "o"}}, "result": {"a": {"x": -17, "y": "o"}}},
+          {"sample": {"a": {"x": -17, "y": "hello"}}, "result": {"a": {"x": -17, "y": "hello"}}},
+          {"sample": {"a": {"x": -17, "y": "oneee\u2212two"}}, "result": {"a": {"x": -17, "y": "oneee\u2212two"}}},
+          {"sample": {"a": {"x": 100, "y": ""}}, "result": {"a": {"x": 100, "y": ""}}},
+          {"sample": {"a": {"x": 100, "y": "o"}}, "result": {"a": {"x": 100, "y": "o"}}},
+          {"sample": {"a": {"x": 100, "y": "hello"}}, "result": {"a": {"x": 100, "y": "hello"}}},
+          {"sample": {"a": {"x": 100, "y": "oneee\u2212two"}}, "result": {"a": {"x": 100, "y": "oneee\u2212two"}}},
+          {"sample": {"a": {"x": -100, "y": ""}}, "result": {"a": {"x": -100, "y": ""}}},
+          {"sample": {"a": {"x": -100, "y": "o"}}, "result": {"a": {"x": -100, "y": "o"}}},
+          {"sample": {"a": {"x": -100, "y": "hello"}}, "result": {"a": {"x": -100, "y": "hello"}}},
+          {"sample": {"a": {"x": -100, "y": "oneee\u2212two"}}, "result": {"a": {"x": -100, "y": "oneee\u2212two"}}}
+      ]
+     },
+     
+     {"function": "(pass-through)",
+      "engine":
+          {"input":
+               {"type": "record",
+                "name": "Input",
+                "fields": [
+                    {"name": "a", "type": ["null", "double"]}
+                ]},
+           "output":
+               "Input",
+           "action":
+               "input"
+          },
+      "trials": [
+          {"sample": {"a": null}, "result": {"a": null}},
+          {"sample": {"a": {"double": 0.0}}, "result": {"a": {"double": 0.0}}},
+          {"sample": {"a": {"double": 1e-5}}, "result": {"a": {"double": 1e-5}}},
+          {"sample": {"a": {"double": 0.99999}}, "result": {"a": {"double": 0.99999}}},
+          {"sample": {"a": {"double": 1.00001}}, "result": {"a": {"double": 1.00001}}},
+          {"sample": {"a": {"double": "inf"}}, "result": {"a": {"double": "inf"}}},
+          {"sample": {"a": {"double": "-inf"}}, "result": {"a": {"double": "-inf"}}},
+          {"sample": {"a": {"double": "nan"}}, "result": {"a": {"double": "nan"}}},
+          {"sample": {"a": {"double": -17.0}}, "result": {"a": {"double": -17.0}}}
+      ]
+     }
+ ]}
