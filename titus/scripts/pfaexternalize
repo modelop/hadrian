@@ -29,11 +29,11 @@ import ijson
 
 ##### these functions print out the JSON evaluates to True
 
-def doValue(event, value, parser, writer, stack, extractCells, extractPools, progress):
+def doValue(event, value, parser, writer, stack, extractCells, extractPools, filepath, progress):
     if event == "start_array":
-        doArray(parser, writer, stack, extractCells, extractPools, progress)
+        doArray(parser, writer, stack, extractCells, extractPools, filepath, progress)
     elif event == "start_map":
-        doMap(parser, writer, stack, extractCells, extractPools, progress)
+        doMap(parser, writer, stack, extractCells, extractPools, filepath, progress)
     elif event == "string":
         writer(json.dumps(value))
     elif event == "null":
@@ -48,7 +48,7 @@ def doValue(event, value, parser, writer, stack, extractCells, extractPools, pro
     else:
         raise ValueError("Expecting value, found {0}".format(event))
 
-def doArray(parser, writer, stack, extractCells, extractPools, progress):
+def doArray(parser, writer, stack, extractCells, extractPools, filepath, progress):
     writer("[")
     progress.update()
     index = 0
@@ -58,11 +58,11 @@ def doArray(parser, writer, stack, extractCells, extractPools, progress):
         else:
             if index != 0:
                 writer(", ")
-            doValue(event, value, parser, writer, stack + [index], extractCells, extractPools, progress)
+            doValue(event, value, parser, writer, stack + [index], extractCells, extractPools, filepath, progress)
             index += 1
     writer("]")
 
-def doMap(parser, writer, stack, extractCells, extractPools, progress):
+def doMap(parser, writer, stack, extractCells, extractPools, filepath, progress):
     writer("{")
     progress.update()
     first = True
@@ -81,7 +81,7 @@ def doMap(parser, writer, stack, extractCells, extractPools, progress):
                 progress.mention("Extracting cell {0} to {1}".format(key, fileName))
                 file = open(fileName, "w")
                 subwriter = file.write
-                writer(json.dumps(fileName))
+                writer(json.dumps(filepath + fileName))
                 writer(', "source": "json"')
 
             elif len(stack) == 2 and stack[0] == "pools" and key == "init" and stack[1] in extractPools:
@@ -89,7 +89,7 @@ def doMap(parser, writer, stack, extractCells, extractPools, progress):
                 progress.mention("Extracting pool {0} to {1}".format(key, fileName))
                 file = open(fileName, "w")
                 subwriter = file.write
-                writer(json.dumps(fileName))
+                writer(json.dumps(filepath + fileName))
                 writer(', "source": "json"')
 
             else:
@@ -97,7 +97,7 @@ def doMap(parser, writer, stack, extractCells, extractPools, progress):
                 subwriter = writer
 
             prefix, event, value = parser.next()
-            doValue(event, value, parser, subwriter, stack + [key], extractCells, extractPools, progress)
+            doValue(event, value, parser, subwriter, stack + [key], extractCells, extractPools, filepath, progress)
 
             if file is not None:
                 progress.mention("Return to model")
@@ -193,7 +193,9 @@ if __name__ == "__main__":
 
   --pool-NAME externalize pool NAME to NAME.json
   --pool-NAME=FILENAME
-              externalize pool NAME to FILENAME""",
+              externalize pool NAME to FILENAME
+  --filepath=PATH
+              how to reference the externalized pfa in the model. eg file://networkdrive/files/""",
                                         formatter_class=argparse.RawDescriptionHelpFormatter)
     argparser.add_argument("input", nargs="?", default="-", help="input PFA file, \"-\" for standard in")
     argparser.add_argument("output", nargs="?", default="-", help="output PFA file, \"-\" for standard out")
@@ -207,6 +209,7 @@ if __name__ == "__main__":
         
     extractCells = {}
     extractPools = {}
+    filepath=""
     for arg in extras:
         pair = re.split("\s*=\s*", arg, 1)
         if len(pair) == 2:
@@ -217,6 +220,8 @@ if __name__ == "__main__":
             extractCells[arg[7:]] = value
         elif arg.startswith("--pool-"):
             extractPools[arg[7:]] = value
+        elif arg.startswith("--filepath"):
+            filepath=value
         else:
             argparser.error("unrecognized argument: {0}".format(arg))
 
@@ -243,6 +248,6 @@ if __name__ == "__main__":
     parser = ijson.parse(inputStream)
     stack = []
     for prefix, event, value in parser:
-        doValue(event, value, parser, outputStream.write, stack, extractCells, extractPools, progress)
+        doValue(event, value, parser, outputStream.write, stack, extractCells, extractPools, filepath, progress)
         outputStream.write("\n")
     progress.finish()
