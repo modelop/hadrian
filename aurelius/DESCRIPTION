@@ -9,5 +9,5 @@ Description: Converts R syntax into PFA and provides tools for assembling a PFA
     document within R. Tests validity and runtime behavior of PFA by offloading
     PFA and data to Titus (through rPython). Facilitates conversion of common R
     model output to PFA using aurelius.* libraries.
-License: Hadrian Personal Use and Evaluation License (PUEL)
+License: Apache-2.0
 RoxygenNote: 5.0.1
