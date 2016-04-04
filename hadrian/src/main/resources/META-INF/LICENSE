@@ -1,147 +1,203 @@
-Hadrian Personal Use and Evaluation License (PUEL)
-==================================================
 
-This license applies if you download the Hadrian Scoring Engine either as a JAR
-file (binary) or source code (ASCII) from the Downloads page. It does not apply
-to the PFA specification, which is licensed by the Data Mining Group (DMG).
-In summary, the Hadrian PUEL allows you to use the Hadrian Scoring Engine free
-of charge
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
 
-  * for personal use,
-  * for product evaluation, or 
-  * for academic use
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
-The Hadrian PUEL does not allow you to use the Hadrian Scoring Engine for any
-commercial use.
+   1. Definitions.
 
-Hadrian PUEL terms and conditions
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
 
-License version 1, June 1, 2014
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
 
-OPEN DATA PARTNERS LLC ("OPEN DATA") IS WILLING TO LICENSE THE PRODUCT (AS
-DEFINED IN SECTION 1 BELOW) TO YOU ONLY UPON THE CONDITION THAT YOU ACCEPT ALL
-OF THE TERMS CONTAINED IN THIS HADRIAN SCORING ENGINE PERSONAL USE AND
-EVALUATION LICENSE AGREEMENT ("AGREEMENT"). PLEASE READ THE AGREEMENT
-CAREFULLY. 
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
 
-BY DOWNLOADING OR INSTALLING THIS PRODUCT, YOU ACCEPT THE FULL TERMS OF THIS
-AGREEMENT.
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
 
-IF YOU ARE AGREEING TO THIS LICENSE ON BEHALF OF AN ENTITY OTHER THAN AN
-INDIVIDUAL PERSON, YOU REPRESENT THAT YOU HAVE THE RIGHT TO BIND THE ENTITY TO
-THE TERMS AND CONDITIONS OF THIS AGREEMENT AND THAT YOU ARE BINDING THE ENTITY
-TO THE TERMS AND CONDITIONS OF THIS AGREE.
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
 
-SECTION 1 Subject of Agreement. "Product", as referred to in this Agreement,
-shall be the Open Data Hadrian Scoring Engine source code and/or JAR binary
-software package ("Hadrian").    Hadrian allows for the building and consuming
-of predictive and statistical models adhering to the PFA specification. The
-Product consists of source code and executable files for use within a Java
-Virtual Machine, as well as other data files as required by the executable files
-at run-time and documentation in electronic form. The Product includes all
-documentation and updates provided to You by Open Data under this Agreement and
-the terms of this Agreement will apply to all such documentation and updates
-unless a different license is provided with an update or documentation.
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
 
-SECTION 2 Grant of license. (1) Open Data grants you a personal, non-exclusive,
-non-transferable, limited license without fees to reproduce, install, execute,
-and use internally the Product for your Personal Use, Academic Use, Educational
-Use, or Evaluation. "Personal Use" requires that you use the Product on the same
-computer where you installed it yourself. "Educational use" is any use in an
-educational institution (schools, colleges and universities, by teachers and
-students).  "Academic use" is use in any academic institution for research use.
-"Evaluation" means testing the Product for a reasonable period (that is,
-normally for a few weeks); after expiry of that term, you are no longer
-permitted to evaluate the Product.
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
 
-SECTION 3 Restrictions and Reservation of Rights. (1) Any use beyond the
-provisions of SECTION 2 is prohibited. The Product and copies thereof provided
-to you under this Agreement are copyrighted and licensed, not sold, to you by
-Open Data. Open Data Partners reserves all copyrights and other intellectual
-property rights. This includes, is not limited to, the right to modify, make
-available or public, rent out, lease, lend or otherwise distribute the Product.
-This does not apply as far as applicable law may require otherwise or if Open
-Data grants you additional rights of use in a separate agreement in writing.
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
 
-(2) You may not do any of the following: (a) rent, lease, lend or encumber the
-Product; (b) remove or alter any proprietary legends or notices contained in the
-Product.
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
 
-(3) You may not: (a) repackage, either in source or binary form, the Product for
-inclusion with another product or derivative work (other than for allowed
-personal, academic or educational use); (b) create a commercial work that
-requires the Product as either a compile or runtime dependency.
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
 
-(4) No right, title or interest in or to any trademark, service mark, logo or
-trade name of Open Data or its licensors is granted under this Agreement.
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
 
-SECTION 4 Termination. The Agreement is effective on the Date you receive the
-Product and remains effective until terminated. Your rights under this Agreement
-will terminate immediately without notice from Open Data if you reverse engineer
-the product or take any actions derogatory to Open Data. Open Data may terminate
-this Agreement should any Product become, or in Open Data reasonable opinion
-likely to become, the subject of a claim of intellectual property infringement
-or trade secret misappropriation. Upon termination, you will cease use of, and
-destroy, Product and confirm compliance in writing to Open Data. Sections 3-9,
-inclusive, will survive termination of the Agreement.
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
 
-SECTION 5 Disclaimer of Warranty. TO THE EXTENT NOT PROHIBITED BY APPLICABLE
-LAW, OPEN DATA PROVIDES THE PRODUCT "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER
-EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE OR NON-INFRINGEMENT, EXCEPT TO
-THE EXTENT THAT THESE DISCLAIMERS ARE HELD TO BE LEGALLY INVALID. The entire
-risk as to the quality and performance of the Product is with you. Should it
-prove defective, you assume the cost of all necessary servicing, repair, or
-correction. In addition, Open Data shall be allowed to provide updates to the
-Product in urgent cases. You are then obliged to install such updates. Such an
-urgent case includes, but is not limited to, a claim of rights to the Product by
-a third party.
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
 
-SECTION 6 Limitation of Liability. TO THE EXTENT NOT PROHIBITED BY APPLICABLE
-LAW, IN NO EVENT WILL OPEN DATA OR ITS LICENSORS BE LIABLE FOR ANY LOST REVENUE,
-PROFIT OR DATA, OR FOR SPECIAL, INDIRECT, CONSEQUENTIAL, INCIDENTAL OR PUNITIVE
-DAMAGES, HOWEVER CAUSED REGARDLESS OF THE THEORY OF LIABILITY, ARISING OUT OF OR
-RELATED TO THE USE OF OR INABILITY TO USE PRODUCT, EVEN IF OPEN DATA HAS BEEN
-ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. In no event will Open Data's
-liability to you, whether in contract, tort (including negligence), or
-otherwise, exceed the amount paid by you for Product under this Agreement. Some
-states do not allow the exclusion of incidental or consequential damages, so
-some of the terms above may not be applicable to you.
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
 
-SECTION 7 Third Party Code. Portions of Product may be provided with notices and
-open source licenses from communities and third parties that govern the use of
-those portions, and any licenses granted hereunder do not alter any rights and
-obligations You may have under such open source licenses, however, the
-disclaimer of warranty and limitation of liability provisions in this Agreement
-will apply to all the Product.
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
 
-SECTION 8 Export Regulations. All Product, documents, technical data, and any
-other materials delivered under this Agreement are subject to U.S. export control
-laws and may be subject to export or import regulations in other countries. You
-agree to comply strictly with these laws and regulations and acknowledge that
-you have the responsibility to obtain any licenses to export, re-export, or
-import as may be required after delivery to you.
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
 
-SECTION 9 U.S. Government Restricted Rights. If Product is being acquired by or
-on behalf of the U.S. Government or by a U.S. Government prime contractor or
-subcontractor (at any tier), then the Government's rights in Product and
-accompanying documentation will be only as set forth in this Agreement; this is
-in accordance with 48 CFR 227.7201 through 227.7202-4 (for Department of Defense
-(DOD) acquisitions) and with 48 CFR 2.101 and 12.212 (for non-DOD acquisitions).
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
 
-SECTION 10 Miscellaneous. This Agreement is the entire agreement between you and
-Open Data relating to its subject matter. It supersedes all prior or
-contemporaneous oral or written communications, proposals, representations and
-warranties and prevails over any conflicting or additional terms of any quote,
-order, acknowledgment, or other communication between the parties relating to
-its subject matter during the term of this Agreement. No modification of this
-Agreement will be binding, unless in writing and signed by an authorized
-representative of each party. If any provision of this Agreement is held to be
-unenforceable, this Agreement will remain in effect with the provision omitted,
-unless omission would frustrate the intent of the parties, in which case this
-Agreement will immediately terminate. Course of dealing and other standard
-business conditions of the parties or the industry shall not apply. This
-Agreement is governed by the substantive and procedural laws of Illinois and you
-and Open Data agree to submit to the exclusive jurisdiction of, and venue in,
-the courts in Cook county in Illinois in any dispute arising out of or relating
-to this Agreement.
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
