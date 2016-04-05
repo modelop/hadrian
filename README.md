@@ -1,9 +1,9 @@
 Hadrian: implementations of the PFA specification
 ========
 
-As of version 0.8.4, Hadrian, Titus, and Aurelius are available with the Apache License v2.0
+**As of version 0.8.4, Hadrian, Titus, and Aurelius are available with the Apache License v2.0**
 
-**Version v.0.8.3**
+**Version v.0.8.4**
 
 The [Portable Format for Analytics (PFA)](http://scoringengine.org) is a specification for scoring engines: event-based processors that perform predictive or analytic calculations. It is a common language to help smooth the transition from statistical model development to large-scale and/or online production. For a model expressed as PFA to be run against data, an application is required.
 
