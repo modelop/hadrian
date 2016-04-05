@@ -450,7 +450,7 @@
 
   * Fixed a bug in map.values that prevented the Janino Java compiler from recognizing a type-safe situation (Hadrian).
 
-**After tag v.0.8.3:**
+**After tag v.0.8.4:**
 
   * Fixed a bug in ifnotnull implementation that causes Python syntax errors for types with apostrophes in their doc strings (Titus).
 
@@ -459,3 +459,5 @@
   * Changed hadrian-servlet to pull hadrian dependency from the online repository rather than requiring that it be built and installed locally.
 
   * Changed from the PUEL to Open Source license.  Hadrian, Titus, and Aurelius are now Apache License v2.0
+
+  * 
