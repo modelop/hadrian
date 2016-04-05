@@ -449,3 +449,7 @@
   * Don't assume that nio.Encoder and nio.Decoder are thread-safe (Hadrian).
 
   * Fixed a bug in map.values that prevented the Janino Java compiler from recognizing a type-safe situation (Hadrian).
+
+**After tav v0.8.3:**
+
+  * 0.8.3 is being re-tagged as 0.8.4 with a new license. 

@@ -1,13 +1,13 @@
 Package: aurelius
 Type: Package
 Title: Generates PFA documents from R code and optionally runs them.
-Version: 0.8.3
-Date: 2016-01-19
+Version: 0.8.4
+Date: 2016-04-05
 Author: Open Data
 Maintainer: Open Data Group <info@opendatagroup.com>
 Description: Converts R syntax into PFA and provides tools for assembling a PFA
     document within R. Tests validity and runtime behavior of PFA by offloading
     PFA and data to Titus (through rPython). Facilitates conversion of common R
     model output to PFA using aurelius.* libraries.
-License: Hadrian Personal Use and Evaluation License (PUEL)
+License: Apache-2.0
 RoxygenNote: 5.0.1
