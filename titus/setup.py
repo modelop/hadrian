@@ -46,7 +46,7 @@ setup(name="titus",
       description="Python implementation of Portable Format for Analytics (PFA): producer, converter, and consumer.",
       test_suite="test",
       install_requires=["avro >= 1.7.6", "ply >= 3.4"],
-      tests_require=["avro >= 1.7.6", "ply >= 3.4", "PyYAML >= 3.10", "numpy >= 1.6.1", "pytz == 2015.4"],
+      tests_require=["avro >= 1.7.6", "ply >= 3.4", "PyYAML >= 3.10", "numpy >= 1.6.1", "pytz == 2016.3"],
       )
 
 ### details of dependencies:
