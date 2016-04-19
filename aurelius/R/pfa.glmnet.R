@@ -21,6 +21,7 @@
 #' @param cvfit an object of class "cv.glmnet"
 #' @param lambdaval  value of tuning parameter
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
+#' @import glmnet
 #' @export pfa.glmnet.extractParams
 #' @examples
 #' x1 <- rnorm(100)
@@ -132,6 +133,7 @@ pfa.glmnet.regressionType <- function(params) {
 #' @param input variables
 #' @param model input model
 #' @return prediction probabilities
+#' @import glmnet
 #' @export pfa.glmnet.predictProb
 #' @examples
 #' x1 <- rnorm(100)
@@ -159,6 +161,7 @@ pfa.glmnet.predictProb <- function(params, input, model) {
 #' Extracts model coefficients
 #' @param params function to extract glmnet model parameters
 #' @return glmnet intercept and coefficients
+#' @import glmnet
 #' @export pfa.glmnet.modelParams
 #' @examples
 #' x1 <- rnorm(100)

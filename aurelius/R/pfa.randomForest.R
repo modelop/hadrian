@@ -22,6 +22,7 @@
 #' @param whichTree which tree to extract
 #' @param labelVar flag for whether var needs to be labeled
 #' @return single tree extracted from random forest
+#' @import randomForest
 #' @export pfa.randomForest.extractTree
 #' @examples
 #' X1 <- runif(100)
@@ -88,6 +89,7 @@ pfa.randomForest.extractTree <- function(forest, whichTree = 1, labelVar = FALSE
 #' @param dataLevels levels of data
 #' @param fieldTypes type of fields
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
+#' @import randomForest
 #' @export pfa.randomForest.buildOneTree
 #' @examples
 #' X1 <- runif(100)

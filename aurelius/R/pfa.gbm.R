@@ -22,7 +22,6 @@
 #' @param whichTree  the number of the tree to extract
 #' @return tree that is extracted from gbm object
 #' @import gbm
-#' @import survival
 #' @export pfa.gbm.extractTree
 #' @examples
 #' X1 <- runif(100)
