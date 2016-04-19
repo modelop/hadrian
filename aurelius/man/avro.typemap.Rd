@@ -7,7 +7,7 @@
 avro.typemap(...)
 }
 \arguments{
-\item{args}{key-value pairs of Avro type schemas}
+\item{...}{key-value pairs of Avro type schemas}
 }
 \value{
 a function that yields Avro type schemas or just their names
@@ -17,7 +17,7 @@ Convenience function for ensuring that Avro type schemas are declared exactly on
 }
 \examples{
 tm <- avro.typemap(
-    MyType1 = avro.record(list(one = avro.int, two = avro.double, three = avro.string), MyType1),
+    MyType1 = avro.record(list(one = avro.int, two = avro.double, three = avro.string)),
     MyType2 = avro.array(avro.double)
 )
 tm("MyType1")           # produces the whole declaration

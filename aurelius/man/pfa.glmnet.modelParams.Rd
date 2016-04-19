@@ -7,15 +7,21 @@
 pfa.glmnet.modelParams(params)
 }
 \arguments{
-\item{x}{describeme}
+\item{params}{function to extract glmnet model parameters}
 }
 \value{
-describeme
+glmnet intercept and coefficients
 }
 \description{
-describeme
+Extracts model coefficients
 }
 \examples{
-someExamples
+x1 <- rnorm(100)
+x2 <- runif(100)
+X <- matrix(c(x1, x2), nc = 2)
+Y <- 3 * x1 * x2
+Y <- Y > 0
+uu <- glmnet(X, Y)
+vv <- pfa.glmnet.modelParams(list(const = uu$a0[1], coeff = uu$beta[1, ]))
 }
 

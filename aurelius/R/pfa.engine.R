@@ -24,14 +24,14 @@ counter$n <- 0
 #' @param config list-of-lists representing a complete PFA document
 #' @param tempFile if NULL, generate the PFA as a string in memory and pass it without touching disk; if a string, save the PFA document in a temporary file and have Python load it from that file
 #' @return an object with a $action(...) method that can be used to score data
+#' @import RJSONIO
+#' @import rPython
 #' @export pfa.engine
 #' @examples
-#' pfa.engine(pfaDocument)   # where pfaDocument is created by pfa.config
+#' pfaDocument1 <- pfa.config(avro.double, avro.double, expression(input + 10))
+#' pfa.engine(pfaDocument1)   # where the pfaDocument is created by pfa.config
 
 pfa.engine <- function(config, tempFile = NULL) {
-    library(RJSONIO)
-    library(rPython)
-
     counter$n <- counter$n + 1
     name <- paste("engine_", counter$n, sep = "")
     method <- config$method

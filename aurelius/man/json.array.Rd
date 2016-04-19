@@ -7,7 +7,7 @@
 json.array(...)
 }
 \arguments{
-\item{args}{optional contents of the unnamed list}
+\item{...}{optional contents of the unnamed list}
 }
 \value{
 an unnamed list

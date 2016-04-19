@@ -76,6 +76,7 @@ uniqueFixedName <- function() {
 #' uniqueSymbolName
 #'
 #' Convenience or internal function for generating symbol names; each call results in a new name.
+#' @param symbols Symbols
 #' @return name in the form "tmp_###"
 #' @export uniqueSymbolName
 #' @examples

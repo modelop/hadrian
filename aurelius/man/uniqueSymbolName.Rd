@@ -6,6 +6,9 @@
 \usage{
 uniqueSymbolName(symbols)
 }
+\arguments{
+\item{symbols}{Symbols}
+}
 \value{
 name in the form "tmp_###"
 }

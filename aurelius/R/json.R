@@ -27,6 +27,7 @@
 #' @return describeme
 #' @export json
 #' @examples
+#' pfaDocument <- list(list(a = 1, b = 2, cc = 3))
 #' cat(json(pfaDocument))
 #' json(pfaDocument, fileName = "myModel.pfa")
 

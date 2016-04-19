@@ -27,7 +27,7 @@
 #' @return Avro list-of-lists representing a record type
 #' @export avro.fromFrame
 #' @examples
-#' avro.fromFrame(dataFrame)
+#' avro.fromFrame(data.frame(xx = c(1, 3, 5)))
 
 avro.fromFrame <- function(dataFrame, exclude = list(), name = NULL, namespace = NULL) {
     fields <- list()

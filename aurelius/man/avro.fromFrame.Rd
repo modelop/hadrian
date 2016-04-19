@@ -22,6 +22,6 @@ Avro list-of-lists representing a record type
 Convenience function for creating an Avro input schema from a data frame
 }
 \examples{
-avro.fromFrame(dataFrame)
+avro.fromFrame(data.frame(xx = c(1, 3, 5)))
 }
 

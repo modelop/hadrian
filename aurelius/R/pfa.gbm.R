@@ -19,11 +19,19 @@
 #'
 #' Extracts a tree from a forest made by the gbm library.
 #' @param gbm an object of class "gbm"
-#' @param whichTree FIXME
-#' @return FIXME
+#' @param whichTree  the number of the tree to extract
+#' @return tree that is extracted from gbm object
+#' @import gbm
+#' @import survival
 #' @export pfa.gbm.extractTree
 #' @examples
-#' FIXME
+#' X1 <- runif(100)
+#' X2 <- rnorm(100)
+#' Y <- rexp(100,5) + 5 * X1 - 4 * X2 
+#' Y <- Y > 0
+#' zz <- gbm(Y ~ X1 + X2)
+#' zz$problemType <- "Classification"
+#' zz1 <- pfa.gbm.extractTree(zz)
 
 pfa.gbm.extractTree <- function(gbm, whichTree = 1) {
     if (!("gbm" %in% class(gbm)))
@@ -61,16 +69,26 @@ pfa.gbm.extractTree <- function(gbm, whichTree = 1) {
 #' pfa.gbm.buildOneTree
 #'
 #' Builds one tree extracted by pfa.gbm.extractTree.
-#' @param tree FIXME
-#' @param categoricalLookup FIXME
-#' @param whichNode FIXME
-#' @param valueNeedsTag FIXME
-#' @param dataLevels FIXME
-#' @param fieldTypes FIXME
-#' @return FIXME
+#' @param tree tree object
+#' @param categoricalLookup splits used
+#' @param whichNode  left or right node for categoricalLookup
+#' @param valueNeedsTag flag for whether node needs label
+#' @param dataLevels levels of data
+#' @param fieldTypes type of fields
+#' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @export pfa.gbm.buildOneTree
 #' @examples
-#' FIXME
+#' X1 <- runif(100)
+#' X2 <- rnorm(100)
+#' Y <- rexp(100,5) + 5 * X1 - 4 * X2
+#' Y <- Y > 0
+#' zz <- gbm(Y ~ X1 + X2)
+#' zz$problemType <- "Classification"
+#' zz1 <- pfa.gbm.extractTree(zz)
+#' zz2 <- pfa.gbm.buildOneTree(zz1$treeTable, list(), 1)
+
+
+
 
 pfa.gbm.buildOneTree <- function(tree, categoricalLookup, whichNode, valueNeedsTag = TRUE, dataLevels = NULL, fieldTypes = NULL) {
     node <- tree[whichNode,]

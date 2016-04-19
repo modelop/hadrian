@@ -20,12 +20,12 @@
 #' avro.typemap
 #'
 #' Convenience function for ensuring that Avro type schemas are declared exactly once. It returns a function that yields a full type declaration the first time it is invoked and just a name on subsequent times.
-#' @param args key-value pairs of Avro type schemas
+#' @param ... key-value pairs of Avro type schemas
 #' @return a function that yields Avro type schemas or just their names
 #' @export avro.typemap
 #' @examples
 #' tm <- avro.typemap(
-#'     MyType1 = avro.record(list(one = avro.int, two = avro.double, three = avro.string), MyType1),
+#'     MyType1 = avro.record(list(one = avro.int, two = avro.double, three = avro.string)),
 #'     MyType2 = avro.array(avro.double)
 #' )
 #' tm("MyType1")           # produces the whole declaration

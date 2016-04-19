@@ -18,7 +18,7 @@
 #' json.map
 #'
 #' Convenience function for making a (possibly empty) named list, which converts to a JSON object.
-#' @param args optional contents of the named list (as key-value pairs)
+#' @param ... optional contents of the named list (as key-value pairs)
 #' @return a named list
 #' @export json.map
 #' @examples
@@ -38,7 +38,7 @@ json.map <- function(...) {
 #' json.array
 #'
 #' Convenience function for making a (possibly empty) unnamed list, which converts to a JSON array.
-#' @param args optional contents of the unnamed list
+#' @param ... optional contents of the unnamed list
 #' @return an unnamed list
 #' @export json.array
 #' @examples

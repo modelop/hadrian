@@ -7,15 +7,20 @@
 pfa.glmnet.inputType(params, name = NULL, namespace = NULL)
 }
 \arguments{
-\item{x}{describeme}
+\item{params}{list of regressor names}
+
+\item{name}{required name}
+
+\item{namespace}{optional namespace}
 }
 \value{
-describeme
+List of regression parameter names
 }
 \description{
-describeme
+Extracts a set of regression variable names from a glmnet object
 }
 \examples{
-someExamples
+xr <- list(regressors = c("x1", "x2"))
+xrType <- pfa.glmnet.inputType(xr)
 }
 

@@ -19,11 +19,17 @@
 #'
 #' Extract generalized linear model net parameters from the glm library
 #' @param cvfit an object of class "cv.glmnet"
-#' @param lambdaval FIXME
+#' @param lambdaval  value of tuning parameter
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @export pfa.glmnet.extractParams
 #' @examples
-#' FIXME
+#' x1 <- rnorm(100)
+#' x2 <- runif(100)
+#' X <- matrix(c(x1, x2), nc = 2)
+#' Y <- 3 * x1 * x2
+#' hist(Y)
+#' Y <- Y > 0
+#' uu <- glmnet(X, Y)
 
 pfa.glmnet.extractParams <- function(cvfit, lambdaval = "lambda.1se") {
     if (!("cv.glmnet" %in% class(cvfit)))
@@ -81,12 +87,16 @@ pfa.glmnet.extractParams <- function(cvfit, lambdaval = "lambda.1se") {
 
 #' pfa.glmnet.inputType
 #'
-#' describeme
-#' @param x describeme
-#' @return describeme
+#' Extracts a set of regression variable names from a glmnet object
+#' @param params list of regressor names
+#' @param name required name
+#' @param namespace optional namespace
+#' @return List of regression parameter names
 #' @export pfa.glmnet.inputType
 #' @examples
-#' someExamples
+#' xr <- list(regressors = c("x1", "x2"))
+#' xrType <- pfa.glmnet.inputType(xr)
+
 
 pfa.glmnet.inputType <- function(params, name = NULL, namespace = NULL) {
     fields = list()
@@ -97,12 +107,12 @@ pfa.glmnet.inputType <- function(params, name = NULL, namespace = NULL) {
 
 #' pfa.glmnet.regressionType
 #'
-#' describeme
-#' @param x describeme
-#' @return describeme
+#' Determines regression variable type
+#' @param params type of output variable
+#' @return type of output variable specified by params
 #' @export pfa.glmnet.regressionType
 #' @examples
-#' someExamples
+#' pfa.glmnet.regressionType(list(binary = TRUE))
 
 pfa.glmnet.regressionType <- function(params) {
     if (params$binary)
@@ -117,12 +127,22 @@ pfa.glmnet.regressionType <- function(params) {
 
 #' pfa.glmnet.predictProb
 #'
-#' describeme
-#' @param x describeme
-#' @return describeme
+#' Function to extract prediction probabilities from glmnet object
+#' @param params parameters
+#' @param input variables
+#' @param model input model
+#' @return prediction probabilities
 #' @export pfa.glmnet.predictProb
 #' @examples
-#' someExamples
+#' x1 <- rnorm(100)
+#' x2 <- runif(100)
+#' X <- matrix(c(x1, x2), nc = 2)
+#' Y <- 3 * x1 * x2
+#' Y <- Y > 0
+#' uu <- glmnet(X, Y)
+#' u1 <- list(regressors = uu$beta, linkFcn = "logit")
+#' u2 <- pfa.glmnet.predictProb(u1, "V1", uu)
+
 
 pfa.glmnet.predictProb <- function(params, input, model) {
     newarray <- list(type = avro.array(avro.double),
@@ -136,12 +156,20 @@ pfa.glmnet.predictProb <- function(params, input, model) {
 
 #' pfa.glmnet.modelParams
 #'
-#' describeme
-#' @param x describeme
-#' @return describeme
+#' Extracts model coefficients
+#' @param params function to extract glmnet model parameters
+#' @return glmnet intercept and coefficients
 #' @export pfa.glmnet.modelParams
 #' @examples
-#' someExamples
+#' x1 <- rnorm(100)
+#' x2 <- runif(100)
+#' X <- matrix(c(x1, x2), nc = 2)
+#' Y <- 3 * x1 * x2
+#' Y <- Y > 0
+#' uu <- glmnet(X, Y)
+#' vv <- pfa.glmnet.modelParams(list(const = uu$a0[1], coeff = uu$beta[1, ]))
+
+
 
 pfa.glmnet.modelParams <- function(params) {
     list(coeff = params$coeff, const = params$const)
