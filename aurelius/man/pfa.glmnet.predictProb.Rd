@@ -7,15 +7,26 @@
 pfa.glmnet.predictProb(params, input, model)
 }
 \arguments{
-\item{x}{describeme}
+\item{params}{parameters}
+
+\item{input}{variables}
+
+\item{model}{input model}
 }
 \value{
-describeme
+prediction probabilities
 }
 \description{
-describeme
+Function to extract prediction probabilities from glmnet object
 }
 \examples{
-someExamples
+x1 <- rnorm(100)
+x2 <- runif(100)
+X <- matrix(c(x1, x2), nc = 2)
+Y <- 3 * x1 * x2
+Y <- Y > 0
+uu <- glmnet(X, Y)
+u1 <- list(regressors = uu$beta, linkFcn = "logit")
+u2 <- pfa.glmnet.predictProb(u1, "V1", uu)
 }
 

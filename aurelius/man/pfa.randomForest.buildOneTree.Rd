@@ -8,15 +8,15 @@ pfa.randomForest.buildOneTree(tree, whichNode, valueNeedsTag, dataLevels,
   fieldTypes = NULL)
 }
 \arguments{
-\item{tree}{FIXME}
+\item{tree}{tree to build}
 
-\item{whichNode}{FIXME}
+\item{whichNode}{the node to extract}
 
-\item{valueNeedsTag}{FIXME}
+\item{valueNeedsTag}{flag for whether the node needs a label}
 
-\item{dataLevels}{FIXME}
+\item{dataLevels}{levels of data}
 
-\item{fieldTypes}{FIXME}
+\item{fieldTypes}{type of fields}
 }
 \value{
 PFA as a list-of-lists that can be inserted into a cell or pool
@@ -25,6 +25,13 @@ PFA as a list-of-lists that can be inserted into a cell or pool
 Builds one tree extracted by pfa.randomForest.extractTree.
 }
 \examples{
-FIXME
+X1 <- runif(100)
+X2 <- rnorm(100)
+Y <- rexp(100,5) + 5 * X1 - 4 * X2
+Y <- Y > 0
+Y <- factor(Y)
+zz <- randomForest(Y ~ X1 + X2)
+zz1 <- pfa.randomForest.extractTree(zz)
+zz2 <- pfa.randomForest.buildOneTree(zz1, 1, TRUE, dataLevels = list())
 }
 

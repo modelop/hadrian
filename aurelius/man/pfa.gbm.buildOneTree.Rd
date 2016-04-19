@@ -8,25 +8,32 @@ pfa.gbm.buildOneTree(tree, categoricalLookup, whichNode, valueNeedsTag = TRUE,
   dataLevels = NULL, fieldTypes = NULL)
 }
 \arguments{
-\item{tree}{FIXME}
+\item{tree}{tree object}
 
-\item{categoricalLookup}{FIXME}
+\item{categoricalLookup}{splits used}
 
-\item{whichNode}{FIXME}
+\item{whichNode}{left or right node for categoricalLookup}
 
-\item{valueNeedsTag}{FIXME}
+\item{valueNeedsTag}{flag for whether node needs label}
 
-\item{dataLevels}{FIXME}
+\item{dataLevels}{levels of data}
 
-\item{fieldTypes}{FIXME}
+\item{fieldTypes}{type of fields}
 }
 \value{
-FIXME
+PFA as a list-of-lists that can be inserted into a cell or pool
 }
 \description{
 Builds one tree extracted by pfa.gbm.extractTree.
 }
 \examples{
-FIXME
+X1 <- runif(100)
+X2 <- rnorm(100)
+Y <- rexp(100,5) + 5 * X1 - 4 * X2
+Y <- Y > 0
+zz <- gbm(Y ~ X1 + X2)
+zz$problemType <- "Classification"
+zz1 <- pfa.gbm.extractTree(zz)
+zz2 <- pfa.gbm.buildOneTree(zz1$treeTable, list(), 1)
 }
 

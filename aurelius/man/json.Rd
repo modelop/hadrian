@@ -27,6 +27,7 @@ describeme
 Convert a list-of-lists structure into a JSON string in memory or a JSON file on disk.
 }
 \examples{
+pfaDocument <- list(list(a = 1, b = 2, cc = 3))
 cat(json(pfaDocument))
 json(pfaDocument, fileName = "myModel.pfa")
 }

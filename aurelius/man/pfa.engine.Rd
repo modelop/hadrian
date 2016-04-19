@@ -18,6 +18,7 @@ an object with a $action(...) method that can be used to score data
 Create an executable PFA scoring engine in R by calling Titus through rPython. If this function is successful, then the PFA is valid (only way to check PFA validity in R).
 }
 \examples{
-pfa.engine(pfaDocument)   # where pfaDocument is created by pfa.config
+pfaDocument1 <- pfa.config(avro.double, avro.double, expression(input + 10))
+pfa.engine(pfaDocument1)   # where the pfaDocument is created by pfa.config
 }
 

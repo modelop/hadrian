@@ -7,7 +7,7 @@
 json.map(...)
 }
 \arguments{
-\item{args}{optional contents of the named list (as key-value pairs)}
+\item{...}{optional contents of the named list (as key-value pairs)}
 }
 \value{
 a named list

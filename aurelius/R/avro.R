@@ -176,7 +176,7 @@ avro.record <- function(fields, name = NULL, namespace = NULL) {
 #' avro.union
 #'
 #' Constructs a list-of-lists Avro schema for the tagged union type.
-#' @param args schemas for each of the possible sub-types
+#' @param ... schemas for each of the possible sub-types
 #' @export avro.union
 #' @examples
 #' avro.union(avro.null, avro.int)         # a way to make a nullable int

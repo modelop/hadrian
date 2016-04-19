@@ -9,17 +9,23 @@ pfa.randomForest.extractTree(forest, whichTree = 1, labelVar = FALSE)
 \arguments{
 \item{forest}{an object of class "randomForest"}
 
-\item{whichTree}{FIXME}
+\item{whichTree}{which tree to extract}
 
-\item{labelVar}{FIXME}
+\item{labelVar}{flag for whether var needs to be labeled}
 }
 \value{
-FIXME
+single tree extracted from random forest
 }
 \description{
 Extracts a tree from a forest made by the randomForest library.
 }
 \examples{
-FIXME
+X1 <- runif(100)
+X2 <- rnorm(100)
+Y <- rexp(100,5) + 5 * X1 - 4 * X2
+Y <- Y > 0
+Y <- factor(Y)
+zz <- randomForest(Y ~ X1 + X2)
+zz1 <- pfa.randomForest.extractTree(zz)
 }
 

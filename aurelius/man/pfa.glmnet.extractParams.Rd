@@ -9,7 +9,7 @@ pfa.glmnet.extractParams(cvfit, lambdaval = "lambda.1se")
 \arguments{
 \item{cvfit}{an object of class "cv.glmnet"}
 
-\item{lambdaval}{FIXME}
+\item{lambdaval}{value of tuning parameter}
 }
 \value{
 PFA as a list-of-lists that can be inserted into a cell or pool
@@ -18,6 +18,12 @@ PFA as a list-of-lists that can be inserted into a cell or pool
 Extract generalized linear model net parameters from the glm library
 }
 \examples{
-FIXME
+x1 <- rnorm(100)
+x2 <- runif(100)
+X <- matrix(c(x1, x2), nc = 2)
+Y <- 3 * x1 * x2
+hist(Y)
+Y <- Y > 0
+uu <- glmnet(X, Y)
 }
 

@@ -7,15 +7,15 @@
 pfa.glmnet.regressionType(params)
 }
 \arguments{
-\item{x}{describeme}
+\item{params}{type of output variable}
 }
 \value{
-describeme
+type of output variable specified by params
 }
 \description{
-describeme
+Determines regression variable type
 }
 \examples{
-someExamples
+pfa.glmnet.regressionType(list(binary = TRUE))
 }
 

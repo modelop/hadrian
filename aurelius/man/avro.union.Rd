@@ -7,7 +7,7 @@
 avro.union(...)
 }
 \arguments{
-\item{args}{schemas for each of the possible sub-types}
+\item{...}{schemas for each of the possible sub-types}
 }
 \description{
 Constructs a list-of-lists Avro schema for the tagged union type.

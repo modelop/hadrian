@@ -21,7 +21,13 @@
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @export pfa.glm.extractParams
 #' @examples
-#' FIXME
+#' X1 <- rnorm(100)
+#' X2 <- runif(100)
+#' Y <- 3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3)
+#' Y <- Y > 0
+#' 
+#' z <- glm(Y ~ X1 + X2, family = binomial(logit))
+#' z2 <- pfa.glm.extractParams(z)
 
 pfa.glm.extractParams <- function(fit) {
     if (!("glm" %in% class(fit)))
