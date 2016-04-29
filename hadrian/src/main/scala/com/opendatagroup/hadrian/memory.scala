@@ -148,8 +148,8 @@ package memory {
 
     /** Total memory usage for the scoring engine instance (ignoring any double-counting from cells or pools shared with other scoring engine instances).
       */
-    val total = cells.values.map(_.usage).reduce(_ + _) +
-                pools.values.map(_.usage).reduce(_ + _)
+	val total = cells.values.map(_.usage).foldLeft(Usage(0))(_ + _) +
+                pools.values.map(_.usage).foldLeft(Usage(0))(_ + _)
 
     /** Create a formatted report as a `String`.
       */
@@ -222,10 +222,12 @@ package memory {
 
     /** Total memory usage for the collection of scoring engines, properly accounting for cells and pools that are shared among the instances.
       */
-    val total = sharedCells.values.map(_.usage).reduce(_ + _) +
-                sharedPools.values.map(_.usage).reduce(_ + _) +
-                unsharedCells.values.map(x => x.values.map(_.usage).reduce(_ + _)).reduce(_ + _) +
-                unsharedPools.values.map(x => x.values.map(_.usage).reduce(_ + _)).reduce(_ + _)
+	val total = sharedCells.values.map(_.usage).foldLeft(Usage(0))(_ + _) +
+                sharedPools.values.map(_.usage).foldLeft(Usage(0))(_ + _) +
+                unsharedCells.values.map(x => x.values.map(_.usage).foldLeft(Usage(0))(_ + _))
+						.foldLeft(Usage(0))(_ + _) +
+                unsharedPools.values.map(x => x.values.map(_.usage).foldLeft(Usage(0))(_ + _))
+						.foldLeft(Usage(0))(_ + _)
 
     /** Create a formatted report as a `String`.
       */
