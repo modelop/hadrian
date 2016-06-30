@@ -26,7 +26,7 @@ limitations under the License.
 
   <groupId>com.opendatagroup</groupId>
   <artifactId>hadrian</artifactId>
-  <version>0.8.4-scala2.11</version>
+  <version>0.8.4</version>
   <packaging>jar</packaging>
 
   <licenses>
@@ -48,10 +48,6 @@ limitations under the License.
   </reporting>
 
   <properties>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <scala.tools.version>2.11</scala.tools.version>
-    <scala.version>2.11.7</scala.version>
     <encoding>UTF-8</encoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
@@ -143,7 +139,7 @@ limitations under the License.
 
     <dependency>
         <groupId>com.thesamet</groupId>
-        <artifactId>kdtree_2.11</artifactId>
+        <artifactId>kdtree_${scala.binary.version}</artifactId>
         <version>1.0.3</version>
     </dependency>
 
@@ -156,26 +152,10 @@ limitations under the License.
 
     <dependency>
       <groupId>org.scalatest</groupId>
-      <artifactId>scalatest_2.11</artifactId>
+      <artifactId>scalatest_${scala.binary.version}</artifactId>
       <version>2.2.5</version>
       <scope>test</scope>
     </dependency>
-
-<dependency>
-  <groupId>org.scala-lang.modules</groupId>
-  <artifactId>scala-xml_2.11</artifactId>
-  <version>1.0.3</version>
-</dependency>
-<dependency>
-  <groupId>org.scala-lang.modules</groupId>
-  <artifactId>scala-parser-combinators_2.11</artifactId>
-  <version>1.0.3</version>
-</dependency>
-<dependency>
-  <groupId>org.scala-lang.modules</groupId>
-  <artifactId>scala-swing_2.11</artifactId>
-  <version>1.0.1</version>
-</dependency>
 
   </dependencies>
 
@@ -340,4 +320,50 @@ limitations under the License.
       </testResource>
     </testResources>
   </build>
+
+  <profiles>
+    <profile>
+      <id>scala-2.10</id>
+      <activation>
+        <property><name>!scala-2.11</name></property>
+      </activation>
+      <properties>
+        <scala.version>2.10.4</scala.version>
+        <scala.binary.version>2.10</scala.binary.version>
+        <maven.compiler.source>1.7</maven.compiler.source>
+        <maven.compiler.target>1.7</maven.compiler.target>
+      </properties>
+    </profile>
+
+    <profile>
+      <id>scala-2.11</id>
+      <activation>
+        <property><name>scala-2.11</name></property>
+      </activation>
+      <properties>
+        <scala.version>2.11.7</scala.version>
+        <scala.binary.version>2.11</scala.binary.version>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+      </properties>
+      <dependencies>
+        <dependency>
+          <groupId>org.scala-lang.modules</groupId>
+          <artifactId>scala-xml_2.11</artifactId>
+          <version>1.0.3</version>
+        </dependency>
+        <dependency>
+          <groupId>org.scala-lang.modules</groupId>
+          <artifactId>scala-parser-combinators_2.11</artifactId>
+          <version>1.0.3</version>
+        </dependency>
+        <dependency>
+          <groupId>org.scala-lang.modules</groupId>
+          <artifactId>scala-swing_2.11</artifactId>
+          <version>1.0.1</version>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
+
 </project>
