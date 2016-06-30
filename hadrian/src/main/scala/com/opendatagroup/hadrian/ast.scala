@@ -2393,6 +2393,9 @@ package ast {
     * @param pos source file location from the locator mark
     */
   case class Let(values: Map[String, Expression], pos: Option[String] = None) extends Expression {
+    values.find {case (key, _) => !validSymbolName(key)}
+          .foreach {case (badKey, _) => throw new PFASyntaxException(s"${badKey} is not a valid symbol name.", None)}
+
     override def equals(other: Any): Boolean = other match {
       case that: Let => this.values == that.values  // but not pos
       case _ => false
@@ -3439,6 +3442,9 @@ package ast {
     * @param pos source file locadtion from the locator mark
     */
   case class For(init: Map[String, Expression], predicate: Expression, step: Map[String, Expression], body: Seq[Expression], pos: Option[String] = None) extends Expression {
+    (init.keys ++ step.keys).find {key => !validSymbolName(key)}
+                            .foreach {badKey => throw new PFASyntaxException(s"${badKey} is not a valid symbol name!", None)}
+
     override def equals(other: Any): Boolean = other match {
       case that: For =>
         this.init == that.init  &&  this.predicate == that.predicate  &&  this.step == that.step  &&  this.body == that.body  // but not pos
@@ -3981,6 +3987,9 @@ package ast {
     * @param pos source file location from the locator mark
     */
   case class IfNotNull(exprs: Map[String, Expression], thenClause: Seq[Expression], elseClause: Option[Seq[Expression]], pos: Option[String] = None) extends Expression {
+    exprs.keys.find {key => !validSymbolName(key)}
+              .foreach {badKey => throw new PFASyntaxException(s"${badKey} is not a valid symbol name!", None)}
+
     override def equals(other: Any): Boolean = other match {
       case that: IfNotNull => this.exprs == that.exprs  &&  this.thenClause == that.thenClause  &&  this.elseClause == that.elseClause  // but not pos
       case _ => false
@@ -4305,6 +4314,9 @@ package ast {
     * @param pos source file location from the locator mark
     */
   case class Unpack(bytes: Expression, format: Seq[(String, String)], thenClause: Seq[Expression], elseClause: Option[Seq[Expression]], pos: Option[String]) extends Expression {
+    format.find {case (key, _) => !validSymbolName(key)}
+          .foreach {case (badKey, _) => throw new PFASyntaxException(s"${badKey} is not a valid symbol name!", None)}
+
     override def equals(other: Any): Boolean = other match {
       case that: Unpack => this.bytes == that.bytes  &&  this.format == that.format  &&  this.thenClause == that.thenClause  &&  this.elseClause == that.elseClause  // but not pos
       case _ => false
