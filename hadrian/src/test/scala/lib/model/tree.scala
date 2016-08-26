@@ -299,7 +299,7 @@ action:
         new: {field: {type: Fields, value: two}, operator: input, value: 2.0}
   - model.tree.simpleTest: [datum, tree]
 """).head
-    evaluating { engine.action("<=") } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action("<=") } 
   }
 
   it must "be okay for simpleTest if the types match" taggedAs(Lib, LibModelTree) in {
@@ -378,7 +378,7 @@ action:
         ret: ["null", boolean]
         do: {model.tree.missingTest: [d, c]}
 """).head
-    evaluating { engine.action(null) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(null) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: "null"

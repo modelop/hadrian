@@ -48,7 +48,7 @@ action:
   - {+: [input, 10]}
 """).head
     engine.action(java.lang.Integer.valueOf(2147483637)) should be (2147483647)
-    evaluating { engine.action(java.lang.Integer.valueOf(2147483638)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Integer.valueOf(2147483638)) } 
 
     val engine2 = PFAEngine.fromYaml("""
 input: int
@@ -57,7 +57,7 @@ action:
   - {+: [input, -10]}
 """).head
     engine2.action(java.lang.Integer.valueOf(-2147483638)) should be (-2147483648)
-    evaluating { engine2.action(java.lang.Integer.valueOf(-2147483639)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine2.action(java.lang.Integer.valueOf(-2147483639)) } 
   }
 
   it must "handle addition long overflows" taggedAs(Lib, LibCore) in {
@@ -68,7 +68,7 @@ action:
   - {+: [input, 10]}
 """).head
     engine.action(java.lang.Long.valueOf(9223372036854775797L)) should be (9223372036854775807L)
-    evaluating { engine.action(java.lang.Long.valueOf(9223372036854775798L)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Long.valueOf(9223372036854775798L)) } 
 
     val engine2 = PFAEngine.fromYaml("""
 input: long
@@ -77,7 +77,7 @@ action:
   - {+: [input, -10]}
 """).head
     engine2.action(java.lang.Long.valueOf(-9223372036854775798L)) should be (-9223372036854775808L)
-    evaluating { engine2.action(java.lang.Long.valueOf(-9223372036854775799L)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine2.action(java.lang.Long.valueOf(-9223372036854775799L)) } 
   }
 
   it must "do subtraction" taggedAs(Lib, LibCore) in {
@@ -104,7 +104,7 @@ action:
   - {-: [-10, input]}
 """).head
     engine.action(java.lang.Integer.valueOf(2147483638)) should be (-2147483648)
-    evaluating { engine.action(java.lang.Integer.valueOf(2147483639)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Integer.valueOf(2147483639)) } 
 
     val engine2 = PFAEngine.fromYaml("""
 input: int
@@ -113,7 +113,7 @@ action:
   - {-: [10, input]}
 """).head
     engine2.action(java.lang.Integer.valueOf(-2147483637)) should be (2147483647)
-    evaluating { engine2.action(java.lang.Integer.valueOf(-2147483638)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine2.action(java.lang.Integer.valueOf(-2147483638)) } 
   }
 
   it must "handle subtraction long overflows" taggedAs(Lib, LibCore) in {
@@ -124,7 +124,7 @@ action:
   - {-: [-10, input]}
 """).head
     engine.action(java.lang.Long.valueOf(9223372036854775798L)) should be (-9223372036854775808L)
-    evaluating { engine.action(java.lang.Long.valueOf(9223372036854775799L)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Long.valueOf(9223372036854775799L)) } 
 
     val engine2 = PFAEngine.fromYaml("""
 input: long
@@ -133,7 +133,7 @@ action:
   - {-: [10, input]}
 """).head
     engine2.action(java.lang.Long.valueOf(-9223372036854775797L)) should be (9223372036854775807L)
-    evaluating { engine2.action(java.lang.Long.valueOf(-9223372036854775798L)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine2.action(java.lang.Long.valueOf(-9223372036854775798L)) } 
   }
 
   it must "handle negative int overflows" taggedAs(Lib, LibCore) in {
@@ -144,7 +144,7 @@ action:
   - {u-: [input]}
 """).head
     engine.action(java.lang.Integer.valueOf(2147483647)) should be (-2147483647)
-    evaluating { engine.action(java.lang.Integer.valueOf(-2147483648)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Integer.valueOf(-2147483648)) } 
   }
 
   it must "handle negative long overflows" taggedAs(Lib, LibCore) in {
@@ -155,7 +155,7 @@ action:
   - {u-: [input]}
 """).head
     engine.action(java.lang.Long.valueOf(9223372036854775807L)) should be (-9223372036854775807L)
-    evaluating { engine.action(java.lang.Long.valueOf(-9223372036854775808L)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Long.valueOf(-9223372036854775808L)) } 
   }
 
   it must "do multiplication" taggedAs(Lib, LibCore) in {
@@ -182,7 +182,7 @@ action:
   - {"*": [input, 2]}
 """).head
     engine.action(java.lang.Integer.valueOf(1073741823)) should be (2147483646)
-    evaluating { engine.action(java.lang.Integer.valueOf(1073741824)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Integer.valueOf(1073741824)) } 
   }
 
   it must "handle multiplication long overflows" taggedAs(Lib, LibCore) in {
@@ -193,9 +193,9 @@ action:
   - {"*": [input, 2]}
 """).head
     engine.action(java.lang.Long.valueOf(4611686018427387903L)) should be (9223372036854775806L)
-    evaluating { engine.action(java.lang.Long.valueOf(4611686018427387904L)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Long.valueOf(4611686018427387904L)) } 
     engine.action(java.lang.Long.valueOf(-4611686018427387904L)) should be (-9223372036854775808L)
-    evaluating { engine.action(java.lang.Long.valueOf(-4611686018427387905L)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Long.valueOf(-4611686018427387905L)) } 
   }
 
   it must "do floating-point division" taggedAs(Lib, LibCore) in {
@@ -206,12 +206,12 @@ action:
   - {/: [5, 3]}
 """).head.action(null).asInstanceOf[Double] should be (1.67 +- 0.01)
 
-    evaluating { PFAEngine.fromYaml("""
+    an [PFASemanticException] should be thrownBy { PFAEngine.fromYaml("""
 input: "null"
 output: int
 action:
   - {/: [5, 3]}
-""").head } should produce [PFASemanticException]
+""").head } 
   }
 
   it must "do integer division" taggedAs(Lib, LibCore) in {
@@ -233,7 +233,7 @@ action:
 
     intEngine.action(java.lang.Integer.valueOf(12)) should be (-12)
     intEngine.action(java.lang.Integer.valueOf(2147483647)) should be (-2147483647)
-    evaluating { intEngine.action(java.lang.Integer.valueOf(-2147483648)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { intEngine.action(java.lang.Integer.valueOf(-2147483648)) } 
 
     val longEngine = PFAEngine.fromYaml("""
 input: long
@@ -244,7 +244,7 @@ action:
 
     longEngine.action(java.lang.Long.valueOf(12)) should be (-12)
     longEngine.action(java.lang.Long.valueOf(9223372036854775807L)) should be (-9223372036854775807L)
-    evaluating { longEngine.action(java.lang.Long.valueOf(-9223372036854775808L)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { longEngine.action(java.lang.Long.valueOf(-9223372036854775808L)) } 
   }
 
   it must "interpret % as a modulo operator (not a division remainder)" taggedAs(Lib, LibCore) in {
@@ -382,12 +382,12 @@ action:
   - {"**": [input, 30]}
 """).head.action(java.lang.Integer.valueOf(2)) should be (1073741824)
 
-    evaluating { PFAEngine.fromYaml("""
+    an [PFARuntimeException] should be thrownBy { PFAEngine.fromYaml("""
 input: int
 output: int
 action:
   - {"**": [input, 30]}
-""").head.action(java.lang.Integer.valueOf(3)) } should produce [PFARuntimeException]
+""").head.action(java.lang.Integer.valueOf(3)) }
 
     PFAEngine.fromYaml("""
 input: long
@@ -577,19 +577,19 @@ action:
     engine.action(engine.jsonInput(""""x"""")).asInstanceOf[Boolean] should be (true)
     engine.action(engine.jsonInput(""""w"""")).asInstanceOf[Boolean] should be (false)
 
-    evaluating { PFAEngine.fromYaml("""
+    an [PFASemanticException] should be thrownBy  { PFAEngine.fromYaml("""
 input: {type: enum, name: Category1, symbols: [z, y, x, w]}
 output: boolean
 action:
   - {"==": [input, {type: {type: enum, name: Category2, symbols: [w, x, y, z]}, value: x}]}
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    an [PFASemanticException] should be thrownBy { PFAEngine.fromYaml("""
 input: {type: enum, name: Category1, symbols: [z, y, x, w]}
 output: boolean
 action:
   - {"==": [input, {type: {type: enum, name: Category2, symbols: [w, x, y, whatever]}, value: x}]}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   it must "do max" taggedAs(Lib, LibMath) in {

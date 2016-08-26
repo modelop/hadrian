@@ -63,7 +63,7 @@ action:
 """).head
     intEngine.action(java.lang.Integer.valueOf(2147483647)) should be (2147483647)
     intEngine.action(java.lang.Integer.valueOf(-2147483647)) should be (2147483647)
-    evaluating { intEngine.action(java.lang.Integer.valueOf(-2147483648)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { intEngine.action(java.lang.Integer.valueOf(-2147483648)) } 
 
     val longEngine = PFAEngine.fromYaml("""
 input: long
@@ -73,7 +73,7 @@ action:
 """).head
     longEngine.action(java.lang.Long.valueOf(9223372036854775807L)) should be (9223372036854775807L)
     longEngine.action(java.lang.Long.valueOf(-9223372036854775807L)) should be (9223372036854775807L)
-    evaluating { longEngine.action(java.lang.Long.valueOf(-9223372036854775808L)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { longEngine.action(java.lang.Long.valueOf(-9223372036854775808L)) } 
   }
 
   it must "do acos" taggedAs(Lib, LibMath) in {
@@ -280,8 +280,8 @@ action:
     engine.action(java.lang.Integer.valueOf(10)).asInstanceOf[Double] should be (0.74 +- 0.01)
     engine.action(java.lang.Integer.valueOf(16)).asInstanceOf[Double] should be (0.61 +- 0.01)
 
-    evaluating { engine.action(java.lang.Integer.valueOf(0)) } should produce [PFARuntimeException]
-    evaluating { engine.action(java.lang.Integer.valueOf(-1)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Integer.valueOf(0)) } 
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Integer.valueOf(-1)) } 
   }
 
   it must "do ln1p" taggedAs(Lib, LibMath) in {
@@ -315,9 +315,9 @@ action:
     engine.action(java.lang.Double.valueOf(3.5)) should be (4)
     engine.action(java.lang.Double.valueOf(3.8)) should be (4)
     engine.action(java.lang.Double.valueOf(9.223372036854776e+18)) should be (9223372036854775807L)
-    evaluating { engine.action(java.lang.Double.valueOf(9.223372036854777e+18)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Double.valueOf(9.223372036854777e+18)) } 
     engine.action(java.lang.Double.valueOf(-9.223372036854776e+18)) should be (-9223372036854775808L)
-    evaluating { engine.action(java.lang.Double.valueOf(-9.223372036854777e+18)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Double.valueOf(-9.223372036854777e+18)) } 
   }
 
   it must "do rint" taggedAs(Lib, LibMath) in {
