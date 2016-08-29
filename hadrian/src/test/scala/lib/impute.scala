@@ -41,7 +41,7 @@ action:
 """).head
     intEngine.action(java.lang.Integer.valueOf(3)) should be (3)
     intEngine.action(java.lang.Integer.valueOf(12)) should be (12)
-    evaluating { intEngine.action(null) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { intEngine.action(null) } 
     intEngine.action(java.lang.Integer.valueOf(5)) should be (5)
   }
 
@@ -68,26 +68,26 @@ action:
     stringEngine.action(null) should be ("oops")
     stringEngine.action("four") should be ("four")
 
-    evaluating { PFAEngine.fromYaml("""
+    an [org.apache.avro.AvroRuntimeException] should be thrownBy { PFAEngine.fromYaml("""
 input: ["null", "null"]
 output: "null"
 action:
   - {impute.defaultOnNull: [input, "null"]}
-""").head } should produce [org.apache.avro.AvroRuntimeException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    an [org.apache.avro.AvroRuntimeException] should be thrownBy  { PFAEngine.fromYaml("""
 input: [[int, string], "null"]
 output: [int, string]
 action:
   - {impute.defaultOnNull: [input, 12]}
-""").head } should produce [org.apache.avro.AvroRuntimeException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    an [PFASemanticException] should be thrownBy  { PFAEngine.fromYaml("""
 input: [int, string, "null"]
 output: int
 action:
   - {impute.defaultOnNull: [input, 12]}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   it must "isnan" taggedAs(Lib, LibImpute) in {
@@ -163,9 +163,9 @@ output: float
 action: {impute.errorOnNonNum: input}
 """).head
     floatEngine.action(java.lang.Float.valueOf(123.4F)) should be (123.4F)
-    evaluating { floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NaN)) } should produce [PFARuntimeException]
-    evaluating { floatEngine.action(java.lang.Float.valueOf(java.lang.Float.POSITIVE_INFINITY)) } should produce [PFARuntimeException]
-    evaluating { floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NEGATIVE_INFINITY)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NaN)) } 
+    an [PFARuntimeException] should be thrownBy { floatEngine.action(java.lang.Float.valueOf(java.lang.Float.POSITIVE_INFINITY)) } 
+    an [PFARuntimeException] should be thrownBy { floatEngine.action(java.lang.Float.valueOf(java.lang.Float.NEGATIVE_INFINITY)) } 
 
     val doubleEngine = PFAEngine.fromYaml("""
 input: double
@@ -173,9 +173,9 @@ output: double
 action: {impute.errorOnNonNum: input}
 """).head
     doubleEngine.action(java.lang.Double.valueOf(123.4F)) should be (123.4F)
-    evaluating { doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NaN)) } should produce [PFARuntimeException]
-    evaluating { doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.POSITIVE_INFINITY)) } should produce [PFARuntimeException]
-    evaluating { doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NEGATIVE_INFINITY)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NaN)) } 
+    an [PFARuntimeException] should be thrownBy { doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.POSITIVE_INFINITY)) } 
+    an [PFARuntimeException] should be thrownBy { doubleEngine.action(java.lang.Double.valueOf(java.lang.Double.NEGATIVE_INFINITY)) } 
   }
 
   it must "defaultOnNonNum" taggedAs(Lib, LibImpute) in {

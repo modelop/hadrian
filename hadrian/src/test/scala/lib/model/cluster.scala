@@ -331,7 +331,7 @@ action:
 
     (result map {_.get("onemore")} toSet) should be (Set("hello"))
 
-    evaluating { engine.action(java.lang.Integer.valueOf(6)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Integer.valueOf(6)) }
   }
 
   it must "perform standard k-means" taggedAs(Lib, LibModelCluster) in {

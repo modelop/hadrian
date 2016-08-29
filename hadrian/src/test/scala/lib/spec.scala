@@ -53,7 +53,7 @@ action:
   - m.special.lnBeta: [input, -3] # [a, b]
 """).head
 
-    evaluating { engine2.action(java.lang.Double.valueOf(0.5)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine2.action(java.lang.Double.valueOf(0.5)) } 
     }
 
 
@@ -78,8 +78,8 @@ output: int
 action:
   - m.special.nChooseK: [input, 4]
 """).head
-    evaluating { engine.action(java.lang.Integer.valueOf(1)) } should produce [PFARuntimeException]
-    evaluating { engine.action(java.lang.Integer.valueOf(0)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Integer.valueOf(1)) } 
+    an [PFARuntimeException] should be thrownBy { engine.action(java.lang.Integer.valueOf(0)) } 
 
     val engine1 = PFAEngine.fromYaml("""
 input: int
@@ -87,7 +87,7 @@ output: int
 action:
   - m.special.nChooseK: [input, 4] #[input, lambda]
 """).head
-    evaluating { engine1.action(java.lang.Integer.valueOf(-2)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine1.action(java.lang.Integer.valueOf(-2)) } 
   }
 
 
@@ -142,57 +142,7 @@ output: double
 action:
   - {m.special.lnGamma: input}
 """).head
-    evaluating { engine1.action(java.lang.Double.valueOf(-2.0)) } should produce [PFARuntimeException]
-    evaluating { engine1.action(java.lang.Double.valueOf(-2.2)) } should produce [PFARuntimeException]
+    an [PFARuntimeException] should be thrownBy { engine1.action(java.lang.Double.valueOf(-2.0)) } 
+    an [PFARuntimeException] should be thrownBy { engine1.action(java.lang.Double.valueOf(-2.2)) } 
   }
-
-//"regularized gamma P function" must "evaluate correctly" taggedAs(Lib, LibSpec) in {
-//    val engine = PFAEngine.fromYaml("""
-//input: double
-//output: double
-//action:
-//  - m.special.regularizedgammapfcn: [input, 3] # [a, b]
-//""").head
-//
-//    engine.action(java.lang.Double.valueOf(1.0)).asInstanceOf[java.lang.Double].doubleValue should be    (0.08030 +- 0.001)
-//    engine.action(java.lang.Double.valueOf(2.0)).asInstanceOf[java.lang.Double].doubleValue should be    (0.32332 +- 0.001)
-//    engine.action(java.lang.Double.valueOf(3.0)).asInstanceOf[java.lang.Double].doubleValue should be    (0.57680 +- 0.001)
-//    }
-//
-//  it must "raise the correct exceptions" taggedAs(Lib, LibSpec) in {
-//    val engine2 = PFAEngine.fromYaml("""
-//input: double
-//output: double
-//action:
-//  - m.special.regularizedgammapfcn: [input, -3] # [a, b]
-//""").head
-//
-//    evaluating { engine2.action(java.lang.Double.valueOf(1.40)) } should produce [PFARuntimeException]
-//    evaluating { engine2.action(java.lang.Double.valueOf(-1.2)) } should produce [PFARuntimeException]
-//    }
-//
-//"regularized gamma Q function" must "evaluate correctly" taggedAs(Lib, LibSpec) in {
-//    val engine = PFAEngine.fromYaml("""
-//input: double
-//output: double
-//action:
-//  - m.special.regularizedgammaqfcn: [input, 3] # [a, b]
-//""").head
-//
-//    engine.action(java.lang.Double.valueOf(1.0)).asInstanceOf[java.lang.Double].doubleValue should be    (0.91969 +- 0.001)
-//    engine.action(java.lang.Double.valueOf(2.0)).asInstanceOf[java.lang.Double].doubleValue should be    (0.67667 +- 0.001)
-//    engine.action(java.lang.Double.valueOf(3.0)).asInstanceOf[java.lang.Double].doubleValue should be    (0.42319 +- 0.001)
-//    }
-//
-//  it must "raise the correct exceptions" taggedAs(Lib, LibSpec) in {
-//    val engine2 = PFAEngine.fromYaml("""
-//input: double
-//output: double
-//action:
-//  - m.special.regularizedgammaqfcn: [input, -3] # [a, b]
-//""").head
-//
-//    evaluating { engine2.action(java.lang.Double.valueOf(1.40)) } should produce [PFARuntimeException]
-//    evaluating { engine2.action(java.lang.Double.valueOf(-1.2)) } should produce [PFARuntimeException]
-//    }
 }
