@@ -1,7 +1,7 @@
 // Copyright (C) 2014  Open Data ("Open Data" refers to
 // one or more of the following companies: Open Data Partners LLC,
 // Open Data Research LLC, or Open Data Capital LLC.)
-// 
+//
 // This file is part of Hadrian.
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -91,8 +91,8 @@ package object regex {
     var matcher =
       try {
         (rawOrUtf16 match {
-          case RawOrUtf16.Utf16 => new Regex(pattern, 0, pattern.length, JoniOption.NONE, UTF16BEEncoding.INSTANCE, Syntax.PosixExtended) 
-          case RawOrUtf16.Raw => new Regex(pattern, 0, pattern.length, JoniOption.NONE, ASCIIEncoding.INSTANCE, Syntax.PosixExtended) 
+          case RawOrUtf16.Utf16 => new Regex(pattern, 0, pattern.length, JoniOption.NONE, UTF16BEEncoding.INSTANCE, Syntax.PosixExtended)
+          case RawOrUtf16.Raw => new Regex(pattern, 0, pattern.length, JoniOption.NONE, ASCIIEncoding.INSTANCE, Syntax.PosixExtended)
         }).matcher(haystack, 0, haystack.length)
       }
       catch {
@@ -102,9 +102,9 @@ package object regex {
     def search(start: Int): Boolean =
       matcher.search(start, haystack.length, JoniOption.DEFAULT) != -1  &&  start < haystack.length
 
-    def groupsFound(): Int = matcher.getEagerRegion.beg.length   
+    def groupsFound(): Int = matcher.getEagerRegion.beg.length
     def getRegion(): Region = matcher.getEagerRegion()
-  } 
+  }
   object Regexer {
     def bytesPerChar(rawOrUtf16: RawOrUtf16.Value): Int = rawOrUtf16 match {
       case RawOrUtf16.Utf16 => 2
@@ -120,7 +120,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes, "pattern" -> P.Bytes), P.Array(P.Int))))
     def doc =
       <doc>
-        <desc>Return the indices in <p>haystack</p> of the begining and end of the first match defined by <p>pattern</p>.</desc>
+        <desc>Return the indices in <p>haystack</p> of the begining and end of the first match defined by <p>pattern</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35000
@@ -152,7 +152,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes, "pattern" -> P.Bytes), P.Boolean)))
     def doc =
       <doc>
-        <desc>Return true if <p>pattern</p> matches anywhere within <p>haystack</p>, otherwise return false.</desc>
+        <desc>Return true if <p>pattern</p> matches anywhere within <p>haystack</p>, otherwise return false. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35010
@@ -163,7 +163,7 @@ package object regex {
     def apply[X](haystack: Array[Byte], pattern: Array[Byte]): Boolean =
       indexer(haystack, pattern, RawOrUtf16.Raw)
 
-    def indexer(haystack: Array[Byte], pattern: Array[Byte], rawOrUtf16: RawOrUtf16.Value): Boolean = { 
+    def indexer(haystack: Array[Byte], pattern: Array[Byte], rawOrUtf16: RawOrUtf16.Value): Boolean = {
       val re = new Regexer(haystack, pattern, rawOrUtf16, "bad pattern", errcodeBase + 0, name, pos)
       val constant: Int = Regexer.bytesPerChar(rawOrUtf16)
       re.search(0)
@@ -178,7 +178,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes, "pattern" -> P.Bytes), P.Int)))
     def doc =
       <doc>
-        <desc>Count the number of times <p>pattern</p> matches in <p>haystack</p>.</desc>
+        <desc>Count the number of times <p>pattern</p> matches in <p>haystack</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35020
@@ -214,7 +214,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes, "pattern" -> P.Bytes), P.Array(P.Int))))
     def doc =
       <doc>
-        <desc>Return the location indices of the last <p>pattern</p> match in <p>haystack</p>.</desc>
+        <desc>Return the location indices of the last <p>pattern</p> match in <p>haystack</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35030
@@ -252,7 +252,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes, "pattern" -> P.Bytes), P.Array(P.Array(P.Int)))))
     def doc =
       <doc>
-        <desc>Return the location indices of each <p>pattern</p> sub-match (group-match) in <p>haystack</p>.</desc>
+        <desc>Return the location indices of each <p>pattern</p> sub-match (group-match) in <p>haystack</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35040
@@ -286,7 +286,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes, "pattern" -> P.Bytes), P.Array(P.Array(P.Int)))))
     def doc =
       <doc>
-        <desc>Return the location indices of every <p>pattern</p> match in <p>haystack</p>.</desc>
+        <desc>Return the location indices of every <p>pattern</p> match in <p>haystack</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35050
@@ -326,7 +326,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes, "pattern" -> P.Bytes),   P.Array(P.Bytes))))
     def doc =
       <doc>
-        <desc>Return an array containing each string that <p>pattern</p> matched in <p>haystack</p>.</desc>
+        <desc>Return an array containing each string that <p>pattern</p> matched in <p>haystack</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35060
@@ -339,7 +339,7 @@ package object regex {
     def apply(haystack: Array[Byte], pattern: Array[Byte]): PFAArray[Array[Byte]] =
       PFAArray.fromVector(indexer(haystack, pattern, RawOrUtf16.Raw).toVector.reverse)
 
-    def indexer(haystack: Array[Byte], pattern: Array[Byte], rawOrUtf16: RawOrUtf16.Value): List[Array[Byte]] = { 
+    def indexer(haystack: Array[Byte], pattern: Array[Byte], rawOrUtf16: RawOrUtf16.Value): List[Array[Byte]] = {
       val re = new Regexer(haystack, pattern, rawOrUtf16, "bad pattern", errcodeBase + 0, name, pos)
       val constant: Int = Regexer.bytesPerChar(rawOrUtf16)
       var region: Region = re.getRegion()
@@ -364,7 +364,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes,  "pattern" -> P.Bytes ), P.Union(List(P.Bytes,  P.Null)))))
     def doc =
      <doc>
-       <desc>Return the first occurance of what <p>pattern</p> matched in <p>haystack</p>.</desc>
+       <desc>Return the first occurance of what <p>pattern</p> matched in <p>haystack</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
      </doc>
     def errcodeBase = 35070
@@ -400,7 +400,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes,  "pattern" -> P.Bytes),  P.Array(P.Bytes))))
     def doc =
       <doc>
-        <desc>Return an array of strings or bytes for each <p>pattern</p> sub-match (group-match) at the first occurance of <p>pattern</p> in <p>haystack</p>.</desc>
+        <desc>Return an array of strings or bytes for each <p>pattern</p> sub-match (group-match) at the first occurance of <p>pattern</p> in <p>haystack</p>. Regular expressions follow the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35080
@@ -439,7 +439,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes,  "pattern" -> P.Bytes),  P.Array(P.Array(P.Bytes)))))
     def doc =
       <doc>
-       <desc>Return an array of strings or bytes for each <p>pattern</p> sub-match (group-match) at every occurance of <p>pattern</p> in <p>haystack</p>.</desc>
+       <desc>Return an array of strings or bytes for each <p>pattern</p> sub-match (group-match) at every occurance of <p>pattern</p> in <p>haystack</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35090
@@ -452,13 +452,13 @@ package object regex {
     def apply(haystack: Array[Byte], pattern: Array[Byte]): PFAArray[PFAArray[Array[Byte]]] =
       PFAArray.fromVector(indexer(haystack, pattern, RawOrUtf16.Raw).reverse.map(x => PFAArray.fromVector(x.toVector)).toVector)
 
-    def indexer(haystack: Array[Byte], pattern: Array[Byte], rawOrUtf16: RawOrUtf16.Value): List[List[Array[Byte]]] = { 
+    def indexer(haystack: Array[Byte], pattern: Array[Byte], rawOrUtf16: RawOrUtf16.Value): List[List[Array[Byte]]] = {
       val re = new Regexer(haystack, pattern, rawOrUtf16, "bad pattern", errcodeBase + 0, name, pos)
       var start: Int = 0
-      var found: Boolean = re.search(start) 
+      var found: Boolean = re.search(start)
       var region: Region = re.getRegion()
       var list_of_group_lists = List[List[Array[Byte]]]()
-      while (found) { 
+      while (found) {
         region = re.getRegion()
         var group_list = List[Array[Byte]]()
         for (i <- 0 to re.groupsFound() - 1) yield {
@@ -466,7 +466,7 @@ package object regex {
         }
         list_of_group_lists = group_list.reverse :: list_of_group_lists
         start = region.end(0)
-        found = re.search(start) 
+        found = re.search(start)
       }
       list_of_group_lists
     }
@@ -481,7 +481,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes, "pattern" -> P.Bytes), P.Array(P.Array(P.Array(P.Int))))))
     def doc =
       <doc>
-        <desc>Return the location indices of each <p>pattern</p> sub-match (group-match) for each occurance of <p>pattern</p> in <p>haystack</p>.</desc>
+        <desc>Return the location indices of each <p>pattern</p> sub-match (group-match) for each occurance of <p>pattern</p> in <p>haystack</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35100
@@ -521,11 +521,11 @@ package object regex {
   ////   replaceFirst (ReplaceFirst)
   class ReplaceFirst(val pos: Option[String] = None) extends LibFcn {
     def name = prefix + "replacefirst"
-    def sig = Sigs(List(Sig(List("haystack" -> P.String, "pattern" -> P.String, "replacement" -> P.String), P.String), 
-                        Sig(List("haystack" -> P.Bytes,  "pattern" -> P.Bytes,  "replacement" -> P.Bytes), P.Bytes))) 
+    def sig = Sigs(List(Sig(List("haystack" -> P.String, "pattern" -> P.String, "replacement" -> P.String), P.String),
+                        Sig(List("haystack" -> P.Bytes,  "pattern" -> P.Bytes,  "replacement" -> P.Bytes), P.Bytes)))
     def doc =
       <doc>
-        <desc>Replace the first <p>pattern</p> match in <p>haystack</p> with <p>replacement</p>.</desc>
+        <desc>Replace the first <p>pattern</p> match in <p>haystack</p> with <p>replacement</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35110
@@ -538,12 +538,12 @@ package object regex {
     def apply(haystack: Array[Byte], pattern: Array[Byte], replacement: Array[Byte]): Array[Byte] =
       indexer(haystack, pattern, replacement, RawOrUtf16.Raw)
 
-    def indexer(haystack: Array[Byte], pattern: Array[Byte], replacement: Array[Byte], rawOrUtf16: RawOrUtf16.Value): Array[Byte] = { 
+    def indexer(haystack: Array[Byte], pattern: Array[Byte], replacement: Array[Byte], rawOrUtf16: RawOrUtf16.Value): Array[Byte] = {
       val re = new Regexer(haystack, pattern, rawOrUtf16, "bad pattern", errcodeBase + 0, name, pos)
       var if_the = re.search(0)
       val region: Region = re.getRegion()
       if (if_the)
-        haystack.slice(0, region.beg(0)) ++ replacement ++ haystack.slice(region.end(0), haystack.length) 
+        haystack.slice(0, region.beg(0)) ++ replacement ++ haystack.slice(region.end(0), haystack.length)
       else
         haystack
     }
@@ -553,8 +553,8 @@ package object regex {
   ////   replaceLast (replaceLast)
   class ReplaceLast(val pos: Option[String] = None) extends LibFcn {
     def name = prefix + "replacelast"
-    def sig = Sigs(List(Sig(List("haystack" -> P.String, "pattern" -> P.String, "replacement" -> P.String), P.String), 
-                        Sig(List("haystack" -> P.Bytes,  "pattern" -> P.Bytes,  "replacement" -> P.Bytes), P.Bytes))) 
+    def sig = Sigs(List(Sig(List("haystack" -> P.String, "pattern" -> P.String, "replacement" -> P.String), P.String),
+                        Sig(List("haystack" -> P.Bytes,  "pattern" -> P.Bytes,  "replacement" -> P.Bytes), P.Bytes)))
     def doc =
       <doc>
         <desc>Replace the last <p>pattern</p> match in <p>haystack</p> with <p>replacement</p>.</desc>
@@ -597,7 +597,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes, "pattern" -> P.Bytes),   P.Array(P.Bytes))))
     def doc =
       <doc>
-        <desc>Break <p>haystack</p> into an array of strings or bytes on the separator defined by <p>pattern</p>.</desc>
+        <desc>Break <p>haystack</p> into an array of strings or bytes on the separator defined by <p>pattern</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35130
@@ -650,11 +650,11 @@ package object regex {
   ////   replaceAll (ReplaceAll)
   class ReplaceAll(val pos: Option[String] = None) extends LibFcn {
     def name = prefix + "replaceall"
-    def sig = Sigs(List(Sig(List("haystack" -> P.String, "pattern" -> P.String, "replacement" -> P.String), P.String), 
-                        Sig(List("haystack" -> P.Bytes,  "pattern" -> P.Bytes,  "replacement" -> P.Bytes), P.Bytes))) 
+    def sig = Sigs(List(Sig(List("haystack" -> P.String, "pattern" -> P.String, "replacement" -> P.String), P.String),
+                        Sig(List("haystack" -> P.Bytes,  "pattern" -> P.Bytes,  "replacement" -> P.Bytes), P.Bytes)))
     def doc =
       <doc>
-        <desc>Replace the all <p>pattern</p> matches in <p>haystack</p> with <p>replacement</p>.</desc>
+        <desc>Replace the all <p>pattern</p> matches in <p>haystack</p> with <p>replacement</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35140
