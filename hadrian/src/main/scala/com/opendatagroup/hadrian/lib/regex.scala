@@ -557,7 +557,7 @@ package object regex {
                         Sig(List("haystack" -> P.Bytes,  "pattern" -> P.Bytes,  "replacement" -> P.Bytes), P.Bytes)))
     def doc =
       <doc>
-        <desc>Replace the last <p>pattern</p> match in <p>haystack</p> with <p>replacement</p>.</desc>
+        <desc>Replace the last <p>pattern</p> match in <p>haystack</p> with <p>replacement</p>. The regular expression follows the POSIX extended standard (like <p>grep -e</p> in Linux and UNIX).</desc>
         <error code={s"${errcodeBase + 0}"}>If <p>pattern</p> is not a valid regular expression, a "bad pattern" error is raised.</error>
       </doc>
     def errcodeBase = 35120
