@@ -3,7 +3,7 @@
 # Copyright (C) 2014  Open Data ("Open Data" refers to
 # one or more of the following companies: Open Data Partners LLC,
 # Open Data Research LLC, or Open Data Capital LLC.)
-# 
+#
 # This file is part of Hadrian.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,6 +46,8 @@ from titus.datatype import AvroRecord
 from titus.datatype import AvroUnion
 from titus.datatype import AvroField
 from titus.datatype import AvroTypeBuilder
+from titus.datatype import AvroPlaceholder
+from titus.datatype import ForwardDeclarationParser
 from titus.datatype import jsonDecoder
 from titus.datatype import jsonEncoder
 
@@ -378,6 +380,9 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
                         newf["order"] = f.order
                     out["fields"].append(newf)
                 return out
+        # Fix to resolve AvroPlaceholders
+        elif isinstance(avroType, AvroPlaceholder):
+            return rename(i, avroType.avroType, memo)
         else:
             return jsonlib.loads(repr(avroType))
 
@@ -386,7 +391,7 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
     def newPlaceholder(i, oldAvroType):
         newAvroType = rename(i, oldAvroType, {})
         return avroTypeBuilder.makePlaceholder(jsonlib.dumps(newAvroType), memo)
-            
+
     # combined name, if not explicitly set
     if name is None:
         name = "Chain_" + "_".join(pfa.name for pfa in pfas)
@@ -586,6 +591,7 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
                                                          newPlaceholder(i, fcnDef.ret),
                                                          [x.replace(fcnReplacer) for x in fcnDef.body],
                                                          fcnDef.pos)
+    # end loop over (i, pfa)
 
     if verbose: sys.stderr.write(time.asctime() + " Create types for model parameters\n")
 
@@ -600,7 +606,7 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
                     original = jsonDecoder(cell.avroType, jsonlib.loads(cell.init))
                     return jsonlib.dumps(jsonEncoder(avroType, original))
                 newCell.converter = converter
-                
+
     for i, pfa in enumerate(pfas):
         if verbose and len(pfa.pools) > 0: sys.stderr.write(time.asctime() + "     step {0}:\n".format(i + 1))
         for poolName, pool in pfa.pools.items():
@@ -612,8 +618,9 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
                     original = jsonDecoder(pool.avroType, jsonlib.loads(pool.init))
                     return jsonlib.dumps(jsonEncoder(avroType, original))
                 newPool.converter = converter
-                
+
     # make sure all the types work together
+    # This resolves the variables types in fcns
     if verbose: sys.stderr.write(time.asctime() + " Resolving all types\n")
     avroTypeBuilder.resolveTypes()
 
