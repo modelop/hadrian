@@ -4,7 +4,8 @@
 \alias{pfa.glm.extractParams}
 \title{pfa.glm.extractParams}
 \usage{
-pfa.glm.extractParams(fit)
+\method{pfa}{glm.extractParams}(fit, input_name = "glm_input",
+  model_name = "glm_model")
 }
 \arguments{
 \item{fit}{an object of class "glm"}
