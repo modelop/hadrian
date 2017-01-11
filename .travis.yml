@@ -42,9 +42,19 @@ r_binary_packages:
 
 #r_packages
 r_packages:
+- rmarkdown
 
 #services
 services:
 
 #before_install
-before_install: cd aurelius
+before_install: 
+- cd aurelius
+- sudo apt-get -qq update
+- sudo apt-get install python-setuptools -y
+
+#install
+install:
+- git clone https://github.com/opendatagroup/hadrian.git
+- cd hadrian/titus
+- sudo python setup.py install
