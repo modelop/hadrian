@@ -82,6 +82,18 @@ pfa.glm.extractParams <- function(fit, input_name='glm_input', model_name='glm_m
 #' 
 #' @source pfa.config.R avro.typemap.R avro.R
 #' @param object an object of class "glm"
+#' @param name a character which is an optional name for the scoring engine
+#' @param version	an integer which is sequential version number for the model
+#' @param doc	a character which is documentation string for archival purposes
+#' @param metadata a \code{list} of strings that is computer-readable documentation for 
+#' archival purposes
+#' @param randseed a integer which is a global seed used to generate all random 
+#' numbers. Multiple scoring engines derived from the same PFA file have 
+#' different seeds generated from the global one
+#' @param options	a \code{list} with value types depending on option name 
+#' Initialization or runtime options to customize implementation 
+#' (e.g. optimization switches). May be overridden or ignored by PFA consumer
+#' @param ...	additional arguments affecting the PFA produced
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[stats]{glm}} \code{\link{pfa.glm.extractParams}}
 #' @examples
@@ -94,7 +106,7 @@ pfa.glm.extractParams <- function(fit, input_name='glm_input', model_name='glm_m
 #' model_as_pfa <- pfa(model)
 #' 
 #' @export
-pfa.glm <- function(object){
+pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...){
   
   # extract model parameters
   fit <- pfa.glm.extractParams(object)
@@ -121,7 +133,13 @@ pfa.glm <- function(object){
                                                                     coeff = unname(fit$coeff)))),
                              action = parse(text=paste(paste(fit$input_name, '<-', 'glm_input_list'), 
                                                        fit$link, 
-                                                       sep='\n '))
+                                                       sep='\n ')),
+                             name=name, 
+                             version=version, 
+                             doc=doc, 
+                             metadata=metadata, 
+                             randseed=randseed, 
+                             options=options
   )
   
   return(pfa_document)
@@ -149,7 +167,7 @@ pfa.glm.predictProb <- function(params, input) {
                                               list(attr = input, path = list(list(string = x)))))
     
     cellsEnv <- new.env()
-    cellsEnv[[params$model_name]] <- pfa.cell(create_glm_reg_record(),
+    cellsEnv[[params$model_name]] <- pfa.cell(pfa.glm.regressionType(params),
                                               list(const = params$const,
                                                    coeff = unname(params$coeff)))   
     

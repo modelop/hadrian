@@ -23,6 +23,18 @@
 #' 
 #' @source pfa.config.R avro.typemap.R avro.R
 #' @param object an object of class "lm"
+#' @param name a character which is an optional name for the scoring engine
+#' @param version	an integer which is sequential version number for the model
+#' @param doc	a character which is documentation string for archival purposes
+#' @param metadata a \code{list} of strings that is computer-readable documentation for 
+#' archival purposes
+#' @param randseed a integer which is a global seed used to generate all random 
+#' numbers. Multiple scoring engines derived from the same PFA file have 
+#' different seeds generated from the global one
+#' @param options	a \code{list} with value types depending on option name
+#' Initialization or runtime options to customize implementation 
+#' (e.g. optimization switches). May be overridden or ignored by PFA consumer
+#' @param ...	additional arguments affecting the PFA produced
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[stats]{lm}} \code{\link{pfa.glm}}
 #' @examples
@@ -34,7 +46,7 @@
 #' model_as_pfa <- pfa(model)
 #' 
 #' @export
-pfa.lm <- function(object){
+pfa.lm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...){
   
   if (!("lm" %in% class(object)))
     stop("pfa.lm requires an object of class \"lm\"")
@@ -44,5 +56,11 @@ pfa.lm <- function(object){
   object$family <- gaussian('identity')
   class(object) <- c("glm", object$class)
   
-  return(pfa(object))
+  return(pfa(object, 
+             name=name, 
+             version=version, 
+             doc=doc, 
+             metadata=metadata, 
+             randseed=randseed, 
+             options=options, ...))
 }

@@ -7,10 +7,30 @@
 pfa.config.R avro.typemap.R avro.R
 }
 \usage{
-\method{pfa}{lm}(object)
+\method{pfa}{lm}(object, name = NULL, version = NULL, doc = NULL,
+  metadata = NULL, randseed = NULL, options = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class "lm"}
+
+\item{name}{a character which is an optional name for the scoring engine}
+
+\item{version}{an integer which is sequential version number for the model}
+
+\item{doc}{a character which is documentation string for archival purposes}
+
+\item{metadata}{a \code{list} of strings that is computer-readable documentation for 
+archival purposes}
+
+\item{randseed}{a integer which is a global seed used to generate all random 
+numbers. Multiple scoring engines derived from the same PFA file have 
+different seeds generated from the global one}
+
+\item{options}{a \code{list} with value types depending on option name
+Initialization or runtime options to customize implementation 
+(e.g. optimization switches). May be overridden or ignored by PFA consumer}
+
+\item{...}{additional arguments affecting the PFA produced}
 }
 \value{
 a \code{list} of lists that compose valid PFA document
