@@ -56,5 +56,4 @@ before_install:
 #install
 install:
 - git clone https://github.com/opendatagroup/hadrian.git
-- cd hadrian/titus
-- sudo python setup.py install
+- sudo python hadrian/titus/setup.py install
