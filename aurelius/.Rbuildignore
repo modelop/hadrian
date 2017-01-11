@@ -3,9 +3,11 @@
 ^.*\.Rhistory$
 ^.*\.Rproj$
 ^\.Rproj\.user$
-^\.travis\.yml$
-^cran-comments\.md$
-^README\.Rmd$
+^README\.Rmd$  
 ^README-.*\.png$
+^cran-comments\.md$ 
+^NEWS\.md$          
+^CONTRIBUTING\.md$ 
+^\.travis\.yml$
 ^.git$
 ^internal$
