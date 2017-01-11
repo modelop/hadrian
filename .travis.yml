@@ -53,6 +53,6 @@ before_install:
 
 #install
 install:
-- cd hadrian/titus
+- cd titus
 - sudo python setup.py install
 - cd ../aurelius
