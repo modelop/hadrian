@@ -50,7 +50,7 @@ services:
 #before_install
 before_install:
 - sudo apt-get install python-setuptools -y
-- pip install numpy
+- sudo pip install numpy
 - cd titus
 - sudo python setup.py install
 - cd ../aurelius
