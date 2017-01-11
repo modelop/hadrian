@@ -31,6 +31,7 @@ after_success:
 #r_github_packages
 r_github_packages:
 - jimhester/covr
+- hadley/devtools
 
 #r_binary_packages
 r_binary_packages:
