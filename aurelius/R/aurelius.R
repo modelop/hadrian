@@ -15,23 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' Generate PFA Document from Object 
-#' 
-#' pfa is a generic function for generating valid PFA documents from the results 
-#' of various model fitting functions. The function invokes particular methods 
-#' which depend on the class of the first argument.
-#' 
-#' @usage pfa(object, ...)
-#' @param object a model object for which a PFA document is desired
-#' @param ...	additional arguments affecting the PFA produced.
-#' @return a \code{list} of lists that compose valid PFA document
-#' @seealso \code{\link{pfa.lm}} \code{\link{pfa.glm}}
-#' @examples
-#' \dontrun{
-#' require(utils)
-#' 
-#' # all the "pfa" methods found
-#' methods("predict")
-#' }
-#' @export
-pfa <- function(object, ...) UseMethod("pfa")
+#' \code{aurelius} package
+#'
+#' Generates PFA Documents from R Code and Optionally Runs Them
+#'
+#' Converts R syntax into PFA and provides tools for assembling a PFA
+#' document within R. Tests validity and runtime behavior of PFA by offloading
+#' PFA and data to Titus (through rPython). Facilitates conversion of common R
+#' model output to PFA using aurelius.* libraries.  Aurelius is part of 
+#' Hadrian and is on Github at \url{https://github.com/opendatagroup/hadrian}.
+#'
+#' @docType package
+#' @name aurelius
+NULL

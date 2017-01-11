@@ -7,7 +7,7 @@
 pfa.config.R avro.typemap.R avro.R
 }
 \usage{
-pfa(model)
+\method{pfa}{lm}(object)
 }
 \arguments{
 \item{object}{an object of class "lm"}

@@ -21,7 +21,6 @@
 #' returns a list-of-lists representing in valid PFA document 
 #' that could be used for scoring
 #' 
-#' @usage pfa(model)
 #' @source pfa.config.R avro.typemap.R avro.R
 #' @param object an object of class "lm"
 #' @return a \code{list} of lists that compose valid PFA document

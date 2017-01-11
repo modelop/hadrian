@@ -4,7 +4,7 @@ aurelius
 
 [![Build Status](https://travis-ci.org/opendatagroup/hadrian/hadrian.png?branch=master)](https://travis-ci.org/opendatagroup/hadrian) [![Coverage Status](https://img.shields.io/codecov/c/github/opendatagroup/hadrian/master.svg)](https://codecov.io/github/opendatagroup/hadrian?branch=master)
 
-aurelius is a toolkit for generating PFA in the R programming language. It focuses on porting models to PFA from their R equivalents.
+**aurelius** is a toolkit for generating PFA in the R programming language. It focuses on porting models to PFA from their R equivalents.
 
 Supported Models:
 

@@ -80,7 +80,6 @@ pfa.glm.extractParams <- function(fit, input_name='glm_input', model_name='glm_m
 #' and returns a list-of-lists representing in valid PFA document 
 #' that could be used for scoring
 #' 
-#' @usage pfa(model)
 #' @source pfa.config.R avro.typemap.R avro.R
 #' @param object an object of class "glm"
 #' @return a \code{list} of lists that compose valid PFA document

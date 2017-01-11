@@ -7,7 +7,7 @@
 pfa.config.R avro.typemap.R avro.R
 }
 \usage{
-pfa(model)
+\method{pfa}{glm}(object)
 }
 \arguments{
 \item{object}{an object of class "glm"}
