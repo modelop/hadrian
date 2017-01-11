@@ -3,7 +3,6 @@
 # Header
 language: r
 sudo: required
-cache: packages
 warnings_are_errors: false
 r_check_args: --no-vignettes
 
@@ -35,15 +34,15 @@ r_github_packages:
 
 #r_binary_packages
 r_binary_packages:
+
+#r_packages
+r_packages:
+- rmarkdown
 - RJSONIO
 - rPython
 - gbm
 - glmnet
 - randomForest
-
-#r_packages
-r_packages:
-- rmarkdown
 
 #services
 services:
