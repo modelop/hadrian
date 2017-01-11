@@ -48,12 +48,12 @@ r_packages:
 services:
 
 #before_install
-before_install: 
-- cd aurelius
-- sudo apt-get -qq update
+before_install:
 - sudo apt-get install python-setuptools -y
 
 #install
 install:
 - git clone https://github.com/opendatagroup/hadrian.git
-- sudo python hadrian/titus/setup.py install
+- cd hadrian/titus
+- sudo python setup.py install
+- cd $TRAVIS_BUILD_DIR/aurelius
