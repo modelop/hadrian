@@ -1,0 +1,11 @@
+.Rprofile
+^.*\.RData$
+^.*\.Rhistory$
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.travis\.yml$
+^cran-comments\.md$
+^README\.Rmd$
+^README-.*\.png$
+^.git$
+^internal$

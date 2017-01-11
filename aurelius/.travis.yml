@@ -1,0 +1,50 @@
+# R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
+
+# Header
+language: r
+sudo: false
+cache: packages
+warnings_are_errors: false
+r_check_args: --no-vignettes
+
+#env
+env:
+  global:
+  - CRAN: http://cran.rstudio.com
+  - NOT_CRAN: true
+  
+#notifications
+notifications:
+  email:
+    on_success: change
+    on_failure: change
+    
+#before_script
+before_script:
+  
+#after_success
+after_success:
+- Rscript -e 'covr::codecov()'
+
+# Custom parts:
+
+#r_github_packages
+r_github_packages:
+- jimhester/covr
+
+#r_binary_packages
+r_binary_packages:
+- RJSONIO
+- rPython
+- gbm
+- glmnet
+- randomForest
+
+#r_packages
+r_packages:
+
+#services
+services:
+
+#before_install
+before_install: cd aurelius
