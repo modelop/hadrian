@@ -20,7 +20,7 @@ notifications:
     on_failure: change
     
 #before_script
-before_script:
+before_script: cd aurelius
   
 #after_success
 after_success:
@@ -47,4 +47,4 @@ r_packages:
 services:
 
 #before_install
-before_install: cd aurelius
+before_install: 
