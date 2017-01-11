@@ -53,7 +53,6 @@ before_install:
 
 #install
 install:
-- git clone https://github.com/opendatagroup/hadrian.git
 - cd hadrian/titus
 - sudo python setup.py install
-- cd $TRAVIS_BUILD_DIR/aurelius
+- cd ../aurelius
