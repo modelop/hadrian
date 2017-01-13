@@ -986,7 +986,7 @@ package reader {
               case "namespace" => _namespace = readString(parser, parser.nextToken(), dot + " -> " + key, _at)
 
               case "new" => parser.nextToken() match {
-                case x @ JsonToken.START_OBJECT => _newObject = readExpressionMap(parser, x, dot + " -> " + key, _at, avroTypeBuilder, true);  _newArray = null
+                case x @ JsonToken.START_OBJECT => _newObject = readExpressionMap(parser, x, dot + " -> " + key, _at, avroTypeBuilder, false);  _newArray = null
                 case x @ JsonToken.START_ARRAY => _newArray = readExpressionArray(parser, x, dot + " -> " + key, _at, avroTypeBuilder);  _newObject = null
                 case x => throw new PFASyntaxException("\"new\" must be an object (map, record) or an array, not " + x.toString, Some(pos(dot, at)))
               }
