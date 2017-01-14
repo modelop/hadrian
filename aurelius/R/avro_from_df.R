@@ -17,22 +17,23 @@
 
 # function to get a PFA record structure from a data frame
 
-#' avro.fromFrame
+#' avro_from_df
 #'
 #' Convenience function for creating an Avro input schema from a data frame
-#' @param dataFrame a data.frame object
+#' 
+#' @param df a \code{data.frame}
 #' @param exclude set of field names to exclude
-#' @param name required name of the record (if not specified, uniqueRecordName will be invoked)
+#' @param name required name of the record (if not specified, make_unique_rec_name() will be invoked)
 #' @param namespace optional namespace of the record
-#' @return Avro list-of-lists representing a record type
-#' @export avro.fromFrame
+#' @return a \code{list} of lists representing an Avro record type
+#' @export
 #' @examples
-#' avro.fromFrame(data.frame(xx = c(1, 3, 5)))
+#' avro_from_df(data.frame(x = c(1, 3, 5)))
 
-avro.fromFrame <- function(dataFrame, exclude = list(), name = NULL, namespace = NULL) {
+avro_from_df <- function(df, exclude = list(), name = NULL, namespace = NULL) {
     fields <- list()
-    for (x in names(dataFrame))
+    for (x in names(df))
         if (!(x %in% exclude))
-            fields[[x]] <- avro.type(dataFrame[[x]])
-    avro.record(fields, name, namespace)
+            fields[[x]] <- avro_type(df[[x]])
+    avro_record(fields, name, namespace)
 }

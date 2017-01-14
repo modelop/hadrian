@@ -17,34 +17,36 @@
 
 # function to handle the define-type-once rule
 
-#' avro.typemap
+#' avro_typemap
 #'
-#' Convenience function for ensuring that Avro type schemas are declared exactly once. It returns a function that yields a full type declaration the first time it is invoked and just a name on subsequent times.
+#' Convenience function for ensuring that Avro type schemas are declared exactly 
+#' once. It returns a function that yields a full type declaration the first 
+#' time it is invoked and just a name on subsequent times.
 #' @param ... key-value pairs of Avro type schemas
 #' @return a function that yields Avro type schemas or just their names
-#' @export avro.typemap
+#' @export avro_typemap
 #' @examples
-#' tm <- avro.typemap(
-#'     MyType1 = avro.record(list(one = avro.int, two = avro.double, three = avro.string)),
-#'     MyType2 = avro.array(avro.double)
+#' tm <- avro_typemap(
+#'     MyType1 = avro_record(list(one = avro_int, two = avro_double, three = avro_string)),
+#'     MyType2 = avro_array(avro_double)
 #' )
 #' tm("MyType1")           # produces the whole declaration
 #' tm("MyType1")           # produces just "MyType1"
 #' tm("MyType2")           # produces the whole declaration
 #' tm("MyType2")           # produces the declaration again because this is not a named type
 
-avro.typemap <- function(...) {
+avro_typemap <- function(...) {
     types <- list(...)
 
     # closure over this counter keeps track of how many times we've seen a name
     counter <- new.env()
     for (name in names(types))
-        if (!is.null(avro.fullName(types[[name]])))
+        if (!is.null(avro_fullname(types[[name]])))
             counter[[name]] = 0
 
     function(name) {
         if (name %in% ls(counter)) {
-            out <- if (counter[[name]] == 0) types[[name]] else avro.fullName(types[[name]])
+            out <- if (counter[[name]] == 0) types[[name]] else avro_fullname(types[[name]])
             counter[[name]] = counter[[name]] + 1
             out
         }

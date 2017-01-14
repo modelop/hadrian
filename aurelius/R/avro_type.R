@@ -17,29 +17,33 @@
 
 # function to get PFA type names from R type names (FIXME: incomplete)
 
-#' avro.type
+#' avro_type
 #'
 #' Inspects an R object and produces the corresponding Avro type name
 #' @param obj object to inspect
-#' @return list-of-lists Avro schema
-#' @export avro.type
+#' @return a \code{list} of lists Avro schema
+#' @export avro_type
 #' @examples
-#' avro.type("hello")           # "string"
-#' avro.type(factor("hello"))   # "string"
-#' avro.type(3.14)              # "double"
-#' avro.type(3)                 # "int"
+#' avro_type("hello")           # "string"
+#' avro_type(factor("hello"))   # "string"
+#' avro_type(3.14)              # "double"
+#' avro_type(3)                 # "int"
 
-avro.type <- function(obj) {
+avro_type <- function(obj) {
     if (is.factor(obj))
         "string"
     else {
         t <- typeof(obj)
-        if (t == "double")
+        if (t == "logical")
+            "boolean"
+        else if (t == "double")
             "double"
         else if (t == "integer")
             "int"
         else if (t == "character")
             "string"
+        else if (t == "NULL")
+            "null"
         else
             stop(paste("unsupported R -> PFA data type name conversion:", t))
     }

@@ -17,17 +17,18 @@
 
 # function to get fully qualified names and distinguish named types from unnamed types
 
-#' avro.fullName
+#' avro_fullname
 #'
-#' Yields the full type name (with namespace) of an Avro list-of-lists
-#' @param type Avro list-of-lists
+#' Yields the full type name (with namespace) of an Avro \code{list} of lists
+#' 
+#' @param type Avro \code{list} of lists
 #' @return string representing the full name
-#' @export avro.fullName
+#' @export avro_fullname
 #' @examples
-#' avro.fullName(avro.record(list(), "MyRecord"))                   # "MyRecord"
-#' avro.fullName(avro.record(list(), "MyRecord", "com.wowzers"))    # "com.wowzers.MyRecord"
+#' avro_fullname(avro_record(list(), "MyRecord"))                   # "MyRecord"
+#' avro_fullname(avro_record(list(), "MyRecord", "com.wowzers"))    # "com.wowzers.MyRecord"
 
-avro.fullName <- function(type) {
+avro_fullname <- function(type) {
     if (!is.atomic(type)  &&  !is.null(type$name)) {
         if (is.null(type$namespace))
             type$name
