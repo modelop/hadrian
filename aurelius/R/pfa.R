@@ -20,8 +20,7 @@
 #' pfa is a generic function for generating valid PFA documents from the results 
 #' of various model fitting functions. The function invokes particular methods 
 #' which depend on the class of the first argument.
-#' 
-#' @usage pfa(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...)
+#'
 #' @param object a model object for which a PFA document is desired
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model

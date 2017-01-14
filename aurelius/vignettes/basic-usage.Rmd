@@ -51,9 +51,15 @@ Second, let's build a simple linear regression model and convert to PFA.
   lm_model_as_pfa <- pfa(lm_model)
 ```
 
-Finally, the model can be saved as PFA JSON and used in other systems.
+The model can be saved as PFA JSON and used in other systems.
 
-```{r save-model, eval=FALSE}
+```{r write-model, eval=FALSE}
   # save as plain-text JSON
-  json(lm_model_as_pfa, fileName = "myModel.pfa")
+  write_pfa(lm_model_as_pfa, file = "my-model.pfa")
+```
+
+Just as models can be written as a PFA file, they can be read.
+
+```{r read-model, eval=FALSE}
+  my_model <- read_pfa("my-model.pfa")
 ```

@@ -4,7 +4,8 @@
 \alias{pfa}
 \title{Generate PFA Document from Object}
 \usage{
-pfa(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...)
+pfa(object, name = NULL, version = NULL, doc = NULL, metadata = NULL,
+  randseed = NULL, options = NULL, ...)
 }
 \arguments{
 \item{object}{a model object for which a PFA document is desired}
