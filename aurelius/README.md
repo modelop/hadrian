@@ -2,7 +2,7 @@
 aurelius
 ========
 
-[![Build Status](https://travis-ci.org/opendatagroup/hadrian/hadrian.png?branch=master)](https://travis-ci.org/opendatagroup/hadrian) [![Coverage Status](https://img.shields.io/codecov/c/github/opendatagroup/hadrian/master.svg)](https://codecov.io/github/opendatagroup/hadrian?branch=master)
+[![Build Status](https://travis-ci.org/ReportMort/hadrian/hadrian.png?branch=master)](https://travis-ci.org/ReportMort/hadrian) [![Coverage Status](https://img.shields.io/codecov/c/github/ReportMort/hadrian/master.svg)](https://codecov.io/github/ReportMort/hadrian?branch=master)
 
 **aurelius** is a toolkit for generating PFA in the R programming language. It focuses on porting models to PFA from their R equivalents.
 
@@ -32,9 +32,19 @@ The main purpose of the package is to create PFA documents based on logic create
   
   # convert the lm object to a list of lists PFA representation
   lm_model_as_pfa <- pfa(lm_model)
-  
+```
+
+The model can be saved as PFA JSON and used in other systems.
+
+``` r
   # save as plain-text JSON
-  json(lm_model_as_pfa, fileName = "myModel.pfa")
+  write_pfa(lm_model_as_pfa, file = "my-model.pfa")
+```
+
+Just as models can be written as a PFA file, they can be read.
+
+``` r
+  my_model <- read_pfa("my-model.pfa")
 ```
 
 ### License
