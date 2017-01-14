@@ -110,7 +110,7 @@ pfa.randomForest.buildOneTree <- function(tree, whichNode, valueNeedsTag, dataLe
         dl <- dataLevels[[f]]
 
         if (is.null(fieldTypes)  ||  is.null(fieldTypes[[f]]))
-            t <- avro.type(node[[4]])
+            t <- avro_type(node[[4]])
         else {
             t <- fieldTypes[[f]]
             if (is.list(t)  &&  "name" %in% names(t))
@@ -169,12 +169,12 @@ pfa.randomForest.fromFrame <- function(dataFrame, exclude = list()) {
     out <- list()
     for (x in names(dataFrame))
         if (!(x %in% exclude))
-            out[[gsub("\\.", "_", x)]] <- avro.type(dataFrame[[x]])
+            out[[gsub("\\.", "_", x)]] <- avro_type(dataFrame[[x]])
     out
 }
 
 pfa.randomForest.inputType <- function(regressors, name = NULL, namespace = NULL) {
-    avro.record(regressors, name, namespace)
+    avro_record(regressors, name, namespace)
 }
 
 pfa.randomForest.treeType <- function(regressors, response) {
@@ -184,13 +184,20 @@ pfa.randomForest.treeType <- function(regressors, response) {
     if (length(dataTypes) == 1)
         value <- dataTypes[[1]]
     else
-        value <- do.call(avro.union, lapply(dataTypes, function(t) if (t == "string") avro.array(avro.string) else t))
+        value <- do.call(avro_union, lapply(dataTypes, 
+                                            function(t) { 
+                                              if (t == "string") {
+                                                avro_array(avro_string) 
+                                              } else {
+                                                t
+                                              }
+                                              }))
 
-    avro.record(list(field = avro.enum(fieldNames, "FieldNames"),
-                     operator = avro.string,
+    avro_record(list(field = avro_enum(fieldNames, "FieldNames"),
+                     operator = avro_string,
                      value = value,
-                     pass = avro.union(response, "TreeNode"),
-                     fail = avro.union(response, "TreeNode")),
+                     pass = avro_union(response, "TreeNode"),
+                     fail = avro_union(response, "TreeNode")),
                 "TreeNode")
 }
 
@@ -199,9 +206,9 @@ pfa.randomForest.walkTree <- function(input, inputType, tree) {
     env[["input"]] = input
     env[["inputType"]] = inputType
     env[["tree"]] = tree
-    pfa.expr(quote(model.tree.simpleWalk(input,
+    pfa_expr(quote(model.tree.simpleWalk(input,
                                          tree,
-                                         function(d = inputType, t = "TreeNode" -> avro.boolean) {
+                                         function(d = inputType, t = "TreeNode" -> avro_boolean) {
                                              model.tree.simpleTest(d, t)
                                          })), env = env)
 }
@@ -209,7 +216,7 @@ pfa.randomForest.walkTree <- function(input, inputType, tree) {
 pfa.randomForest.walkForest <- function(input, inputType, forest) {
     env = new.env()
     env[["walkTree"]] <- pfa.randomForest.walkTree(input, inputType, "tree")
-    pfa.expr(quote(a.map(forest, function(tree = "TreeNode" -> avro.string) walkTree)), env = env)
+    pfa_expr(quote(a.map(forest, function(tree = "TreeNode" -> avro_string) walkTree)), env = env)
 }
 
 pfa.randomForest.modelParams <- function(forest, regressors, dataFrame) {

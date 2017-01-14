@@ -21,7 +21,6 @@
 #' @param gbm an object of class "gbm"
 #' @param whichTree  the number of the tree to extract
 #' @return tree that is extracted from gbm object
-#' @import gbm
 #' @export pfa.gbm.extractTree
 #' @examples
 #' X1 <- runif(100)
@@ -101,7 +100,7 @@ pfa.gbm.buildOneTree <- function(tree, categoricalLookup, whichNode, valueNeedsT
  
         # "t" is the avro type of the split point
         if (is.null(fieldTypes) || is.null(fieldTypes[[f]]))
-            t <- avro.type(split.val)
+            t <- avro_type(split.val)
         else {
             t <- fieldTypes[[f]]
             if (is.list(t) && "name" %in% names(t))

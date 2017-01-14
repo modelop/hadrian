@@ -15,7 +15,7 @@ test_that("check binomial family GLMs", {
   logit_model <- glm(Y ~ X1 + X2, family = binomial(logit))
   
   logit_model_as_pfa <- pfa(logit_model)
-  logit_engine <- pfa.engine(logit_model_as_pfa)
+  logit_engine <- pfa_engine(logit_model_as_pfa)
   
   expect_equal(logit_engine$action(input), 
                unname(predict(logit_model, newdata = as.data.frame(input), type='response')),
@@ -24,7 +24,7 @@ test_that("check binomial family GLMs", {
   probit_model <- glm(Y ~ X1 + X2, family = binomial(probit))
   
   probit_model_as_pfa <- pfa(probit_model)
-  probit_engine <- pfa.engine(probit_model_as_pfa)
+  probit_engine <- pfa_engine(probit_model_as_pfa)
   
   expect_equal(probit_engine$action(input), 
                unname(predict(probit_model, newdata = as.data.frame(input), type='response')),
@@ -33,7 +33,7 @@ test_that("check binomial family GLMs", {
   cauchit_model <- glm(Y ~ X1 + X2, family = binomial(cauchit))
   
   cauchit_model_as_pfa <- pfa(cauchit_model)
-  cauchit_engine <- pfa.engine(cauchit_model_as_pfa)
+  cauchit_engine <- pfa_engine(cauchit_model_as_pfa)
   
   expect_equal(cauchit_engine$action(input), 
                unname(predict(cauchit_model, newdata = as.data.frame(input), type='response')),
@@ -42,7 +42,7 @@ test_that("check binomial family GLMs", {
   cloglog_model <- glm(Y ~ X1 + X2, family = binomial(cloglog))
   
   cloglog_model_as_pfa <- pfa(cloglog_model)
-  cloglog_engine <- pfa.engine(cloglog_model_as_pfa)
+  cloglog_engine <- pfa_engine(cloglog_model_as_pfa)
   
   expect_equal(cloglog_engine$action(input), 
                unname(predict(cloglog_model, newdata = as.data.frame(input), type='response')),
@@ -66,7 +66,7 @@ test_that("check binomial family GLMs", {
                                     maxit = 500))
   
   log_model_as_pfa <- pfa(log_model)
-  log_engine <- pfa.engine(log_model_as_pfa)
+  log_engine <- pfa_engine(log_model_as_pfa)
   
   expect_equal(log_engine$action(input), 
                unname(predict(log_model, newdata = as.data.frame(input), type='response')),
@@ -88,7 +88,7 @@ test_that("check gaussian family GLMs", {
   gauss_model <- glm(Y ~ X1 + X2, family=gaussian())
   
   gauss_model_as_pfa <- pfa(gauss_model)
-  gauss_engine <- pfa.engine(gauss_model_as_pfa)
+  gauss_engine <- pfa_engine(gauss_model_as_pfa)
   
   expect_equal(gauss_engine$action(input), 
                unname(predict(gauss_model, newdata = as.data.frame(input), type='response')),
@@ -97,7 +97,7 @@ test_that("check gaussian family GLMs", {
   log_gauss_model <- glm(Y ~ X1 + X2, family=gaussian(log))
   
   log_gauss_model_as_pfa <- pfa(log_gauss_model)
-  log_gauss_engine <- pfa.engine(log_gauss_model_as_pfa)
+  log_gauss_engine <- pfa_engine(log_gauss_model_as_pfa)
   
   expect_equal(log_gauss_engine$action(input), 
                unname(predict(log_gauss_model, newdata = as.data.frame(input), type='response')),
@@ -106,7 +106,7 @@ test_that("check gaussian family GLMs", {
   inv_gauss_model <- glm(Y ~ X1 + X2, family=gaussian(inverse))
   
   inv_gauss_model_as_pfa <- pfa(inv_gauss_model)
-  inv_gauss_engine <- pfa.engine(inv_gauss_model_as_pfa)
+  inv_gauss_engine <- pfa_engine(inv_gauss_model_as_pfa)
   
   expect_equal(inv_gauss_engine$action(input), 
                unname(predict(inv_gauss_model, newdata = as.data.frame(input), type='response')),
@@ -127,7 +127,7 @@ test_that("check Gamma family GLMs", {
   gamma_model <- glm(Y ~ X, family=Gamma())
   
   gamma_model_as_pfa <- pfa(gamma_model)
-  gamma_engine <- pfa.engine(gamma_model_as_pfa)
+  gamma_engine <- pfa_engine(gamma_model_as_pfa)
   
   expect_equal(gamma_engine$action(input), 
                unname(predict(gamma_model, newdata = as.data.frame(input), type='response')),
@@ -136,7 +136,7 @@ test_that("check Gamma family GLMs", {
   ident_gamma_model <- glm(Y ~ X, family=Gamma(identity))
   
   ident_gamma_model_as_pfa <- pfa(ident_gamma_model)
-  ident_gamma_engine <- pfa.engine(ident_gamma_model_as_pfa)
+  ident_gamma_engine <- pfa_engine(ident_gamma_model_as_pfa)
   
   expect_equal(ident_gamma_engine$action(input), 
                unname(predict(ident_gamma_model, newdata = as.data.frame(input), type='response')),
@@ -145,7 +145,7 @@ test_that("check Gamma family GLMs", {
   log_gamma_model <- glm(Y ~ X, family=Gamma(log))
   
   log_gamma_model_as_pfa <- pfa(log_gamma_model)
-  log_gamma_engine <- pfa.engine(log_gamma_model_as_pfa)
+  log_gamma_engine <- pfa_engine(log_gamma_model_as_pfa)
   
   expect_equal(log_gamma_engine$action(input), 
                unname(predict(log_gamma_model, newdata = as.data.frame(input), type='response')),
@@ -174,7 +174,7 @@ test_that("check inverse gaussian family GLMs", {
   inv_gauss_model <- glm(Y ~ X1 + X2 + X3, family=inverse.gaussian())
   
   model_as_pfa <- pfa(inv_gauss_model)
-  inv_gauss_engine <- pfa.engine(model_as_pfa)
+  inv_gauss_engine <- pfa_engine(model_as_pfa)
   
   expect_equal(inv_gauss_engine$action(input), 
                unname(predict(inv_gauss_model, newdata = as.data.frame(input), type='response')),
@@ -183,7 +183,7 @@ test_that("check inverse gaussian family GLMs", {
   inv_inv_gauss_model <- glm(Y ~ X1 + X2 + X3, family=inverse.gaussian(inverse))
   
   inv_inv_gauss_model_as_pfa <- pfa(inv_inv_gauss_model)
-  inv_inv_gauss_engine <- pfa.engine(inv_inv_gauss_model_as_pfa)
+  inv_inv_gauss_engine <- pfa_engine(inv_inv_gauss_model_as_pfa)
   
   expect_equal(inv_inv_gauss_engine$action(input), 
                unname(predict(inv_inv_gauss_model, newdata = as.data.frame(input), type='response')),
@@ -193,7 +193,7 @@ test_that("check inverse gaussian family GLMs", {
   ident_inv_gauss_model <- glm(Y ~ X1 + X2 + X3, family=inverse.gaussian(identity))
   
   ident_inv_gauss_model_as_pfa <- pfa(ident_inv_gauss_model)
-  ident_inv_gauss_engine <- pfa.engine(ident_inv_gauss_model_as_pfa)
+  ident_inv_gauss_engine <- pfa_engine(ident_inv_gauss_model_as_pfa)
   
   expect_equal(ident_inv_gauss_engine$action(input), 
                unname(predict(ident_inv_gauss_model, newdata = as.data.frame(input), type='response')),
@@ -202,7 +202,7 @@ test_that("check inverse gaussian family GLMs", {
   log_inv_gauss_model <- glm(Y ~ X1 + X2 + X3, family=inverse.gaussian(log))
   
   log_inv_gauss_model_as_pfa <- pfa(log_inv_gauss_model)
-  log_inv_gauss_engine <- pfa.engine(log_inv_gauss_model_as_pfa)
+  log_inv_gauss_engine <- pfa_engine(log_inv_gauss_model_as_pfa)
   
   expect_equal(log_inv_gauss_engine$action(input), 
                unname(predict(log_inv_gauss_model, newdata = as.data.frame(input), type='response')),
@@ -224,7 +224,7 @@ test_that("check poisson family GLMs", {
   poisson_model <- glm(Y ~ X1 + X2, family=poisson())
   
   poisson_model_as_pfa <- pfa(poisson_model)
-  poisson_engine <- pfa.engine(poisson_model_as_pfa)
+  poisson_engine <- pfa_engine(poisson_model_as_pfa)
   
   expect_equal(poisson_engine$action(input), 
                unname(predict(poisson_model, newdata = as.data.frame(input), type='response')),
@@ -233,7 +233,7 @@ test_that("check poisson family GLMs", {
   ident_poisson_model <- glm(Y ~ X1 + X2, family=poisson(identity))
   
   ident_poisson_model_as_pfa <- pfa(ident_poisson_model)
-  ident_poisson_engine <- pfa.engine(ident_poisson_model_as_pfa)
+  ident_poisson_engine <- pfa_engine(ident_poisson_model_as_pfa)
   
   expect_equal(ident_poisson_engine$action(input), 
                unname(predict(ident_poisson_model, newdata = as.data.frame(input), type='response')),
@@ -242,7 +242,7 @@ test_that("check poisson family GLMs", {
   sqrt_poisson_model <- glm(Y ~ X1 + X2, family=poisson(sqrt))
   
   sqrt_poisson_model_as_pfa <- pfa(sqrt_poisson_model)
-  sqrt_poisson_engine <- pfa.engine(sqrt_poisson_model_as_pfa)
+  sqrt_poisson_engine <- pfa_engine(sqrt_poisson_model_as_pfa)
   
   expect_equal(sqrt_poisson_engine$action(input), 
                unname(predict(sqrt_poisson_model, newdata = as.data.frame(input), type='response')),
@@ -261,7 +261,7 @@ test_that("check no intercept GLMs", {
   no_int_model <- glm(Y ~ X1 + X2 - 1, family=gaussian())
   
   no_int_model_as_pfa <- pfa(no_int_model)
-  no_int_engine <- pfa.engine(no_int_model_as_pfa)
+  no_int_engine <- pfa_engine(no_int_model_as_pfa)
   
   expect_equal(no_int_engine$action(input), 
                unname(predict(no_int_model, newdata = as.data.frame(input), type='response')),

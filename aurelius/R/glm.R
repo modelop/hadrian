@@ -19,6 +19,10 @@
 #'
 #' Extract generalized linear model parameters from the glm library
 #' @param fit an object of class "glm"
+#' @param input_name a character for the name of the input as it should appear 
+#' in the PFA document
+#' @param model_name a character for the name of the model as it should appear 
+#' in the PFA document
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
 #' X1 <- rnorm(100)
@@ -80,7 +84,7 @@ pfa.glm.extractParams <- function(fit, input_name='glm_input', model_name='glm_m
 #' and returns a list-of-lists representing in valid PFA document 
 #' that could be used for scoring
 #' 
-#' @source pfa.config.R avro.typemap.R avro.R
+#' @source pfa.config.R avro_typemap.R avro_R
 #' @param object an object of class "glm"
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
@@ -113,33 +117,33 @@ pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ra
   
   # define the input schema
   field_names <- fit$regressors
-  field_types <- rep(avro.double, length(field_names))
+  field_types <- rep(avro_double, length(field_names))
   names(field_types) <- field_names
-  input_schema <- avro.record(field_types, "Input")
+  input_schema <- avro_record(field_types, "Input")
   
   # define the pfa_document framework (inputs, outputs, cells)
-  tm <- avro.typemap(Input = input_schema,
-                     Output = avro.double,
+  tm <- avro_typemap(Input = input_schema,
+                     Output = avro_double,
                      Regression = pfa.glm.regressionType(fit))
   
   # create list defining the first action of constructing input
   glm_input_list <- create_glm_input_list(field_names)
   
   # construct the pfa_document
-  pfa_document <- pfa.config(input = tm("Input"),
-                             output = tm("Output"),
-                             cells = list(glm_model = pfa.cell(tm("Regression"),
-                                                               list(const = fit$const,
-                                                                    coeff = unname(fit$coeff)))),
-                             action = parse(text=paste(paste(fit$input_name, '<-', 'glm_input_list'), 
-                                                       fit$link, 
-                                                       sep='\n ')),
-                             name=name, 
-                             version=version, 
-                             doc=doc, 
-                             metadata=metadata, 
-                             randseed=randseed, 
-                             options=options
+  doc <- pfa_document(input = tm("Input"),
+                      output = tm("Output"),
+                      cells = list(glm_model = pfa_cell(tm("Regression"),
+                                                        list(const = fit$const,
+                                                             coeff = unname(fit$coeff)))),
+                      action = parse(text=paste(paste(fit$input_name, '<-', 'glm_input_list'), 
+                                                fit$link, 
+                                                sep='\n ')),
+                      name=name, 
+                      version=version, 
+                      doc=doc, 
+                      metadata=metadata, 
+                      randseed=randseed, 
+                      options=options
   )
   
   return(pfa_document)
@@ -148,30 +152,30 @@ pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ra
 pfa.glm.inputType <- function(params, name = NULL, namespace = NULL) {
   fields = list()
   for (x in params$regressors)
-      fields[[x]] <- avro.double
-  avro.record(fields, name, namespace)
+      fields[[x]] <- avro_double
+  avro_record(fields, name, namespace)
 }
 
 pfa.glm.regressionType <- function(params) {
 
-  avro.record(list(coeff = avro.array(avro.double),
-                   const = avro.double),
+  avro_record(list(coeff = avro_array(avro_double),
+                   const = avro_double),
               paste0(params$family, "Regression"))
 }
 
 pfa.glm.predictProb <- function(params, input) {
   
     symbolsEnv <- new.env()
-    symbolsEnv[[params$input_name]] <- list(avro.array(avro.double),
+    symbolsEnv[[params$input_name]] <- list(avro_array(avro_double),
                                             lapply(params$regressors, function (x)
                                               list(attr = input, path = list(list(string = x)))))
     
     cellsEnv <- new.env()
-    cellsEnv[[params$model_name]] <- pfa.cell(pfa.glm.regressionType(params),
+    cellsEnv[[params$model_name]] <- pfa_cell(pfa.glm.regressionType(params),
                                               list(const = params$const,
                                                    coeff = unname(params$coeff)))   
     
-    out <- pfa.expr(parse(text = params$link), 
+    out <- pfa_expr(parse(text = params$link), 
                     symbols = symbolsEnv, 
                     cells = cellsEnv)$do[[1]]
     return(out)
@@ -182,7 +186,7 @@ pfa.glm.modelParams <- function(params) {
 }
 
 create_glm_input_list <- function(field_names) {
-  list(type = avro.array(avro.double),
+  list(type = avro_array(avro_double),
        new = lapply(field_names, function(n) {
          paste("input.", n, sep = "")
          }))

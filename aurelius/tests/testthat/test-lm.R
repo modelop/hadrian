@@ -11,7 +11,7 @@ test_that("check lm models", {
   lm_model <- lm(Y ~ X1 + X2)
   
   lm_model_as_pfa <- pfa(lm_model)
-  lm_engine <- pfa.engine(lm_model_as_pfa)
+  lm_engine <- pfa_engine(lm_model_as_pfa)
   
   expect_equal(lm_engine$action(input), 
                unname(predict(lm_model, newdata = as.data.frame(input))),
@@ -20,7 +20,7 @@ test_that("check lm models", {
   no_int_lm_model <- lm(Y ~ X1 + X2 - 1)
   
   no_int_lm_model_as_pfa <- pfa(no_int_lm_model)
-  no_int_lm_engine <- pfa.engine(no_int_lm_model_as_pfa)
+  no_int_lm_engine <- pfa_engine(no_int_lm_model_as_pfa)
   
   expect_equal(no_int_lm_engine$action(input), 
                unname(predict(no_int_lm_model, newdata = as.data.frame(input))),

@@ -102,8 +102,8 @@ pfa.glmnet.extractParams <- function(cvfit, lambdaval = "lambda.1se") {
 pfa.glmnet.inputType <- function(params, name = NULL, namespace = NULL) {
     fields = list()
     for (x in params$regressors)
-        fields[[x]] <- avro.double
-    avro.record(fields, name, namespace)
+        fields[[x]] <- avro_double
+    avro_record(fields, name, namespace)
 }
 
 #' pfa.glmnet.regressionType
@@ -117,12 +117,12 @@ pfa.glmnet.inputType <- function(params, name = NULL, namespace = NULL) {
 
 pfa.glmnet.regressionType <- function(params) {
     if (params$binary)
-        avro.record(list(coeff = avro.array(avro.double),
-                         const = avro.double),
+        avro_record(list(coeff = avro_array(avro_double),
+                         const = avro_double),
                     "LogisticRegression")
     else
-        avro.record(list(coeff = avro.array(avro.array(avro.double)),
-                         const = avro.array(avro.double)),
+        avro_record(list(coeff = avro_array(avro_array(avro_double)),
+                         const = avro_array(avro_double)),
                     "LogisticRegression")
 }
 
@@ -145,9 +145,8 @@ pfa.glmnet.regressionType <- function(params) {
 #' u1 <- list(regressors = uu$beta, linkFcn = "logit")
 #' u2 <- pfa.glmnet.predictProb(u1, "V1", uu)
 
-
 pfa.glmnet.predictProb <- function(params, input, model) {
-    newarray <- list(type = avro.array(avro.double),
+    newarray <- list(type = avro_array(avro_double),
                      new = lapply(params$regressors, function (x)
                          list(attr = input, path = list(list(string = x)))))
     rawresult <- list(model.reg.linear = list(newarray, model))
@@ -171,8 +170,6 @@ pfa.glmnet.predictProb <- function(params, input, model) {
 #' Y <- Y > 0
 #' uu <- glmnet(X, Y)
 #' vv <- pfa.glmnet.modelParams(list(const = uu$a0[1], coeff = uu$beta[1, ]))
-
-
 
 pfa.glmnet.modelParams <- function(params) {
     list(coeff = params$coeff, const = params$const)
