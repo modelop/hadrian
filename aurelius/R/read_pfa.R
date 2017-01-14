@@ -33,49 +33,57 @@
 #' 
 #' # from a url (split on two lines so not to exceed 100 char wide during install)
 #' url_model <- read_pfa(paste0('https://raw.githubusercontent.com/ReportMort/hadrian', 
-#'                              '/master/aurelius/inst/extdata/my-model.pfa'))
+#'                      '/feature/add-r-package-structure/aurelius/inst/extdata/my-model.pfa'))
 
 read_pfa <- function(x) {
+  
+    if (is.character(x) & length(x) == 1 & grepl("^(http|ftp)s?://", x)) {
+      x <- url(x)
+    }
+  
     if (is.character(x)  &&  length(x) == 1) {
-        x <- strsplit(x, "", useBytes = TRUE)[[1]]
-        i <- 0
-        getNext <- function() {
-            if (i < length(x)) {
-                out <- x[i : i+1]
-                i <<- i + 1
-                out
-            }
-            else
-                character(0)
-        }
-        getIndex <- function() { i }
-        rewind <- function() { i <<- i - 1 }
+      x <- strsplit(x, "", useBytes = TRUE)[[1]]
+      i <- 0
+      getNext <- function() {
+          if (i < length(x)) {
+              out <- x[i : i+1]
+              i <<- i + 1
+              out
+          }
+          else
+              character(0)
+      }
+      getIndex <- function() { i }
+      rewind <- function() { i <<- i - 1 }
     }
     else if (is(x, "connection")) {
-        if (!isOpen(x))
-            open(x)
-        i <- 0
-        useStorage <- FALSE
-        storage <- NULL
-        getNext <- function() {
-            i <- i + 1
-            if (useStorage) {
-                useStorage <<- FALSE
-                storage
-            }
-            else {
-                storage <<- readChar(x, 1, useBytes = TRUE)
-                storage
-            }
-        }
-        getIndex <- function() { i }
-        rewind <- function() {
-            i <<- i - 1
-            useStorage <<- TRUE
-        }
+      if (!isOpen(x)){
+        open(x)
+        on.exit(close(x))
+      }
+      
+      i <- 0
+      useStorage <- FALSE
+      storage <- NULL
+      getNext <- function() {
+          i <- i + 1
+          if (useStorage) {
+              useStorage <<- FALSE
+              storage
+          }
+          else {
+              storage <<- readChar(x, 1, useBytes = TRUE)
+              storage
+          }
+      }
+      getIndex <- function() { i }
+      rewind <- function() {
+          i <<- i - 1
+          useStorage <<- TRUE
+      }
     }
     else
-        stop("unjson requires a string or a connection (file)")
+      stop("read_pfa requires a file path, URL, literal JSON, or a connection (file)")
 
     out <- parse_value(getNext, getIndex, rewind)
     while (length(y <- getNext()) != 0)
