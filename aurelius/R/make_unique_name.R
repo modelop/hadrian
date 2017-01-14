@@ -22,67 +22,73 @@ counter$enum <- 0
 counter$fixed <- 0
 counter$symbol <- 0
 
-#' uniqueEngineName
+#' make_unique_eng_name
 #'
 #' Convenience or internal function for generating engine names; each call results in a new name.
+#' 
 #' @return name in the form "Engine_###"
-#' @export uniqueEngineName
+#' @export make_unique_eng_name
 #' @examples
-#' uniqueEngineName()
+#' make_unique_eng_name()
 
-uniqueEngineName <- function() {
+make_unique_eng_name <- function() {
     counter$engine <- counter$engine + 1
     paste("Engine_", counter$engine, sep = "")
 }
 
-#' uniqueRecordName
+#' make_unique_rec_name
 #'
 #' Convenience or internal function for generating record names; each call results in a new name.
+#' 
 #' @return name in the form "Record_###"
-#' @export uniqueRecordName
+#' @export make_unique_rec_name
 #' @examples
-#' uniqueRecordName()
+#' make_unique_rec_name()
 
-uniqueRecordName <- function() {
+make_unique_rec_name <- function() {
     counter$record <- counter$record + 1
     paste("Record_", counter$record, sep = "")
 }
 
-#' uniqueEnumName
+#' make_unique_enum_name
 #'
 #' Convenience or internal function for generating enum names; each call results in a new name.
+#' 
 #' @return name in the form "Enum_###"
-#' @export uniqueEnumName
+#' @export make_unique_enum_name
 #' @examples
-#' uniqueEnumName()
+#' make_unique_enum_name()
 
-uniqueEnumName <- function() {
+make_unique_enum_name <- function() {
     counter$enum <- counter$enum + 1
     paste("Enum_", counter$enum, sep = "")
 }
 
-#' uniqueFixedName
+#' make_unique_fixed_name
 #'
 #' Convenience or internal function for generating fixed names; each call results in a new name.
+#' 
 #' @return name in the form "Fixed_###"
-#' @export uniqueFixedName
+#' @export make_unique_fixed_name
 #' @examples
-#' uniqueFixedName()
+#' make_unique_fixed_name()
 
-uniqueFixedName <- function() {
+make_unique_fixed_name <- function() {
     counter$fixed <- counter$fixed + 1
     paste("Fixed_", counter$fixed, sep = "")
 }
-#' uniqueSymbolName
+
+#' make_unique_symb_name
 #'
 #' Convenience or internal function for generating symbol names; each call results in a new name.
+#' 
 #' @param symbols Symbols
 #' @return name in the form "tmp_###"
-#' @export uniqueSymbolName
+#' @export make_unique_symb_name
 #' @examples
-#' uniqueSymbolName()
+#' make_unique_symb_name()
 
-uniqueSymbolName <- function(symbols) {
+make_unique_symb_name <- function(symbols) {
     while (TRUE) {
         counter$symbol <- counter$symbol + 1
         test <- paste("tmp_", counter$symbol, sep = "")
