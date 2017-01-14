@@ -15,40 +15,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' json.map
+#' json_map
 #'
 #' Convenience function for making a (possibly empty) named list, which converts to a JSON object.
 #' @param ... optional contents of the named list (as key-value pairs)
 #' @return a named list
-#' @export json.map
+#' @export json_map
 #' @examples
-#' json.map()
-#' json.map(one = 1, two = TRUE, three = "THREE")
+#' json_map()
+#' json_map(one = 1, two = TRUE, three = "THREE")
 
-json.map <- function(...) {
+json_map <- function(...) {
     args <- list(...)
     if (length(args) == 0)
         setNames(list(), list())
     else if (is.null(names(args)))
-        stop("json.map must have named parameters")
+        stop("json_map must have named parameters")
     else
         args
 }
 
-#' json.array
+#' json_array
 #'
 #' Convenience function for making a (possibly empty) unnamed list, which converts to a JSON array.
 #' @param ... optional contents of the unnamed list
 #' @return an unnamed list
-#' @export json.array
+#' @export json_array
 #' @examples
-#' json.array()
-#' json.array(1, TRUE, "THREE")
+#' json_array()
+#' json_array(1, TRUE, "THREE")
 
-json.array <- function(...) {
+json_array <- function(...) {
     args <- list(...)
     if (!is.null(names(args)))
-        stop("json.array must not have named parameters")
+        stop("json_array must not have named parameters")
     else
         args
 }
