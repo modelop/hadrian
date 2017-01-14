@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 # aurelius
 
-[![Build Status](https://travis-ci.org/ReportMort/hadrian/hadrian.png?branch=master)](https://travis-ci.org/ReportMort/hadrian) [![Coverage Status](https://img.shields.io/codecov/c/github/ReportMort/hadrian/master.svg)](https://codecov.io/github/ReportMort/hadrian?branch=master)
+[![Build Status](https://travis-ci.org/ReportMort/hadrian.svg?branch=master)](https://travis-ci.org/ReportMort/hadrian) [![Coverage Status](https://img.shields.io/codecov/c/github/ReportMort/hadrian/master.svg)](https://codecov.io/github/ReportMort/hadrian?branch=master)
 
 **aurelius** is a toolkit for generating PFA in the R programming language. It 
 focuses on porting models to PFA from their R equivalents.
