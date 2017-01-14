@@ -1,18 +1,32 @@
 Package: aurelius
 Type: Package
-Title: Generates PFA Documents from R Code and Optionally Runs Them
 Version: 0.8.4
-Date: -Date: 2016-04-19
-Author: Open Data Group[aut]
-Maintainer: Collin Bennett <collin.bennett@opendatagroup.com>
+Date: 2017-01-13
+Title: Generates PFA Documents from R Code and Optionally Runs Them
 Description: Converts R syntax into PFA and provides tools for assembling a PFA
     document within R. Tests validity and runtime behavior of PFA by offloading
     PFA and data to Titus (through rPython). Facilitates conversion of common R
-    model output to PFA using aurelius.* libraries.  Aurelius is part of 
-    Hadrian and is on Github at <https://github.com/opendatagroup/hadrian>.
+    model output to PFA using aurelius.* libraries.
+Authors@R: c(
+    person("Open", "Data Group", , , c("aut")),
+    person("Collin", "Bennett", , "collin.bennett@opendatagroup.com", c("cre"))
+    )
+URL: https://github.com/opendatagroup/hadrian/tree/master/aurelius
+BugReports: https://github.com/opendatagroup/hadrian/issues
+Depends:
+    R (>= 3.2.0)
+Imports:
+    jsonlite (>= 1.1),
+    rPython (>= 0.0-6),
+    gbm (>= 2.1.1), 
+    glmnet (>= 2.0-5), 
+    randomForest (>= 4.6-12)
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat
+VignetteBuilder: knitr
 License: file LICENSE
-RoxygenNote: 5.0.1
 NeedsCompilation: no
-Packaged: 2016-04-06 17:13:42 UTC
-Imports: methods, utils, stats
-Depends: RJSONIO, rPython, gbm, glmnet, randomForest
+LazyData: true
+RoxygenNote: 5.0.1

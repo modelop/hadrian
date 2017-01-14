@@ -5,9 +5,10 @@
 ^\.Rproj\.user$
 ^README\.Rmd$  
 ^README-.*\.png$
-^cran-comments\.md$ 
 ^NEWS\.md$          
-^CONTRIBUTING\.md$ 
+^CONTRIBUTING\.md$
+^cran-comments\.md$ 
 ^\.travis\.yml$
+^\.codecov\.yml$
 ^.git$
 ^internal$

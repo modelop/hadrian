@@ -30,7 +30,7 @@ The main purpose of the package is to create PFA documents based on logic create
   # build a model
   lm_model <- lm(mpg ~ hp, data = mtcars)
   
-  # convert the lm object to a list-of-lists PFA representation
+  # convert the lm object to a list of lists PFA representation
   lm_model_as_pfa <- pfa(lm_model)
   
   # save as plain-text JSON

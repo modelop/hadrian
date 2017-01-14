@@ -15,4 +15,18 @@ PFA and data to Titus (through rPython). Facilitates conversion of common R
 model output to PFA using aurelius.* libraries.  Aurelius is part of 
 Hadrian and is on Github at \url{https://github.com/opendatagroup/hadrian}.
 }
+\examples{
+\dontrun{
+library("aurelius")
+
+# build a model
+lm_model <- lm(mpg ~ hp, data = mtcars)
+  
+# convert the lm object to a list of lists PFA representation
+lm_model_as_pfa <- pfa(lm_model)
+  
+# save as plain-text JSON
+write_pfa(lm_model_as_pfa, file = "my-model.pfa")
+}
+}
 
