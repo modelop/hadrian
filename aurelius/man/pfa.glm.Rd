@@ -4,7 +4,7 @@
 \alias{pfa.glm}
 \title{PFA Formatting of Fitted GLMs}
 \source{
-pfa.config.R avro_typemap.R avro_R
+pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R
 }
 \usage{
 \method{pfa}{glm}(object, name = NULL, version = NULL, doc = NULL,

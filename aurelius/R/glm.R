@@ -84,7 +84,7 @@ pfa.glm.extractParams <- function(fit, input_name='glm_input', model_name='glm_m
 #' and returns a list-of-lists representing in valid PFA document 
 #' that could be used for scoring
 #' 
-#' @source pfa.config.R avro_typemap.R avro_R
+#' @source pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R
 #' @param object an object of class "glm"
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
@@ -146,7 +146,7 @@ pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ra
                       options=options
   )
   
-  return(pfa_document)
+  return(doc)
 }
 
 pfa.glm.inputType <- function(params, name = NULL, namespace = NULL) {
