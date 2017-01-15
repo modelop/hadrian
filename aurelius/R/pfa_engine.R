@@ -24,11 +24,7 @@ counter$n <- 0
 #' If this function is successful, then the PFA is valid (only way to check 
 #' PFA validity in R).
 #' 
-#' @param config \code{list} of lists representing a complete PFA document
-#' @param temp_file if NULL, generate the PFA as a string in memory and pass it 
-#' without touching disk; if a string, save the PFA document in a temporary file 
-#' and have Python load it from that file
-#' @return an object with a $action(...) method that can be used to score data
+#' @param doc \code{list} of lists representing a complete PFA document
 #' @importFrom rPython python.exec python.call
 #' @source json.R
 #' @export pfa_engine
@@ -36,24 +32,17 @@ counter$n <- 0
 #' my_pfa_doc <- pfa_document(avro_double, avro_double, expression(input + 10))
 #' pfa_engine(my_pfa_doc)   # where the my_pfa_doc is created by pfa_document
 
-pfa_engine <- function(config, temp_file = NULL) {
+pfa_engine <- function(doc) {
   
     counter$n <- counter$n + 1
     name <- paste("engine_", counter$n, sep = "")
-    method <- config$method
+    method <- doc$method
 
     # load PFA into Titus and get an error message if it's malformed
     python.exec("import json")
     python.exec("from titus.genpy import PFAEngine")
     python.exec("def do(*args): return args[-1]")
-
-    if (is.null(temp_file)) {
-        python.exec(paste(name, " = PFAEngine.fromJson(json.loads(r\"\"\"", read_pfa(config), "\"\"\"))[0]", sep=""))
-    }
-    else {
-        write_pfa(config, file = temp_file)
-        python.exec(paste(name, " = PFAEngine.fromJson(json.load(open(\"", temp_file, "\")))[0]", sep=""))
-    }
+    python.exec(paste(name, " = PFAEngine.fromJson(json.loads(r\"\"\"", paste(capture.output(write_pfa(doc)), collapse=''), "\"\"\"))[0]", sep=""))
 
     # work-around because python.method.call doesn't seem to work for my auto-generated stuff
     python.exec(paste(name, "_begin = lambda: ", name, ".begin()", sep = ""))

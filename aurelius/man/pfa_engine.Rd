@@ -7,17 +7,10 @@
 json.R
 }
 \usage{
-pfa_engine(config, temp_file = NULL)
+pfa_engine(doc)
 }
 \arguments{
-\item{config}{\code{list} of lists representing a complete PFA document}
-
-\item{temp_file}{if NULL, generate the PFA as a string in memory and pass it 
-without touching disk; if a string, save the PFA document in a temporary file 
-and have Python load it from that file}
-}
-\value{
-an object with a $action(...) method that can be used to score data
+\item{doc}{\code{list} of lists representing a complete PFA document}
 }
 \description{
 Create an executable PFA scoring engine in R by calling Titus through rPython. 
