@@ -15,39 +15,35 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' pfa.gbm.extractTree
+
+#' extract_tree
 #'
-#' Extracts a tree from a forest made by the gbm library.
-#' @param gbm an object of class "gbm"
-#' @param whichTree  the number of the tree to extract
-#' @return tree that is extracted from gbm object
-#' @export pfa.gbm.extractTree
-#' @examples
-#' X1 <- runif(100)
-#' X2 <- rnorm(100)
-#' Y <- rexp(100,5) + 5 * X1 - 4 * X2 
-#' Y <- Y > 0
-#' zz <- gbm(Y ~ X1 + X2)
-#' zz$problemType <- "Classification"
-#' zz1 <- pfa.gbm.extractTree(zz)
+#' Extracts a tree from a an ensemble made by the gbm function
+#' 
+#' @param object an object of class "gbm"
+#' @param which_tree the number of the tree to extract
+#' @return a \code{list} that is extracted from the gbm object
+#' @export
+#' @examples 
+#' binomial_dat <- data.frame(X1 = runif(100), 
+#'                            X2 = rnorm(100), 
+#'                            Y = (rexp(100,5) + 5 * X1 - 4 * X2) > 0)
+#' 
+#' bernoulli_model <- gbm(Y ~ X1 + X2, 
+#'                        data=binomial_dat, 
+#'                        distribution = 'bernoulli')
+#'   
+#' my_tree <- extract_tree(bernoulli_model, 1)
 
-pfa.gbm.extractTree <- function(gbm, whichTree = 1) {
-    if (!("gbm" %in% class(gbm)))
-        stop("pfa.gbm.extractTree requires an object of class \"gbm\"")
-  
-    if (is.null(gbm$trees))
-        stop("No trees in ", deparse(substitute(gbm)))
+extract_tree.gbm <- function(object, which_tree = 1) {
 
-    if ((whichTree < 1) || (whichTree > gbm$n.trees))
-        stop("The requested tree, ", whichTree, "is not contained within ", deparse(substitute(gbm)))
-  
-    if (gbm$problemType == "Classification") {
-        tree <- data.frame(gbm$trees[[whichTree]])
-        names(tree) <- c("SplitVar", "SplitCodePred", "LeftNode", "RightNode",
-                         "MissingNode", "ErrorReduction", "Weight", "Prediction")
-    }
-    else
-        stop("gmb problemType other than \"Classification\" not implemented yet")  
+    if (is.null(object$trees))
+        stop("No trees in ", deparse(substitute(object)))
+
+    if ((which_tree < 1) || (which_tree > object$n.trees))
+        stop("The requested tree, ", which_tree, "is not contained within ", deparse(substitute(object)))
+
+    tree <- pretty.gbm.tree(object, which_tree)
 
     # node positions were 0-indexed for traversal in C, make them 1-indexed for traversal in R
     tree$LeftNode <- tree$LeftNode + 1
@@ -58,15 +54,98 @@ pfa.gbm.extractTree <- function(gbm, whichTree = 1) {
     v <- as.vector(unlist(tree["SplitVar"]))
     v[v == -1] <- NA   # to identify leaves
     v = v + 1
-    tree$SplitVar <- gbm$var.names[v]
+    tree$SplitVar <- object$var.names[v]
+    
+    # for ordered factor variables they appear like numeric
+    # but we still need to let downstream PFA know about these
+    # levels so we need to make up a c.splits list
+    for(i in 1:length(object$var.names)){
+      if(object$var.type[i] == 0 & !all(is.numeric(object$var.levels[[i]]))){
+        stop('No support for models with ordered categorical variables')
+      }
+    }
 
-    # pull out categorical (factor) variable lookup table, tree and table
-    list(treeTable=tree, categoricalLookup=gbm$c.splits)
+    # pull out categorical (factor) variable lookup table, tree table
+    list(tree_table=tree, categorical_lookup=object$c.splits)
 }
 
-#' pfa.gbm.buildOneTree
+
+#' build_node
 #'
-#' Builds one tree extracted by pfa.gbm.extractTree.
+#' Builds an entire PFA list of lists based on a single gbm model tree
+#' 
+#' @param object a object of class gbm
+#' @param which_tree an integer indicating which single tree to build
+#' @return a \code{list} of lists representation of the tree that can be 
+#' inserted into a cell or pool
+#' @export
+#' @examples 
+#' binomial_dat <- data.frame(X1 = runif(100), 
+#'                            X2 = rnorm(100), 
+#'                            Y = (rexp(100,5) + 5 * X1 - 4 * X2) > 0)
+#' 
+#' bernoulli_model <- gbm(Y ~ X1 + X2, 
+#'                        data=binomial_dat, 
+#'                        distribution = 'bernoulli')
+#'   
+#' my_tree <- build_tree(bernoulli_model, 1)
+
+build_tree.gbm <- function(object, which_tree = 1){
+  
+  # pull out the tree from the object
+  extracted_tree <- extract_tree(object = object, 
+                                 which_tree = which_tree)
+  tree <- extracted_tree$tree_table
+  categorical_lookup <- extracted_tree$categorical_lookup
+
+  # determine the levels and field types
+  # if the comparison values are a union (mixed numerical and categorical regressors), 
+  # then use valueNeedsTag = TRUE, if it is not (all numerical or all categorical), then FALSE
+  
+  # TODO: determine if this should always be TRUE
+  # # assumes that extract_tree will stop any ordered factors since it's supported
+  # if(all(object$var.type == 0)){
+  #   # all numeric
+  #   valueNeedsTag <- FALSE
+  # } else if (all(object$var.type > 0)){
+  #   # all categorical
+  #   valueNeedsTag <- FALSE
+  # } else{
+  #   valueNeedsTag <- TRUE
+  # }
+  valueNeedsTag <- TRUE
+  
+  # check if we have some categorical variables
+  if(any(object$var.type > 0)) {
+    dataLevels <- list()
+    cat_var_idx <- which(object$var.type > 0)
+    for(i in cat_var_idx){
+      dataLevels[[length(dataLevels) + 1]] <- object$var.levels[[i]]
+    }
+    names(dataLevels) <- object$var.names[cat_var_idx]
+  } else {
+    dataLevels <- NULL
+  }
+
+  # infer field types
+  fieldTypes <- list()
+  for(i in 1:length(object$var.names)){
+    fieldTypes[[length(fieldTypes) + 1]] <- if(object$var.type[i] == 0) 'double' else 'string'
+  }
+  names(fieldTypes) <- object$var.names
+  
+  build_node_gbm(tree = tree, 
+                 categorical_lookup = categorical_lookup, 
+                 whichNode = 1,
+                 valueNeedsTag = valueNeedsTag, 
+                 dataLevels = dataLevels, 
+                 fieldTypes = fieldTypes)
+}
+
+#' build_node_gbm
+#'
+#' Builds one node of a gbm model tree
+#' 
 #' @param tree tree object
 #' @param categoricalLookup splits used
 #' @param whichNode  left or right node for categoricalLookup
@@ -74,81 +153,208 @@ pfa.gbm.extractTree <- function(gbm, whichTree = 1) {
 #' @param dataLevels levels of data
 #' @param fieldTypes type of fields
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
-#' @export pfa.gbm.buildOneTree
+
+build_node_gbm <- function(tree, categorical_lookup, whichNode, valueNeedsTag, dataLevels, fieldTypes){
+  
+  node <- tree[whichNode,]
+
+  if (!is.na(node$SplitVar)) {
+    
+      split.val <- node$SplitCodePred
+
+      # replace "." in a variable name with an underscore "_"
+      f <- gsub("\\.", "_", node$SplitVar)
+      dl <- dataLevels[[f]]        
+
+      # "t" is the avro type of the split point
+      if (is.null(fieldTypes) || is.null(fieldTypes[[f]]))
+          t <- avro_type(split.val)
+      else {
+          t <- fieldTypes[[f]]
+          if (is.list(t) && "name" %in% names(t))
+              t <- t$name
+      }
+ 
+      if (!is.null(dl)) {
+          # look up category options in table
+          categories <- categorical_lookup[[node$SplitCodePred + 1]]
+          split.val  <- dl[categories == -1] # level names which get sent left
+          right      <- dl[categories ==  1] # level names which get sent right
+
+          if (length(split.val) == 1) {  # only one factor to check to send right
+              op <- "=="
+              if (valueNeedsTag) {
+                  out <- list()
+                  out[[t]] <- as.list(split.val)[[1]]
+                  split.val <- out
+              }
+          }
+          else if (length(split.val) > 1) { # if input is one of several factors send right
+              op <- "in" 
+              if (valueNeedsTag) {
+                  out <- list(array = as.list(split.val))
+                  split.val <- out
+              }
+          }
+          else 
+              stop("can't understand this factor or categorical variable") 
+      } 
+      else {
+      # split.var is numeric
+          if (valueNeedsTag) {
+              out <- list()
+              out[[t]] <- split.val
+              split.val <- out
+          }
+          op <- "<"
+      }  
+
+      list(TreeNode = 
+           list(field    = f,
+                operator = op,
+                value    = split.val,
+                pass     = build_node(tree, categorical_lookup, node$LeftNode,    valueNeedsTag, dataLevels, fieldTypes),
+                fail     = build_node(tree, categorical_lookup, node$RightNode,   valueNeedsTag, dataLevels, fieldTypes),
+                missing  = build_node(tree, categorical_lookup, node$MissingNode, valueNeedsTag, dataLevels, fieldTypes)))
+  }
+  else {
+    list(double = node$Prediction)    
+  }
+}
+
+
+#' PFA Formatting of Fitted GBMs
+#'
+#' This function takes a gradient boosted machine (gbm) fit using gbm
+#' and returns a list-of-lists representing in valid PFA document 
+#' that could be used for scoring
+#' 
+#' @source pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R
+#' @param object an object of class "gbm"
+#' @param n.trees an integer or vector of integers specifying the number of trees 
+#' to use in building the model. If a vector is provided, then only the indices of 
+#' thos trees will be used. If a single integer is provided then all trees up until 
+#' and including that index will be used.
+#' @param name a character which is an optional name for the scoring engine
+#' @param version	an integer which is sequential version number for the model
+#' @param doc	a character which is documentation string for archival purposes
+#' @param metadata a \code{list} of strings that is computer-readable documentation for 
+#' archival purposes
+#' @param randseed a integer which is a global seed used to generate all random 
+#' numbers. Multiple scoring engines derived from the same PFA file have 
+#' different seeds generated from the global one
+#' @param options	a \code{list} with value types depending on option name 
+#' Initialization or runtime options to customize implementation 
+#' (e.g. optimization switches). May be overridden or ignored by PFA consumer
+#' @param ...	additional arguments affecting the PFA produced
+#' @return a \code{list} of lists that compose valid PFA document
+#' @seealso \code{\link[gbm]{gbm}}
 #' @examples
 #' X1 <- runif(100)
-#' X2 <- rnorm(100)
-#' Y <- rexp(100,5) + 5 * X1 - 4 * X2
-#' Y <- Y > 0
-#' zz <- gbm(Y ~ X1 + X2)
-#' zz$problemType <- "Classification"
-#' zz1 <- pfa.gbm.extractTree(zz)
-#' zz2 <- pfa.gbm.buildOneTree(zz1$treeTable, list(), 1)
+#' X2 <- factor(c(rep(c('A', 'B'), 30), 
+#'                rep('C', 40)),
+#'              ordered=F, 
+#'              levels=c('B','C','A'))
+#' Y <- ifelse(as.character(X2)=='B', 10, 20) * X1 - ifelse(as.character(X2)=='B', 15, 0) + rnorm(10,0,.5)
+#' 
+#' model <- gbm(Y ~ X1 + X2, n.trees = 2, interaction.depth=3, distribution = 'gaussian')
+#' model_as_pfa <- pfa.gbm(model)
+#' 
+#' @export
+pfa.gbm <- function(object, n.trees=NULL, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...){
+  
+  if(object$distribution$name %in% c('multinomial', 'quantile', 'pairwise')){
+    stop(sprintf("Currently not supporting gbm models of distribution %s", object$distribution$name))
+  }
+  
+  if(is.null(n.trees)){
+    tree_idx <- 1:object$n.trees
+  } else if (length(n.trees) == 1) {
+    tree_idx <- 1:n.trees
+  }
+  
+  if(any(n.trees > object$n.trees)){
+    n.trees <- object$n.trees
+    warning(sprintf("Number of trees exceeded number fit so far. Using first %s trees.", n.trees))
+  }
 
-
-
-
-pfa.gbm.buildOneTree <- function(tree, categoricalLookup, whichNode, valueNeedsTag = TRUE, dataLevels = NULL, fieldTypes = NULL) {
-    node <- tree[whichNode,]
- 
-    if (!is.na(node$SplitVar)) {
-        split.val <- node$SplitCodePred
-
-        # replace "." in a variable name with an underscore "_"
-        f <- gsub("\\.", "_", node$SplitVar)
-        dl <- dataLevels[[f]]        
- 
-        # "t" is the avro type of the split point
-        if (is.null(fieldTypes) || is.null(fieldTypes[[f]]))
-            t <- avro_type(split.val)
-        else {
-            t <- fieldTypes[[f]]
-            if (is.list(t) && "name" %in% names(t))
-                t <- t$name
-        }
-   
-        if (!is.null(dl)) {
-            # look up category options in table
-            categories <- categoricalLookup[[node$SplitCodePred + 1]]
-            split.val  <- dl[categories == -1] # level names which get sent left
-            right      <- dl[categories ==  1] # level names which get sent right
-
-            if (length(split.val) == 1) {  # only one factor to check to send right
-                op <- "=="
-                if (valueNeedsTag) {
-                    out <- list()
-                    out[[t]] <- as.list(split.val)[[1]]
-                    split.val <- out
-                }
-            }
-            else if (length(split.val) > 1) { # if input is one of several factors send right
-                op <- "in" 
-                if (valueNeedsTag) {
-                    out <- list(array = as.list(split.val))
-                    split.val <- out
-                }
-            }
-            else 
-                stop("can't understand this factor or categorical variable") 
-        } 
-        else {
-        # split.var is numeric
-            if (valueNeedsTag) {
-                out <- list()
-                out[[t]] <- split.val
-                split.val <- out
-            }
-            op <- "<"
-        }  
-
-        list(TreeNode = 
-             list(field    = f,
-                  operator = op,
-                  value    = split.val,
-                  pass     = pfa.gbm.buildOneTree(tree, categoricalLookup, node$LeftNode,    valueNeedsTag, dataLevels, fieldTypes),
-                  fail     = pfa.gbm.buildOneTree(tree, categoricalLookup, node$RightNode,   valueNeedsTag, dataLevels, fieldTypes),
-                  missing  = pfa.gbm.buildOneTree(tree, categoricalLookup, node$MissingNode, valueNeedsTag, dataLevels, fieldTypes)))
+  ensemble_of_trees <- list()
+  for (i in tree_idx){
+    ensemble_of_trees[[length(ensemble_of_trees) + 1]] <- build_tree(object, which_tree = i)$TreeNode
+  }
+  
+  # define the input schema
+  fieldNames <- as.list(object$var.names)
+  fieldTypes <- list()
+  all_field_types <- c()
+  for(i in seq_along(object$var.names)){
+    this_field_type <- if(object$var.type[i] == 0) 'double' else 'string'
+    all_field_types <- unique(c(all_field_types, this_field_type))
+    fieldTypes[[length(fieldTypes) + 1]] <- avro_union(avro_null, this_field_type)
+  }
+  names(fieldTypes) <- object$var.names
+  inputSchema <- avro_record(fieldTypes, "Input")
+  
+  valueFieldTypes <- list()
+  for(a in all_field_types){
+    valueFieldTypes[[length(valueFieldTypes) + 1]] <- a
+    if(a == 'string'){
+      valueFieldTypes[[length(valueFieldTypes) + 1]] <- avro_array(avro_string)
     }
-    else
-        list(double = node$Prediction)    
+  }
+  
+  tm <- avro_typemap(
+    Input = inputSchema,
+    Output = avro_double,
+    TreeNode = avro_record(list(
+    field    = avro_enum(fieldNames),
+    operator = avro_string,
+    value    = valueFieldTypes,
+    pass     = avro_union("TreeNode", avro_double),
+    fail     = avro_union("TreeNode", avro_double),
+    missing  = avro_union("TreeNode", avro_double)), "TreeNode"))
+  
+  # declare intercept used for scaling the final result
+  intercept <- object$initF
+  
+  # construct the pfa_document
+  doc <- pfa_document(input = tm("Input"),
+                      output = tm("Output"),
+                      cells = list(ensemble = pfa_cell(avro_array(tm("TreeNode")), ensemble_of_trees)),
+                      action = parse(text=paste(
+                        'tree_scores <- a.map(ensemble,
+                            function(tree = tm("TreeNode") -> avro_double)
+                                model.tree.missingWalk(input, tree,
+                                    function(d = tm("Input"), t = tm("TreeNode") -> avro_union(avro_null, avro_boolean))
+                                        model.tree.missingTest(d, t)
+                                    )
+                          )', 
+                        'lin_pred <- intercept + a.sum(tree_scores)', 
+                        gbm_link_func_mapper(object$distribution$name), 
+                        sep='\n ')),
+                      name=name, 
+                      version=version, 
+                      doc=doc, 
+                      metadata=metadata, 
+                      randseed=randseed, 
+                      options=options
+  )
+  
+  return(doc)
+}
+
+
+gbm_link_func_mapper <- function(distribution) {
+
+  switch(distribution,
+         gaussian = 'lin_pred',
+         laplace = 'lin_pred',
+         tdist = 'lin_pred',
+         huberized = 'lin_pred',
+         coxph = 'lin_pred',
+         poisson = 'm.exp(lin_pred)',
+         bernoulli ='m.link.logit(lin_pred)',
+         pairwise ='m.link.logit(lin_pred)',
+         adaboost = '1/(1 + m.exp(-2 * lin_pred))',
+         stop(sprintf('supplied link function not supported: %s', distribution))) 
 }
