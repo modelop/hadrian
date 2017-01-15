@@ -13,7 +13,7 @@ test_that("read_xml works with all input object types", {
   expect_identical(local_model, model_as_list)
   
   # from a url
-  url_model <- read_pfa("https://raw.githubusercontent.com/ReportMort/hadrian/master/aurelius/inst/extdata/my-model.pfa")
+  url_model <- read_pfa("https://raw.githubusercontent.com/ReportMort/hadrian/feature/add-r-package-structure/aurelius/inst/extdata/my-model.pfa")
   expect_identical(url_model, model_as_list)
   
 })
