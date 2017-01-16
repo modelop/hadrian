@@ -15,95 +15,159 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' pfa.randomForest.extractTree
+
+#' extract_tree
 #'
-#' Extracts a tree from a forest made by the randomForest library.
-#' @param forest an object of class "randomForest"
-#' @param whichTree which tree to extract
-#' @param labelVar flag for whether var needs to be labeled
-#' @return single tree extracted from random forest
-#' @import randomForest
-#' @export pfa.randomForest.extractTree
-#' @examples
-#' X1 <- runif(100)
-#' X2 <- rnorm(100)
-#' Y <- rexp(100,5) + 5 * X1 - 4 * X2
-#' Y <- Y > 0
-#' Y <- factor(Y)
-#' zz <- randomForest(Y ~ X1 + X2)
-#' zz1 <- pfa.randomForest.extractTree(zz)
+#' Extracts a tree from a forest made by the randomForest function
+#' 
+#' @param object an object of class "randomForest"
+#' @param which_tree the number of the tree to extract
+#' @return a \code{list} that is extracted from the randomForest object
+#' @export
+#' @examples 
+#' binomial_dat <- data.frame(X1 = runif(100), 
+#'                            X2 = rnorm(100))
+#' binomial_dat$Y <- factor((rexp(100,5) + 
+#'                             5 * binomial_dat$X1 - 
+#'                             4 * binomial_dat$X2) > 0)
+#' 
+#' bernoulli_model <- randomForest(Y ~ X1 + X2, data=binomial_dat)
+#'   
+#' my_tree <- extract_tree.randomForest(bernoulli_model, 1)
 
+extract_tree.randomForest <- function(object, which_tree = 1) {
 
-pfa.randomForest.extractTree <- function(forest, whichTree = 1, labelVar = FALSE) {
-    if (!("randomForest" %in% class(forest)))
-        stop("pfa.randomForest.extractTree requires an object of class \"randomForest\"")
+  if (is.null(object$forest)) {
+      stop("No forest component in ", deparse(substitute(object)))
+  }
+  
+  if (which_tree > object$ntree) {
+      stop("There are fewer than ", which_tree, "trees in the forest")
+  }
+  
+  if (object$type == "regression") {
+      tree <- cbind(object$forest$leftDaughter[, which_tree],
+                    object$forest$rightDaughter[, which_tree],
+                    object$forest$bestvar[, which_tree],
+                    object$forest$xbestsplit[, which_tree],
+                    object$forest$nodestatus[, which_tree],
+                    object$forest$nodepred[, which_tree])[1:object$forest$ndbigtree[which_tree], ]
+  }
+  else {
+      tree <- cbind(object$forest$treemap[, , which_tree],
+                    object$forest$bestvar[, which_tree],
+                    object$forest$xbestsplit[, which_tree],
+                    object$forest$nodestatus[, which_tree],
+                    object$forest$nodepred[, which_tree])[1:object$forest$ndbigtree[which_tree],]
+  }
 
-    # modification of getTree to remove factors from forest output   
-    if (is.null(forest$forest)) {
-        stop("No forest component in ", deparse(substitute(forest)))
-    }
-    if (whichTree > forest$ntree) {
-        stop("There are fewer than ", whichTree, "trees in the forest")
-    }
-    if (forest$type == "regression") {
-        tree <- cbind(forest$forest$leftDaughter[, whichTree],
-                      forest$forest$rightDaughter[, whichTree],
-                      forest$forest$bestvar[, whichTree],
-                      forest$forest$xbestsplit[, whichTree],
-                      forest$forest$nodestatus[, whichTree],
-                      forest$forest$nodepred[, whichTree])[1:forest$forest$ndbigtree[whichTree], ]
-    }
-    else {
-        tree <- cbind(forest$forest$treemap[, , whichTree],
-                      forest$forest$bestvar[, whichTree],
-                      forest$forest$xbestsplit[, whichTree],
-                      forest$forest$nodestatus[, whichTree],
-                      forest$forest$nodepred[, whichTree])[1:forest$forest$ndbigtree[whichTree],]
-    }
-    dimnames(tree) <- list(1:nrow(tree), c("left daughter",
-                                           "right daughter",
-                                           "split var",
-                                           "split point",
-                                           "status",
-                                           "prediction"))
-    if (labelVar) {
-        tree <- as.data.frame(tree)
-        v <- tree[[3]]
-        v[v == 0] <- NA
-        tree[[3]] <- rownames(forest$importance)[v]
-        if (forest$type == "classification") {
-            v <- tree[[6]]
-            v[!v %in% 1:nlevels(forest$y)] <- NA
-            tree[[6]] <- levels(forest$y)[v]
-        }
-    }
-    tree
+  dimnames(tree) <- list(1:nrow(tree), c("left daughter",
+                                         "right daughter",
+                                         "split var",
+                                         "split point",
+                                         "status",
+                                         "prediction"))
+  
+  tree <- as.data.frame(tree)
+  v <- tree[[3]]
+  v[v == 0] <- NA
+  tree[[3]] <- rownames(object$importance)[v]
+  if (object$type == "classification") {
+      v <- tree[[6]]
+      v[!v %in% 1:nlevels(object$y)] <- NA
+      tree[[6]] <- levels(object$y)[v]
+  }
+  
+  return(tree)
 }
 
-#' pfa.randomForest.buildOneTree
+
+#' build_tree
 #'
-#' Builds one tree extracted by pfa.randomForest.extractTree.
-#' @param tree tree to build
-#' @param whichNode the node to extract
-#' @param valueNeedsTag flag for whether the node needs a label
+#' Builds an entire PFA list of lists based on a single randomForest model tree
+#' 
+#' @param object a object of class randomForest
+#' @param which_tree an integer indicating which single tree to build
+#' @return a \code{list} of lists representation of the tree that can be 
+#' inserted into a cell or pool
+#' @examples 
+#' binomial_dat <- data.frame(X1 = runif(100), 
+#'                            X2 = rnorm(100))
+#' binomial_dat$Y <- factor((rexp(100,5) + 
+#'                             5 * binomial_dat$X1 - 
+#'                             4 * binomial_dat$X2) > 0)
+#' 
+#' bernoulli_model <- randomForest(Y ~ X1 + X2, data=binomial_dat)
+#'
+#' my_tree <- build_tree.randomForest(bernoulli_model, 1)
+#' @export
+
+build_tree.randomForest <- function(object, which_tree = 1){
+  
+  # pull out the tree from the object
+  tree_table <- extract_tree(object = object, which_tree = which_tree)
+  
+  # determine the levels and field types
+  # if the comparison values are a union (mixed numerical and categorical regressors), 
+  # then use valueNeedsTag = TRUE, if it is not (all numerical or all categorical), then FALSE
+  
+  # TODO: determine if this should always be TRUE
+  # # assumes that extract_tree will stop any ordered factors since it's supported
+  # if(all(object$var.type == 0)){
+  #   # all numeric
+  #   valueNeedsTag <- FALSE
+  # } else if (all(object$var.type > 0)){
+  #   # all categorical
+  #   valueNeedsTag <- FALSE
+  # } else{
+  #   valueNeedsTag <- TRUE
+  # }
+  valueNeedsTag <- TRUE
+  
+  # check if we have some categorical variables
+  if(any(!sapply(object$forest$xlevels, is.numeric))) {
+    dataLevels <- list()
+    cat_var_idx <- which(!sapply(object$forest$xlevels, is.numeric))
+    for(i in cat_var_idx){
+      dataLevels[[length(dataLevels) + 1]] <- object$forest$xlevels[[i]]
+    }
+    names(dataLevels) <- names(object$forest$xlevels)[cat_var_idx]
+  } else {
+    dataLevels <- NULL
+  }
+
+  # infer field types
+  fieldTypes <- list()
+  for(i in 1:length(object$forest$xlevels)){
+    fieldTypes[[length(fieldTypes) + 1]] <- if(is.numeric(object$forest$xlevels[[i]])) avro_double else avro_string
+  }
+  names(fieldTypes) <- names(object$forest$xlevels)
+  
+  build_node_randomForest(tree_table = tree_table, 
+                          leaf_val_type = if(object$type == 'classification') avro_string else avro_double,
+                          whichNode = 1,
+                          valueNeedsTag = valueNeedsTag, 
+                          dataLevels = dataLevels, 
+                          fieldTypes = fieldTypes)
+}
+
+
+#' build_node_randomForest
+#'
+#' Builds one node of a randomForest model tree
+#' 
+#' @param tree_table tree object
+#' @param leaf_val_type a character representing an avro type when a value is 
+#' returned at a leaf node
+#' @param whichNode  pointer to the target node to be built
+#' @param valueNeedsTag flag for whether node needs label
 #' @param dataLevels levels of data
 #' @param fieldTypes type of fields
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
-#' @import randomForest
-#' @export pfa.randomForest.buildOneTree
-#' @examples
-#' X1 <- runif(100)
-#' X2 <- rnorm(100)
-#' Y <- rexp(100,5) + 5 * X1 - 4 * X2
-#' Y <- Y > 0
-#' Y <- factor(Y)
-#' zz <- randomForest(Y ~ X1 + X2)
-#' zz1 <- pfa.randomForest.extractTree(zz)
-#' zz2 <- pfa.randomForest.buildOneTree(zz1, 1, TRUE, dataLevels = list())
 
-
-pfa.randomForest.buildOneTree <- function(tree, whichNode, valueNeedsTag, dataLevels, fieldTypes = NULL) {
-    node <- tree[whichNode,]
+build_node_randomForest <- function(tree_table, leaf_val_type, whichNode, valueNeedsTag, dataLevels, fieldTypes = NULL) {
+  
+    node <- tree_table[whichNode,]
 
     if (node[[1]] > 0) {  # branch node
         f <- gsub("\\.", "_", node[[3]])
@@ -158,85 +222,131 @@ pfa.randomForest.buildOneTree <- function(tree, whichNode, valueNeedsTag, dataLe
              list(field = f,
                   operator = op,
                   value = val,
-                  pass = pfa.randomForest.buildOneTree(tree, node[[1]], valueNeedsTag, dataLevels, fieldTypes),
-                  fail = pfa.randomForest.buildOneTree(tree, node[[2]], valueNeedsTag, dataLevels, fieldTypes)))
+                  pass = build_node_randomForest(tree_table, leaf_val_type, node[[1]], valueNeedsTag, dataLevels, fieldTypes),
+                  fail = build_node_randomForest(tree_table, leaf_val_type, node[[2]], valueNeedsTag, dataLevels, fieldTypes)))
+    } else {
+      node <- list(node[[6]])   # leaf node
+      names(node) <- leaf_val_type
+      node
     }
-    else
-        list(string = node[[6]])   # leaf node
 }
 
-pfa.randomForest.fromFrame <- function(dataFrame, exclude = list()) {
-    out <- list()
-    for (x in names(dataFrame))
-        if (!(x %in% exclude))
-            out[[gsub("\\.", "_", x)]] <- avro_type(dataFrame[[x]])
-    out
-}
 
-pfa.randomForest.inputType <- function(regressors, name = NULL, namespace = NULL) {
-    avro_record(regressors, name, namespace)
-}
+#' PFA Formatting of Fitted Random Forest Models
+#'
+#' This function takes a random forest model fit using randomForest() and 
+#' returns a list-of-lists representing in valid PFA document that could 
+#' be used for scoring
+#' 
+#' @source pfa_config.R avro_typemap.R avro_R pfa_cellpool.R pfa_expr.R
+#' @param object an object of class "randomForest"
+#' @param n.trees an integer or vector of integers specifying the number of trees 
+#' to use in building the model. If a vector is provided, then only the indices of 
+#' thos trees will be used. If a single integer is provided then all trees up until 
+#' and including that index will be used.
+#' @param name a character which is an optional name for the scoring engine
+#' @param version	an integer which is sequential version number for the model
+#' @param doc	a character which is documentation string for archival purposes
+#' @param metadata a \code{list} of strings that is computer-readable documentation for 
+#' archival purposes
+#' @param randseed a integer which is a global seed used to generate all random 
+#' numbers. Multiple scoring engines derived from the same PFA file have 
+#' different seeds generated from the global one
+#' @param options	a \code{list} with value types depending on option name 
+#' Initialization or runtime options to customize implementation 
+#' (e.g. optimization switches). May be overridden or ignored by PFA consumer
+#' @param ...	additional arguments affecting the PFA produced
+#' @return a \code{list} of lists that compose valid PFA document
+#' @seealso \code{\link[randomForest]{randomForest}}
+#' @examples
+#' binomial_dat <- data.frame(X1 = runif(100), 
+#'                            X2 = rnorm(100))
+#' binomial_dat$Y <- factor((rexp(100,5) + 
+#'                             5 * binomial_dat$X1 - 
+#'                             4 * binomial_dat$X2) > 0)
+#' 
+#' model <- randomForest(Y ~ X1 + X2, data=binomial_dat)
+#' model_as_pfa <- pfa.randomForest(model)
+#' @export
 
-pfa.randomForest.treeType <- function(regressors, response) {
-    fieldNames <- names(regressors)
+pfa.randomForest <- function(object, n.trees=NULL, name=NULL, 
+                             version=NULL, doc=NULL, metadata=NULL, 
+                             randseed=NULL, options=NULL, ...){
 
-    dataTypes <- unique(unlist(regressors, use.names = FALSE))
-    if (length(dataTypes) == 1)
-        value <- dataTypes[[1]]
-    else
-        value <- do.call(avro_union, lapply(dataTypes, 
-                                            function(t) { 
-                                              if (t == "string") {
-                                                avro_array(avro_string) 
-                                              } else {
-                                                t
-                                              }
-                                              }))
+  if(object$type %in% c('unsupervised')){
+    stop(sprintf("Currently not supporting randomForest models of type %s", object$type))
+  }
+  
+  if(is.null(n.trees)){
+    tree_idx <- 1:object$ntree
+  } else if (length(n.trees) == 1) {
+    tree_idx <- 1:n.trees
+  }
+  
+  if(any(n.trees > object$ntree)){
+    n.trees <- object$ntree
+    warning(sprintf("Number of trees exceeded number fit so far. Using first %s trees.", n.trees))
+  }
 
-    avro_record(list(field = avro_enum(fieldNames, "FieldNames"),
-                     operator = avro_string,
-                     value = value,
-                     pass = avro_union(response, "TreeNode"),
-                     fail = avro_union(response, "TreeNode")),
-                "TreeNode")
-}
-
-pfa.randomForest.walkTree <- function(input, inputType, tree) {
-    env = new.env()
-    env[["input"]] = input
-    env[["inputType"]] = inputType
-    env[["tree"]] = tree
-    pfa_expr(quote(model.tree.simpleWalk(input,
-                                         tree,
-                                         function(d = inputType, t = "TreeNode" -> avro_boolean) {
-                                             model.tree.simpleTest(d, t)
-                                         })), env = env)
-}
-
-pfa.randomForest.walkForest <- function(input, inputType, forest) {
-    env = new.env()
-    env[["walkTree"]] <- pfa.randomForest.walkTree(input, inputType, "tree")
-    pfa_expr(quote(a.map(forest, function(tree = "TreeNode" -> avro_string) walkTree)), env = env)
-}
-
-pfa.randomForest.modelParams <- function(forest, regressors, dataFrame) {
-    if (!("randomForest" %in% class(forest)))
-        stop("pfa.randomForest.modelParams requires an object of class \"randomForest\"")
-
-    ntree <- forest$ntree
-    out <- list()
-
-    dataTypes <- unique(unlist(regressors, use.names = FALSE))
-    valueNeedsTag <- (length(dataTypes) > 1)
-
-    dataLevels <- list()
-    for (name in names(regressors))
-        if (is.factor(dataFrame[[name]]))
-            dataLevels[[name]] <- levels(dataFrame[[name]])
-
-    for (i in 1:ntree) {
-        tree <- pfa.randomForest.extractTree(forest, i, labelVar = TRUE)
-        out[[i]] <- pfa.randomForest.buildOneTree(tree, 1, valueNeedsTag, dataLevels)$TreeNode
+  forest <- list()
+  for (i in tree_idx){
+    forest[[length(forest) + 1]] <- build_tree(object, which_tree = i)$TreeNode
+  }
+  
+  # define the input schema
+  fieldNames <- as.list(names(object$forest$xlevels))
+  fieldTypes <- list()
+  all_field_types <- c()
+  for(i in seq_along(names(object$forest$xlevels))){
+    this_field_type <- if(is.numeric(object$forest$xlevels[[i]])) avro_double else avro_string
+    all_field_types <- unique(c(all_field_types, this_field_type))
+    fieldTypes[[length(fieldTypes) + 1]] <- this_field_type
+  }
+  names(fieldTypes) <- names(object$forest$xlevels)
+  inputSchema <- avro_record(fieldTypes, "Input")
+  
+  valueFieldTypes <- list()
+  for(a in all_field_types){
+    valueFieldTypes[[length(valueFieldTypes) + 1]] <- a
+    if(a == avro_string){
+      valueFieldTypes[[length(valueFieldTypes) + 1]] <- avro_array(avro_string)
     }
-    out
+  }
+  
+  target_type <- if(object$type == 'classification') avro_string else avro_double
+  
+  random_forest_pred_aggregator <- if(object$type == 'classification') 'a.mode(tree_scores)' else 'a.mean(tree_scores)'
+  
+  tm <- avro_typemap(
+    Input = inputSchema,
+    Output = target_type,
+    TargetType = target_type,
+    TreeNode = avro_record(list(
+    field    = avro_enum(fieldNames),
+    operator = avro_string,
+    value    = valueFieldTypes,
+    pass     = avro_union("TreeNode", target_type),
+    fail     = avro_union("TreeNode", target_type)), "TreeNode"))
+  
+  # construct the pfa_document
+  doc <- pfa_document(input = tm("Input"),
+                      output = tm("Output"),
+                      cells = list(forest = pfa_cell(avro_array(tm("TreeNode")), forest)),
+                      action = parse(text=paste(
+                        'tree_scores <- a.map(forest,
+                                function(tree = tm("TreeNode") -> tm("TargetType"))
+                                  model.tree.simpleTree(input, tree)
+                         )',
+                        random_forest_pred_aggregator, 
+                        sep="\n ")),
+                      name=name, 
+                      version=version, 
+                      doc=doc, 
+                      metadata=metadata, 
+                      randseed=randseed, 
+                      options=options
+  )
+  
+  return(doc)  
 }
+

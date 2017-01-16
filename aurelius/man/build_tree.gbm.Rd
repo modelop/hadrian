@@ -2,9 +2,9 @@
 % Please edit documentation in R/gbm.R
 \name{build_tree.gbm}
 \alias{build_tree.gbm}
-\title{build_node}
+\title{build_tree}
 \usage{
-build_tree.gbm(object, which_tree = 1)
+\method{build_tree}{gbm}(object, which_tree = 1)
 }
 \arguments{
 \item{object}{a object of class gbm}

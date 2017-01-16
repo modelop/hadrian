@@ -4,7 +4,7 @@
 \alias{extract_tree.gbm}
 \title{extract_tree}
 \usage{
-extract_tree.gbm(object, which_tree = 1)
+\method{extract_tree}{gbm}(object, which_tree = 1)
 }
 \arguments{
 \item{object}{an object of class "gbm"}
@@ -15,7 +15,7 @@ extract_tree.gbm(object, which_tree = 1)
 a \code{list} that is extracted from the gbm object
 }
 \description{
-Extracts a tree from a an ensemble made by the gbm function
+Extracts a tree from an ensemble made by the gbm function
 }
 \examples{
 binomial_dat <- data.frame(X1 = runif(100), 

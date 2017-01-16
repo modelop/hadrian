@@ -18,7 +18,7 @@
 
 #' extract_tree
 #'
-#' Extracts a tree from a an ensemble made by the gbm function
+#' Extracts a tree from an ensemble made by the gbm function
 #' 
 #' @param object an object of class "gbm"
 #' @param which_tree the number of the tree to extract
@@ -70,7 +70,7 @@ extract_tree.gbm <- function(object, which_tree = 1) {
 }
 
 
-#' build_node
+#' build_tree
 #'
 #' Builds an entire PFA list of lists based on a single gbm model tree
 #' 
@@ -78,7 +78,6 @@ extract_tree.gbm <- function(object, which_tree = 1) {
 #' @param which_tree an integer indicating which single tree to build
 #' @return a \code{list} of lists representation of the tree that can be 
 #' inserted into a cell or pool
-#' @export
 #' @examples 
 #' binomial_dat <- data.frame(X1 = runif(100), 
 #'                            X2 = rnorm(100), 
@@ -89,6 +88,7 @@ extract_tree.gbm <- function(object, which_tree = 1) {
 #'                        distribution = 'bernoulli')
 #'   
 #' my_tree <- build_tree(bernoulli_model, 1)
+#' @export
 
 build_tree.gbm <- function(object, which_tree = 1){
   
@@ -130,12 +130,13 @@ build_tree.gbm <- function(object, which_tree = 1){
   # infer field types
   fieldTypes <- list()
   for(i in 1:length(object$var.names)){
-    fieldTypes[[length(fieldTypes) + 1]] <- if(object$var.type[i] == 0) 'double' else 'string'
+    fieldTypes[[length(fieldTypes) + 1]] <- if(object$var.type[i] == 0) avro_double else avro_string
   }
   names(fieldTypes) <- object$var.names
   
   build_node_gbm(tree = tree, 
-                 categorical_lookup = categorical_lookup, 
+                 categorical_lookup = categorical_lookup,
+                 leaf_val_type = avro_double,
                  whichNode = 1,
                  valueNeedsTag = valueNeedsTag, 
                  dataLevels = dataLevels, 
@@ -147,14 +148,16 @@ build_tree.gbm <- function(object, which_tree = 1){
 #' Builds one node of a gbm model tree
 #' 
 #' @param tree tree object
-#' @param categoricalLookup splits used
-#' @param whichNode  left or right node for categoricalLookup
+#' @param categorical_lookup splits used
+#' @param leaf_val_type a character representing an avro type when a value is 
+#' returned at a leaf node
+#' @param whichNode  left or right node for categorical_lookup
 #' @param valueNeedsTag flag for whether node needs label
 #' @param dataLevels levels of data
 #' @param fieldTypes type of fields
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 
-build_node_gbm <- function(tree, categorical_lookup, whichNode, valueNeedsTag, dataLevels, fieldTypes){
+build_node_gbm <- function(tree, categorical_lookup, leaf_val_type, whichNode, valueNeedsTag, dataLevels, fieldTypes){
   
   node <- tree[whichNode,]
 
@@ -213,12 +216,14 @@ build_node_gbm <- function(tree, categorical_lookup, whichNode, valueNeedsTag, d
            list(field    = f,
                 operator = op,
                 value    = split.val,
-                pass     = build_node(tree, categorical_lookup, node$LeftNode,    valueNeedsTag, dataLevels, fieldTypes),
-                fail     = build_node(tree, categorical_lookup, node$RightNode,   valueNeedsTag, dataLevels, fieldTypes),
-                missing  = build_node(tree, categorical_lookup, node$MissingNode, valueNeedsTag, dataLevels, fieldTypes)))
+                pass     = build_node_gbm(tree, categorical_lookup, leaf_val_type, node$LeftNode,    valueNeedsTag, dataLevels, fieldTypes),
+                fail     = build_node_gbm(tree, categorical_lookup, leaf_val_type, node$RightNode,   valueNeedsTag, dataLevels, fieldTypes),
+                missing  = build_node_gbm(tree, categorical_lookup, leaf_val_type, node$MissingNode, valueNeedsTag, dataLevels, fieldTypes)))
   }
   else {
-    list(double = node$Prediction)    
+    node <- list(node$Prediction)   # leaf node
+    names(node) <- leaf_val_type
+    node
   }
 }
 
@@ -250,18 +255,19 @@ build_node_gbm <- function(tree, categorical_lookup, whichNode, valueNeedsTag, d
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[gbm]{gbm}}
 #' @examples
-#' X1 <- runif(100)
-#' X2 <- factor(c(rep(c('A', 'B'), 30), 
-#'                rep('C', 40)),
-#'              ordered=F, 
-#'              levels=c('B','C','A'))
-#' Y <- ifelse(as.character(X2)=='B', 10, 20) * X1 - ifelse(as.character(X2)=='B', 15, 0) + rnorm(10,0,.5)
+#' binomial_dat <- data.frame(X1 = runif(100), 
+#'                            X2 = rnorm(100))
+#' binomial_dat$Y <- factor((rexp(100,5) + 
+#'                             5 * binomial_dat$X1 - 
+#'                             4 * binomial_dat$X2) > 0)
 #' 
-#' model <- gbm(Y ~ X1 + X2, n.trees = 2, interaction.depth=3, distribution = 'gaussian')
+#' model <- gbm(Y ~ X1 + X2, data=binomial_dat, distribution='bernoulli')
 #' model_as_pfa <- pfa.gbm(model)
-#' 
 #' @export
-pfa.gbm <- function(object, n.trees=NULL, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...){
+
+pfa.gbm <- function(object, n.trees=NULL, name=NULL, 
+                    version=NULL, doc=NULL, metadata=NULL, 
+                    randseed=NULL, options=NULL, ...){
   
   if(object$distribution$name %in% c('multinomial', 'quantile', 'pairwise')){
     stop(sprintf("Currently not supporting gbm models of distribution %s", object$distribution$name))
@@ -288,7 +294,7 @@ pfa.gbm <- function(object, n.trees=NULL, name=NULL, version=NULL, doc=NULL, met
   fieldTypes <- list()
   all_field_types <- c()
   for(i in seq_along(object$var.names)){
-    this_field_type <- if(object$var.type[i] == 0) 'double' else 'string'
+    this_field_type <- if(object$var.type[i] == 0) avro_double else avro_string
     all_field_types <- unique(c(all_field_types, this_field_type))
     fieldTypes[[length(fieldTypes) + 1]] <- avro_union(avro_null, this_field_type)
   }
@@ -298,14 +304,18 @@ pfa.gbm <- function(object, n.trees=NULL, name=NULL, version=NULL, doc=NULL, met
   valueFieldTypes <- list()
   for(a in all_field_types){
     valueFieldTypes[[length(valueFieldTypes) + 1]] <- a
-    if(a == 'string'){
+    if(a == avro_string){
       valueFieldTypes[[length(valueFieldTypes) + 1]] <- avro_array(avro_string)
     }
   }
   
+  # currently gbm will only ever emit a type of avro_double
+  target_type <- avro_double
+  
   tm <- avro_typemap(
     Input = inputSchema,
     Output = avro_double,
+    TargetType = target_type,
     TreeNode = avro_record(list(
     field    = avro_enum(fieldNames),
     operator = avro_string,
@@ -323,7 +333,7 @@ pfa.gbm <- function(object, n.trees=NULL, name=NULL, version=NULL, doc=NULL, met
                       cells = list(ensemble = pfa_cell(avro_array(tm("TreeNode")), ensemble_of_trees)),
                       action = parse(text=paste(
                         'tree_scores <- a.map(ensemble,
-                            function(tree = tm("TreeNode") -> avro_double)
+                            function(tree = tm("TreeNode") -> tm("TargetType"))
                                 model.tree.missingWalk(input, tree,
                                     function(d = tm("Input"), t = tm("TreeNode") -> avro_union(avro_null, avro_boolean))
                                         model.tree.missingTest(d, t)
