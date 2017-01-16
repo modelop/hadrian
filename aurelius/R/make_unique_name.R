@@ -15,13 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-counter <- new.env()
-counter$engine <- 0
-counter$record <- 0
-counter$enum <- 0
-counter$fixed <- 0
-counter$symbol <- 0
-
 #' make_unique_eng_name
 #'
 #' Convenience or internal function for generating engine names; each call results in a new name.
