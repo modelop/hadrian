@@ -51,6 +51,6 @@ model_as_pfa <- pfa(model)
 
 }
 \seealso{
-\code{\link[stats]{glm}} \code{\link{pfa.glm.extractParams}}
+\code{\link[stats]{glm}} \code{\link{extract_params.glm}}
 }
 

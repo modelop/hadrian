@@ -15,10 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' pfa.glm.extractParams
+#' extract_params.glm
 #'
 #' Extract generalized linear model parameters from the glm library
-#' @param fit an object of class "glm"
+#' 
+#' @param object an object of class "glm"
 #' @param input_name a character for the name of the input as it should appear 
 #' in the PFA document
 #' @param model_name a character for the name of the model as it should appear 
@@ -31,13 +32,11 @@
 #' Y <- Y > 0
 #' 
 #' z <- glm(Y ~ X1 + X2, family = binomial(logit))
-#' z2 <- pfa.glm.extractParams(z)
-#' @export pfa.glm.extractParams
-pfa.glm.extractParams <- function(fit, input_name='glm_input', model_name='glm_model') {
-  
-    if (!("glm" %in% class(fit)))
-        stop("pfa.glm.extractParams requires an object of class \"glm\"")
+#' z2 <- extract_params(z)
+#' @export
 
+extract_params.glm <- function(object, input_name='glm_input', model_name='glm_model') {
+  
     coeff <- as.list(fit$coefficients)
     
     const <- coeff[["(Intercept)"]]
@@ -48,7 +47,7 @@ pfa.glm.extractParams <- function(fit, input_name='glm_input', model_name='glm_m
     
     coeff[["(Intercept)"]] <- NULL
     
-    covmatrix <- vcov(fit)
+    covmatrix <- vcov(object)
     covar <- vector("list", nrow(covmatrix))
     for (i in 1:nrow(covmatrix)) {
         row <- vector("list", ncol(covmatrix))
@@ -72,8 +71,8 @@ pfa.glm.extractParams <- function(fit, input_name='glm_input', model_name='glm_m
          const = const,
          covar = covar,
          regressors = lapply(regressors, function(x) gsub("\\.", "_", x)),
-         family = fit$family$family, 
-         link = glm_link_func_mapper(fit$family$link, input_name, model_name),
+         family = object$family$family, 
+         link = glm_link_func_mapper(object$family$link, input_name, model_name),
          input_name = input_name,
          model_name = model_name)
 }
@@ -99,7 +98,7 @@ pfa.glm.extractParams <- function(fit, input_name='glm_input', model_name='glm_m
 #' (e.g. optimization switches). May be overridden or ignored by PFA consumer
 #' @param ...	additional arguments affecting the PFA produced
 #' @return a \code{list} of lists that compose valid PFA document
-#' @seealso \code{\link[stats]{glm}} \code{\link{pfa.glm.extractParams}}
+#' @seealso \code{\link[stats]{glm}} \code{\link{extract_params.glm}}
 #' @examples
 #' X1 <- rnorm(100)
 #' X2 <- runif(100)
@@ -113,7 +112,7 @@ pfa.glm.extractParams <- function(fit, input_name='glm_input', model_name='glm_m
 pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...){
   
   # extract model parameters
-  fit <- pfa.glm.extractParams(object)
+  fit <- extract_params(object)
   
   # define the input schema
   field_names <- fit$regressors
@@ -124,10 +123,15 @@ pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ra
   # define the pfa_document framework (inputs, outputs, cells)
   tm <- avro_typemap(Input = input_schema,
                      Output = avro_double,
-                     Regression = pfa.glm.regressionType(fit))
+                     Regression = avro_record(list(coeff = avro_array(avro_double),
+                                                   const = avro_double),
+                                              paste0(fit$family, "Regression")))
   
   # create list defining the first action of constructing input
-  glm_input_list <- create_glm_input_list(field_names)
+  glm_input_list <- list(type = avro_array(avro_double),
+                         new = lapply(field_names, function(n) {
+                           paste("input.", n, sep = "")
+                           }))
   
   # construct the pfa_document
   doc <- pfa_document(input = tm("Input"),
@@ -149,48 +153,6 @@ pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ra
   return(doc)
 }
 
-pfa.glm.inputType <- function(params, name = NULL, namespace = NULL) {
-  fields = list()
-  for (x in params$regressors)
-      fields[[x]] <- avro_double
-  avro_record(fields, name, namespace)
-}
-
-pfa.glm.regressionType <- function(params) {
-
-  avro_record(list(coeff = avro_array(avro_double),
-                   const = avro_double),
-              paste0(params$family, "Regression"))
-}
-
-pfa.glm.predictProb <- function(params, input) {
-  
-    symbolsEnv <- new.env()
-    symbolsEnv[[params$input_name]] <- list(avro_array(avro_double),
-                                            lapply(params$regressors, function (x)
-                                              list(attr = input, path = list(list(string = x)))))
-    
-    cellsEnv <- new.env()
-    cellsEnv[[params$model_name]] <- pfa_cell(pfa.glm.regressionType(params),
-                                              list(const = params$const,
-                                                   coeff = unname(params$coeff)))   
-    
-    out <- pfa_expr(parse(text = params$link), 
-                    symbols = symbolsEnv, 
-                    cells = cellsEnv)$do[[1]]
-    return(out)
-}
-
-pfa.glm.modelParams <- function(params) {
-    list(coeff = params$coeff, const = params$const)
-}
-
-create_glm_input_list <- function(field_names) {
-  list(type = avro_array(avro_double),
-       new = lapply(field_names, function(n) {
-         paste("input.", n, sep = "")
-         }))
-}
 
 glm_link_func_mapper <- function(link, input_name='glm_input', model_name='glm_model') {
 

@@ -16,9 +16,9 @@
 # limitations under the License.
 
 
-#' extract_tree
+#' extract_params.randomForest
 #'
-#' Extracts a tree from a forest made by the randomForest function
+#' Extracts parameters from a forest made by the randomForest function
 #' 
 #' @param object an object of class "randomForest"
 #' @param which_tree the number of the tree to extract
@@ -33,9 +33,9 @@
 #' 
 #' bernoulli_model <- randomForest(Y ~ X1 + X2, data=binomial_dat)
 #'   
-#' my_tree <- extract_tree.randomForest(bernoulli_model, 1)
+#' my_tree <- extract_params(bernoulli_model, 1)
 
-extract_tree.randomForest <- function(object, which_tree = 1) {
+extract_params.randomForest <- function(object, which_tree = 1) {
 
   if (is.null(object$forest)) {
       stop("No forest component in ", deparse(substitute(object)))
@@ -82,7 +82,7 @@ extract_tree.randomForest <- function(object, which_tree = 1) {
 }
 
 
-#' build_tree
+#' build_model.randomForest
 #'
 #' Builds an entire PFA list of lists based on a single randomForest model tree
 #' 
@@ -99,13 +99,13 @@ extract_tree.randomForest <- function(object, which_tree = 1) {
 #' 
 #' bernoulli_model <- randomForest(Y ~ X1 + X2, data=binomial_dat)
 #'
-#' my_tree <- build_tree.randomForest(bernoulli_model, 1)
+#' my_tree <- build_model(bernoulli_model, 1)
 #' @export
 
-build_tree.randomForest <- function(object, which_tree = 1){
+build_model.randomForest <- function(object, which_tree = 1){
   
   # pull out the tree from the object
-  tree_table <- extract_tree(object = object, which_tree = which_tree)
+  tree_table <- extract_params(object = object, which_tree = which_tree)
   
   # determine the levels and field types
   # if the comparison values are a union (mixed numerical and categorical regressors), 
@@ -290,7 +290,7 @@ pfa.randomForest <- function(object, n.trees=NULL, name=NULL,
 
   forest <- list()
   for (i in tree_idx){
-    forest[[length(forest) + 1]] <- build_tree(object, which_tree = i)$TreeNode
+    forest[[length(forest) + 1]] <- build_model(object, which_tree = i)$TreeNode
   }
   
   # define the input schema

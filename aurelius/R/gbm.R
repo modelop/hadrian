@@ -16,9 +16,9 @@
 # limitations under the License.
 
 
-#' extract_tree
+#' extract_params.gbm
 #'
-#' Extracts a tree from an ensemble made by the gbm function
+#' Extracts a parameters from an ensemble made by the gbm function
 #' 
 #' @param object an object of class "gbm"
 #' @param which_tree the number of the tree to extract
@@ -33,9 +33,9 @@
 #'                        data=binomial_dat, 
 #'                        distribution = 'bernoulli')
 #'   
-#' my_tree <- extract_tree(bernoulli_model, 1)
+#' my_tree <- extract_params(bernoulli_model, 1)
 
-extract_tree.gbm <- function(object, which_tree = 1) {
+extract_params.gbm <- function(object, which_tree = 1) {
 
     if (is.null(object$trees))
         stop("No trees in ", deparse(substitute(object)))
@@ -70,7 +70,7 @@ extract_tree.gbm <- function(object, which_tree = 1) {
 }
 
 
-#' build_tree
+#' build_model.gbm
 #'
 #' Builds an entire PFA list of lists based on a single gbm model tree
 #' 
@@ -87,14 +87,14 @@ extract_tree.gbm <- function(object, which_tree = 1) {
 #'                        data=binomial_dat, 
 #'                        distribution = 'bernoulli')
 #'   
-#' my_tree <- build_tree(bernoulli_model, 1)
+#' my_tree <- build_model(bernoulli_model, 1)
 #' @export
 
-build_tree.gbm <- function(object, which_tree = 1){
+build_model.gbm <- function(object, which_tree = 1){
   
   # pull out the tree from the object
-  extracted_tree <- extract_tree(object = object, 
-                                 which_tree = which_tree)
+  extracted_tree <- extract_params(object = object,
+                                   which_tree = which_tree)
   tree <- extracted_tree$tree_table
   categorical_lookup <- extracted_tree$categorical_lookup
 
@@ -286,7 +286,7 @@ pfa.gbm <- function(object, n.trees=NULL, name=NULL,
 
   ensemble_of_trees <- list()
   for (i in tree_idx){
-    ensemble_of_trees[[length(ensemble_of_trees) + 1]] <- build_tree(object, which_tree = i)$TreeNode
+    ensemble_of_trees[[length(ensemble_of_trees) + 1]] <- build_model(object, which_tree = i)$TreeNode
   }
   
   # define the input schema
