@@ -1,4 +1,4 @@
-context("gbm")
+context("pfa.gbm")
 
 test_that("check gaussian family GBMs", {
 

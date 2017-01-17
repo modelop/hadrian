@@ -1,4 +1,4 @@
-context("randomForest")
+context("pfa.randomForest")
 
 test_that("check regression randomForests", {
 
