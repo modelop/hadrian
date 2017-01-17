@@ -47,38 +47,38 @@
 pfa <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...) UseMethod("pfa")
 
 
-#' extract_tree
+#' extract_params
 #'
-#' Extracts a tree from a tree model object
+#' Extracts parameters of a model object
 #' 
-#' @param object a tree model object
+#' @param object a model object
 #' @return a \code{list} that is extracted from the tree model object
 #' @examples
 #' \dontrun{
 #' require(utils)
 #' 
-#' # all the "extract_tree" methods found
-#' methods("extract_tree")
+#' # all the "extract_params" methods found
+#' methods("extract_params")
 #' }
 #' @export
 
-extract_tree <- function(object, ...) UseMethod("extract_tree")
+extract_params <- function(object, ...) UseMethod("extract_params")
 
 
-#' build_tree
+#' build_model
 #'
-#' Builds an entire PFA list of lists based on a single tree model object
+#' Builds an entire PFA list of lists based on a model object
 #' 
-#' @param object a tree model object
+#' @param object a model object
 #' @return a \code{list} of lists representation of the tree that can be 
 #' inserted into a cell or pool
 #' @examples
 #' \dontrun{
 #' require(utils)
 #' 
-#' # all the "build_tree" methods found
-#' methods("build_tree")
+#' # all the "build_model" methods found
+#' methods("build_model")
 #' }
 #' @export
 
-build_tree <- function(object, ...) UseMethod("build_tree")
+build_model <- function(object, ...) UseMethod("build_model")
