@@ -9,7 +9,7 @@ avro_enum(symbols, name = NULL, namespace = NULL)
 \arguments{
 \item{symbols}{list of string-valued symbol names}
 
-\item{name}{required name (if missing, make_unique_enum_name is invoked)}
+\item{name}{required name (if missing, gen_unique_enum_name is invoked)}
 
 \item{namespace}{optional namespace}
 }

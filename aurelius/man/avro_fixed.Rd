@@ -9,7 +9,7 @@ avro_fixed(size, name = NULL, namespace = NULL)
 \arguments{
 \item{size}{size of the byte array}
 
-\item{name}{required name (if missing, make_unique_fixed_name is invoked)}
+\item{name}{required name (if missing, gen_unique_fixed_name is invoked)}
 
 \item{namespace}{optional namespace}
 }

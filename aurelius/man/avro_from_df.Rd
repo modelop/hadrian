@@ -11,7 +11,7 @@ avro_from_df(df, exclude = list(), name = NULL, namespace = NULL)
 
 \item{exclude}{set of field names to exclude}
 
-\item{name}{required name of the record (if not specified, make_unique_rec_name() will be invoked)}
+\item{name}{required name of the record (if not specified, gen_unique_rec_name() will be invoked)}
 
 \item{namespace}{optional namespace of the record}
 }

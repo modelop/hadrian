@@ -9,7 +9,7 @@ avro_record(fields, name = NULL, namespace = NULL)
 \arguments{
 \item{fields}{named list of field names and schemas}
 
-\item{name}{required name (if missing, make_unique_rec_name is invoked)}
+\item{name}{required name (if missing, gen_unique_rec_name is invoked)}
 
 \item{namespace}{optional namespace}
 }
