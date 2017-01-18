@@ -186,7 +186,7 @@ add_to_converters(list(domain = function(name, args) { (name == "<-"  ||  name =
                                     if (name == "<<-")
                                         stop(paste("use <- for ordinary symbols like", extractor$attr, ", not <<-"))
 
-                                    tmpSymbol <- make_unique_symb_name(symbols)
+                                    tmpSymbol <- gen_unique_symb_name(symbols)
                                     extractor$to <- tmpSymbol
 
                                     assignment <- list()
@@ -443,7 +443,7 @@ add_to_converters(list(domain = function(name, args) { name == "print"  &&  leng
                         symbols_nested <- as.environment(as.list(symbols))
                         pfa_expr_nested <- function (x) pfa_expr(x, symbols = symbols_nested, cells = cells, pools = pools, fcns = fcns, env = env)
 
-                        tmpSymbol <- make_unique_symb_name(symbols)
+                        tmpSymbol <- gen_unique_symb_name(symbols)
                         assignment <- list()
                         assignment[[tmpSymbol]] <- pfa_expr_nested(args[[1]])
 

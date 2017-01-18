@@ -23,7 +23,7 @@
 #' 
 #' @param df a \code{data.frame}
 #' @param exclude set of field names to exclude
-#' @param name required name of the record (if not specified, make_unique_rec_name() will be invoked)
+#' @param name required name of the record (if not specified, gen_unique_rec_name() will be invoked)
 #' @param namespace optional namespace of the record
 #' @return a \code{list} of lists representing an Avro record type
 #' @export

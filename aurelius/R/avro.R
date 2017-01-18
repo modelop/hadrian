@@ -89,7 +89,7 @@ avro_bytes <- "bytes"
 #'
 #' Constructs a \code{list} of lists Avro schema for the fixed (byte array with fixed size) type.
 #' @param size size of the byte array
-#' @param name required name (if missing, make_unique_fixed_name is invoked)
+#' @param name required name (if missing, gen_unique_fixed_name is invoked)
 #' @param namespace optional namespace
 #' @export avro_fixed
 #' @examples
@@ -97,7 +97,7 @@ avro_bytes <- "bytes"
 
 avro_fixed <- function(size, name = NULL, namespace = NULL) {
     if (is.null(name))
-        name <- make_unique_fixed_name()
+        name <- gen_unique_fixed_name()
     if (is.null(namespace))
         list(type = "fixed", size = size, name = name)
     else
@@ -119,7 +119,7 @@ avro_string <- "string"
 #'
 #' Constructs a \code{list} of lists Avro schema for the enum (set of symbols) type.
 #' @param symbols list of string-valued symbol names
-#' @param name required name (if missing, make_unique_enum_name is invoked)
+#' @param name required name (if missing, gen_unique_enum_name is invoked)
 #' @param namespace optional namespace
 #' @export avro_enum
 #' @examples
@@ -127,7 +127,7 @@ avro_string <- "string"
 
 avro_enum <- function(symbols, name = NULL, namespace = NULL) {
     if (is.null(name))
-        name <- make_unique_enum_name()
+        name <- gen_unique_enum_name()
     if (is.null(namespace))
         list(type = "enum", symbols = symbols, name = name)
     else
@@ -167,7 +167,7 @@ avro_map <- function(values) {
 #'
 #' Constructs a \code{list} of lists Avro schema for the record type.
 #' @param fields named list of field names and schemas
-#' @param name required name (if missing, make_unique_rec_name is invoked)
+#' @param name required name (if missing, gen_unique_rec_name is invoked)
 #' @param namespace optional namespace
 #' @export avro_record
 #' @examples
@@ -178,7 +178,7 @@ avro_record <- function(fields, name = NULL, namespace = NULL) {
     for (x in names(fields))
         outputFields[[length(outputFields) + 1]] = list(name = x, type = fields[[x]])
     if (is.null(name))
-        name <- make_unique_rec_name()
+        name <- gen_unique_rec_name()
     if (is.null(namespace))
         list(type = "record", fields = outputFields, name = name)
     else

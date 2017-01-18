@@ -34,8 +34,7 @@ counter$n <- 0
 
 pfa_engine <- function(doc) {
   
-    counter$n <- counter$n + 1
-    name <- paste("engine_", counter$n, sep = "")
+    name <- gen_unique_eng_name()
     method <- doc$method
 
     # load PFA into Titus and get an error message if it's malformed
