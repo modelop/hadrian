@@ -7,9 +7,9 @@
 pfa_config.R avro_typemap.R avro_R pfa_cellpool.R pfa_expr.R
 }
 \usage{
-\method{pfa}{randomForest}(object, n.trees = NULL, name = NULL,
-  version = NULL, doc = NULL, metadata = NULL, randseed = NULL,
-  options = NULL, ...)
+\method{pfa}{randomForest}(object, pred_type = c("response", "prob"),
+  n.trees = NULL, name = NULL, version = NULL, doc = NULL,
+  metadata = NULL, randseed = NULL, options = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class "randomForest"}

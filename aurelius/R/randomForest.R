@@ -269,7 +269,8 @@ build_node_randomForest <- function(tree_table, leaf_val_type, whichNode, valueN
 #' model_as_pfa <- pfa.randomForest(model)
 #' @export
 
-pfa.randomForest <- function(object, n.trees=NULL, name=NULL, 
+pfa.randomForest <- function(object, pred_type=c('response', 'prob'), 
+                             n.trees=NULL, name=NULL, 
                              version=NULL, doc=NULL, metadata=NULL, 
                              randseed=NULL, options=NULL, ...){
 
@@ -313,13 +314,33 @@ pfa.randomForest <- function(object, n.trees=NULL, name=NULL,
     }
   }
   
-  target_type <- if(object$type == 'classification') avro_string else avro_double
+  which_pred_type <- match.arg(pred_type)
   
-  random_forest_pred_aggregator <- if(object$type == 'classification') 'a.mode(tree_scores)' else 'a.mean(tree_scores)'
+  if(object$type == 'classification'){
+    target_type <- avro_string
+    if(which_pred_type == 'response'){
+      ouput_type <- avro_string
+      random_forest_pred_aggregator <- 'a.mode(tree_scores)'
+    } else if(which_pred_type == 'prob'){
+      ouput_type <- avro_map(avro_double)
+      random_forest_pred_aggregator <- paste0('new(avro_map(avro_double), ',
+                                             paste0(sapply(object$classes, FUN=function(x){
+                                               sprintf('`%s` = a.count(tree_scores, "%s") / a.len(tree_scores)', x, x)
+                                               }, USE.NAMES = FALSE), 
+                                             collapse=', '), ')')
+    } else {
+      stop('Only "response" and "prob" values are accepted for pred_type')
+    }
+    
+  } else {
+    target_type <- avro_double
+    ouput_type <- avro_double
+    random_forest_pred_aggregator <- 'a.mean(tree_scores)'
+  }
   
   tm <- avro_typemap(
     Input = inputSchema,
-    Output = target_type,
+    Output = ouput_type,
     TargetType = target_type,
     TreeNode = avro_record(list(
     field    = avro_enum(fieldNames),
