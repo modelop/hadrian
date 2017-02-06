@@ -18,7 +18,7 @@ test_that("check regression randomForests", {
                unname(predict(regression_rf, newdata=data.frame(continuous_input))),
                tolerance = .0001)
   
-  # the pred_type "prob" is ignored
+  # check that the pred_type "prob" is ignored
   regression_rf_as_pfa <- pfa(regression_rf, pred_type='prob')
   regression_rf_engine <- pfa_engine(regression_rf_as_pfa)
 
