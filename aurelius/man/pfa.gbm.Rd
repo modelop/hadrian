@@ -4,7 +4,7 @@
 \alias{pfa.gbm}
 \title{PFA Formatting of Fitted GBMs}
 \source{
-pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R
+pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 }
 \usage{
 \method{pfa}{gbm}(object, pred_type = c("response", "prob"), cutoff = 0.5,

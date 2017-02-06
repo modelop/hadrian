@@ -235,7 +235,7 @@ build_node_gbm <- function(tree, categorical_lookup, leaf_val_type, whichNode, v
 #' and returns a list-of-lists representing in valid PFA document 
 #' that could be used for scoring
 #' 
-#' @source pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R
+#' @source pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 #' @param object an object of class "gbm"
 #' @param n.trees an integer or vector of integers specifying the number of trees 
 #' to use in building the model. If a vector is provided, then only the indices of 
@@ -406,14 +406,6 @@ pfa.gbm <- function(object,
   
   return(doc)
 }
-
-
-#' @include pfa_expr.R
-cutoff_cmp_fcn <- list("cutoff_cmp" = c(list(params = list(list('x' = avro_double), 
-                                                           list('y' = avro_double)),
-                                             ret = avro_int),
-                                        pfa_expr(expr=parse(text=paste('if(x >= y) {1} else {0}')),
-                                                 symbols = list('x', 'y'))))
 
 
 tree_score_action_string <- function(output_name, ensemble_name){
