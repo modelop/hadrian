@@ -1,7 +1,7 @@
 Package: aurelius
 Type: Package
-Version: 0.8.4
-Date: 2017-01-13
+Version: 0.8.4.9000
+Date: 2017-02-05
 Title: Generates PFA Documents from R Code and Optionally Runs Them
 Description: Converts R syntax into PFA and provides tools for assembling a PFA
     document within R. Tests validity and runtime behavior of PFA by offloading
@@ -18,8 +18,8 @@ Depends:
 Imports:
     jsonlite (>= 1.1),
     rPython (>= 0.0-6),
-    gbm (>= 2.1.1), 
-    glmnet (>= 2.0-5), 
+    gbm (>= 2.1.1),
+    glmnet (>= 2.0-5),
     randomForest (>= 4.6-12)
 Suggests:
     knitr,
@@ -30,3 +30,26 @@ License: file LICENSE
 NeedsCompilation: no
 LazyData: true
 RoxygenNote: 5.0.1
+Collate:
+    'aurelius.R'
+    'avro.R'
+    'avro_from_df.R'
+    'avro_fullname.R'
+    'avro_type.R'
+    'avro_typemap.R'
+    'converters.R'
+    'pfa_expr.R'
+    'gbm.R'
+    'gen_unique_name.R'
+    'glm.R'
+    'glmnet.R'
+    'jsonobj.R'
+    'lm.R'
+    'pfa.R'
+    'pfa_cellpool.R'
+    'pfa_document.R'
+    'pfa_engine.R'
+    'randomForest.R'
+    'read_pfa.R'
+    'write_pfa.R'
+    'zzz.R'
