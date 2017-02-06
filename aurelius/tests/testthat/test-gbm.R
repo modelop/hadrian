@@ -1,5 +1,27 @@
 context("pfa.gbm")
 
+gbm_resp_to_prob <- function(model, n.trees, newdata){
+  pred_prob <- unname(predict(model, n.trees=n.trees, newdata=newdata, type='response'))
+  gbm_res <- c(`1`=pred_prob, `0`=1-pred_prob)
+  return(gbm_res) 
+}
+
+gbm_resp_to_resp <- function(model, n.trees, newdata, cutoff){
+  pred_prob <- unname(predict(model, n.trees=n.trees, newdata=newdata, type='response'))
+  if(pred_prob >= cutoff) 1 else 0
+}
+
+gbm_mult_resp_to_prob  <- function(model, n.trees, newdata, cutoff){
+  pred_prob <- as.vector(predict(model, n.trees=n.trees, newdata=newdata, type='response'))
+  names(pred_prob) <- model$classes
+  return(pred_prob)
+}
+
+gbm_mult_resp_to_resp  <- function(model, n.trees, newdata, cutoff){
+  pred_prob <- as.vector(predict(model, n.trees=n.trees, newdata=newdata, type='response'))
+  model$classes[which.max(pred_prob)]
+}
+
 test_that("check gaussian family GBMs", {
 
   gauss_input <- list(X1=1, X2='B')
@@ -55,35 +77,54 @@ test_that("check binomial family GBMs", {
   binomial_dat$Y <- (rexp(100,5) + 5 * binomial_dat$X1 - 4 * binomial_dat$X2) > 0
 
   bernoulli_model <- gbm(Y ~ X1 + X2, 
-                         data=binomial_dat, 
+                         data = binomial_dat, 
                          distribution = 'bernoulli',
-                         n.trees = 2, 
-                         interaction.depth=3)
+                         n.trees = 1, 
+                         interaction.depth = 3)
   
-  bernoulli_model_as_pfa <- pfa(bernoulli_model)
+  bernoulli_model_as_pfa <- pfa(bernoulli_model, pred_type='prob')
   bernoulli_engine <- pfa_engine(bernoulli_model_as_pfa)
   
-  expect_equal(bernoulli_engine$action(binomial_input), 
-               unname(predict(bernoulli_model, n.trees=bernoulli_model$n.trees, 
-                              newdata = as.data.frame(binomial_input), type='response')),
+  expect_equal(bernoulli_engine$action(binomial_input),
+               gbm_resp_to_prob(model = bernoulli_model,
+                                n.trees = bernoulli_model$n.trees,
+                                newdata = as.data.frame(binomial_input)),
                tolerance = .0001)
   
-  huberized_model <- gbm(Y ~ X1 + X2, data=binomial_dat, n.trees = 2, interaction.depth=3, distribution = 'huberized')
-  huberized_model_as_pfa <- pfa(huberized_model)
+  bernoulli_model_as_pfa <- pfa(bernoulli_model, pred_type='response')
+  bernoulli_engine <- pfa_engine(bernoulli_model_as_pfa)
+  
+  # check that "response" pred type behaves as expected
+  expect_equal(bernoulli_engine$action(binomial_input),
+               gbm_resp_to_resp(bernoulli_model,
+                                bernoulli_model$n.trees,
+                                as.data.frame(binomial_input), 
+                                cutoff=0.5),
+               tolerance = .0001)
+  
+  huberized_model <- gbm(Y ~ X1 + X2, data=binomial_dat, n.trees = 2, 
+                         interaction.depth=3, distribution = 'huberized')
+  huberized_model_as_pfa <- pfa(huberized_model, pred_type='prob')
   huberized_engine <- pfa_engine(huberized_model_as_pfa)
   
-  expect_equal(huberized_engine$action(binomial_input), 
-               unname(predict(huberized_model, n.trees=huberized_model$n.trees, 
-                              newdata = as.data.frame(binomial_input), type='response')),
+  expect_equal(huberized_engine$action(binomial_input),
+               gbm_resp_to_prob(huberized_model,
+                                huberized_model$n.trees,
+                                as.data.frame(binomial_input)),
                tolerance = .0001)
   
-  adaboost_model <- gbm(Y ~ X1 + X2, data=binomial_dat, n.trees = 2, interaction.depth=3, distribution = 'adaboost')
-  adaboost_model_as_pfa <- pfa(adaboost_model)
+  adaboost_model <- gbm(Y ~ X1 + X2, 
+                        data=binomial_dat, 
+                        n.trees = 3, 
+                        interaction.depth=3, 
+                        distribution = 'adaboost')
+  adaboost_model_as_pfa <- pfa(adaboost_model, pred_type='prob')
   adaboost_engine <- pfa_engine(adaboost_model_as_pfa)
   
-  expect_equal(adaboost_engine$action(binomial_input), 
-               unname(predict(adaboost_model, n.trees=adaboost_model$n.trees, 
-                              newdata = as.data.frame(binomial_input), type='response')),
+  expect_equal(adaboost_engine$action(binomial_input),
+               gbm_resp_to_prob(adaboost_model,
+                                adaboost_model$n.trees,
+                                as.data.frame(binomial_input)),
                tolerance = .0001)
 })
 
@@ -134,10 +175,32 @@ test_that("check survival/cox family GBMs", {
 
 test_that("check unsupported multinomial gbms", {
   
-  multinomial_gbm <- gbm(Species ~ .,
-                         data = iris,
-                         distribution='multinomial',
-                         n.trees=2)
+  # multinomial_input <- list(Petal.Length = 1.25, 
+  #                           Sepal.Length = 5)
+  # 
+  # multinomial_model <- gbm(Species ~ Petal.Length + Sepal.Length,
+  #                        data = iris,
+  #                        distribution='multinomial',
+  #                        n.trees=1)
+  # 
+  # multinomial_model_as_pfa <- pfa(multinomial_model, pred_type='prob')
+  # multinomial_engine <- pfa_engine(multinomial_model_as_pfa)
+  # 
+  # expect_equal(multinomial_engine$action(multinomial_input),
+  #              gbm_mult_resp_to_prob(model = multinomial_model,
+  #                                    n.trees = multinomial_model$n.trees,
+  #                                    newdata = as.data.frame(multinomial_input)),
+  #              tolerance = .0001)
+  # 
+  # multinomial_model_as_pfa <- pfa(multinomial_model, pred_type='response')
+  # multinomial_engine <- pfa_engine(multinomial_model_as_pfa)
+  # 
+  # check that "response" pred type behaves as expected
+  expect_equal(multinomial_engine$action(multinomial_input),
+               gbm_mult_resp_to_resp(multinomial_model,
+                                multinomial_model$n.trees,
+                                as.data.frame(multinomial_input), 
+                                cutoff=0.5))
   
   expect_error(pfa(multinomial_gbm), 
                'Currently not supporting gbm models of distribution multinomial')

@@ -23,7 +23,7 @@
 #' @param object an object of class "gbm"
 #' @param which_tree the number of the tree to extract
 #' @return a \code{list} that is extracted from the gbm object
-#' @export
+#' @importFrom gbm pretty.gbm.tree
 #' @examples 
 #' binomial_dat <- data.frame(X1 = runif(100), 
 #'                            X2 = rnorm(100), 
@@ -34,6 +34,7 @@
 #'                        distribution = 'bernoulli')
 #'   
 #' my_tree <- extract_params(bernoulli_model, 1)
+#' @export
 
 extract_params.gbm <- function(object, which_tree = 1) {
 
@@ -240,6 +241,11 @@ build_node_gbm <- function(tree, categorical_lookup, leaf_val_type, whichNode, v
 #' to use in building the model. If a vector is provided, then only the indices of 
 #' thos trees will be used. If a single integer is provided then all trees up until 
 #' and including that index will be used.
+#' @param pred_type a string with value "response" for returning a prediction on the 
+#' same scale as what was provided during modeling, or value "prob", which for classification 
+#' problems returns the probability of each class.
+#' @param cutoff a numeric indicating the threshold where a 0-1 class prediction
+#' is converted to 1, rather than 0
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -257,15 +263,18 @@ build_node_gbm <- function(tree, categorical_lookup, leaf_val_type, whichNode, v
 #' @examples
 #' binomial_dat <- data.frame(X1 = runif(100), 
 #'                            X2 = rnorm(100))
-#' binomial_dat$Y <- factor((rexp(100,5) + 
-#'                             5 * binomial_dat$X1 - 
-#'                             4 * binomial_dat$X2) > 0)
+#' binomial_dat$Y <- as.integer(factor((rexp(100,5) + 
+#'                              5 * binomial_dat$X1 - 
+#'                              4 * binomial_dat$X2) > 0)) - 1
 #' 
 #' model <- gbm(Y ~ X1 + X2, data=binomial_dat, distribution='bernoulli')
 #' model_as_pfa <- pfa.gbm(model)
 #' @export
 
-pfa.gbm <- function(object, n.trees=NULL, name=NULL, 
+pfa.gbm <- function(object, 
+                    pred_type=c('response', 'prob'), 
+                    cutoff = 0.5,
+                    n.trees=NULL, name=NULL, 
                     version=NULL, doc=NULL, metadata=NULL, 
                     randseed=NULL, options=NULL, ...){
   
@@ -299,7 +308,7 @@ pfa.gbm <- function(object, n.trees=NULL, name=NULL,
     fieldTypes[[length(fieldTypes) + 1]] <- avro_union(avro_null, this_field_type)
   }
   names(fieldTypes) <- object$var.names
-  inputSchema <- avro_record(fieldTypes, "Input")
+  input_type <- avro_record(fieldTypes, "Input")
   
   valueFieldTypes <- list()
   for(a in all_field_types){
@@ -311,37 +320,82 @@ pfa.gbm <- function(object, n.trees=NULL, name=NULL,
   
   # currently gbm will only ever emit a type of avro_double
   target_type <- avro_double
+  which_pred_type <- match.arg(pred_type)
+  tm_tree_node <- avro_typemap(
+    TreeNode = avro_record(
+      list(
+        field    = avro_enum(fieldNames),
+        operator = avro_string,
+        value    = valueFieldTypes,
+        pass     = avro_union("TreeNode", avro_double),
+        fail     = avro_union("TreeNode", avro_double),
+        missing  = avro_union("TreeNode", avro_double)), "TreeNode"
+      )
+  )
+
+  this_cells <- list()
+  if(object$num.classes == 1) {
+    if(object$distribution$name %in% c('bernoulli', 'huberized', 'adaboost')){
+      if(pred_type == 'response'){
+        output_type <- avro_int
+        pred_type_expression <- 'u.cutoff_cmp(pred, cutoff)'
+        this_fcns <- cutoff_cmp_fcn
+        this_cells[['cutoff']] <- pfa_cell(type = avro_double, init = cutoff)
+      } else if(pred_type == 'prob'){
+        output_type <- avro_map(avro_double)
+        pred_type_expression <- 'new(avro_map(avro_double), `0` = 1 - pred, `1` = pred)'
+        this_fcns <- NULL
+      } else {
+        stop('Only "response" and "prob" values are accepted for pred_type')
+      }
+      this_action <- parse(text=paste(
+        tree_score_action_string(output_name='tree_scores', ensemble_name = 'ensemble'),
+        paste0('pred <- ', 
+               gbm_link_func_mapper(object$distribution$name, 
+                                    intercept_value = object$initF, 
+                                    scores_name='tree_scores')),
+        pred_type_expression,
+        sep='\n '))
+      
+      this_cells[['ensemble']] <- pfa_cell(avro_array(tm_tree_node("TreeNode")), ensemble_of_trees)
+    } else {
+      output_type <- avro_double
+      pred_type_expression <- 'pred'
+      this_action <- parse(text=paste(
+        tree_score_action_string(output_name='tree_scores', ensemble_name = 'ensemble'),
+        paste0('pred <- ', 
+               gbm_link_func_mapper(object$distribution$name, 
+                                    intercept_value = object$initF, 
+                                    scores_name='tree_scores')),
+        pred_type_expression,
+        sep='\n '))
+      this_fcns <- NULL
+      this_cells[['ensemble']] <- pfa_cell(avro_array(tm_tree_node("TreeNode")), ensemble_of_trees)
+    }
+  } else {
+    # this is a multiclass problem
+    # response = string
+    # prob = avro_map(doubles), that are named for class names
+    # build out 1 ensemble for each class
+    # find tree scores
+    # exponential the scores, and return (x/sum(all_Xs))
+    # take highest ensemble score and return when pred_type="response"
+    # map.argmax -- Return the key of the highest value in m (as defined by Avro's sort order).
+  }  
   
   tm <- avro_typemap(
-    Input = inputSchema,
-    Output = avro_double,
+    Input = input_type,
+    Output = output_type,
     TargetType = target_type,
-    TreeNode = avro_record(list(
-    field    = avro_enum(fieldNames),
-    operator = avro_string,
-    value    = valueFieldTypes,
-    pass     = avro_union("TreeNode", avro_double),
-    fail     = avro_union("TreeNode", avro_double),
-    missing  = avro_union("TreeNode", avro_double)), "TreeNode"))
-  
-  # declare intercept used for scaling the final result
-  intercept <- object$initF
+    TreeNode = tm_tree_node("TreeNode")
+  )
   
   # construct the pfa_document
   doc <- pfa_document(input = tm("Input"),
                       output = tm("Output"),
-                      cells = list(ensemble = pfa_cell(avro_array(tm("TreeNode")), ensemble_of_trees)),
-                      action = parse(text=paste(
-                        'tree_scores <- a.map(ensemble,
-                            function(tree = tm("TreeNode") -> tm("TargetType"))
-                                model.tree.missingWalk(input, tree,
-                                    function(d = tm("Input"), t = tm("TreeNode") -> avro_union(avro_null, avro_boolean))
-                                        model.tree.missingTest(d, t)
-                                    )
-                          )', 
-                        'lin_pred <- intercept + a.sum(tree_scores)', 
-                        gbm_link_func_mapper(object$distribution$name), 
-                        sep='\n ')),
+                      cells = this_cells,
+                      action = this_action,
+                      fcns = this_fcns,
                       name=name, 
                       version=version, 
                       doc=doc, 
@@ -354,17 +408,39 @@ pfa.gbm <- function(object, n.trees=NULL, name=NULL,
 }
 
 
-gbm_link_func_mapper <- function(distribution) {
+#' @include pfa_expr.R
+cutoff_cmp_fcn <- list("cutoff_cmp" = c(list(params = list(list('x' = avro_double), 
+                                                           list('y' = avro_double)),
+                                             ret = avro_int),
+                                        pfa_expr(expr=parse(text=paste('if(x >= y) {1} else {0}')),
+                                                 symbols = list('x', 'y'))))
+
+
+tree_score_action_string <- function(output_name, ensemble_name){
+  return(sprintf('%s <- a.map(%s,
+                          function(tree = tm("TreeNode") -> tm("TargetType"))
+                              model.tree.missingWalk(input, tree,
+                                  function(d = tm("Input"), t = tm("TreeNode") -> avro_union(avro_null, avro_boolean))
+                                      model.tree.missingTest(d, t)
+                                  )
+                          )', output_name, ensemble_name))
+}
+
+
+gbm_link_func_mapper <- function(distribution, intercept_value, scores_name='tree_scores') {
+  
+  lin_pred <- sprintf('%s + a.sum(%s)', intercept_value, scores_name)
 
   switch(distribution,
-         gaussian = 'lin_pred',
-         laplace = 'lin_pred',
-         tdist = 'lin_pred',
-         huberized = 'lin_pred',
-         coxph = 'lin_pred',
-         poisson = 'm.exp(lin_pred)',
-         bernoulli ='m.link.logit(lin_pred)',
-         pairwise ='m.link.logit(lin_pred)',
-         adaboost = '1/(1 + m.exp(-2 * lin_pred))',
+         gaussian = lin_pred,
+         laplace = lin_pred,
+         tdist = lin_pred,
+         huberized = lin_pred,
+         coxph = lin_pred,
+         multinomial = sprintf('m.exp(%s)', lin_pred),
+         poisson = sprintf('m.exp(%s)', lin_pred),
+         bernoulli = sprintf('m.link.logit(%s)', lin_pred),
+         pairwise = sprintf('m.link.logit(%s)', lin_pred),
+         adaboost = sprintf('1/(1 + m.exp(-2 * (%s)))', lin_pred),
          stop(sprintf('supplied link function not supported: %s', distribution))) 
 }

@@ -7,11 +7,19 @@
 pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R
 }
 \usage{
-\method{pfa}{gbm}(object, n.trees = NULL, name = NULL, version = NULL,
-  doc = NULL, metadata = NULL, randseed = NULL, options = NULL, ...)
+\method{pfa}{gbm}(object, pred_type = c("response", "prob"), cutoff = 0.5,
+  n.trees = NULL, name = NULL, version = NULL, doc = NULL,
+  metadata = NULL, randseed = NULL, options = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class "gbm"}
+
+\item{pred_type}{a string with value "response" for returning a prediction on the 
+same scale as what was provided during modeling, or value "prob", which for classification 
+problems returns the probability of each class.}
+
+\item{cutoff}{a numeric indicating the threshold where a 0-1 class prediction
+is converted to 1, rather than 0}
 
 \item{n.trees}{an integer or vector of integers specifying the number of trees 
 to use in building the model. If a vector is provided, then only the indices of 
@@ -48,9 +56,9 @@ that could be used for scoring
 \examples{
 binomial_dat <- data.frame(X1 = runif(100), 
                            X2 = rnorm(100))
-binomial_dat$Y <- factor((rexp(100,5) + 
-                            5 * binomial_dat$X1 - 
-                            4 * binomial_dat$X2) > 0)
+binomial_dat$Y <- as.integer(factor((rexp(100,5) + 
+                             5 * binomial_dat$X1 - 
+                             4 * binomial_dat$X2) > 0)) - 1
 
 model <- gbm(Y ~ X1 + X2, data=binomial_dat, distribution='bernoulli')
 model_as_pfa <- pfa.gbm(model)
