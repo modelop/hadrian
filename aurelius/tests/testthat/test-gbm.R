@@ -168,41 +168,98 @@ test_that("check survival/cox family GBMs", {
                tolerance = .0001)
 })
 
-# waiting for support of other distributions
-# multinomial
-# quantile
-# pairwise
-
-test_that("check unsupported multinomial gbms", {
+test_that("check multinomial gbms", {
   
-  # multinomial_input <- list(Petal.Length = 1.25, 
-  #                           Sepal.Length = 5)
-  # 
-  # multinomial_model <- gbm(Species ~ Petal.Length + Sepal.Length,
-  #                        data = iris,
-  #                        distribution='multinomial',
-  #                        n.trees=1)
-  # 
-  # multinomial_model_as_pfa <- pfa(multinomial_model, pred_type='prob')
-  # multinomial_engine <- pfa_engine(multinomial_model_as_pfa)
-  # 
-  # expect_equal(multinomial_engine$action(multinomial_input),
-  #              gbm_mult_resp_to_prob(model = multinomial_model,
-  #                                    n.trees = multinomial_model$n.trees,
-  #                                    newdata = as.data.frame(multinomial_input)),
-  #              tolerance = .0001)
-  # 
-  # multinomial_model_as_pfa <- pfa(multinomial_model, pred_type='response')
-  # multinomial_engine <- pfa_engine(multinomial_model_as_pfa)
-  # 
-  # check that "response" pred type behaves as expected
+  multinomial_input <- list(Petal_Length = 1.25,
+                            Sepal_Length = 5)
+  iris2 <- iris
+  names(iris2) <- gsub('\\.', '_', names(iris))
+
+  multinomial_model <- gbm(Species ~ Petal_Length + Sepal_Length,
+                         data = iris2,
+                         distribution='multinomial',
+                         n.trees=2)
+
+  multinomial_model_as_pfa <- pfa(multinomial_model, pred_type='response')
+  multinomial_engine <- pfa_engine(multinomial_model_as_pfa)
+
   expect_equal(multinomial_engine$action(multinomial_input),
                gbm_mult_resp_to_resp(multinomial_model,
                                 multinomial_model$n.trees,
-                                as.data.frame(multinomial_input), 
-                                cutoff=0.5))
+                                as.data.frame(multinomial_input)))
   
-  expect_error(pfa(multinomial_gbm), 
-               'Currently not supporting gbm models of distribution multinomial')
+  # check that "prob" pred type behaves as predict.randomForest
+  multinomial_model_as_pfa <- pfa(multinomial_model, pred_type='prob')
+  multinomial_engine <- pfa_engine(multinomial_model_as_pfa)
+
+  expect_equal(multinomial_engine$action(multinomial_input),
+               gbm_mult_resp_to_prob(model = multinomial_model,
+                                     n.trees = multinomial_model$n.trees,
+                                     newdata = as.data.frame(multinomial_input)),
+               tolerance = .0001)
   
+
+  
+})
+
+# waiting for support of other distributions
+# quantile
+# pairwise
+
+# pairwise data generator
+# taken from https://github.com/harrysouthworth/gbm/blob/master/demo/pairwise.R
+gen_pairwise_data <- function(N) {
+
+  # create query groups, with an average size of 25 items each
+  num.queries <- floor(N/25)
+  query <- sample(1:num.queries, N, replace=TRUE)
+
+  # X1 is a variable determined by query group only
+  query.level <- runif(num.queries)
+  X1 <- query.level[query]
+
+  # X2 varies with each item
+  X2 <- runif(N)
+
+  # X3 is uncorrelated with target
+  X3 <- runif(N)
+
+  # The target
+  Y <- X1 + X2
+
+  # Add some random noise to X2 that is correlated with
+  # queries, but uncorrelated with items
+
+  X2 <- X2 + scale(runif(num.queries))[query]
+
+  # Add some random noise to target
+  SNR <- 5 # signal-to-noise ratio
+  sigma <- sqrt(var(Y)/SNR)
+  Y <- Y + runif(N, 0, sigma)
+
+  data.frame(Y, query=query, X1, X2, X3)
+}
+
+test_that("check unsupported gbms", {
+  
+  quantile_dat <- data.frame(X1 = runif(100), 
+                             Y = rnorm(100, 0, .05))
+  quantile_model <- gbm(Y ~ X1, 
+                     data = quantile_dat,
+                     distribution = list(name='quantile', alpha=.75),
+                     n.trees = 2, 
+                     interaction.depth = 3)
+  
+  expect_error(pfa(quantile_model), 
+               'Currently not supporting gbm models of distribution quantile')
+    
+  pairwise_dat <- gen_pairwise_data(100)
+  pairwise_model <- gbm(Y ~ X1+X2+X3, 
+                     data = pairwise_dat,
+                     distribution = list(name='pairwise', metric="ndcg", group='query'),
+                     n.trees = 2, 
+                     interaction.depth = 3)
+  
+  expect_error(pfa(pairwise_model), 
+               'Currently not supporting gbm models of distribution pairwise')
 })

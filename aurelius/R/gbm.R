@@ -41,8 +41,8 @@ extract_params.gbm <- function(object, which_tree = 1) {
     if (is.null(object$trees))
         stop("No trees in ", deparse(substitute(object)))
 
-    if ((which_tree < 1) || (which_tree > object$n.trees))
-        stop("The requested tree, ", which_tree, "is not contained within ", deparse(substitute(object)))
+    if ((which_tree < 1) || (which_tree > (object$n.trees * object$num.classes)))
+        stop("The requested tree, ", which_tree, " is not contained within ", deparse(substitute(object)))
 
     tree <- pretty.gbm.tree(object, which_tree)
 
@@ -278,7 +278,7 @@ pfa.gbm <- function(object,
                     version=NULL, doc=NULL, metadata=NULL, 
                     randseed=NULL, options=NULL, ...){
   
-  if(object$distribution$name %in% c('multinomial', 'quantile', 'pairwise')){
+  if(object$distribution$name %in% c('quantile', 'pairwise')){
     stop(sprintf("Currently not supporting gbm models of distribution %s", object$distribution$name))
   }
   
@@ -295,11 +295,18 @@ pfa.gbm <- function(object,
 
   ensemble_of_trees <- list()
   for (i in tree_idx){
-    ensemble_of_trees[[length(ensemble_of_trees) + 1]] <- build_model(object, which_tree = i)$TreeNode
+    if(object$distribution$name == 'multinomial'){
+      num_classes <- object$num.classes
+      for(c in 1:num_classes){
+        ensemble_of_trees[[paste0('class', c)]][[length(ensemble_of_trees[[paste0('class', c)]]) + 1]] <- build_model(object, which_tree = ((i-1) * num_classes) + c)$TreeNode
+      }
+    } else {
+      ensemble_of_trees[[length(ensemble_of_trees) + 1]] <- build_model(object, which_tree = i)$TreeNode  
+    }
   }
   
   # define the input schema
-  fieldNames <- as.list(object$var.names)
+  fieldNames <- as.list(gsub('\\.', '_', object$var.names))
   fieldTypes <- list()
   all_field_types <- c()
   for(i in seq_along(object$var.names)){
@@ -307,7 +314,7 @@ pfa.gbm <- function(object,
     all_field_types <- unique(c(all_field_types, this_field_type))
     fieldTypes[[length(fieldTypes) + 1]] <- avro_union(avro_null, this_field_type)
   }
-  names(fieldTypes) <- object$var.names
+  names(fieldTypes) <- gsub('\\.', '_', object$var.names)
   input_type <- avro_record(fieldTypes, "Input")
   
   valueFieldTypes <- list()
@@ -350,23 +357,16 @@ pfa.gbm <- function(object,
       }
       this_action <- parse(text=paste(
         tree_score_action_string(output_name='tree_scores', ensemble_name = 'ensemble'),
-        paste0('pred <- ', 
-               gbm_link_func_mapper(object$distribution$name, 
-                                    intercept_value = object$initF, 
-                                    scores_name='tree_scores')),
+        pred_link_action_string(object=object, output_name='pred', scores_name='tree_scores'),
         pred_type_expression,
         sep='\n '))
-      
       this_cells[['ensemble']] <- pfa_cell(avro_array(tm_tree_node("TreeNode")), ensemble_of_trees)
     } else {
       output_type <- avro_double
       pred_type_expression <- 'pred'
       this_action <- parse(text=paste(
         tree_score_action_string(output_name='tree_scores', ensemble_name = 'ensemble'),
-        paste0('pred <- ', 
-               gbm_link_func_mapper(object$distribution$name, 
-                                    intercept_value = object$initF, 
-                                    scores_name='tree_scores')),
+        pred_link_action_string(object=object, output_name='pred', scores_name='tree_scores'),
         pred_type_expression,
         sep='\n '))
       this_fcns <- NULL
@@ -374,13 +374,41 @@ pfa.gbm <- function(object,
     }
   } else {
     # this is a multiclass problem
-    # response = string
-    # prob = avro_map(doubles), that are named for class names
     # build out 1 ensemble for each class
-    # find tree scores
-    # exponential the scores, and return (x/sum(all_Xs))
-    # take highest ensemble score and return when pred_type="response"
-    # map.argmax -- Return the key of the highest value in m (as defined by Avro's sort order).
+    # calculate tree scores
+    class_ensembles <- paste0(sapply(seq.int(object$classes),
+                                     FUN=function(x){
+                                        tree_score_action_string(output_name=paste0('tree_scores_class', x), 
+                                                                 ensemble_name = paste0('ensemble_class', x))
+                                    }, USE.NAMES = FALSE),
+                                collapse='\n ')
+    pred_link_actions <- paste0(sapply(seq.int(object$classes),
+                                     FUN=function(x, object){
+                                        pred_link_action_string(object=object, 
+                                                                output_name=paste0('pred_class', x), 
+                                                                scores_name=paste0('tree_scores_class', x))
+                                    }, object=object, USE.NAMES = FALSE),
+                                collapse='\n ')
+    all_class_preds <- paste0('all_preds <- new(avro_map(avro_double), ',
+                                           paste0(sapply(seq.int(object$classes), FUN=function(x, object){
+                                             sprintf('`%s` = %s', object$classes[x], paste0('pred_class', x))
+                                             }, object=object, USE.NAMES = FALSE), 
+                                           collapse=', '), ')')    
+    if(pred_type == 'response'){
+      output_type <- avro_string
+      pred_type_expression <- 'map.argmax(all_preds)'
+    } else if(pred_type == 'prob'){
+      output_type <- avro_map(avro_double)
+      pred_type_expression <- 'la.scale(all_preds, 1/a.sum(map.fromset(all_preds)))'
+    } else {
+      stop('Only "response" and "prob" values are accepted for pred_type')
+    }
+    this_action <- parse(text=paste(class_ensembles, pred_link_actions, all_class_preds, pred_type_expression, sep='\n '))
+    for(i in seq.int(object$classes)){
+      this_cells[[paste0('ensemble_class', i)]] <- pfa_cell(avro_array(tm_tree_node("TreeNode")), 
+                                                            ensemble_of_trees[[paste0('class', i)]])  
+    }
+    this_fcns <- NULL
   }  
   
   tm <- avro_typemap(
@@ -407,6 +435,13 @@ pfa.gbm <- function(object,
   return(doc)
 }
 
+pred_link_action_string <- function(object, output_name, scores_name){
+ return(paste0(output_name, 
+               ' <- ', 
+               gbm_link_func_mapper(distribution = object$distribution$name, 
+                                    intercept_value = object$initF, 
+                                    scores_name = scores_name)))
+}
 
 tree_score_action_string <- function(output_name, ensemble_name){
   return(sprintf('%s <- a.map(%s,
