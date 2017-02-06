@@ -5,7 +5,7 @@
 \title{write_pfa}
 \usage{
 write_pfa(doc, file = "", force = TRUE, auto_unbox = TRUE,
-  pretty = FALSE, digits = 6, ...)
+  pretty = FALSE, digits = 8, ...)
 }
 \arguments{
 \item{doc}{The document to convert.}
