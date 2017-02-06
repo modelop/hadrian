@@ -91,7 +91,7 @@ test_that("check binomial family GBMs", {
                                 newdata = as.data.frame(binomial_input)),
                tolerance = .0001)
   
-  bernoulli_model_as_pfa <- pfa(bernoulli_model, pred_type='response')
+  bernoulli_model_as_pfa <- pfa(bernoulli_model, pred_type='response', cutoff=0.5)
   bernoulli_engine <- pfa_engine(bernoulli_model_as_pfa)
   
   # check that "response" pred type behaves as expected
