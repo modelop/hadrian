@@ -7,11 +7,19 @@
 pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R
 }
 \usage{
-\method{pfa}{glm}(object, name = NULL, version = NULL, doc = NULL,
+\method{pfa}{glm}(object, pred_type = c("response", "prob"), cutoff = 0.5,
+  n.trees = NULL, name = NULL, version = NULL, doc = NULL,
   metadata = NULL, randseed = NULL, options = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class "glm"}
+
+\item{pred_type}{a string with value "response" for returning a prediction on the 
+same scale as what was provided during modeling, or value "prob", which for classification 
+problems returns the probability of each class.}
+
+\item{cutoff}{a numeric indicating the threshold where a 0-1 class prediction
+is converted to 1, rather than 0}
 
 \item{name}{a character which is an optional name for the scoring engine}
 

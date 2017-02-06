@@ -85,6 +85,11 @@ extract_params.glm <- function(object, input_name='glm_input', model_name='glm_m
 #' 
 #' @source pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R
 #' @param object an object of class "glm"
+#' @param pred_type a string with value "response" for returning a prediction on the 
+#' same scale as what was provided during modeling, or value "prob", which for classification 
+#' problems returns the probability of each class.
+#' @param cutoff a numeric indicating the threshold where a 0-1 class prediction
+#' is converted to 1, rather than 0
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -109,7 +114,12 @@ extract_params.glm <- function(object, input_name='glm_input', model_name='glm_m
 #' model_as_pfa <- pfa(model)
 #' 
 #' @export
-pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...){
+pfa.glm <- function(object, 
+                    pred_type=c('response', 'prob'), 
+                    cutoff = 0.5,
+                    n.trees=NULL, name=NULL, 
+                    version=NULL, doc=NULL, metadata=NULL, 
+                    randseed=NULL, options=NULL, ...){
   
   # extract model parameters
   fit <- extract_params(object)
@@ -118,14 +128,7 @@ pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ra
   field_names <- fit$regressors
   field_types <- rep(avro_double, length(field_names))
   names(field_types) <- field_names
-  input_schema <- avro_record(field_types, "Input")
-  
-  # define the pfa_document framework (inputs, outputs, cells)
-  tm <- avro_typemap(Input = input_schema,
-                     Output = avro_double,
-                     Regression = avro_record(list(coeff = avro_array(avro_double),
-                                                   const = avro_double),
-                                              paste0(fit$family, "Regression")))
+  input_type <- avro_record(field_types, "Input")
   
   # create list defining the first action of constructing input
   glm_input_list <- list(type = avro_array(avro_double),
@@ -133,15 +136,48 @@ pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ra
                            paste("input.", n, sep = "")
                            }))
   
+  # determine the output based on pred_type
+  this_cells <- list()
+  which_pred_type <- match.arg(pred_type)
+  if(object$family$family == 'binomial'){
+    if(which_pred_type == 'response'){
+      output_type <- avro_int
+      pred_type_expression <- 'u.cutoff_cmp(pred, cutoff)'
+      this_fcns <- cutoff_cmp_fcn
+      this_cells[['cutoff']] <- pfa_cell(type = avro_double, init = cutoff)
+    } else if(which_pred_type == 'prob'){
+      output_type <- avro_map(avro_double)
+      pred_type_expression <- 'new(avro_map(avro_double), `0` = 1 - pred, `1` = pred)'
+      this_fcns <- NULL
+    } else {
+      stop('Only "response" and "prob" values are accepted for pred_type')
+    }
+  } else {
+   output_type <- avro_double
+   pred_type_expression <- 'pred'
+   this_fcns <- NULL
+  }
+  
+  # define the pfa_document framework (inputs, outputs, cells)
+  tm <- avro_typemap(Input = input_type,
+                     Output = output_type,
+                     Regression = avro_record(list(coeff = avro_array(avro_double),
+                                                   const = avro_double),
+                                              paste0(fit$family, "Regression")))
+  
+  this_cells[['glm_model']] <- pfa_cell(tm("Regression"), 
+                                        list(const = fit$const,
+                                             coeff = unname(fit$coeff)))
+  
   # construct the pfa_document
   doc <- pfa_document(input = tm("Input"),
                       output = tm("Output"),
-                      cells = list(glm_model = pfa_cell(tm("Regression"),
-                                                        list(const = fit$const,
-                                                             coeff = unname(fit$coeff)))),
+                      cells = this_cells,
                       action = parse(text=paste(paste(fit$input_name, '<-', 'glm_input_list'), 
-                                                fit$link, 
+                                                paste0('pred <- ', fit$link),
+                                                pred_type_expression,
                                                 sep='\n ')),
+                      fcns = this_fcns,
                       name=name, 
                       version=version, 
                       doc=doc, 

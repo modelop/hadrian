@@ -1,5 +1,16 @@
 context("pfa.glm")
 
+glm_resp_to_prob <- function(model, newdata){
+  pred_prob <- unname(predict(model, newdata = newdata, type='response'))
+  gbm_res <- c(`1`=pred_prob, `0`=1-pred_prob)
+  return(gbm_res) 
+}
+
+glm_resp_to_resp <- function(model, newdata, cutoff){
+  pred_prob <- unname(predict(model, newdata = newdata, type='response'))
+  if(pred_prob >= cutoff) 1 else 0
+}
+
 test_that("check binomial family GLMs", {
   
   # checking the following link functions for binomial family
@@ -14,38 +25,46 @@ test_that("check binomial family GLMs", {
   
   logit_model <- glm(Y ~ X1 + X2, family = binomial(logit))
   
-  logit_model_as_pfa <- pfa(logit_model)
+  logit_model_as_pfa <- pfa.glm(logit_model, pred_type = 'prob')
   logit_engine <- pfa_engine(logit_model_as_pfa)
   
   expect_equal(logit_engine$action(input), 
-               unname(predict(logit_model, newdata = as.data.frame(input), type='response')),
+               glm_resp_to_prob(logit_model, as.data.frame(input)),
+               tolerance = .0001)
+  
+  # check that "response" pred type behaves as expected
+  logit_model_as_pfa <- pfa.glm(logit_model, pred_type = 'response', cutoff=0.5)
+  logit_engine <- pfa_engine(logit_model_as_pfa)
+  
+  expect_equal(logit_engine$action(input), 
+               glm_resp_to_resp(logit_model, as.data.frame(input), cutoff=0.5),
                tolerance = .0001)
   
   probit_model <- glm(Y ~ X1 + X2, family = binomial(probit))
   
-  probit_model_as_pfa <- pfa(probit_model)
+  probit_model_as_pfa <- pfa(probit_model, pred_type = 'prob')
   probit_engine <- pfa_engine(probit_model_as_pfa)
   
   expect_equal(probit_engine$action(input), 
-               unname(predict(probit_model, newdata = as.data.frame(input), type='response')),
+               glm_resp_to_prob(probit_model, as.data.frame(input)),
                tolerance = .0001)
   
   cauchit_model <- glm(Y ~ X1 + X2, family = binomial(cauchit))
   
-  cauchit_model_as_pfa <- pfa(cauchit_model)
+  cauchit_model_as_pfa <- pfa(cauchit_model, pred_type = 'prob')
   cauchit_engine <- pfa_engine(cauchit_model_as_pfa)
   
   expect_equal(cauchit_engine$action(input), 
-               unname(predict(cauchit_model, newdata = as.data.frame(input), type='response')),
+               glm_resp_to_prob(cauchit_model, as.data.frame(input)),
                tolerance = .0001)
   
   cloglog_model <- glm(Y ~ X1 + X2, family = binomial(cloglog))
   
-  cloglog_model_as_pfa <- pfa(cloglog_model)
+  cloglog_model_as_pfa <- pfa(cloglog_model, pred_type = 'prob')
   cloglog_engine <- pfa_engine(cloglog_model_as_pfa)
   
   expect_equal(cloglog_engine$action(input), 
-               unname(predict(cloglog_model, newdata = as.data.frame(input), type='response')),
+               glm_resp_to_prob(cloglog_model, as.data.frame(input)),
                tolerance = .0001)
   
   set.seed(1)
@@ -65,11 +84,11 @@ test_that("check binomial family GLMs", {
                                     start = c(log(sum(Y) / sum(N)), -rep(1e-4, 2)),
                                     maxit = 500))
   
-  log_model_as_pfa <- pfa(log_model)
+  log_model_as_pfa <- pfa(log_model, pred_type = 'prob')
   log_engine <- pfa_engine(log_model_as_pfa)
   
   expect_equal(log_engine$action(input), 
-               unname(predict(log_model, newdata = as.data.frame(input), type='response')),
+               glm_resp_to_prob(log_model, as.data.frame(input)),
                tolerance = .0001)
   
 })
