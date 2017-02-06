@@ -37,7 +37,7 @@
 
 extract_params.glm <- function(object, input_name='glm_input', model_name='glm_model') {
   
-    coeff <- as.list(fit$coefficients)
+    coeff <- as.list(object$coefficients)
     
     const <- coeff[["(Intercept)"]]
     
