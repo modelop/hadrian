@@ -14,6 +14,10 @@ pfa_config.R avro_typemap.R avro_R pfa_cellpool.R pfa_expr.R
 \arguments{
 \item{object}{an object of class "randomForest"}
 
+\item{pred_type}{a string with value "response" for returning a prediction on the 
+same scale as what was provided during modeling, or value "prob", which for classification 
+problems returns the probability of each class.}
+
 \item{n.trees}{an integer or vector of integers specifying the number of trees 
 to use in building the model. If a vector is provided, then only the indices of 
 thos trees will be used. If a single integer is provided then all trees up until 

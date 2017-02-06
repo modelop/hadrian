@@ -244,6 +244,9 @@ build_node_randomForest <- function(tree_table, leaf_val_type, whichNode, valueN
 #' to use in building the model. If a vector is provided, then only the indices of 
 #' thos trees will be used. If a single integer is provided then all trees up until 
 #' and including that index will be used.
+#' @param pred_type a string with value "response" for returning a prediction on the 
+#' same scale as what was provided during modeling, or value "prob", which for classification 
+#' problems returns the probability of each class.
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -269,7 +272,8 @@ build_node_randomForest <- function(tree_table, leaf_val_type, whichNode, valueN
 #' model_as_pfa <- pfa.randomForest(model)
 #' @export
 
-pfa.randomForest <- function(object, pred_type=c('response', 'prob'), 
+pfa.randomForest <- function(object, 
+                             pred_type=c('response', 'prob'), 
                              n.trees=NULL, name=NULL, 
                              version=NULL, doc=NULL, metadata=NULL, 
                              randseed=NULL, options=NULL, ...){
@@ -304,7 +308,7 @@ pfa.randomForest <- function(object, pred_type=c('response', 'prob'),
     fieldTypes[[length(fieldTypes) + 1]] <- this_field_type
   }
   names(fieldTypes) <- names(object$forest$xlevels)
-  inputSchema <- avro_record(fieldTypes, "Input")
+  input_type <- avro_record(fieldTypes, "Input")
   
   valueFieldTypes <- list()
   for(a in all_field_types){
@@ -339,15 +343,19 @@ pfa.randomForest <- function(object, pred_type=c('response', 'prob'),
   }
   
   tm <- avro_typemap(
-    Input = inputSchema,
+    Input = input_type,
     Output = ouput_type,
     TargetType = target_type,
-    TreeNode = avro_record(list(
-    field    = avro_enum(fieldNames),
-    operator = avro_string,
-    value    = valueFieldTypes,
-    pass     = avro_union("TreeNode", target_type),
-    fail     = avro_union("TreeNode", target_type)), "TreeNode"))
+    TreeNode = avro_record(
+        list(
+          field    = avro_enum(fieldNames),
+          operator = avro_string,
+          value    = valueFieldTypes,
+          pass     = avro_union("TreeNode", target_type),
+          fail     = avro_union("TreeNode", target_type)
+        ), "TreeNode"
+      )
+    )
   
   # construct the pfa_document
   doc <- pfa_document(input = tm("Input"),
