@@ -41,7 +41,7 @@ write_pfa <- function(doc,
                       force = TRUE, 
                       auto_unbox = TRUE, 
                       pretty = FALSE, 
-                      digits = 6, ...){
+                      digits = 8, ...){
   
   write(toJSON(doc, 
                force = force, 
