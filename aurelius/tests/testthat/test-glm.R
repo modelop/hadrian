@@ -8,7 +8,7 @@ glm_resp_to_prob <- function(model, newdata){
 
 glm_resp_to_resp <- function(model, newdata, cutoff){
   pred_prob <- unname(predict(model, newdata = newdata, type='response'))
-  if(pred_prob >= cutoff) 1 else 0
+  if(pred_prob >= cutoff) "1" else "0"
 }
 
 test_that("check binomial family GLMs", {
@@ -16,7 +16,7 @@ test_that("check binomial family GLMs", {
   # checking the following link functions for binomial family
   # logit, probit, cauchit, log, cloglog
   
-  input <- list(X1=3, X2=3)
+  input <- list(X1=1, X2=3)
   
   X1 <- rnorm(100)
   X2 <- runif(100)
@@ -33,12 +33,28 @@ test_that("check binomial family GLMs", {
                tolerance = .0001)
   
   # check that "response" pred type behaves as expected
-  logit_model_as_pfa <- pfa.glm(logit_model, pred_type = 'response', cutoff=0.5)
+  logit_model_as_pfa <- pfa(logit_model, 
+                            pred_type = 'response', 
+                            cutoffs = c(`0`=.5, `1`=.5))
   logit_engine <- pfa_engine(logit_model_as_pfa)
   
   expect_equal(logit_engine$action(input), 
                glm_resp_to_resp(logit_model, as.data.frame(input), cutoff=0.5),
                tolerance = .0001)
+
+  # test non-uniform cutoffs
+  test_cutoffs <- c(`0`=.05, `1`=.95)
+  
+  prob_pred <- predict(logit_model, newdata=as.data.frame(input), type='response')
+  prob_pred <- c(1-prob_pred, prob_pred)
+  names(prob_pred) <- c('0', '1')
+  cutoff_ratio_adjusted_preds <- prob_pred / test_cutoffs
+  
+  logit_model_as_pfa <- pfa(logit_model, pred_type='response', cutoff = test_cutoffs)
+  logit_engine <- pfa_engine(logit_model_as_pfa)
+
+  expect_equal(logit_engine$action(input), 
+               names(cutoff_ratio_adjusted_preds)[which.max(cutoff_ratio_adjusted_preds)])     
   
   probit_model <- glm(Y ~ X1 + X2, family = binomial(probit))
   

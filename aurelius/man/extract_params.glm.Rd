@@ -4,8 +4,7 @@
 \alias{extract_params.glm}
 \title{extract_params.glm}
 \usage{
-\method{extract_params}{glm}(object, input_name = "glm_input",
-  model_name = "glm_model")
+\method{extract_params}{glm}(object)
 }
 \arguments{
 \item{object}{an object of class "glm"}

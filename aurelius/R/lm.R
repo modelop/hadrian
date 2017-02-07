@@ -57,6 +57,8 @@ pfa.lm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ran
   class(object) <- c("glm", object$class)
   
   return(pfa(object, 
+             pred_type = 'response', 
+             cutoffs = NULL,
              name=name, 
              version=version, 
              doc=doc, 

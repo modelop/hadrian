@@ -35,7 +35,7 @@
 #' z2 <- extract_params(z)
 #' @export
 
-extract_params.glm <- function(object, input_name='glm_input', model_name='glm_model') {
+extract_params.glm <- function(object) {
   
     coeff <- as.list(object$coefficients)
     
@@ -47,34 +47,13 @@ extract_params.glm <- function(object, input_name='glm_input', model_name='glm_m
     
     coeff[["(Intercept)"]] <- NULL
     
-    covmatrix <- vcov(object)
-    covar <- vector("list", nrow(covmatrix))
-    for (i in 1:nrow(covmatrix)) {
-        row <- vector("list", ncol(covmatrix))
-        for (j in 1:ncol(covmatrix)) {
-            if (j == 1)
-                jj = ncol(covmatrix)  # intercept goes last, not first
-            else
-                jj = j - 1
-            row[[jj]] = covmatrix[i, j]
-        }
-        if (i == 1)
-            ii = nrow(covmatrix)  # intercept goes last, not first
-        else
-            ii = i - 1
-        covar[[ii]] = row
-    }
-    
     regressors <- names(coeff)
 
     list(coeff = coeff,
          const = const,
-         covar = covar,
          regressors = lapply(regressors, function(x) gsub("\\.", "_", x)),
          family = object$family$family, 
-         link = glm_link_func_mapper(object$family$link, input_name, model_name),
-         input_name = input_name,
-         model_name = model_name)
+         link = object$family$link)
 }
 
 #' PFA Formatting of Fitted GLMs
@@ -83,13 +62,15 @@ extract_params.glm <- function(object, input_name='glm_input', model_name='glm_m
 #' and returns a list-of-lists representing in valid PFA document 
 #' that could be used for scoring
 #' 
-#' @source pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R
+#' @source pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 #' @param object an object of class "glm"
 #' @param pred_type a string with value "response" for returning a prediction on the 
 #' same scale as what was provided during modeling, or value "prob", which for classification 
 #' problems returns the probability of each class.
-#' @param cutoff a numeric indicating the threshold where a 0-1 class prediction
-#' is converted to 1, rather than 0
+#' @param cutoffs (Classification only) A named numeric vector of length equal to 
+#' number of classes. The "winning" class for an observation is the one with the 
+#' maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
+#' same cutoff for each class that is 1/k where k is the number of classes
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -115,8 +96,8 @@ extract_params.glm <- function(object, input_name='glm_input', model_name='glm_m
 #' 
 #' @export
 pfa.glm <- function(object, 
-                    pred_type=c('response', 'prob'), 
-                    cutoff = 0.5,
+                    pred_type = c('response', 'prob'), 
+                    cutoffs = NULL,
                     n.trees=NULL, name=NULL, 
                     version=NULL, doc=NULL, metadata=NULL, 
                     randseed=NULL, options=NULL, ...){
@@ -138,31 +119,46 @@ pfa.glm <- function(object,
   
   # determine the output based on pred_type
   this_cells <- list()
+  cast_input_string <- 'glm_input <- glm_input_list'
   which_pred_type <- match.arg(pred_type)
-  if(object$family$family == 'binomial'){
+  if(fit$family == 'binomial'){
     if(which_pred_type == 'response'){
-      output_type <- avro_int
-      pred_type_expression <- 'u.cutoff_cmp(pred, cutoff)'
-      this_fcns <- cutoff_cmp_fcn
-      this_cells[['cutoff']] <- pfa_cell(type = avro_double, init = cutoff)
+      cutoffs <- validate_cutoffs(cutoffs = cutoffs, classes = c('0', '1'))
+      output_type <- avro_string
+      pred_type_expression <- 'map.argmax(u.cutoff_ratio_cmp(probs, cutoffs))'
+      this_fcns <- c(divide_fcn, cutoff_ratio_cmp_fcn)
+      this_cells[['cutoffs']] <- pfa_cell(type = avro_map(avro_double), init = cutoffs)
     } else if(which_pred_type == 'prob'){
       output_type <- avro_map(avro_double)
-      pred_type_expression <- 'new(avro_map(avro_double), `0` = 1 - pred, `1` = pred)'
+      pred_type_expression <- 'probs'
       this_fcns <- NULL
     } else {
       stop('Only "response" and "prob" values are accepted for pred_type')
     }
+    this_action <- parse(text=paste(cast_input_string, 
+                                    paste0('pred <- ', glm_link_func_mapper(fit$link, 
+                                                                            input_name='glm_input', 
+                                                                            model_name='glm_model')),
+                                    'probs <- new(avro_map(avro_double), `0` = 1 - pred, `1` = pred)',
+                                    pred_type_expression,
+                                    sep='\n '))
   } else {
-   output_type <- avro_double
-   pred_type_expression <- 'pred'
-   this_fcns <- NULL
+    output_type <- avro_double
+    pred_type_expression <- 'pred'
+    this_action <- parse(text=paste(cast_input_string, 
+                                    paste0('pred <- ', glm_link_func_mapper(fit$link, 
+                                                                            input_name='glm_input', 
+                                                                            model_name='glm_model')),
+                                    pred_type_expression,
+                                    sep='\n '))
+    this_fcns <- NULL
   }
   
   # define the pfa_document framework (inputs, outputs, cells)
   tm <- avro_typemap(Input = input_type,
                      Output = output_type,
-                     Regression = avro_record(list(coeff = avro_array(avro_double),
-                                                   const = avro_double),
+                     Regression = avro_record(list(const = avro_double, 
+                                                   coeff = avro_array(avro_double)),
                                               paste0(fit$family, "Regression")))
   
   this_cells[['glm_model']] <- pfa_cell(tm("Regression"), 
@@ -173,10 +169,7 @@ pfa.glm <- function(object,
   doc <- pfa_document(input = tm("Input"),
                       output = tm("Output"),
                       cells = this_cells,
-                      action = parse(text=paste(paste(fit$input_name, '<-', 'glm_input_list'), 
-                                                paste0('pred <- ', fit$link),
-                                                pred_type_expression,
-                                                sep='\n ')),
+                      action = this_action,
                       fcns = this_fcns,
                       name=name, 
                       version=version, 
@@ -190,9 +183,10 @@ pfa.glm <- function(object,
 }
 
 
-glm_link_func_mapper <- function(link, input_name='glm_input', model_name='glm_model') {
+glm_link_func_mapper <- function(link, input_name, model_name) {
 
   model <- sprintf('model.reg.linear(%s, %s)', input_name, model_name)
+  
   switch(link,
          identity = model,
          log = paste0('m.exp(', model, ')'),
