@@ -1,5 +1,27 @@
 context("pfa.glmnet")
 
+glmnet_resp_to_prob <- function(model, newdata, lambda){
+  pred_prob <- predict(model, newx=newdata, s=lambda, type='response')
+  glmnet_res <- c(1-pred_prob, pred_prob)
+  names(glmnet_res) <- model$classnames
+  return(glmnet_res) 
+}
+
+glmnet_resp_to_resp <- function(model, newdata, lambda, cutoff){
+  pred_prob <- predict(model, newx=newdata, s=lambda, type='response')
+  if(pred_prob >= cutoff) model$classnames[2] else model$classnames[1]
+}
+
+glmnet_mult_resp_to_prob  <- function(model, newdata, lambda){
+  pred_prob <- predict(model, newx=newdata, s=lambda, type='response')[,,1]
+  return(pred_prob)
+}
+
+glmnet_mult_resp_to_resp  <- function(model, newdata, lambda){
+  pred_prob <- predict(model, newx=newdata, s=lambda, type='response')[,,1]
+  names(pred_prob)[which.max(pred_prob)]
+}
+
 test_that("check gaussian glmnets", {
 
   elnet_input <- list(X1=.15, X2=.99)
@@ -48,21 +70,30 @@ test_that("check gaussian glmnets", {
 
 test_that("check binomial glmnet", {
 
-  lognet_input <- list(X1=.15, X2=.99)
+  lognet_input <- list(X1=100.55, X2=.99)
   lambda <- .01
   
   x <- matrix(rnorm(100*2), 100, 2, dimnames = list(NULL, c('X1','X2')))
-  y <- factor(sample(1:2,100,replace=TRUE))
+  y <- factor(sample(c('Z','Y'),100,replace=TRUE))
   
-  object <- glmnet(x,y,family="binomial")
-  lognet_model_as_pfa <- pfa(object, lambda)
+  lognet_model <- glmnet(x, y, family="binomial")
+  lognet_model_as_pfa <- pfa(lognet_model, lambda, pred_type='prob')
   lognet_engine <- pfa_engine(lognet_model_as_pfa)
   
   expect_equal(lognet_engine$action(lognet_input), 
-               as.numeric(predict(object, 
-                                  newx=as.matrix(t(unlist(lognet_input))), 
-                                  s=lambda,
-                                  type='response')),
+               glmnet_resp_to_prob(model = lognet_model,
+                                   newdata=as.matrix(t(unlist(lognet_input))),
+                                   lambda=lambda),
+               tolerance = .0001)
+  
+  lognet_model_as_pfa <- pfa(lognet_model, lambda, pred_type='response')
+  lognet_engine <- pfa_engine(lognet_model_as_pfa)
+  
+  expect_equal(lognet_engine$action(lognet_input), 
+               glmnet_resp_to_resp(model = lognet_model,
+                                   newdata=as.matrix(t(unlist(lognet_input))),
+                                   lambda=lambda, 
+                                   cutoff = 0.5),
                tolerance = .0001)
   
 })
@@ -111,12 +142,12 @@ test_that("check cox glmnet", {
   tcens=rbinom(n=N,prob=.3,size=1)# censoring indicator
   y=cbind(time=ty,status=1-tcens) # y=Surv(ty,1-tcens) with library(survival)
   
-  object <- glmnet(x,y,family="cox")
-  coxnet_model_as_pfa <- pfa(object, lambda)
+  coxnet_model <- glmnet(x,y,family="cox")
+  coxnet_model_as_pfa <- pfa(coxnet_model, lambda)
   coxnet_engine <- pfa_engine(coxnet_model_as_pfa)
   
   expect_equal(coxnet_engine$action(coxnet_input), 
-               as.numeric(predict(object, 
+               as.numeric(predict(coxnet_model, 
                                   newx=as.matrix(t(unlist(coxnet_input))), 
                                   s=lambda,
                                   type='response')),
@@ -125,14 +156,52 @@ test_that("check cox glmnet", {
 })
 
 
-# not yet supported
-# x=matrix(rnorm(100*20),100,20)
-# 
-# #multivariate gaussian
-# y=matrix(rnorm(100*3),100,3)
-# fit1m=glmnet(x,y,family="mgaussian")
-# 
-# #multinomial
-# g4=sample(1:4,100,replace=TRUE)
-# fit3=glmnet(x,g4,family="multinomial")
-# fit3a=glmnet(x,g4,family="multinomial",type.multinomial="grouped")
+test_that("check multinomial glmnet", {
+  
+  multinomial_input <- list(X1=.15, X2=.99, X3=.5)
+  lambda <- .01 
+  
+  x <- matrix(rnorm(100*3), 100, 3, dimnames = list(NULL, c('X1','X2', 'X3')))
+  g4 <- sample(LETTERS[1:4], 100, replace=TRUE)
+  multinomial_model <- glmnet(x, g4, family="multinomial", intercept = FALSE)
+
+  multinomial_model_as_pfa <- pfa.glmnet(multinomial_model, lambda, pred_type='prob')
+  multinomial_engine <- pfa_engine(multinomial_model_as_pfa)
+  multinomial_res <- multinomial_engine$action(multinomial_input)
+  
+  expect_equal(multinomial_res[multinomial_model$classnames], 
+               glmnet_mult_resp_to_prob(model = multinomial_model, 
+                                        newdata = as.matrix(t(unlist(multinomial_input))), 
+                                        lambda  = lambda),
+               tolerance = .0001)
+  
+  # check that "response" pred type behaves as expected
+  multinomial_model_as_pfa <- pfa(multinomial_model, lambda, pred_type='response')
+  multinomial_engine <- pfa_engine(multinomial_model_as_pfa)
+  
+  expect_equal(multinomial_engine$action(multinomial_input), 
+               glmnet_mult_resp_to_resp(model = multinomial_model, 
+                                        newdata = as.matrix(t(unlist(multinomial_input))), 
+                                        lambda  = lambda))
+  
+  # check that it works for grouped multinomial models
+  multinomial_grouped_model <- glmnet(x, g4, family="multinomial", type.multinomial="grouped")
+  
+  multinomial_grouped_model_as_pfa <- pfa(multinomial_grouped_model, lambda, pred_type='prob')
+  multinomial_grouped_engine <- pfa_engine(multinomial_grouped_model_as_pfa)
+  multinomial_grouped_res <- multinomial_grouped_engine$action(multinomial_input)
+  
+  expect_equal(multinomial_grouped_res[multinomial_grouped_model$classnames], 
+               glmnet_mult_resp_to_prob(model = multinomial_grouped_model, 
+                                        newdata = as.matrix(t(unlist(multinomial_input))), 
+                                        lambda  = lambda))
+})
+
+
+test_that("check multivariate gaussian glmnet", {
+  x <- matrix(rnorm(100*20),100,20)
+  y <- matrix(rnorm(100*3),100,3)
+  mgaussian_model <- glmnet(x, y, family="mgaussian")
+  expect_error(pfa(mgaussian_model), 
+             'Currently not supporting glmnet models of net type: mrelnet')
+})

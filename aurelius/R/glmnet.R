@@ -34,47 +34,53 @@
 extract_params.glmnet <- function(object, lambda=NULL, 
                                   input_name='glm_input', model_name='glm_model') {
   
+  net_type <- class(object)[class(object)!='glmnet']
+  
+  if(net_type %in% c('mrelnet')){
+    stop(sprintf("Currently not supporting glmnet models of net type: %s", net_type))
+  }
+  
   if(is.null(lambda)){
     lambda <- object$lambda[round(2/3 * length(object$lambda))]
   }
 
   coef_obj <- coef(object, s = lambda)
-  
-  coeff <- as.list(attributes(coef_obj)$x)
-  names(coeff) <- attributes(coef_obj)$Dimnames[[1]][(attributes(coef_obj)$i + 1)]
-  
-  const <- coeff[["(Intercept)"]]
-  
-  # handle the no intercept model
-  if(is.null(const))
-    const <- 0
-  
-  coeff[["(Intercept)"]] <- NULL
 
+  if(!is.list(coef_obj)){
+    coef_obj <- list(coef_obj)  
+  }
   # how to support multiclass problems
-  # mcoef <- do.call("cbind", lapply(coef_obj, function(x) as.matrix(x)))
-  # mcoef = t(mcoef)
-  # mactive <- do.call("c", lapply(coef_obj, function(x) attributes(x)$i))
-  # mactive <- sort(unique(mactive)) + 1
-  # mcoef <- mcoef[,mactive]
-  # coeff <- as.list(unname(data.frame(unname(t(mcoef[,-1])))))
-  # const <- as.list(unname(mcoef[,1]))
-  # regressors <- dimnames(mcoef)[[2]][-1]
-  # responses <- fit$classnames
-
-  regressors <- names(coeff)
-  regressors <- lapply(regressors, function(x) gsub("\\.", "_", x))
-  
-  net_type <- class(object)[class(object)!='glmnet']
+  mcoef <- do.call("cbind", lapply(coef_obj, function(x) as.matrix(x)))
+  mcoef = t(mcoef)
+  mactive <- do.call("c", lapply(coef_obj, function(x) attributes(x)$i))
+  mactive <- unique(c(1, sort(unique(mactive)) + 1)) # add the intercept regardless
+  mcoef <- mcoef[,mactive]
+  if(!is.matrix(mcoef)){
+    mcoef <- as.matrix(t(mcoef))
+  }
+  coeff <- as.list(unname(data.frame(unname(t(mcoef[,!(colnames(mcoef) %in% c("(Intercept)"))])))))
+  const <- as.list(unname(mcoef[,(colnames(mcoef) == "(Intercept)")]))
+  if(length(const) == 0){
+    const <- list(0)
+  }
+  regressors <- dimnames(mcoef)[[2]][!(colnames(mcoef) %in% c("(Intercept)"))]
+  regressors <- sapply(regressors, function(x) gsub("\\.", "_", x), USE.NAMES=FALSE)
+  responses <- object$classnames
+  if(net_type == 'multnet'){
+    names(coeff) <- object$classnames
+    names(const) <- object$classnames
+  } else {
+    # flip coeff and const back to vectors because 
+    # that is how they are formatted individually for multnet
+    coeff <- unlist(coeff)
+    const <- unlist(const)
+  }
   
   list(coeff = coeff,
        const = const,
        regressors = regressors,
-       responses = object$classnames,
-       net_type = net_type, 
-       link = glmnet_link_func_mapper(net_type, input_name, model_name),
-       input_name = input_name,
-       model_name = model_name)
+       responses = responses,
+       net_type = net_type) 
   
 }
 
@@ -89,6 +95,11 @@ extract_params.glmnet <- function(object, lambda=NULL,
 #' @param object an object of class "glmnet"
 #' @param lambda a numeric value of the penalty parameter lambda at which 
 #' coefficients are required
+#' @param pred_type a string with value "response" for returning a prediction on the 
+#' same scale as what was provided during modeling, or value "prob", which for classification 
+#' problems returns the probability of each class.
+#' @param cutoff a numeric indicating the threshold where a 0-1 class prediction
+#' is converted to 1, rather than 0
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -111,41 +122,131 @@ extract_params.glmnet <- function(object, lambda=NULL,
 #' model_as_pfa <- pfa(model)
 #' 
 #' @export
-pfa.glmnet <- function(object, lambda = NULL, 
+pfa.glmnet <- function(object, 
+                       lambda = NULL,
+                       pred_type=c('response', 'prob'),
+                       cutoff = 0.5,
                        name=NULL, version=NULL, doc=NULL, metadata=NULL, 
                        randseed=NULL, options=NULL, ...){
   
   # extract model parameters
-  fit <- extract_params.glmnet(object, lambda = lambda)
-  
+  fit <- extract_params(object, lambda = lambda)
+
   # define the input schema
   field_names <- fit$regressors
   field_types <- rep(avro_double, length(field_names))
   names(field_types) <- field_names
-  input_schema <- avro_record(field_types, "Input")
+  input_type <- avro_record(field_types, "Input")
   
-  # define the pfa_document framework (inputs, outputs, cells)
-  tm <- avro_typemap(Input = input_schema,
-                     Output = avro_double,
-                     Regression = avro_record(list(coeff = avro_array(avro_double),
-                                                   const = avro_double),
-                                              paste0(fit$net_type, "Regression")))
-  
-  # create list defining the first action of constructing input
+  # create list so that the first action is to construct
+  # the inputs into glm_input
   glm_input_list <- list(type = avro_array(avro_double),
-                         new = lapply(field_names, function(n) {
-                           paste("input.", n, sep = "")
-                           }))
+                       new = lapply(field_names, function(n) {
+                         paste("input.", n, sep = "")
+                         }))
+  
+  which_pred_type <- match.arg(pred_type)
+  tm_regression <- avro_typemap(
+    Regression = avro_record(list(const = avro_double, 
+                                  coeff = avro_array(avro_double)),
+                             paste0(fit$net_type, "Regression"))
+  )
+  
+  this_cells <- list()
+  cast_input_string <- 'glm_input <- glm_input_list'
+  if(is.null(fit$responses)){
+    output_type <- avro_double
+    pred_type_expression <- 'pred'
+    this_action <- parse(text=paste(
+      cast_input_string, 
+      paste0('pred <- ', glmnet_link_func_mapper(fit$net_type, input_name='glm_input', model_name='reg')),
+      pred_type_expression,
+      sep='\n '))
+    this_fcns <- NULL
+    this_cells[['reg']] <- pfa_cell(tm_regression("Regression"),
+                                    list(const = fit$const,
+                                         coeff = as.list(fit$coeff))) 
+  } else {
+    if(length(fit$responses) == 2){
+      # binomial
+      if(which_pred_type == 'response'){
+        output_type <- avro_string
+        pred_type_expression <- paste('idx <- u.cutoff_cmp(pred, cutoff)', 
+                                       'a.head(a.subseq(classnames, idx, idx+1))',
+                                       sep='\n ')
+        this_fcns <- cutoff_cmp_fcn
+        this_cells[['cutoff']] <- pfa_cell(type = avro_double, init = cutoff)
+        this_cells[['classnames']] <- pfa_cell(type = avro_array(avro_string), init = fit$responses)
+      } else if(which_pred_type == 'prob'){
+        output_type <- avro_map(avro_double)
+        pred_type_expression <- paste0('new(avro_map(avro_double), `', 
+                                       fit$responses[1],
+                                       '` = 1 - pred, `', 
+                                       fit$responses[2],
+                                       '` = pred)')
+        this_fcns <- NULL
+      } else {
+        stop('Only "response" and "prob" values are accepted for pred_type')
+      }
+      this_action <- parse(text=paste(
+        cast_input_string,
+        paste0('pred <- ', glmnet_link_func_mapper(fit$net_type, input_name='glm_input', model_name='reg')),
+        pred_type_expression,
+        sep='\n '))
+      this_cells[['reg']] <- pfa_cell(tm_regression("Regression"),
+                                      list(const = fit$const,
+                                           coeff = as.list(fit$coeff)))
+    } else {
+      # multinomial
+      class_regs <- paste0(sapply(seq.int(fit$responses),
+                                   FUN=function(x, net_type){
+                                      paste0('pred_class', x, ' <- ', 
+                                              glmnet_link_func_mapper(net_type, 
+                                                                      input_name='glm_input', 
+                                                                      model_name=paste0('reg_class', x)))
+                                  }, net_type=fit$net_type, USE.NAMES = FALSE),
+                              collapse='\n ')
+      all_class_preds <- paste0('all_preds <- new(avro_map(avro_double), ',
+                                             paste0(sapply(seq.int(fit$responses), FUN=function(x, fit){
+                                               sprintf('`%s` = %s', fit$responses[x], paste0('pred_class', x))
+                                               }, fit=fit, USE.NAMES = FALSE), 
+                                             collapse=', '), ')')    
+      if(which_pred_type == 'response'){
+        output_type <- avro_string
+        pred_type_expression <- 'map.argmax(all_preds)'
+      } else if(which_pred_type == 'prob'){
+        output_type <- avro_map(avro_double)
+        pred_type_expression <- 'la.scale(all_preds, 1/a.sum(map.fromset(all_preds)))'
+      } else {
+        stop('Only "response" and "prob" values are accepted for pred_type')
+      }
+      this_action <- parse(text=paste(
+        cast_input_string, 
+        class_regs, 
+        all_class_preds, 
+        pred_type_expression, 
+        sep='\n '))
+      for(i in seq.int(fit$responses)){
+        this_cells[[paste0('reg_class', i)]] <- pfa_cell(tm_regression("Regression"),
+                                                         list(const = fit$const[[i]],
+                                                              coeff = as.list(fit$coeff[[i]])))
+      }
+      this_fcns <- NULL
+    }
+  }
+  
+  tm <- avro_typemap(
+    Input = input_type,
+    Output = output_type,
+    Regression = tm_regression("Regression")
+  )
   
   # construct the pfa_document
   doc <- pfa_document(input = tm("Input"),
                       output = tm("Output"),
-                      cells = list(glm_model = pfa_cell(tm("Regression"),
-                                                        list(const = fit$const,
-                                                             coeff = unname(fit$coeff)))),
-                      action = parse(text=paste(paste(fit$input_name, '<-', 'glm_input_list'), 
-                                                fit$link, 
-                                                sep='\n ')),
+                      cells = this_cells,
+                      action = this_action,
+                      fcns = this_fcns,
                       name=name, 
                       version=version, 
                       doc=doc, 
@@ -224,13 +325,14 @@ pfa.cv.glmnet <- function(object, lambda = object[["lambda.1se"]],
 
 # not yet supporting
 # mrelnet - multiresponse Gaussian
-# multnet - multinomial
 
-glmnet_link_func_mapper <- function(net_type, input_name='glm_input', model_name='glm_model') {
+glmnet_link_func_mapper <- function(net_type, input_name, model_name) {
 
   model <- sprintf('model.reg.linear(%s, %s)', input_name, model_name)
+  
   switch(net_type,
          elnet = model,
+         multnet = paste0('m.exp(', model, ')'),
          fishnet = paste0('m.exp(', model, ')'),
          lognet = paste0('m.link.logit(', model, ')'), 
          coxnet = paste0('m.exp(', model, ')'), 
