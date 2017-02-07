@@ -4,11 +4,11 @@
 \alias{pfa.glmnet}
 \title{PFA Formatting of Fitted glmnet objects}
 \source{
-pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R
+pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 }
 \usage{
 \method{pfa}{glmnet}(object, lambda = NULL, pred_type = c("response",
-  "prob"), cutoff = 0.5, name = NULL, version = NULL, doc = NULL,
+  "prob"), cutoffs = NULL, name = NULL, version = NULL, doc = NULL,
   metadata = NULL, randseed = NULL, options = NULL, ...)
 }
 \arguments{
@@ -21,8 +21,10 @@ coefficients are required}
 same scale as what was provided during modeling, or value "prob", which for classification 
 problems returns the probability of each class.}
 
-\item{cutoff}{a numeric indicating the threshold where a 0-1 class prediction
-is converted to 1, rather than 0}
+\item{cutoffs}{(Classification only) A named numeric vector of length equal to 
+number of classes. The "winning" class for an observation is the one with the 
+maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
+same cutoff for each class that is 1/k where k is the number of classes}
 
 \item{name}{a character which is an optional name for the scoring engine}
 
