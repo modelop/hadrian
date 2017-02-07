@@ -33,6 +33,10 @@ validate_cutoffs <- function(classes, cutoffs=NULL){
     }
     if (!is.null(names(cutoffs))) {
       if (!all(names(cutoffs) %in% classes)) {
+        message(sprintf('You supplied cutoffs with names: %s', 
+                        paste0(names(cutoffs), collapse=', ')))
+        message(sprintf('The model contains classes with names: %s', 
+                paste0(classes, collapse=', ')))
         stop("Wrong name(s) for cutoffs")
       }
       cutoffs <- cutoffs[classes]
