@@ -247,6 +247,10 @@ build_node_randomForest <- function(tree_table, leaf_val_type, whichNode, valueN
 #' @param pred_type a string with value "response" for returning a prediction on the 
 #' same scale as what was provided during modeling, or value "prob", which for classification 
 #' problems returns the probability of each class.
+#' @param cutoffs (Classification only) A named numeric vector of length equal to 
+#' number of classes. The "winning" class for an observation is the one with the 
+#' maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
+#' same cutoff for each class that is 1/k where k is the number of classes
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -273,7 +277,8 @@ build_node_randomForest <- function(tree_table, leaf_val_type, whichNode, valueN
 #' @export
 
 pfa.randomForest <- function(object, 
-                             pred_type=c('response', 'prob'), 
+                             pred_type=c('response', 'prob'),
+                             cutoffs=NULL,
                              n.trees=NULL, name=NULL, 
                              version=NULL, doc=NULL, metadata=NULL, 
                              randseed=NULL, options=NULL, ...){
@@ -318,20 +323,34 @@ pfa.randomForest <- function(object,
     }
   }
   
-  which_pred_type <- match.arg(pred_type)
+  tree_scores_action_string <- 'tree_scores <- a.map(forest, function(tree = tm("TreeNode") -> tm("TargetType"))
+                                  model.tree.simpleTree(input, tree))'
   
+  which_pred_type <- match.arg(pred_type)
+  cutoffs <- validate_cutoffs(cutoffs = cutoffs, classes = object$classes) 
+  this_cells <- list()
   if(object$type == 'classification'){
     target_type <- avro_string
+    random_forest_prob_aggregator <- paste0('probs <- new(avro_map(avro_double), ',
+                                           paste0(sapply(object$classes, FUN=function(x){
+                                             sprintf('`%s` = a.count(tree_scores, "%s") / a.len(tree_scores)', x, x)
+                                             }, USE.NAMES = FALSE), 
+                                           collapse=', '), ')')
     if(which_pred_type == 'response'){
       ouput_type <- avro_string
-      random_forest_pred_aggregator <- 'a.mode(tree_scores)'
+      this_action <- parse(text=paste(tree_scores_action_string, 
+                                      random_forest_prob_aggregator,
+                                      'map.argmax(u.cutoff_ratio_cmp(probs, cutoffs))',
+                                      sep="\n "))
+      this_fcns <- c(divide_fcn, cutoff_ratio_cmp_fcn)
+      this_cells[['cutoffs']] <- pfa_cell(type = avro_map(avro_double), init = cutoffs)
     } else if(which_pred_type == 'prob'){
       ouput_type <- avro_map(avro_double)
-      random_forest_pred_aggregator <- paste0('new(avro_map(avro_double), ',
-                                             paste0(sapply(object$classes, FUN=function(x){
-                                               sprintf('`%s` = a.count(tree_scores, "%s") / a.len(tree_scores)', x, x)
-                                               }, USE.NAMES = FALSE), 
-                                             collapse=', '), ')')
+      this_action <- parse(text=paste(tree_scores_action_string, 
+                                random_forest_prob_aggregator,
+                                'probs',
+                                sep="\n "))
+      this_fcns <- NULL
     } else {
       stop('Only "response" and "prob" values are accepted for pred_type')
     }
@@ -339,7 +358,10 @@ pfa.randomForest <- function(object,
   } else {
     target_type <- avro_double
     ouput_type <- avro_double
-    random_forest_pred_aggregator <- 'a.mean(tree_scores)'
+    this_action <- parse(text=paste(tree_scores_action_string, 
+                                    'a.mean(tree_scores)',
+                                    sep="\n "))
+    this_fcns <- NULL
   }
   
   tm <- avro_typemap(
@@ -357,17 +379,14 @@ pfa.randomForest <- function(object,
       )
     )
   
+  this_cells[['forest']] <- pfa_cell(avro_array(tm("TreeNode")), forest)
+  
   # construct the pfa_document
   doc <- pfa_document(input = tm("Input"),
                       output = tm("Output"),
-                      cells = list(forest = pfa_cell(avro_array(tm("TreeNode")), forest)),
-                      action = parse(text=paste(
-                        'tree_scores <- a.map(forest,
-                                function(tree = tm("TreeNode") -> tm("TargetType"))
-                                  model.tree.simpleTree(input, tree)
-                         )',
-                        random_forest_pred_aggregator, 
-                        sep="\n ")),
+                      cells = this_cells, 
+                      action = this_action, 
+                      fcns = this_fcns,
                       name=name, 
                       version=version, 
                       doc=doc, 
