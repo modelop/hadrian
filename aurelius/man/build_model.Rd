@@ -8,6 +8,8 @@ build_model(object, ...)
 }
 \arguments{
 \item{object}{a model object}
+
+\item{...}{further arguments passed to or from other methods}
 }
 \value{
 a \code{list} of lists representation of the tree that can be 

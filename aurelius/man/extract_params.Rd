@@ -8,6 +8,8 @@ extract_params(object, ...)
 }
 \arguments{
 \item{object}{a model object}
+
+\item{...}{further arguments passed to or from other methods}
 }
 \value{
 a \code{list} that is extracted from the tree model object

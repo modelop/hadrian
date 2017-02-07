@@ -4,8 +4,7 @@
 \alias{extract_params.cv.glmnet}
 \title{extract_params.cv.glmnet}
 \usage{
-\method{extract_params}{cv.glmnet}(object, lambda = object[["lambda.1se"]],
-  input_name = "glm_input", model_name = "glm_model")
+\method{extract_params}{cv.glmnet}(object, lambda = object[["lambda.1se"]])
 }
 \arguments{
 \item{object}{an object of class "cv.glmnet"}

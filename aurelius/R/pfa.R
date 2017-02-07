@@ -52,6 +52,7 @@ pfa <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randse
 #' Extracts parameters of a model object
 #' 
 #' @param object a model object
+#' @param ... further arguments passed to or from other methods
 #' @return a \code{list} that is extracted from the tree model object
 #' @examples
 #' \dontrun{
@@ -70,6 +71,7 @@ extract_params <- function(object, ...) UseMethod("extract_params")
 #' Builds an entire PFA list of lists based on a model object
 #' 
 #' @param object a model object
+#' @param ... further arguments passed to or from other methods
 #' @return a \code{list} of lists representation of the tree that can be 
 #' inserted into a cell or pool
 #' @examples

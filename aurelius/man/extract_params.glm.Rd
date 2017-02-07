@@ -8,12 +8,6 @@
 }
 \arguments{
 \item{object}{an object of class "glm"}
-
-\item{input_name}{a character for the name of the input as it should appear 
-in the PFA document}
-
-\item{model_name}{a character for the name of the model as it should appear 
-in the PFA document}
 }
 \value{
 PFA as a list-of-lists that can be inserted into a cell or pool

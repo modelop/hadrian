@@ -20,10 +20,6 @@
 #' Extract generalized linear model parameters from the glm library
 #' 
 #' @param object an object of class "glm"
-#' @param input_name a character for the name of the input as it should appear 
-#' in the PFA document
-#' @param model_name a character for the name of the model as it should appear 
-#' in the PFA document
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
 #' X1 <- rnorm(100)
@@ -98,7 +94,7 @@ extract_params.glm <- function(object) {
 pfa.glm <- function(object, 
                     pred_type = c('response', 'prob'), 
                     cutoffs = NULL,
-                    n.trees=NULL, name=NULL, 
+                    name=NULL, 
                     version=NULL, doc=NULL, metadata=NULL, 
                     randseed=NULL, options=NULL, ...){
   

@@ -8,8 +8,8 @@ pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 }
 \usage{
 \method{pfa}{glm}(object, pred_type = c("response", "prob"), cutoffs = NULL,
-  n.trees = NULL, name = NULL, version = NULL, doc = NULL,
-  metadata = NULL, randseed = NULL, options = NULL, ...)
+  name = NULL, version = NULL, doc = NULL, metadata = NULL,
+  randseed = NULL, options = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class "glm"}

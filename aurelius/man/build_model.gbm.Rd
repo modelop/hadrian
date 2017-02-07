@@ -24,7 +24,7 @@ binomial_dat <- data.frame(X1 = runif(100),
                            Y = (rexp(100,5) + 5 * X1 - 4 * X2) > 0)
 
 bernoulli_model <- gbm(Y ~ X1 + X2, 
-                       data=binomial_dat, 
+                       data = binomial_dat, 
                        distribution = 'bernoulli')
   
 my_tree <- build_model(bernoulli_model, 1)

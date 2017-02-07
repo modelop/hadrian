@@ -277,8 +277,7 @@ pfa.glmnet <- function(object,
 #' model <- cv.glmnet(X, Y, family = 'binomial')
 #' my_model_params <- extract_params(model)
 #' @export 
-extract_params.cv.glmnet <- function(object, lambda = object[["lambda.1se"]], 
-                                     input_name='glm_input', model_name='glm_model') {
+extract_params.cv.glmnet <- function(object, lambda = object[["lambda.1se"]]) {
     
   extract_params(object$glmnet.fit, lambda)
   
