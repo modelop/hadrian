@@ -4,7 +4,7 @@
 \alias{pfa.randomForest}
 \title{PFA Formatting of Fitted Random Forest Models}
 \source{
-pfa_config.R avro_typemap.R avro_R pfa_cellpool.R pfa_expr.R
+pfa_config.R avro_typemap.R avro_R pfa_cellpool.R pfa_expr.R pfa_utils.R
 }
 \usage{
 \method{pfa}{randomForest}(object, pred_type = c("response", "prob"),
