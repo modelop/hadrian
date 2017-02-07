@@ -70,7 +70,7 @@ test_that("check gaussian glmnets", {
 
 test_that("check binomial glmnet", {
 
-  lognet_input <- list(X1=100.55, X2=.99)
+  lognet_input <- list(X1=10, X2=.99)
   lambda <- .01
   
   x <- matrix(rnorm(100*2), 100, 2, dimnames = list(NULL, c('X1','X2')))
@@ -86,7 +86,9 @@ test_that("check binomial glmnet", {
                                    lambda=lambda),
                tolerance = .0001)
   
-  lognet_model_as_pfa <- pfa(lognet_model, lambda, pred_type='response')
+  lognet_model_as_pfa <- pfa(lognet_model, lambda, 
+                             pred_type='response', 
+                             cutoffs = c(Y=.5, Z=.5))
   lognet_engine <- pfa_engine(lognet_model_as_pfa)
   
   expect_equal(lognet_engine$action(lognet_input), 
@@ -96,6 +98,19 @@ test_that("check binomial glmnet", {
                                    cutoff = 0.5),
                tolerance = .0001)
   
+  # test non-uniform cutoffs
+  test_cutoffs <- c(Y=.05, Z=.95)
+  
+  prob_pred <- predict(lognet_model, newx=as.matrix(t(unlist(lognet_input))), s=lambda, type='response')
+  prob_pred <- c(1-prob_pred, prob_pred)
+  names(prob_pred) <- lognet_model$classnames
+  cutoff_ratio_adjusted_preds <- prob_pred / test_cutoffs
+  
+  lognet_model_as_pfa <- pfa(lognet_model, lambda, pred_type='response', cutoff = test_cutoffs)
+  lognet_engine <- pfa_engine(lognet_model_as_pfa)
+
+  expect_equal(lognet_engine$action(lognet_input), 
+               names(cutoff_ratio_adjusted_preds)[which.max(cutoff_ratio_adjusted_preds)])  
 })
 
 
@@ -165,7 +180,7 @@ test_that("check multinomial glmnet", {
   g4 <- sample(LETTERS[1:4], 100, replace=TRUE)
   multinomial_model <- glmnet(x, g4, family="multinomial", intercept = FALSE)
 
-  multinomial_model_as_pfa <- pfa.glmnet(multinomial_model, lambda, pred_type='prob')
+  multinomial_model_as_pfa <- pfa(multinomial_model, lambda, pred_type='prob')
   multinomial_engine <- pfa_engine(multinomial_model_as_pfa)
   multinomial_res <- multinomial_engine$action(multinomial_input)
   

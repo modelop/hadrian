@@ -91,15 +91,17 @@ extract_params.glmnet <- function(object, lambda=NULL,
 #' and returns a list-of-lists representing a valid PFA document 
 #' that could be used for scoring
 #' 
-#' @source pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R
+#' @source pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 #' @param object an object of class "glmnet"
 #' @param lambda a numeric value of the penalty parameter lambda at which 
 #' coefficients are required
 #' @param pred_type a string with value "response" for returning a prediction on the 
 #' same scale as what was provided during modeling, or value "prob", which for classification 
 #' problems returns the probability of each class.
-#' @param cutoff a numeric indicating the threshold where a 0-1 class prediction
-#' is converted to 1, rather than 0
+#' @param cutoffs (Classification only) A named numeric vector of length equal to 
+#' number of classes. The "winning" class for an observation is the one with the 
+#' maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
+#' same cutoff for each class that is 1/k where k is the number of classes
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -124,8 +126,8 @@ extract_params.glmnet <- function(object, lambda=NULL,
 #' @export
 pfa.glmnet <- function(object, 
                        lambda = NULL,
-                       pred_type=c('response', 'prob'),
-                       cutoff = 0.5,
+                       pred_type = c('response', 'prob'),
+                       cutoffs = NULL,
                        name=NULL, version=NULL, doc=NULL, metadata=NULL, 
                        randseed=NULL, options=NULL, ...){
   
@@ -152,8 +154,10 @@ pfa.glmnet <- function(object,
                              paste0(fit$net_type, "Regression"))
   )
   
+  
   this_cells <- list()
   cast_input_string <- 'glm_input <- glm_input_list'
+  cutoffs <- validate_cutoffs(cutoffs = cutoffs, classes = fit$responses) 
   if(is.null(fit$responses)){
     output_type <- avro_double
     pred_type_expression <- 'pred'
@@ -171,19 +175,12 @@ pfa.glmnet <- function(object,
       # binomial
       if(which_pred_type == 'response'){
         output_type <- avro_string
-        pred_type_expression <- paste('idx <- u.cutoff_cmp(pred, cutoff)', 
-                                       'a.head(a.subseq(classnames, idx, idx+1))',
-                                       sep='\n ')
-        this_fcns <- cutoff_cmp_fcn
-        this_cells[['cutoff']] <- pfa_cell(type = avro_double, init = cutoff)
-        this_cells[['classnames']] <- pfa_cell(type = avro_array(avro_string), init = fit$responses)
+        pred_type_expression <- 'map.argmax(u.cutoff_ratio_cmp(probs, cutoffs))'
+        this_fcns <- c(divide_fcn, cutoff_ratio_cmp_fcn)
+        this_cells[['cutoffs']] <- pfa_cell(type = avro_map(avro_double), init = cutoffs)
       } else if(which_pred_type == 'prob'){
         output_type <- avro_map(avro_double)
-        pred_type_expression <- paste0('new(avro_map(avro_double), `', 
-                                       fit$responses[1],
-                                       '` = 1 - pred, `', 
-                                       fit$responses[2],
-                                       '` = pred)')
+        pred_type_expression <- 'probs'
         this_fcns <- NULL
       } else {
         stop('Only "response" and "prob" values are accepted for pred_type')
@@ -191,6 +188,11 @@ pfa.glmnet <- function(object,
       this_action <- parse(text=paste(
         cast_input_string,
         paste0('pred <- ', glmnet_link_func_mapper(fit$net_type, input_name='glm_input', model_name='reg')),
+        paste0('probs <- new(avro_map(avro_double), `', 
+                                       fit$responses[1],
+                                       '` = 1 - pred, `', 
+                                       fit$responses[2],
+                                       '` = pred)'),
         pred_type_expression,
         sep='\n '))
       this_cells[['reg']] <- pfa_cell(tm_regression("Regression"),
@@ -213,10 +215,13 @@ pfa.glmnet <- function(object,
                                              collapse=', '), ')')    
       if(which_pred_type == 'response'){
         output_type <- avro_string
-        pred_type_expression <- 'map.argmax(all_preds)'
+        pred_type_expression <- 'map.argmax(u.cutoff_ratio_cmp(all_preds, cutoffs))'
+        this_fcns <- c(divide_fcn, cutoff_ratio_cmp_fcn)
+        this_cells[['cutoffs']] <- pfa_cell(type = avro_map(avro_double), init = cutoffs)
       } else if(which_pred_type == 'prob'){
         output_type <- avro_map(avro_double)
         pred_type_expression <- 'la.scale(all_preds, 1/a.sum(map.fromset(all_preds)))'
+        this_fcns <- NULL
       } else {
         stop('Only "response" and "prob" values are accepted for pred_type')
       }
@@ -231,7 +236,6 @@ pfa.glmnet <- function(object,
                                                          list(const = fit$const[[i]],
                                                               coeff = as.list(fit$coeff[[i]])))
       }
-      this_fcns <- NULL
     }
   }
   

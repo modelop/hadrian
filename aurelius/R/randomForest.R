@@ -238,7 +238,7 @@ build_node_randomForest <- function(tree_table, leaf_val_type, whichNode, valueN
 #' returns a list-of-lists representing in valid PFA document that could 
 #' be used for scoring
 #' 
-#' @source pfa_config.R avro_typemap.R avro_R pfa_cellpool.R pfa_expr.R
+#' @source pfa_config.R avro_typemap.R avro_R pfa_cellpool.R pfa_expr.R pfa_utils.R
 #' @param object an object of class "randomForest"
 #' @param n.trees an integer or vector of integers specifying the number of trees 
 #' to use in building the model. If a vector is provided, then only the indices of 
