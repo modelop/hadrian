@@ -343,12 +343,12 @@ pfa.gbm <- function(object,
   this_cells <- list()
   if(object$num.classes == 1) {
     if(object$distribution$name %in% c('bernoulli', 'huberized', 'adaboost')){
-      if(pred_type == 'response'){
+      if(which_pred_type == 'response'){
         output_type <- avro_int
         pred_type_expression <- 'u.cutoff_cmp(pred, cutoff)'
         this_fcns <- cutoff_cmp_fcn
         this_cells[['cutoff']] <- pfa_cell(type = avro_double, init = cutoff)
-      } else if(pred_type == 'prob'){
+      } else if(which_pred_type == 'prob'){
         output_type <- avro_map(avro_double)
         pred_type_expression <- 'new(avro_map(avro_double), `0` = 1 - pred, `1` = pred)'
         this_fcns <- NULL
@@ -394,10 +394,10 @@ pfa.gbm <- function(object,
                                              sprintf('`%s` = %s', object$classes[x], paste0('pred_class', x))
                                              }, object=object, USE.NAMES = FALSE), 
                                            collapse=', '), ')')    
-    if(pred_type == 'response'){
+    if(which_pred_type == 'response'){
       output_type <- avro_string
       pred_type_expression <- 'map.argmax(all_preds)'
-    } else if(pred_type == 'prob'){
+    } else if(which_pred_type == 'prob'){
       output_type <- avro_map(avro_double)
       pred_type_expression <- 'la.scale(all_preds, 1/a.sum(map.fromset(all_preds)))'
     } else {
