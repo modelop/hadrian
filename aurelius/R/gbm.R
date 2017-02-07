@@ -25,6 +25,7 @@
 #' @return a \code{list} that is extracted from the gbm object
 #' @importFrom gbm pretty.gbm.tree
 #' @examples 
+#' \dontrun{
 #' binomial_dat <- data.frame(X1 = runif(100), 
 #'                            X2 = rnorm(100), 
 #'                            Y = (rexp(100,5) + 5 * X1 - 4 * X2) > 0)
@@ -34,6 +35,7 @@
 #'                        distribution = 'bernoulli')
 #'   
 #' my_tree <- extract_params(bernoulli_model, 1)
+#' }
 #' @export
 
 extract_params.gbm <- function(object, which_tree = 1) {
@@ -80,6 +82,7 @@ extract_params.gbm <- function(object, which_tree = 1) {
 #' @return a \code{list} of lists representation of the tree that can be 
 #' inserted into a cell or pool
 #' @examples 
+#' \dontrun{
 #' binomial_dat <- data.frame(X1 = runif(100), 
 #'                            X2 = rnorm(100), 
 #'                            Y = (rexp(100,5) + 5 * X1 - 4 * X2) > 0)
@@ -89,6 +92,7 @@ extract_params.gbm <- function(object, which_tree = 1) {
 #'                        distribution = 'bernoulli')
 #'   
 #' my_tree <- build_model(bernoulli_model, 1)
+#' }
 #' @export
 
 build_model.gbm <- function(object, which_tree = 1){
@@ -263,6 +267,7 @@ build_node_gbm <- function(tree, categorical_lookup, leaf_val_type, whichNode, v
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[gbm]{gbm}}
 #' @examples
+#' \dontrun{
 #' binomial_dat <- data.frame(X1 = runif(100), 
 #'                            X2 = rnorm(100))
 #' binomial_dat$Y <- as.integer(factor((rexp(100,5) + 
@@ -270,7 +275,8 @@ build_node_gbm <- function(tree, categorical_lookup, leaf_val_type, whichNode, v
 #'                              4 * binomial_dat$X2) > 0)) - 1
 #' 
 #' model <- gbm(Y ~ X1 + X2, data=binomial_dat, distribution='bernoulli')
-#' model_as_pfa <- pfa.gbm(model)
+#' model_as_pfa <- pfa(model)
+#' }
 #' @export
 
 pfa.gbm <- function(object, 

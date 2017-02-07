@@ -56,6 +56,7 @@ and returns a list-of-lists representing in valid PFA document
 that could be used for scoring
 }
 \examples{
+\dontrun{
 binomial_dat <- data.frame(X1 = runif(100), 
                            X2 = rnorm(100))
 binomial_dat$Y <- as.integer(factor((rexp(100,5) + 
@@ -63,7 +64,8 @@ binomial_dat$Y <- as.integer(factor((rexp(100,5) +
                              4 * binomial_dat$X2) > 0)) - 1
 
 model <- gbm(Y ~ X1 + X2, data=binomial_dat, distribution='bernoulli')
-model_as_pfa <- pfa.gbm(model)
+model_as_pfa <- pfa(model)
+}
 }
 \seealso{
 \code{\link[gbm]{gbm}}

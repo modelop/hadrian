@@ -56,6 +56,7 @@ returns a list-of-lists representing in valid PFA document that could
 be used for scoring
 }
 \examples{
+\dontrun{
 binomial_dat <- data.frame(X1 = runif(100), 
                            X2 = rnorm(100))
 binomial_dat$Y <- factor((rexp(100,5) + 
@@ -63,7 +64,8 @@ binomial_dat$Y <- factor((rexp(100,5) +
                             4 * binomial_dat$X2) > 0)
 
 model <- randomForest(Y ~ X1 + X2, data=binomial_dat)
-model_as_pfa <- pfa.randomForest(model)
+model_as_pfa <- pfa(model)
+}
 }
 \seealso{
 \code{\link[randomForest]{randomForest}}

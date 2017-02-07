@@ -22,6 +22,7 @@
 #' @param object an object of class "glm"
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
+#' \dontrun{
 #' X1 <- rnorm(100)
 #' X2 <- runif(100)
 #' Y <- 3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3)
@@ -29,6 +30,7 @@
 #' 
 #' z <- glm(Y ~ X1 + X2, family = binomial(logit))
 #' z2 <- extract_params(z)
+#' }
 #' @export
 
 extract_params.glm <- function(object) {
@@ -82,6 +84,7 @@ extract_params.glm <- function(object) {
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[stats]{glm}} \code{\link{extract_params.glm}}
 #' @examples
+#' \dontrun{
 #' X1 <- rnorm(100)
 #' X2 <- runif(100)
 #' Y <- 3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3)
@@ -89,7 +92,7 @@ extract_params.glm <- function(object) {
 #' 
 #' model <- glm(Y ~ X1 + X2, family = binomial(logit))
 #' model_as_pfa <- pfa(model)
-#' 
+#' }
 #' @export
 pfa.glm <- function(object, 
                     pred_type = c('response', 'prob'), 

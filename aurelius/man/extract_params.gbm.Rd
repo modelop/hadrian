@@ -18,6 +18,7 @@ a \code{list} that is extracted from the gbm object
 Extracts a parameters from an ensemble made by the gbm function
 }
 \examples{
+\dontrun{
 binomial_dat <- data.frame(X1 = runif(100), 
                            X2 = rnorm(100), 
                            Y = (rexp(100,5) + 5 * X1 - 4 * X2) > 0)
@@ -27,5 +28,6 @@ bernoulli_model <- gbm(Y ~ X1 + X2,
                        distribution = 'bernoulli')
   
 my_tree <- extract_params(bernoulli_model, 1)
+}
 }
 

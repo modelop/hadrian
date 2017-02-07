@@ -24,11 +24,13 @@
 #' coefficients are required
 #' @return PFA as a \code{list} of lists that can be inserted into a cell or pool
 #' @examples
+#' \dontrun{
 #' X <- matrix(c(rnorm(100), runif(100)), nrow=100, ncol=2)
 #' Y <- factor(3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3) > 0)
 #' 
 #' model <- glmnet(X, Y, family = 'binomial')
 #' my_model_params <- extract_params(model)
+#' }
 #' @export 
 
 extract_params.glmnet <- function(object, lambda=NULL) {
@@ -116,12 +118,13 @@ extract_params.glmnet <- function(object, lambda=NULL) {
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[glmnet]{glmnet}} \code{\link{extract_params.glmnet}}
 #' @examples
+#' \dontrun{
 #' X <- matrix(c(rnorm(100), runif(100)), nrow=100, ncol=2)
 #' Y <- factor(3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3) > 0)
 #' 
 #' model <- glmnet(X, Y, family = 'binomial')
 #' model_as_pfa <- pfa(model)
-#' 
+#' }
 #' @export
 pfa.glmnet <- function(object, 
                        lambda = NULL,
@@ -271,11 +274,13 @@ pfa.glmnet <- function(object,
 #' coefficients are required
 #' @return PFA as a \code{list} of lists that can be inserted into a cell or pool
 #' @examples
+#' \dontrun{
 #' X <- matrix(c(rnorm(100), runif(100)), nrow=100, ncol=2)
 #' Y <- factor(3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3) > 0)
 #' 
 #' model <- cv.glmnet(X, Y, family = 'binomial')
 #' my_model_params <- extract_params(model)
+#' }
 #' @export 
 extract_params.cv.glmnet <- function(object, lambda = object[["lambda.1se"]]) {
     
@@ -309,12 +314,13 @@ extract_params.cv.glmnet <- function(object, lambda = object[["lambda.1se"]]) {
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[glmnet]{glmnet}} \code{\link{extract_params.glmnet}}
 #' @examples
+#' \dontrun{
 #' X <- matrix(c(rnorm(100), runif(100)), nrow=100, ncol=2)
 #' Y <- factor(3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3) > 0)
 #' 
 #' model <- cv.glmnet(X, Y, family = 'binomial')
 #' model_as_pfa <- pfa(model)
-#' 
+#' }
 #' @export
 pfa.cv.glmnet <- function(object, lambda = object[["lambda.1se"]],
                           name=NULL, version=NULL, doc=NULL, metadata=NULL, 
