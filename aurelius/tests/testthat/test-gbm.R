@@ -198,7 +198,7 @@ test_that("check multinomial gbms", {
                                      newdata = as.data.frame(multinomial_input)),
                tolerance = .0001)
   
-    # test non-uniform cutoffs
+  # test non-uniform cutoffs
   test_cutoffs <- c(setosa=.4, versicolor=.4, virginica=.2)
   
   prob_pred <- predict(multinomial_model, 
