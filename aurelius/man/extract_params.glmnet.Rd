@@ -4,8 +4,7 @@
 \alias{extract_params.glmnet}
 \title{extract_params.glmnet}
 \usage{
-\method{extract_params}{glmnet}(object, lambda = NULL,
-  input_name = "glm_input", model_name = "glm_model")
+\method{extract_params}{glmnet}(object, lambda = NULL)
 }
 \arguments{
 \item{object}{an object of class "glmnet"}

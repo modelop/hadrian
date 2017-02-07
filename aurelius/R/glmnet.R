@@ -31,8 +31,7 @@
 #' my_model_params <- extract_params(model)
 #' @export 
 
-extract_params.glmnet <- function(object, lambda=NULL, 
-                                  input_name='glm_input', model_name='glm_model') {
+extract_params.glmnet <- function(object, lambda=NULL) {
   
   net_type <- class(object)[class(object)!='glmnet']
   
