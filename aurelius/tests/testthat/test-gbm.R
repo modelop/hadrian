@@ -8,7 +8,7 @@ gbm_resp_to_prob <- function(model, n.trees, newdata){
 
 gbm_resp_to_resp <- function(model, n.trees, newdata, cutoff){
   pred_prob <- unname(predict(model, n.trees=n.trees, newdata=newdata, type='response'))
-  if(pred_prob >= cutoff) 1 else 0
+  if(pred_prob >= cutoff) "1" else "0"
 }
 
 gbm_mult_resp_to_prob  <- function(model, n.trees, newdata, cutoff){
@@ -91,7 +91,7 @@ test_that("check binomial family GBMs", {
                                 newdata = as.data.frame(binomial_input)),
                tolerance = .0001)
   
-  bernoulli_model_as_pfa <- pfa(bernoulli_model, pred_type='response', cutoff=0.5)
+  bernoulli_model_as_pfa <- pfa(bernoulli_model, pred_type='response')
   bernoulli_engine <- pfa_engine(bernoulli_model_as_pfa)
   
   # check that "response" pred type behaves as expected
@@ -185,10 +185,10 @@ test_that("check multinomial gbms", {
 
   expect_equal(multinomial_engine$action(multinomial_input),
                gbm_mult_resp_to_resp(multinomial_model,
-                                multinomial_model$n.trees,
-                                as.data.frame(multinomial_input)))
+                                     multinomial_model$n.trees,
+                                     as.data.frame(multinomial_input)))
   
-  # check that "prob" pred type behaves as predict.randomForest
+  # check that "prob" pred type behaves as predict.gbm
   multinomial_model_as_pfa <- pfa(multinomial_model, pred_type='prob')
   multinomial_engine <- pfa_engine(multinomial_model_as_pfa)
 
@@ -198,7 +198,20 @@ test_that("check multinomial gbms", {
                                      newdata = as.data.frame(multinomial_input)),
                tolerance = .0001)
   
+    # test non-uniform cutoffs
+  test_cutoffs <- c(setosa=.4, versicolor=.4, virginica=.2)
+  
+  prob_pred <- predict(multinomial_model, 
+                       n.trees=multinomial_model$n.trees, 
+                       newdata=as.data.frame(multinomial_input), 
+                       type='response')[,,1]
+  cutoff_ratio_adjusted_preds <- prob_pred / test_cutoffs
 
+  multinomial_model_as_pfa <- pfa(multinomial_model, pred_type='response', cutoff = test_cutoffs)
+  multinomial_engine <- pfa_engine(multinomial_model_as_pfa)  
+
+  expect_equal(multinomial_engine$action(multinomial_input), 
+               names(cutoff_ratio_adjusted_preds)[which.max(cutoff_ratio_adjusted_preds)])
   
 })
 

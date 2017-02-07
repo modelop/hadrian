@@ -7,7 +7,7 @@
 pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 }
 \usage{
-\method{pfa}{gbm}(object, pred_type = c("response", "prob"), cutoff = 0.5,
+\method{pfa}{gbm}(object, pred_type = c("response", "prob"), cutoffs = NULL,
   n.trees = NULL, name = NULL, version = NULL, doc = NULL,
   metadata = NULL, randseed = NULL, options = NULL, ...)
 }
@@ -18,8 +18,10 @@ pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 same scale as what was provided during modeling, or value "prob", which for classification 
 problems returns the probability of each class.}
 
-\item{cutoff}{a numeric indicating the threshold where a 0-1 class prediction
-is converted to 1, rather than 0}
+\item{cutoffs}{(Classification only) A named numeric vector of length equal to 
+number of classes. The "winning" class for an observation is the one with the 
+maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
+same cutoff for each class that is 1/k where k is the number of classes}
 
 \item{n.trees}{an integer or vector of integers specifying the number of trees 
 to use in building the model. If a vector is provided, then only the indices of 

@@ -244,8 +244,10 @@ build_node_gbm <- function(tree, categorical_lookup, leaf_val_type, whichNode, v
 #' @param pred_type a string with value "response" for returning a prediction on the 
 #' same scale as what was provided during modeling, or value "prob", which for classification 
 #' problems returns the probability of each class.
-#' @param cutoff a numeric indicating the threshold where a 0-1 class prediction
-#' is converted to 1, rather than 0
+#' @param cutoffs (Classification only) A named numeric vector of length equal to 
+#' number of classes. The "winning" class for an observation is the one with the 
+#' maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
+#' same cutoff for each class that is 1/k where k is the number of classes
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -272,8 +274,8 @@ build_node_gbm <- function(tree, categorical_lookup, leaf_val_type, whichNode, v
 #' @export
 
 pfa.gbm <- function(object, 
-                    pred_type=c('response', 'prob'), 
-                    cutoff = 0.5,
+                    pred_type = c('response', 'prob'), 
+                    cutoffs = NULL,
                     n.trees=NULL, name=NULL, 
                     version=NULL, doc=NULL, metadata=NULL, 
                     randseed=NULL, options=NULL, ...){
@@ -344,13 +346,14 @@ pfa.gbm <- function(object,
   if(object$num.classes == 1) {
     if(object$distribution$name %in% c('bernoulli', 'huberized', 'adaboost')){
       if(which_pred_type == 'response'){
-        output_type <- avro_int
-        pred_type_expression <- 'u.cutoff_cmp(pred, cutoff)'
-        this_fcns <- cutoff_cmp_fcn
-        this_cells[['cutoff']] <- pfa_cell(type = avro_double, init = cutoff)
+        cutoffs <- validate_cutoffs(cutoffs = cutoffs, classes = c('0', '1'))
+        output_type <- avro_string
+        pred_type_expression <- 'map.argmax(u.cutoff_ratio_cmp(probs, cutoffs))'
+        this_fcns <- c(divide_fcn, cutoff_ratio_cmp_fcn)
+        this_cells[['cutoffs']] <- pfa_cell(type = avro_map(avro_double), init = cutoffs)
       } else if(which_pred_type == 'prob'){
         output_type <- avro_map(avro_double)
-        pred_type_expression <- 'new(avro_map(avro_double), `0` = 1 - pred, `1` = pred)'
+        pred_type_expression <- 'probs'
         this_fcns <- NULL
       } else {
         stop('Only "response" and "prob" values are accepted for pred_type')
@@ -358,6 +361,7 @@ pfa.gbm <- function(object,
       this_action <- parse(text=paste(
         tree_score_action_string(output_name='tree_scores', ensemble_name = 'ensemble'),
         pred_link_action_string(object=object, output_name='pred', scores_name='tree_scores'),
+        'probs <- new(avro_map(avro_double), `0` = 1 - pred, `1` = pred)',
         pred_type_expression,
         sep='\n '))
       this_cells[['ensemble']] <- pfa_cell(avro_array(tm_tree_node("TreeNode")), ensemble_of_trees)
@@ -395,20 +399,28 @@ pfa.gbm <- function(object,
                                              }, object=object, USE.NAMES = FALSE), 
                                            collapse=', '), ')')    
     if(which_pred_type == 'response'){
+      cutoffs <- validate_cutoffs(cutoffs = cutoffs, classes = object$classes)
       output_type <- avro_string
-      pred_type_expression <- 'map.argmax(all_preds)'
+      pred_type_expression <- 'map.argmax(u.cutoff_ratio_cmp(all_preds, cutoffs))'
+      this_fcns <- c(divide_fcn, cutoff_ratio_cmp_fcn)
+      this_cells[['cutoffs']] <- pfa_cell(type = avro_map(avro_double), init = cutoffs)
     } else if(which_pred_type == 'prob'){
       output_type <- avro_map(avro_double)
-      pred_type_expression <- 'la.scale(all_preds, 1/a.sum(map.fromset(all_preds)))'
+      pred_type_expression <- 'all_preds'
+      this_fcns <- NULL
     } else {
       stop('Only "response" and "prob" values are accepted for pred_type')
     }
-    this_action <- parse(text=paste(class_ensembles, pred_link_actions, all_class_preds, pred_type_expression, sep='\n '))
+    this_action <- parse(text=paste(class_ensembles, 
+                                    pred_link_actions, 
+                                    all_class_preds, 
+                                    'all_preds <- la.scale(all_preds, 1/a.sum(map.fromset(all_preds)))',
+                                    pred_type_expression, 
+                                    sep='\n '))
     for(i in seq.int(object$classes)){
       this_cells[[paste0('ensemble_class', i)]] <- pfa_cell(avro_array(tm_tree_node("TreeNode")), 
                                                             ensemble_of_trees[[paste0('class', i)]])  
     }
-    this_fcns <- NULL
   }  
   
   tm <- avro_typemap(
