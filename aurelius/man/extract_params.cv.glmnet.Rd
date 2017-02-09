@@ -4,13 +4,16 @@
 \alias{extract_params.cv.glmnet}
 \title{extract_params.cv.glmnet}
 \usage{
-\method{extract_params}{cv.glmnet}(object, lambda = object[["lambda.1se"]])
+\method{extract_params}{cv.glmnet}(object, lambda = object[["lambda.1se"]],
+  ...)
 }
 \arguments{
 \item{object}{an object of class "cv.glmnet"}
 
 \item{lambda}{a numeric value of the penalty parameter lambda at which 
 coefficients are required}
+
+\item{...}{further arguments passed to or from other methods}
 }
 \value{
 PFA as a \code{list} of lists that can be inserted into a cell or pool

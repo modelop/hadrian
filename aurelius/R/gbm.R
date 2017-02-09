@@ -22,6 +22,7 @@
 #' 
 #' @param object an object of class "gbm"
 #' @param which_tree the number of the tree to extract
+#' @param ... further arguments passed to or from other methods
 #' @return a \code{list} that is extracted from the gbm object
 #' @importFrom gbm pretty.gbm.tree
 #' @examples 
@@ -38,7 +39,7 @@
 #' }
 #' @export
 
-extract_params.gbm <- function(object, which_tree = 1) {
+extract_params.gbm <- function(object, which_tree = 1, ...) {
 
     if (is.null(object$trees))
         stop("No trees in ", deparse(substitute(object)))
@@ -79,6 +80,7 @@ extract_params.gbm <- function(object, which_tree = 1) {
 #' 
 #' @param object a object of class gbm
 #' @param which_tree an integer indicating which single tree to build
+#' @param ... further arguments passed to or from other methods
 #' @return a \code{list} of lists representation of the tree that can be 
 #' inserted into a cell or pool
 #' @examples 
@@ -95,7 +97,7 @@ extract_params.gbm <- function(object, which_tree = 1) {
 #' }
 #' @export
 
-build_model.gbm <- function(object, which_tree = 1){
+build_model.gbm <- function(object, which_tree = 1, ...){
   
   # pull out the tree from the object
   extracted_tree <- extract_params(object = object,
@@ -279,12 +281,10 @@ build_node_gbm <- function(tree, categorical_lookup, leaf_val_type, whichNode, v
 #' }
 #' @export
 
-pfa.gbm <- function(object, 
+pfa.gbm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                     pred_type = c('response', 'prob'), 
                     cutoffs = NULL,
-                    n.trees=NULL, name=NULL, 
-                    version=NULL, doc=NULL, metadata=NULL, 
-                    randseed=NULL, options=NULL, ...){
+                    n.trees=NULL, ...){
   
   if(object$distribution$name %in% c('quantile', 'pairwise')){
     stop(sprintf("Currently not supporting gbm models of distribution %s", object$distribution$name))

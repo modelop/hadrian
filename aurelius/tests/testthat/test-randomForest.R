@@ -1,5 +1,7 @@
 context("pfa.randomForest")
 
+suppressMessages(suppressWarnings(library(randomForest)))
+
 test_that("check regression randomForests", {
 
   continuous_input <- list(X1=5)

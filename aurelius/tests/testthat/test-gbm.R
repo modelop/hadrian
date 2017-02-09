@@ -1,5 +1,7 @@
 context("pfa.gbm")
 
+suppressMessages(suppressWarnings(library(gbm)))
+
 gbm_resp_to_prob <- function(model, n.trees, newdata){
   pred_prob <- unname(predict(model, n.trees=n.trees, newdata=newdata, type='response'))
   gbm_res <- c(`1`=pred_prob, `0`=1-pred_prob)

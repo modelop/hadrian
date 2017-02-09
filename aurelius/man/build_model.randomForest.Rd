@@ -4,12 +4,14 @@
 \alias{build_model.randomForest}
 \title{build_model.randomForest}
 \usage{
-\method{build_model}{randomForest}(object, which_tree = 1)
+\method{build_model}{randomForest}(object, which_tree = 1, ...)
 }
 \arguments{
 \item{object}{a object of class randomForest}
 
 \item{which_tree}{an integer indicating which single tree to build}
+
+\item{...}{further arguments passed to or from other methods}
 }
 \value{
 a \code{list} of lists representation of the tree that can be 

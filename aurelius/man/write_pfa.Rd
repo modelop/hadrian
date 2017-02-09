@@ -29,8 +29,10 @@ Convert a PFA list of lists into a JSON string in memory or a
 JSON file on disk.
 }
 \examples{
+\dontrun{
 my_pfa_doc <- pfa_document(avro_double, avro_double, expression(input + 10))
 write_pfa(my_pfa_doc)
 write_pfa(my_pfa_doc, file = "my-model.pfa")
+}
 }
 

@@ -4,10 +4,12 @@
 \alias{extract_params.glm}
 \title{extract_params.glm}
 \usage{
-\method{extract_params}{glm}(object)
+\method{extract_params}{glm}(object, ...)
 }
 \arguments{
 \item{object}{an object of class "glm"}
+
+\item{...}{further arguments passed to or from other methods}
 }
 \value{
 PFA as a list-of-lists that can be inserted into a cell or pool

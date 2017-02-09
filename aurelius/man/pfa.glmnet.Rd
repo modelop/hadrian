@@ -7,24 +7,12 @@
 pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 }
 \usage{
-\method{pfa}{glmnet}(object, lambda = NULL, pred_type = c("response",
-  "prob"), cutoffs = NULL, name = NULL, version = NULL, doc = NULL,
-  metadata = NULL, randseed = NULL, options = NULL, ...)
+\method{pfa}{glmnet}(object, name = NULL, version = NULL, doc = NULL,
+  metadata = NULL, randseed = NULL, options = NULL, lambda = NULL,
+  pred_type = c("response", "prob"), cutoffs = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class "glmnet"}
-
-\item{lambda}{a numeric value of the penalty parameter lambda at which 
-coefficients are required}
-
-\item{pred_type}{a string with value "response" for returning a prediction on the 
-same scale as what was provided during modeling, or value "prob", which for classification 
-problems returns the probability of each class.}
-
-\item{cutoffs}{(Classification only) A named numeric vector of length equal to 
-number of classes. The "winning" class for an observation is the one with the 
-maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
-same cutoff for each class that is 1/k where k is the number of classes}
 
 \item{name}{a character which is an optional name for the scoring engine}
 
@@ -42,6 +30,18 @@ different seeds generated from the global one}
 \item{options}{a \code{list} with value types depending on option name 
 Initialization or runtime options to customize implementation 
 (e.g. optimization switches). May be overridden or ignored by PFA consumer}
+
+\item{lambda}{a numeric value of the penalty parameter lambda at which 
+coefficients are required}
+
+\item{pred_type}{a string with value "response" for returning a prediction on the 
+same scale as what was provided during modeling, or value "prob", which for classification 
+problems returns the probability of each class.}
+
+\item{cutoffs}{(Classification only) A named numeric vector of length equal to 
+number of classes. The "winning" class for an observation is the one with the 
+maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
+same cutoff for each class that is 1/k where k is the number of classes}
 
 \item{...}{additional arguments affecting the PFA produced}
 }

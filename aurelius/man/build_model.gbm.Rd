@@ -4,12 +4,14 @@
 \alias{build_model.gbm}
 \title{build_model.gbm}
 \usage{
-\method{build_model}{gbm}(object, which_tree = 1)
+\method{build_model}{gbm}(object, which_tree = 1, ...)
 }
 \arguments{
 \item{object}{a object of class gbm}
 
 \item{which_tree}{an integer indicating which single tree to build}
+
+\item{...}{further arguments passed to or from other methods}
 }
 \value{
 a \code{list} of lists representation of the tree that can be 

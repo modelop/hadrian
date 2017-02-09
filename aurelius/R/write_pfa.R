@@ -30,12 +30,13 @@
 #' Use I() to specify significant digits. Use NA for max precision.
 #' @param ... additional arguments passed to toJSON
 #' @importFrom jsonlite toJSON
-#' @export write_pfa
 #' @examples
+#' \dontrun{
 #' my_pfa_doc <- pfa_document(avro_double, avro_double, expression(input + 10))
 #' write_pfa(my_pfa_doc)
 #' write_pfa(my_pfa_doc, file = "my-model.pfa")
-
+#' }
+#' @export
 write_pfa <- function(doc, 
                       file='', 
                       force = TRUE, 

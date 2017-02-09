@@ -23,8 +23,8 @@
 #' @return a \code{list} of lists structure in which null -> NULL, true -> TRUE, 
 #' false -> FALSE, numbers -> numeric, strings -> character, array -> list, 
 #' object -> named list
-#' @export read_pfa
 #' @examples
+#' \dontrun{
 #' # literal JSON string  (useful for small examples)
 #' toy_model <- read_pfa('{"input":"double","output":"double","action":[{"+":["input",10]}]}')
 #' 
@@ -34,7 +34,8 @@
 #' # from a url (split on two lines so not to exceed 100 char wide during install)
 #' url_model <- read_pfa(paste0('https://raw.githubusercontent.com/ReportMort/hadrian', 
 #'                      '/feature/add-r-package-structure/aurelius/inst/extdata/my-model.pfa'))
-
+#' }
+#' @export
 read_pfa <- function(x) {
   
     if (is.character(x) & length(x) == 1 & grepl("^(http|ftp)s?://", x)) {

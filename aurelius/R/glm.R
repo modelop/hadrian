@@ -20,6 +20,7 @@
 #' Extract generalized linear model parameters from the glm library
 #' 
 #' @param object an object of class "glm"
+#' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
 #' \dontrun{
@@ -33,7 +34,7 @@
 #' }
 #' @export
 
-extract_params.glm <- function(object) {
+extract_params.glm <- function(object, ...) {
   
     coeff <- as.list(object$coefficients)
     
@@ -94,12 +95,9 @@ extract_params.glm <- function(object) {
 #' model_as_pfa <- pfa(model)
 #' }
 #' @export
-pfa.glm <- function(object, 
+pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                     pred_type = c('response', 'prob'), 
-                    cutoffs = NULL,
-                    name=NULL, 
-                    version=NULL, doc=NULL, metadata=NULL, 
-                    randseed=NULL, options=NULL, ...){
+                    cutoffs = NULL, ...){
   
   # extract model parameters
   fit <- extract_params(object)

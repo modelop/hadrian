@@ -1,5 +1,7 @@
 context("pfa.glmnet")
 
+suppressMessages(suppressWarnings(library(glmnet)))
+
 glmnet_resp_to_prob <- function(model, newdata, lambda){
   pred_prob <- predict(model, newx=newdata, s=lambda, type='response')
   glmnet_res <- c(1-pred_prob, pred_prob)

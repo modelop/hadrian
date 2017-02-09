@@ -7,26 +7,12 @@
 pfa_config.R avro_typemap.R avro_R pfa_cellpool.R pfa_expr.R pfa_utils.R
 }
 \usage{
-\method{pfa}{randomForest}(object, pred_type = c("response", "prob"),
-  cutoffs = NULL, n.trees = NULL, name = NULL, version = NULL,
-  doc = NULL, metadata = NULL, randseed = NULL, options = NULL, ...)
+\method{pfa}{randomForest}(object, name = NULL, version = NULL,
+  doc = NULL, metadata = NULL, randseed = NULL, options = NULL,
+  pred_type = c("response", "prob"), cutoffs = NULL, n.trees = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class "randomForest"}
-
-\item{pred_type}{a string with value "response" for returning a prediction on the 
-same scale as what was provided during modeling, or value "prob", which for classification 
-problems returns the probability of each class.}
-
-\item{cutoffs}{(Classification only) A named numeric vector of length equal to 
-number of classes. The "winning" class for an observation is the one with the 
-maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
-same cutoff for each class that is 1/k where k is the number of classes}
-
-\item{n.trees}{an integer or vector of integers specifying the number of trees 
-to use in building the model. If a vector is provided, then only the indices of 
-thos trees will be used. If a single integer is provided then all trees up until 
-and including that index will be used.}
 
 \item{name}{a character which is an optional name for the scoring engine}
 
@@ -44,6 +30,20 @@ different seeds generated from the global one}
 \item{options}{a \code{list} with value types depending on option name 
 Initialization or runtime options to customize implementation 
 (e.g. optimization switches). May be overridden or ignored by PFA consumer}
+
+\item{pred_type}{a string with value "response" for returning a prediction on the 
+same scale as what was provided during modeling, or value "prob", which for classification 
+problems returns the probability of each class.}
+
+\item{cutoffs}{(Classification only) A named numeric vector of length equal to 
+number of classes. The "winning" class for an observation is the one with the 
+maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
+same cutoff for each class that is 1/k where k is the number of classes}
+
+\item{n.trees}{an integer or vector of integers specifying the number of trees 
+to use in building the model. If a vector is provided, then only the indices of 
+thos trees will be used. If a single integer is provided then all trees up until 
+and including that index will be used.}
 
 \item{...}{additional arguments affecting the PFA produced}
 }

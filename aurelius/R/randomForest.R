@@ -22,6 +22,7 @@
 #' 
 #' @param object an object of class "randomForest"
 #' @param which_tree the number of the tree to extract
+#' @param ... further arguments passed to or from other methods
 #' @return a \code{list} that is extracted from the randomForest object
 #' @examples 
 #' \dontrun{
@@ -36,7 +37,7 @@
 #' my_tree <- extract_params(bernoulli_model, 1)
 #' }
 #' @export
-extract_params.randomForest <- function(object, which_tree = 1) {
+extract_params.randomForest <- function(object, which_tree = 1, ...) {
 
   if (is.null(object$forest)) {
       stop("No forest component in ", deparse(substitute(object)))
@@ -89,6 +90,7 @@ extract_params.randomForest <- function(object, which_tree = 1) {
 #' 
 #' @param object a object of class randomForest
 #' @param which_tree an integer indicating which single tree to build
+#' @param ... further arguments passed to or from other methods
 #' @return a \code{list} of lists representation of the tree that can be 
 #' inserted into a cell or pool
 #' @examples 
@@ -104,7 +106,7 @@ extract_params.randomForest <- function(object, which_tree = 1) {
 #' my_tree <- build_model(bernoulli_model, 1)
 #' }
 #' @export
-build_model.randomForest <- function(object, which_tree = 1){
+build_model.randomForest <- function(object, which_tree = 1, ...){
   
   # pull out the tree from the object
   tree_table <- extract_params(object = object, which_tree = which_tree)
@@ -279,13 +281,10 @@ build_node_randomForest <- function(tree_table, leaf_val_type, whichNode, valueN
 #' model_as_pfa <- pfa(model)
 #' }
 #' @export
-
-pfa.randomForest <- function(object, 
+pfa.randomForest <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                              pred_type=c('response', 'prob'),
                              cutoffs=NULL,
-                             n.trees=NULL, name=NULL, 
-                             version=NULL, doc=NULL, metadata=NULL, 
-                             randseed=NULL, options=NULL, ...){
+                             n.trees=NULL, ...){
 
   if(object$type %in% c('unsupervised')){
     stop(sprintf("Currently not supporting randomForest models of type %s", object$type))

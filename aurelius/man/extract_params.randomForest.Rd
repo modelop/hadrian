@@ -4,12 +4,14 @@
 \alias{extract_params.randomForest}
 \title{extract_params.randomForest}
 \usage{
-\method{extract_params}{randomForest}(object, which_tree = 1)
+\method{extract_params}{randomForest}(object, which_tree = 1, ...)
 }
 \arguments{
 \item{object}{an object of class "randomForest"}
 
 \item{which_tree}{the number of the tree to extract}
+
+\item{...}{further arguments passed to or from other methods}
 }
 \value{
 a \code{list} that is extracted from the randomForest object

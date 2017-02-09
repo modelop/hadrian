@@ -4,16 +4,18 @@
 \alias{extract_params.glmnet}
 \title{extract_params.glmnet}
 \usage{
-\method{extract_params}{glmnet}(object, lambda = NULL)
+\method{extract_params}{glmnet}(object, lambda = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class "glmnet"}
 
 \item{lambda}{a numeric value of the penalty parameter lambda at which 
 coefficients are required}
+
+\item{...}{further arguments passed to or from other methods}
 }
 \value{
-PFA as a \code{list} of lists that can be inserted into a cell or pool
+a \code{list} of lists that can be modified to insert into a cell or pool
 }
 \description{
 Extract generalized linear model net parameters from the glmnet library

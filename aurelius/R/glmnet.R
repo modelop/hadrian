@@ -22,7 +22,8 @@
 #' @param object an object of class "glmnet"
 #' @param lambda a numeric value of the penalty parameter lambda at which 
 #' coefficients are required
-#' @return PFA as a \code{list} of lists that can be inserted into a cell or pool
+#' @param ... further arguments passed to or from other methods
+#' @return a \code{list} of lists that can be modified to insert into a cell or pool
 #' @examples
 #' \dontrun{
 #' X <- matrix(c(rnorm(100), runif(100)), nrow=100, ncol=2)
@@ -33,7 +34,7 @@
 #' }
 #' @export 
 
-extract_params.glmnet <- function(object, lambda=NULL) {
+extract_params.glmnet <- function(object, lambda=NULL, ...) {
   
   net_type <- class(object)[class(object)!='glmnet']
   
@@ -126,12 +127,10 @@ extract_params.glmnet <- function(object, lambda=NULL) {
 #' model_as_pfa <- pfa(model)
 #' }
 #' @export
-pfa.glmnet <- function(object, 
+pfa.glmnet <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                        lambda = NULL,
                        pred_type = c('response', 'prob'),
-                       cutoffs = NULL,
-                       name=NULL, version=NULL, doc=NULL, metadata=NULL, 
-                       randseed=NULL, options=NULL, ...){
+                       cutoffs = NULL, ...){
   
   # extract model parameters
   fit <- extract_params(object, lambda = lambda)
@@ -272,6 +271,7 @@ pfa.glmnet <- function(object,
 #' @param object an object of class "cv.glmnet"
 #' @param lambda a numeric value of the penalty parameter lambda at which 
 #' coefficients are required
+#' @param ... further arguments passed to or from other methods
 #' @return PFA as a \code{list} of lists that can be inserted into a cell or pool
 #' @examples
 #' \dontrun{
@@ -282,7 +282,7 @@ pfa.glmnet <- function(object,
 #' my_model_params <- extract_params(model)
 #' }
 #' @export 
-extract_params.cv.glmnet <- function(object, lambda = object[["lambda.1se"]]) {
+extract_params.cv.glmnet <- function(object, lambda = object[["lambda.1se"]], ...) {
     
   extract_params(object$glmnet.fit, lambda)
   
@@ -299,6 +299,13 @@ extract_params.cv.glmnet <- function(object, lambda = object[["lambda.1se"]]) {
 #' @param object an object of class "cv.glmnet"
 #' @param lambda a numeric value of the penalty parameter lambda at which 
 #' coefficients are required
+#' @param pred_type a string with value "response" for returning a prediction on the 
+#' same scale as what was provided during modeling, or value "prob", which for classification 
+#' problems returns the probability of each class.
+#' @param cutoffs (Classification only) A named numeric vector of length equal to 
+#' number of classes. The "winning" class for an observation is the one with the 
+#' maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
+#' same cutoff for each class that is 1/k where k is the number of classes
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -322,11 +329,14 @@ extract_params.cv.glmnet <- function(object, lambda = object[["lambda.1se"]]) {
 #' model_as_pfa <- pfa(model)
 #' }
 #' @export
-pfa.cv.glmnet <- function(object, lambda = object[["lambda.1se"]],
-                          name=NULL, version=NULL, doc=NULL, metadata=NULL, 
-                          randseed=NULL, options=NULL, ...){
+pfa.cv.glmnet <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
+                          lambda = object[["lambda.1se"]],
+                          pred_type = c('response', 'prob'),
+                          cutoffs = NULL, ...){
   
-  pfa(object$glmnet.fit, lambda)
+  which_pred_type <- match.arg(pred_type)
+  
+  pfa(object$glmnet.fit, lambda, pred_type=which_pred_type, cutoffs=cutoffs)
   
 }
 
