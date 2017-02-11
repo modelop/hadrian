@@ -19,7 +19,7 @@
 #'
 #' Extract generalized linear model net parameters from the glmnet library
 #' 
-#' @importFrom glmnet coef
+#' @importFrom glmnet coef.glmnet
 #' @param object an object of class "glmnet"
 #' @param lambda a numeric value of the penalty parameter lambda at which 
 #' coefficients are required
