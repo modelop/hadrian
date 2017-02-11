@@ -89,16 +89,19 @@ code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Inf
 <p>First, we load the <code>aurelius</code></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(aurelius)</code></pre></div>
 <p>Second, let’s build a simple linear regression model and convert to PFA.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">  <span class="co"># build a model</span>
-  lm_model &lt;-<span class="st"> </span><span class="kw">lm</span>(mpg ~<span class="st"> </span>hp, <span class="dt">data =</span> mtcars)
-  
-  <span class="co"># convert the lm object to a list-of-lists PFA representation</span>
-  lm_model_as_pfa &lt;-<span class="st"> </span><span class="kw">pfa</span>(lm_model)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
+<span class="co"># build a model</span>
+lm_model &lt;-<span class="st"> </span><span class="kw">lm</span>(mpg ~<span class="st"> </span>hp, <span class="dt">data =</span> mtcars)
+
+<span class="co"># convert the lm object to a list-of-lists PFA representation</span>
+lm_model_as_pfa &lt;-<span class="st"> </span><span class="kw">pfa</span>(lm_model)</code></pre></div>
 <p>The model can be saved as PFA JSON and used in other systems.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">  <span class="co"># save as plain-text JSON</span>
-  <span class="kw">write_pfa</span>(lm_model_as_pfa, <span class="dt">file =</span> <span class="st">&quot;my-model.pfa&quot;</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
+<span class="co"># save as plain-text JSON</span>
+<span class="kw">write_pfa</span>(lm_model_as_pfa, <span class="dt">file =</span> <span class="st">&quot;my-model.pfa&quot;</span>)</code></pre></div>
 <p>Just as models can be written as a PFA file, they can be read.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">  my_model &lt;-<span class="st"> </span><span class="kw">read_pfa</span>(<span class="st">&quot;my-model.pfa&quot;</span>)</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
+my_model &lt;-<span class="st"> </span><span class="kw">read_pfa</span>(<span class="st">&quot;my-model.pfa&quot;</span>)</code></pre></div>
 </div>
 
 

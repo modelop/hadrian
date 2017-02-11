@@ -8,6 +8,7 @@ aurelius
 
 Supported Models:
 
+-   lm
 -   glm
 -   glmnet
 -   randomForest
@@ -27,24 +28,26 @@ The main purpose of the package is to create PFA documents based on logic create
 
 ``` r
 
-  # build a model
-  lm_model <- lm(mpg ~ hp, data = mtcars)
-  
-  # convert the lm object to a list of lists PFA representation
-  lm_model_as_pfa <- pfa(lm_model)
+# build a model
+lm_model <- lm(mpg ~ hp, data = mtcars)
+
+# convert the lm object to a list of lists PFA representation
+lm_model_as_pfa <- pfa(lm_model)
 ```
 
 The model can be saved as PFA JSON and used in other systems.
 
 ``` r
-  # save as plain-text JSON
-  write_pfa(lm_model_as_pfa, file = "my-model.pfa")
+
+# save as plain-text JSON
+write_pfa(lm_model_as_pfa, file = "my-model.pfa")
 ```
 
 Just as models can be written as a PFA file, they can be read.
 
 ``` r
-  my_model <- read_pfa("my-model.pfa")
+
+my_model <- read_pfa("my-model.pfa")
 ```
 
 ### License
