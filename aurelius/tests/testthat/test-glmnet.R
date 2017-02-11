@@ -72,12 +72,13 @@ test_that("check gaussian glmnets", {
 
 test_that("check binomial glmnet", {
 
-  lognet_input <- list(X1=10, X2=.99)
+  lognet_input <- list(X1=.01, X2=.3)
   lambda <- .01
   
   set.seed(1)
   x <- matrix(rnorm(100*2), 100, 2, dimnames = list(NULL, c('X1','X2')))
-  y <- factor(sample(c('Z','Y'),100,replace=TRUE))
+  y <- 3 - 4 * x[,'X1'] + 3 * x[,'X2'] + rnorm(100, 0, 4)
+  y <- factor(ifelse(y > 0, 'Y', 'Z'))
   
   lognet_model <- glmnet(x, y, family="binomial")
   lognet_model_as_pfa <- pfa(object = lognet_model, lambda = lambda, 
