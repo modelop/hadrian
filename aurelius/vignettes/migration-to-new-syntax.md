@@ -152,7 +152,7 @@ supports classification (majority vote) and regression (mean aggregation).
 + The `glmnet` functions only supported classification fits, now supports:
 
     * guassian
-    * binomial, 
+    * binomial
     * poisson
     * cox 
     * multinomial
@@ -200,6 +200,7 @@ model components whenever the user does not want to use a pre-canned producer.
 ```r
 
   # generate data
+  set.seed(1)
   dat <- data.frame(X1 = rnorm(100), 
                     X2 = runif(100))
   dat$Y <- ((3 - 4 * dat$X1 + 3 * dat$X2 + rnorm(100, 0, 4)) > 0)
@@ -211,14 +212,14 @@ model components whenever the user does not want to use a pre-canned producer.
   extract_params(logit_model)
 #> $coeff
 #> $coeff$X1
-#> [1] -1.941884
+#> [1] -1.64257
 #> 
 #> $coeff$X2
-#> [1] 0.3902524
+#> [1] 0.5614079
 #> 
 #> 
 #> $const
-#> [1] 2.330089
+#> [1] 1.442272
 #> 
 #> $regressors
 #> $regressors[[1]]
@@ -235,3 +236,72 @@ model components whenever the user does not want to use a pre-canned producer.
 #> [1] "logit"
 ```
 
+# Test Coverage
+
+Unit test coverage has been introduced mainly to test that the PFA produced by the 
+`pfa()` functions behave similarly to their equivalent `predict()` functions in R. 
+These tests are an excellent source of examples because they cover most all cases 
+of utilizing the package functions. 
+
+## Testing Predictions
+
+
+```r
+
+  library(testthat)
+
+  # generate data
+  set.seed(1)
+  dat <- data.frame(X1 = rnorm(100), 
+                    X2 = runif(100))
+  dat$Y <- 3 - 5 * dat$X1 + 3 * dat$X2 + rnorm(100, 0, 3)
+  
+  # build the model
+  lm_model <- lm(Y ~ X1 + X2, data = dat)
+  
+  lm_model_as_pfa <- pfa(lm_model)
+  lm_engine <- pfa_engine(lm_model_as_pfa)
+  
+  # create the sample input vector
+  input <- list(X1=.5, X2=.5)
+  
+  # test equality
+  expect_equal(lm_engine$action(input), 
+               unname(predict(lm_model, 
+                              newdata = as.data.frame(input))),
+               tolerance = .0001)
+
+```
+
+Test coverage exists even for functions that are not model producers. For 
+example, their are test cases for using `read_pfa()` to check that the function 
+behaves as expected for reading PFA from a string, a file, or a url. 
+
+## Testing read_pfa()
+
+
+```r
+
+  model_as_list <- list(input='double', 
+                        output='double', 
+                        action=list(list(`+`=list('input', 10))))
+  
+  # literal JSON string  (useful for small examples)
+  toy_model <- read_pfa(paste0('{"input": "double", ', 
+                                '"output": "double", ', 
+                                '"action": [{"+": ["input", 10]}]}'))
+  expect_identical(toy_model, model_as_list)
+  
+  # from a local path, must be wrapped in "file" command to create a connection
+  file_conn <- file(system.file("extdata", "my-model.pfa", package = "aurelius"))
+  local_model <- read_pfa(file_conn)
+  expect_identical(local_model, model_as_list)
+  
+  # from a url
+  url_conn <- url(paste0("https://raw.githubusercontent.com/ReportMort/hadrian",
+                         "/feature/add-r-package-structure", 
+                         "/aurelius/inst/extdata/my-model.pfa"))
+  url_model <- read_pfa(url_conn)
+  expect_identical(url_model, model_as_list)
+
+```
