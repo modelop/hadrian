@@ -286,7 +286,7 @@ pfa.glmnet <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL,
 #' @export 
 extract_params.cv.glmnet <- function(object, lambda = object[["lambda.1se"]], ...) {
     
-  extract_params(object$glmnet.fit, lambda)
+  extract_params(object = object$glmnet.fit, lambda = lambda)
   
 }
 
@@ -338,7 +338,16 @@ pfa.cv.glmnet <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NU
   
   which_pred_type <- match.arg(pred_type)
   
-  pfa(object$glmnet.fit, lambda, pred_type=which_pred_type, cutoffs=cutoffs)
+  pfa(object = object$glmnet.fit, 
+      lambda = lambda, 
+      pred_type = which_pred_type, 
+      cutoffs = cutoffs, 
+      name=name, 
+      version=version, 
+      doc=doc, 
+      metadata=metadata, 
+      randseed=randseed, 
+      options=options, ...)
   
 }
 

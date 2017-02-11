@@ -79,13 +79,14 @@ test_that("check binomial glmnet", {
   y <- factor(sample(c('Z','Y'),100,replace=TRUE))
   
   lognet_model <- glmnet(x, y, family="binomial")
-  lognet_model_as_pfa <- pfa(object = lognet_model, lambda = lambda, pred_type='prob')
+  lognet_model_as_pfa <- pfa(object = lognet_model, lambda = lambda, 
+                             pred_type='prob')
   lognet_engine <- pfa_engine(lognet_model_as_pfa)
   
   expect_equal(lognet_engine$action(lognet_input), 
                glmnet_resp_to_prob(model = lognet_model,
-                                   newdata=as.matrix(t(unlist(lognet_input))),
-                                   lambda=lambda),
+                                   newdata = as.matrix(t(unlist(lognet_input))),
+                                   lambda = lambda),
                tolerance = .0001)
   
   lognet_model_as_pfa <- pfa(object = lognet_model, lambda = lambda, 
@@ -205,7 +206,8 @@ test_that("check multinomial glmnet", {
                                         lambda  = lambda))
   
   # check that it works for grouped multinomial models
-  multinomial_grouped_model <- glmnet(x, g4, family="multinomial", type.multinomial="grouped")
+  multinomial_grouped_model <- glmnet(x, g4, family="multinomial", 
+                                      type.multinomial="grouped")
   
   multinomial_grouped_model_as_pfa <- pfa(object = multinomial_model, lambda = lambda,
                                           pred_type='prob')
