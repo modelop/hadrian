@@ -209,7 +209,7 @@ test_that("check multinomial glmnet", {
   multinomial_grouped_model <- glmnet(x, g4, family="multinomial", 
                                       type.multinomial="grouped")
   
-  multinomial_grouped_model_as_pfa <- pfa(object = multinomial_model, lambda = lambda,
+  multinomial_grouped_model_as_pfa <- pfa(object = multinomial_grouped_model, lambda = lambda,
                                           pred_type='prob')
   multinomial_grouped_engine <- pfa_engine(multinomial_grouped_model_as_pfa)
   multinomial_grouped_res <- multinomial_grouped_engine$action(multinomial_input)
