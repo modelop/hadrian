@@ -19,7 +19,10 @@
 
 #' pfa_expr
 #'
-#' Convert a quoted R expression into a \code{list} of lists that can be inserted into PFA
+#' Convert a quoted R expression into a \code{list} of lists that can be 
+#' inserted into PFA
+#' 
+#' @importFrom utils tail
 #' @param expr quoted R expression (e.g. quote(2 + 2))
 #' @param symbols list of symbol names that would be in scope when evaluating this expression
 #' @param cells list of cell names that would be in scope when evaluating this expression
@@ -27,10 +30,11 @@
 #' @param fcns list of function names that would be in scope when evaluating this expression
 #' @param env environment for resolving unrecognized symbols as substitutions
 #' @return a \code{list} of lists representing a fragment of a PFA document
-#' @export pfa_expr
 #' @examples
+#' \dontrun{
 #' pfa_expr(quote(2 + 2))
-
+#' }
+#' @export
 pfa_expr <- function(expr, symbols = list(), cells = list(), pools = list(), fcns = list(), env = parent.frame()) {
     symbolsEnv <- new.env()
     if (is.list(symbols)) {

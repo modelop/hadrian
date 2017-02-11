@@ -24,14 +24,16 @@ counter$n <- 0
 #' If this function is successful, then the PFA is valid (only way to check 
 #' PFA validity in R).
 #' 
+#' @importFrom utils capture.output
 #' @param doc \code{list} of lists representing a complete PFA document
 #' @importFrom rPython python.exec python.call
 #' @source json.R
-#' @export pfa_engine
 #' @examples
+#' \dontrun{
 #' my_pfa_doc <- pfa_document(avro_double, avro_double, expression(input + 10))
 #' pfa_engine(my_pfa_doc)   # where the my_pfa_doc is created by pfa_document
-
+#' }
+#' @export
 pfa_engine <- function(doc) {
   
     name <- gen_unique_eng_name()

@@ -20,11 +20,12 @@
 #' Convenience function for making a (possibly empty) named list, which converts to a JSON object.
 #' @param ... optional contents of the named list (as key-value pairs)
 #' @return a named list
-#' @export json_map
 #' @examples
+#' \dontrun{
 #' json_map()
 #' json_map(one = 1, two = TRUE, three = "THREE")
-
+#' }
+#' @export
 json_map <- function(...) {
     args <- list(...)
     if (length(args) == 0)
@@ -37,14 +38,18 @@ json_map <- function(...) {
 
 #' json_array
 #'
-#' Convenience function for making a (possibly empty) unnamed list, which converts to a JSON array.
+#' Convenience function for making a (possibly empty) unnamed list, which 
+#' converts to a JSON array.
+#' 
+#' @importFrom stats setNames
 #' @param ... optional contents of the unnamed list
 #' @return an unnamed list
-#' @export json_array
 #' @examples
+#' \dontrun{
 #' json_array()
 #' json_array(1, TRUE, "THREE")
-
+#' }
+#' @export
 json_array <- function(...) {
     args <- list(...)
     if (!is.null(names(args)))

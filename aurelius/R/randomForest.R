@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 #' extract_params.randomForest
 #'
 #' Extracts parameters from a forest made by the randomForest function

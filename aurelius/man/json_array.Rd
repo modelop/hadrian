@@ -13,10 +13,13 @@ json_array(...)
 an unnamed list
 }
 \description{
-Convenience function for making a (possibly empty) unnamed list, which converts to a JSON array.
+Convenience function for making a (possibly empty) unnamed list, which 
+converts to a JSON array.
 }
 \examples{
+\dontrun{
 json_array()
 json_array(1, TRUE, "THREE")
+}
 }
 

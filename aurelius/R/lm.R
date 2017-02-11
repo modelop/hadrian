@@ -21,6 +21,7 @@
 #' returns a list-of-lists representing in valid PFA document 
 #' that could be used for scoring
 #' 
+#' @importFrom stats gaussian
 #' @source pfa.config.R avro.typemap.R avro.R
 #' @param object an object of class "lm"
 #' @param name a character which is an optional name for the scoring engine

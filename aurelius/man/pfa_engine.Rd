@@ -18,7 +18,9 @@ If this function is successful, then the PFA is valid (only way to check
 PFA validity in R).
 }
 \examples{
+\dontrun{
 my_pfa_doc <- pfa_document(avro_double, avro_double, expression(input + 10))
 pfa_engine(my_pfa_doc)   # where the my_pfa_doc is created by pfa_document
+}
 }
 

@@ -24,9 +24,12 @@ pfa_expr(expr, symbols = list(), cells = list(), pools = list(),
 a \code{list} of lists representing a fragment of a PFA document
 }
 \description{
-Convert a quoted R expression into a \code{list} of lists that can be inserted into PFA
+Convert a quoted R expression into a \code{list} of lists that can be 
+inserted into PFA
 }
 \examples{
+\dontrun{
 pfa_expr(quote(2 + 2))
+}
 }
 

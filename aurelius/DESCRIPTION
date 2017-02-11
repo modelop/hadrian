@@ -1,54 +1,56 @@
 Package: aurelius
 Type: Package
 Version: 0.8.4.9000
-Date: 2017-02-05
+Date: 2017-02-11
 Title: Generates PFA Documents from R Code and Optionally Runs Them
 Description: Converts R syntax into PFA and provides tools for assembling a PFA
-    document within R. Tests validity and runtime behavior of PFA by offloading
-    PFA and data to Titus (through rPython). Facilitates conversion of common R
-    model output to PFA using aurelius.* libraries.
+  document within R. Tests validity and runtime behavior of PFA by offloading
+  PFA and data to Titus (through rPython). Facilitates conversion of common R
+  model output to PFA using aurelius.* libraries.
 Authors@R: c(
-    person("Open", "Data Group", , , c("aut")),
-    person("Collin", "Bennett", , "collin.bennett@opendatagroup.com", c("cre"))
-    )
+  person("Open", "Data Group", , , c("aut")),
+  person("Collin", "Bennett", , "collin.bennett@opendatagroup.com", c("cre"))
+  )
 URL: https://github.com/opendatagroup/hadrian/tree/master/aurelius
 BugReports: https://github.com/opendatagroup/hadrian/issues
 Depends:
-    R (>= 3.2.0)
+  R (>= 3.2.0)
 Imports:
-    jsonlite (>= 1.1),
-    rPython (>= 0.0-6),
-    gbm (>= 2.1.1)
+  methods,
+  jsonlite (>= 1.1),
+  rPython (>= 0.0-6),
+  gbm (>= 2.1.1),
+  glmnet (>= 2.0-5)
 Suggests:
-    knitr,
-    rmarkdown,
-    testthat
+  knitr,
+  rmarkdown,
+  testthat
 VignetteBuilder: knitr
 License: file LICENSE
 NeedsCompilation: no
 LazyData: true
 RoxygenNote: 5.0.1
 Collate:
-    'aurelius.R'
-    'avro.R'
-    'avro_from_df.R'
-    'avro_fullname.R'
-    'avro_type.R'
-    'avro_typemap.R'
-    'converters.R'
-    'gbm.R'
-    'gen_unique_name.R'
-    'glm.R'
-    'glmnet.R'
-    'jsonobj.R'
-    'lm.R'
-    'pfa.R'
-    'pfa_cellpool.R'
-    'pfa_document.R'
-    'pfa_engine.R'
-    'pfa_expr.R'
-    'pfa_utils.R'
-    'randomForest.R'
-    'read_pfa.R'
-    'write_pfa.R'
-    'zzz.R'
+  'aurelius.R'
+  'avro.R'
+  'avro_from_df.R'
+  'avro_fullname.R'
+  'avro_type.R'
+  'avro_typemap.R'
+  'converters.R'
+  'gbm.R'
+  'gen_unique_name.R'
+  'glm.R'
+  'glmnet.R'
+  'jsonobj.R'
+  'lm.R'
+  'pfa.R'
+  'pfa_cellpool.R'
+  'pfa_document.R'
+  'pfa_engine.R'
+  'pfa_expr.R'
+  'pfa_utils.R'
+  'randomForest.R'
+  'read_pfa.R'
+  'write_pfa.R'
+  'zzz.R'

@@ -21,6 +21,7 @@
 #' Create a complete PFA document as a list-of-lists. Composing with the JSON 
 #' function creates a PFA file on disk.
 #' 
+#' @importFrom utils tail
 #' @param input input schema, which is an Avro schema as list-of-lists (created by avro_* functions)
 #' @param output output schema, which is an Avro schema as list-of-lists (created by avro_* functions)
 #' @param action R commands wrapped as an expression (see R's built-in expression function)
@@ -40,10 +41,11 @@
 #' @param options optional list-of-lists to specify PFA options
 #' @param env environment for resolving unrecognized symbols as substitutions
 #' @return a \code{list} of lists representing a complete PFA document
-#' @export
 #' @examples
+#' \dontrun{
 #' pfa_document(avro_double, avro_double, expression(input + 10))
-
+#' }
+#' @export
 pfa_document <- function(input,
                          output,
                          action,

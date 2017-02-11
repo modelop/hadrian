@@ -19,7 +19,8 @@
 #'
 #' Convert a JSON string in memory or a JSON file on disk into a list-of-lists structure.
 #' 
-#' @param x A string or connection. A string can be either a path, a string of JSON.
+#' @importFrom methods is
+#' @param x A string, file or url connection
 #' @return a \code{list} of lists structure in which null -> NULL, true -> TRUE, 
 #' false -> FALSE, numbers -> numeric, strings -> character, array -> list, 
 #' object -> named list
@@ -28,71 +29,78 @@
 #' # literal JSON string  (useful for small examples)
 #' toy_model <- read_pfa('{"input":"double","output":"double","action":[{"+":["input",10]}]}')
 #' 
-#' # from a local path
-#' local_model <- read_pfa(system.file("extdata", "my-model.pfa", package = "aurelius"))
+#' # from a local path, must be wrapped in "file" command to create a connection
+#' local_model <- read_pfa(file(system.file("extdata", "my-model.pfa", package = "aurelius")))
 #' 
 #' # from a url (split on two lines so not to exceed 100 char wide during install)
-#' url_model <- read_pfa(paste0('https://raw.githubusercontent.com/ReportMort/hadrian', 
-#'                      '/feature/add-r-package-structure/aurelius/inst/extdata/my-model.pfa'))
+#' url_model <- read_pfa(url(paste0('https://raw.githubusercontent.com/ReportMort/hadrian', 
+#'                      '/feature/add-r-package-structure/aurelius/inst/extdata/my-model.pfa')))
 #' }
 #' @export
 read_pfa <- function(x) {
   
-    if (is.character(x) & length(x) == 1 & grepl("^(http|ftp)s?://", x)) {
-      x <- url(x)
-    }
-  
-    if (is.character(x)  &&  length(x) == 1) {
-      x <- strsplit(x, "", useBytes = TRUE)[[1]]
-      i <- 0
-      getNext <- function() {
-          if (i < length(x)) {
-              out <- x[i : i+1]
-              i <<- i + 1
-              out
-          }
-          else
-              character(0)
-      }
-      getIndex <- function() { i }
-      rewind <- function() { i <<- i - 1 }
-    }
-    else if (is(x, "connection")) {
-      if (!isOpen(x)){
-        open(x)
-        on.exit(close(x))
-      }
-      
-      i <- 0
-      useStorage <- FALSE
-      storage <- NULL
-      getNext <- function() {
-          i <- i + 1
-          if (useStorage) {
-              useStorage <<- FALSE
-              storage
-          }
-          else {
-              storage <<- readChar(x, 1, useBytes = TRUE)
-              storage
-          }
-      }
-      getIndex <- function() { i }
-      rewind <- function() {
-          i <<- i - 1
-          useStorage <<- TRUE
-      }
-    }
-    else
-      stop("read_pfa requires a file path, URL, literal JSON, or a connection (file)")
+  # keep just in case users forget to wrap urls in the url() function
+  if (is.character(x) & length(x) == 1 & grepl("^(http|ftp)s?://", x)) {
+    x <- url(x)
+  }
 
-    out <- parse_value(getNext, getIndex, rewind)
-    while (length(y <- getNext()) != 0)
-        if (y != " "  &&  y != "\t"  &&  y != "\n"  &&  y != "\r")
-            stop(paste("unexpected character", y, "after JSON terminates at index", getIndex()))
-    out
+  if (is.character(x)  &&  length(x) == 1) {
+    x <- strsplit(x, "", useBytes = TRUE)[[1]]
+    i <- 0
+    getNext <- function() {
+        if (i < length(x)) {
+            out <- x[i : i+1]
+            i <<- i + 1
+            out
+        }
+        else
+            character(0)
+    }
+    getIndex <- function() { i }
+    rewind <- function() { i <<- i - 1 }
+  }
+  else if (is(x, "connection")) {
+    if (!isOpen(x)){
+      open(x)
+      on.exit(close(x))
+    }
+    
+    i <- 0
+    useStorage <- FALSE
+    storage <- NULL
+    getNext <- function() {
+        i <- i + 1
+        if (useStorage) {
+            useStorage <<- FALSE
+            storage
+        }
+        else {
+            storage <<- readChar(x, 1, useBytes = TRUE)
+            storage
+        }
+    }
+    getIndex <- function() { i }
+    rewind <- function() {
+        i <<- i - 1
+        useStorage <<- TRUE
+    }
+  }
+  else
+    stop("read_pfa requires a file path, URL, literal JSON, or a connection (file)")
+
+  out <- parse_value(getNext, getIndex, rewind)
+  while (length(y <- getNext()) != 0)
+      if (y != " "  &&  y != "\t"  &&  y != "\n"  &&  y != "\r")
+          stop(paste("unexpected character", y, "after JSON terminates at index", getIndex()))
+  out
 }
 
+
+#' parse_value
+#' 
+#' parse_value
+#' 
+#' @keywords internal
 parse_value <- function(getNext, getIndex, rewind) {
     x <- getNext()
     if (length(x) == 0)
@@ -126,6 +134,12 @@ parse_value <- function(getNext, getIndex, rewind) {
         stop(paste("unexpected character", x, "at index", getIndex()))
 }
 
+
+#' parse_number
+#' 
+#' parse_number
+#' 
+#' @keywords internal
 parse_number <- function(x, getNext, getIndex, rewind) {
     y <- character(0)
     while (length(x) != 0  &&  (x == "-"  ||  x == "+"  ||  x == "."  ||  x == "e"  ||  x == "E"  ||  (x >= "0"  &&  x <= "9"))) {
@@ -140,6 +154,12 @@ parse_number <- function(x, getNext, getIndex, rewind) {
     out
 }
 
+
+#' parse_string
+#' 
+#' parse_string
+#' 
+#' @keywords internal
 parse_string <- function(getNext, getIndex, rewind) {
     y <- character(0)
     x <- getNext()
@@ -174,6 +194,12 @@ parse_string <- function(getNext, getIndex, rewind) {
     paste(y, collapse = "")
 }
 
+
+#' parse_object
+#' 
+#' parse_object
+#' 
+#' @keywords internal
 parse_object <- function(getNext, getIndex, rewind) {
     out <- json_map()
     repeat {
@@ -218,6 +244,12 @@ parse_object <- function(getNext, getIndex, rewind) {
     out
 }
 
+
+#' parse_array
+#' 
+#' parse_array
+#' 
+#' @keywords internal
 parse_array <- function(getNext, getIndex, rewind) {
     out <- json_array()
 

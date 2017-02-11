@@ -49,6 +49,13 @@ convert_function <- function(name, args, symbols, cells, pools, fcns, env) {
 # PFA (and therefore this R subset) doesn't really have default arguments; every argument must
 # always be supplied, and hence these avro objects won't really be used.  The R subset behaves
 # exactly like the equivalent pfa_
+
+#' convert_fcn
+#' 
+#' A function to convert R expressions to their PFA equivalent
+#' 
+#' @keywords internal
+#' @importFrom utils tail
 convert_fcn <- function(name, args, symbols, cells, pools, fcns, env) {
     params <- args[[1]]
     body <- args[[2]]
@@ -233,7 +240,7 @@ add_to_converters(list(domain = function(name, args) { (name == "<-"  ||  name =
                             stop(paste("unrecognized assignment:", as.call(c(as.symbol(name), args))))
                     }))
 
-unwrapBrackets <- function(path, expr) {
+unwrap_brackets <- function(path, expr) {
     if (is.call(expr)) {
         name <- as.character(expr[[1]])
         args <- tail(as.list(expr), -1)
@@ -241,15 +248,15 @@ unwrapBrackets <- function(path, expr) {
             ## auto-minus-one is dangerous
             ## path <- c(as.call(list("-", args[[2]], 1)), path)
             path <- c(args[[2]], path)
-            path <- unwrapBrackets(path, args[[1]])
+            path <- unwrap_brackets(path, args[[1]])
         }
         else if (name == "[["  &&  length(args) == 2) {
             path <- c(args[[2]], path)
-            path <- unwrapBrackets(path, args[[1]])
+            path <- unwrap_brackets(path, args[[1]])
         }
         else if (name == "$"  &&  length(args) == 2) {
             path <- c(as.character(args[[2]]), path)
-            path <- unwrapBrackets(path, args[[1]])
+            path <- unwrap_brackets(path, args[[1]])
         }
         else
             path <- c(expr, path)
@@ -263,7 +270,7 @@ unwrapBrackets <- function(path, expr) {
 add_to_converters(list(domain = function(name, args) { (name == "["  ||  name == "[["  ||  name == "$")  &&  length(args) == 2 },
                     apply  = function(name, args, symbols, cells, pools, fcns, env) {
                         expr <- as.call(c(as.symbol(name), args))
-                        path <- unwrapBrackets(list(), expr)
+                        path <- unwrap_brackets(list(), expr)
                         first <- path[[1]]
                         rest <- tail(path, -1)
 
