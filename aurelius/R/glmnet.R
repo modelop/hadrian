@@ -34,8 +34,7 @@
 #' model <- glmnet(X, Y, family = 'binomial')
 #' my_model_params <- extract_params(model)
 #' }
-#' @export 
-
+#' @export
 extract_params.glmnet <- function(object, lambda=NULL, ...) {
   
   net_type <- class(object)[class(object)!='glmnet']
@@ -55,10 +54,10 @@ extract_params.glmnet <- function(object, lambda=NULL, ...) {
   }
   # how to support multiclass problems
   mcoef <- do.call("cbind", lapply(coef_obj, function(x) as.matrix(x)))
-  mcoef = t(mcoef)
+  mcoef <- t(mcoef)
   mactive <- do.call("c", lapply(coef_obj, function(x) attributes(x)$i))
   mactive <- unique(c(1, sort(unique(mactive)) + 1)) # add the intercept regardless
-  mcoef <- mcoef[,mactive]
+  mcoef <- mcoef[,mactive, drop=F]
   if(!is.matrix(mcoef)){
     mcoef <- as.matrix(t(mcoef))
   }

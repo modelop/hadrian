@@ -73,8 +73,26 @@ test_that("check gaussian glmnets", {
 test_that("check binomial glmnet", {
 
   lognet_input <- list(X1=.01, X2=.3)
-  lambda <- .01
+  lambda <- .001
   
+  # add test case where the coefficients and intercept are all zero
+  set.seed(1)
+  x <- matrix(rnorm(100*2), 100, 2, dimnames = list(NULL, c('X1','X2')))
+  y <- factor(sample(c('Y', 'Z'), 100, replace = TRUE))
+  
+  this_lambda <- 1000
+  lognet_model <- glmnet(x, y, family="binomial", intercept = F)
+  lognet_model_as_pfa <- pfa(object = lognet_model, lambda = this_lambda, 
+                             pred_type='prob')
+  lognet_engine <- pfa_engine(lognet_model_as_pfa)
+  
+  expect_equal(lognet_engine$action(lognet_input)[lognet_model$classnames], 
+               glmnet_resp_to_prob(model = lognet_model,
+                                   newdata = as.matrix(t(unlist(lognet_input))),
+                                   lambda = this_lambda),
+               tolerance = .0001)
+  
+  # test case where coefficients are non-zero
   set.seed(1)
   x <- matrix(rnorm(100*2), 100, 2, dimnames = list(NULL, c('X1','X2')))
   y <- 3 - 4 * x[,'X1'] + 3 * x[,'X2'] + rnorm(100, 0, 4)
