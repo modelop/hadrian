@@ -75,6 +75,7 @@ test_that("check binomial glmnet", {
   lognet_input <- list(X1=10, X2=.99)
   lambda <- .01
   
+  set.seed(1)
   x <- matrix(rnorm(100*2), 100, 2, dimnames = list(NULL, c('X1','X2')))
   y <- factor(sample(c('Z','Y'),100,replace=TRUE))
   
@@ -83,7 +84,7 @@ test_that("check binomial glmnet", {
                              pred_type='prob')
   lognet_engine <- pfa_engine(lognet_model_as_pfa)
   
-  expect_equal(lognet_engine$action(lognet_input), 
+  expect_equal(lognet_engine$action(lognet_input)[lognet_model$classnames], 
                glmnet_resp_to_prob(model = lognet_model,
                                    newdata = as.matrix(t(unlist(lognet_input))),
                                    lambda = lambda),
