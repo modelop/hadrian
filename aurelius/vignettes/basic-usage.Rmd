@@ -33,7 +33,7 @@ knitr::opts_chunk$set(
 ```
 
 
-# Setup
+# A Simple Example
 
 First, we load the `aurelius`
 
