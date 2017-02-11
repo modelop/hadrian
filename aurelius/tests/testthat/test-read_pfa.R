@@ -14,8 +14,8 @@ test_that("read_pfa works with all input object types", {
   expect_identical(local_model, model_as_list)
   
   # from a url
-  url_conn <- url(paste("https://raw.githubusercontent.com/ReportMort/hadrian",
-                        "/feature/add-r-package-structure/aurelius/inst/extdata/my-model.pfa"))
+  url_conn <- url(paste0("https://raw.githubusercontent.com/ReportMort/hadrian",
+                         "/feature/add-r-package-structure/aurelius/inst/extdata/my-model.pfa"))
   url_model <- read_pfa(url_conn)
   expect_identical(url_model, model_as_list)
   
