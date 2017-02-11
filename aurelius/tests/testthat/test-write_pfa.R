@@ -15,8 +15,8 @@ test_that("write_pfa works with relative file paths", {
   
   filename <- "../test.pfa"
   on.exit(unlink(filename))
-  write_pfa(model, filename, options = "no_declaration")
-  expect_identical(readChar(filename, 1000L), paste0(model_as_string, '\r\n'))
+  write_pfa(model, filename)
+  expect_identical(readChar(filename, 1000L), paste0(model_as_string, '\n'))
   
 })
 
@@ -37,6 +37,6 @@ test_that("write_pfa works with an implicit connections", {
   write_pfa(model, filename)
   file <- gzfile(filename, "rb")
   on.exit({unlink(filename); close(file)})
-  expect_identical(readChar(file, 1000L), paste0(model_as_string, '\r\n'))
+  expect_identical(readChar(file, 1000L), paste0(model_as_string, '\n'))
   
 })

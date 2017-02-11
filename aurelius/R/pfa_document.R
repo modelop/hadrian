@@ -30,7 +30,7 @@
 #' @param pools named list of pool specifications (see the pfa_cell function)
 #' @param fcns named list of R commands, wrapped as expressions
 #' @param validate a logical indicating whether the generated PFA document should 
-#' be validated using Titus-in-Aurelius function \link{\code{pfa_engine}}
+#' be validated using Titus-in-Aurelius function \code{\link{pfa_engine}}
 #' @param name optional name for the scoring engine (string)
 #' @param method "map", "emit", "fold", or NULL (for "map")
 #' @param begin R commands wrapped as an expression
@@ -44,7 +44,7 @@
 #' @param options optional list-of-lists to specify PFA options
 #' @param env environment for resolving unrecognized symbols as substitutions
 #' @return a \code{list} of lists representing a complete PFA document
-#' @seealso \link{\code{pfa_engine}}
+#' @seealso \code{\link{pfa_engine}}
 #' @examples
 #' \dontrun{
 #' pfa_document(avro_double, avro_double, expression(input + 10))

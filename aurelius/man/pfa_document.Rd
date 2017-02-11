@@ -27,7 +27,7 @@ pfa_document(input, output, action, cells = NULL, pools = NULL,
 \item{fcns}{named list of R commands, wrapped as expressions}
 
 \item{validate}{a logical indicating whether the generated PFA document should 
-be validated using Titus-in-Aurelius function \link{\code{pfa_engine}}}
+be validated using Titus-in-Aurelius function \code{\link{pfa_engine}}}
 
 \item{name}{optional name for the scoring engine (string)}
 
@@ -66,6 +66,6 @@ pfa_document(avro_double, avro_double, expression(input + 10))
 }
 }
 \seealso{
-\link{\code{pfa_engine}}
+\code{\link{pfa_engine}}
 }
 
