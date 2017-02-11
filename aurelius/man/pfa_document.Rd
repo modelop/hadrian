@@ -3,11 +3,15 @@
 \name{pfa_document}
 \alias{pfa_document}
 \title{pfa_document}
+\source{
+pfa_engine.R
+}
 \usage{
-pfa_document(input, output, action, name = NULL, method = NULL,
-  begin = NULL, end = NULL, fcns = NULL, zero = NULL, merge = NULL,
-  cells = NULL, pools = NULL, randseed = NULL, doc = NULL,
-  version = NULL, metadata = NULL, options = NULL, env = parent.frame())
+pfa_document(input, output, action, cells = NULL, pools = NULL,
+  fcns = NULL, validate = TRUE, name = NULL, method = NULL,
+  begin = NULL, end = NULL, zero = NULL, merge = NULL,
+  randseed = NULL, doc = NULL, version = NULL, metadata = NULL,
+  options = NULL, env = parent.frame())
 }
 \arguments{
 \item{input}{input schema, which is an Avro schema as list-of-lists (created by avro_* functions)}
@@ -15,6 +19,15 @@ pfa_document(input, output, action, name = NULL, method = NULL,
 \item{output}{output schema, which is an Avro schema as list-of-lists (created by avro_* functions)}
 
 \item{action}{R commands wrapped as an expression (see R's built-in expression function)}
+
+\item{cells}{named list of cell specifications (see the pfa_cell function)}
+
+\item{pools}{named list of pool specifications (see the pfa_cell function)}
+
+\item{fcns}{named list of R commands, wrapped as expressions}
+
+\item{validate}{a logical indicating whether the generated PFA document should 
+be validated using Titus-in-Aurelius function \link{\code{pfa_engine}}}
 
 \item{name}{optional name for the scoring engine (string)}
 
@@ -24,15 +37,9 @@ pfa_document(input, output, action, name = NULL, method = NULL,
 
 \item{end}{R commands wrapped as an expression}
 
-\item{fcns}{named list of R commands, wrapped as expressions}
-
 \item{zero}{list-of-lists representing the initial value for a "fold"'s tally}
 
 \item{merge}{R commands wrapped as an expression}
-
-\item{cells}{named list of cell specifications (see the pfa_cell function)}
-
-\item{pools}{named list of pool specifications (see the pfa_cell function)}
 
 \item{randseed}{optional random number seed (integer) for ensuring that the scoring engine is deterministic}
 
@@ -57,5 +64,8 @@ function creates a PFA file on disk.
 \dontrun{
 pfa_document(avro_double, avro_double, expression(input + 10))
 }
+}
+\seealso{
+\link{\code{pfa_engine}}
 }
 
