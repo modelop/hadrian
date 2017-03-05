@@ -25,7 +25,7 @@ test_that("check binomial family GLMs", {
   
   logit_model <- glm(Y ~ X1 + X2, family = binomial(logit))
   
-  logit_model_as_pfa <- pfa.glm(logit_model, pred_type = 'prob')
+  logit_model_as_pfa <- pfa(logit_model, pred_type = 'prob')
   logit_engine <- pfa_engine(logit_model_as_pfa)
   
   expect_equal(logit_engine$action(input), 
