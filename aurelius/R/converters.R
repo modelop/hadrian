@@ -366,6 +366,51 @@ add_to_converters(list(domain = function(name, args) { name == "while"  &&  leng
                         out
                     }))
 
+# castcase generates a cast-case 
+add_to_converters(list(domain = function(name, args) { name == "castcase"  &&  length(args) == 3 },
+                    apply  = function(name, args, symbols, cells, pools, fcns, env) {
+                      
+                      named_symbol <- as.list(args[[2]])
+                      names(named_symbol) <- args[[2]]
+                      symbols_body <- c(as.list(symbols), named_symbol)
+                      pfa_expr_body <- function (x) pfa_expr(x, symbols = symbols_body, cells = cells, pools = pools, fcns = fcns, env = env)
+                      
+                      out <- list()
+                      out[["as"]] <- args[[1]]
+                      out[["named"]] <- args[[2]]
+                      out[["do"]] <- pfa_expr_body(args[[3]])
+                      return(out)
+                    }))
+
+# castblock generates a cast block of cast cases
+add_to_converters(list(domain = function(name, args) { name == "castblock"  &&  length(args) == 3 },
+                    apply  = function(name, args, symbols, cells, pools, fcns, env) {
+
+                        symbols_body <- as.environment(as.list(symbols))
+                        pfa_expr_body <- function (x) pfa_expr(x, symbols = symbols_body, cells = cells, pools = pools, fcns = fcns, env = env)
+                        
+                        out <- list()
+                        out[["cast"]] <- pfa_expr_body(args[[1]])
+                        out[["cases"]] <- pfa_expr_body(args[[2]])
+                        out[["partial"]] <- pfa_expr_body(args[[3]])
+                        out
+                    }))
+
+add_to_converters(list(domain = function(name, args) { name == "list" },
+                    apply  = function(name, args, symbols, cells, pools, fcns, env) {
+                      
+                      symbols_body <- as.environment(as.list(symbols))
+                      pfa_expr_body <- function (x) pfa_expr(x, symbols = symbols_body, cells = cells, pools = pools, fcns = fcns, env = env)
+                      
+                      out <- list()
+                      for(i in seq.int(length(args))){
+                        out[[i]] <- pfa_expr_body(args[[i]])
+                      }
+                      names(out) <- names(args)
+                      
+                      out
+                    }))
+
 # for loop over a low:high range generates a PFA "for" loop
 add_to_converters(list(domain = function(name, args) { name == "for"  &&  length(args) == 3  &&  is.symbol(args[[1]])  &&  is.call(args[[2]])  &&  args[[2]][[1]] == ":" },
                     apply  = function(name, args, symbols, cells, pools, fcns, env) {
