@@ -43,6 +43,7 @@ r_packages:
 - gbm
 - glmnet
 - randomForest
+- e1071
 
 #services
 services:
