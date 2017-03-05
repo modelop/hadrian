@@ -1,5 +1,7 @@
 context("pfa.naiveBayes")
 
+suppressMessages(suppressWarnings(library(e1071)))
+
 test_that("check Naive Bayes model with all numeric inputs", {
   
   numeric_input <- list(X1=5.5, 
