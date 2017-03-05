@@ -89,7 +89,7 @@ test_that("check Naive Bayes model with mix of categorial and numeric inputs", {
 })
 
 
-test_that("check prediction cutoffs", {
+test_that("check Naive Bayes model with custom prediction cutoffs", {
   
   mixed_input <- list(X1='6', X2='4', X3 = 20, X4 = 90)
   mixed_input2 <- data.frame(X1=factor('6',levels=c('4','6','8')), 
@@ -115,5 +115,39 @@ test_that("check prediction cutoffs", {
 
   expect_equal(mixed_model_engine$action(mixed_input), 
                names(cutoff_ratio_adjusted_preds)[which.max(cutoff_ratio_adjusted_preds)]) 
+  
+})
+
+test_that("check Naive Bayes model with missing value inputs", {
+  
+  mixed_input <- list(X1='6', X2=NA, X3 = 20, X4 = NA)
+  mixed_input2 <- data.frame(X1=factor('6',levels=c('4','6','8')), 
+                             X2=factor(NA,levels=c('3','4','5')), 
+                             X3=20, 
+                             X4=NA) 
+  
+  mixed_model <- naiveBayes(Y ~ X1 + X2 + X3 + X4, data=mixed_dat)
+  
+  mixed_model_as_pfa <- pfa(mixed_model, pred_type = 'prob')
+  mixed_model_engine <- pfa_engine(mixed_model_as_pfa)
+  
+  expect_equal(mixed_model_engine$action(mixed_input)[mixed_model$levels], 
+               predict(mixed_model, mixed_input2, 'raw')[1,],
+               tolerance = .0001)
+  
+  # test all missing - it should equal the prior probs
+  mixed_input_all_na <- list(X1=NA, X2=NA, X3 = NA, X4 = NA)
+  mixed_input2_all_na <- data.frame(X1=factor(NA,levels=c('4','6','8')), 
+                                    X2=factor(NA,levels=c('3','4','5')), 
+                                    X3=NA, 
+                                    X4=NA)
+  
+  expect_equal(mixed_model_engine$action(mixed_input_all_na)[mixed_model$levels], 
+               predict(mixed_model, mixed_input2_all_na, 'raw')[1,],
+               tolerance = .0001)
+  # check against prior probs
+  expect_equal(mixed_model_engine$action(mixed_input_all_na)[mixed_model$levels], 
+               t(mixed_model$apriori/sum(mixed_model$apriori))[1,],
+             tolerance = .0001)
   
 })
