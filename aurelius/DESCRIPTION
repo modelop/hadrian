@@ -44,6 +44,7 @@ Collate:
   'glmnet.R'
   'jsonobj.R'
   'lm.R'
+  'naiveBayes.R'
   'pfa.R'
   'pfa_cellpool.R'
   'pfa_document.R'
