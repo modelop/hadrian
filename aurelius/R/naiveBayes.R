@@ -188,10 +188,11 @@ build_model.naiveBayes <- function(object, threshold = .001, eps = 0, ...){
 #' @export
 
 pfa.naiveBayes <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
-                    pred_type = c('response', 'prob'), 
-                    cutoffs = NULL, ...){
+                           threshold = .001, eps = 0,
+                           pred_type = c('response', 'prob'), 
+                           cutoffs = NULL, ...){
   
-  model_cell <- build_model(object, threshold = .001, eps = 0)
+  model_cell <- build_model(object, threshold = threshold, eps = eps)
 
   # build out 1 action for each class (currently only way given limitations with case-case do statement)
   # TODO: Find a better way so that we only need to evaluate the value type once (string, double, null)

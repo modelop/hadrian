@@ -8,8 +8,8 @@ pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 }
 \usage{
 \method{pfa}{naiveBayes}(object, name = NULL, version = NULL, doc = NULL,
-  metadata = NULL, randseed = NULL, options = NULL,
-  pred_type = c("response", "prob"), cutoffs = NULL, ...)
+  metadata = NULL, randseed = NULL, options = NULL, threshold = 0.001,
+  eps = 0, pred_type = c("response", "prob"), cutoffs = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class "naiveBayes"}
@@ -31,6 +31,11 @@ different seeds generated from the global one}
 Initialization or runtime options to customize implementation 
 (e.g. optimization switches). May be overridden or ignored by PFA consumer}
 
+\item{threshold}{a value replacing cells with probabilities within eps range.}
+
+\item{eps}{a numeric for specifying an epsilon-range to apply laplace 
+smoothing (to replace zero or close-zero probabilities by theshold.)}
+
 \item{pred_type}{a string with value "response" for returning the predicted class 
 or the value "prob", which for returns the predicted probability of each class.}
 
@@ -40,11 +45,6 @@ maximum ratio of predicted probability to its cutoff. The default cutoffs assume
 same cutoff for each class that is 1/k where k is the number of classes}
 
 \item{...}{additional arguments affecting the PFA produced}
-
-\item{threshold}{a value replacing cells with probabilities within eps range.}
-
-\item{eps}{a numeric for specifying an epsilon-range to apply laplace 
-smoothing (to replace zero or close-zero probabilities by theshold.)}
 }
 \value{
 a \code{list} of lists that compose valid PFA document

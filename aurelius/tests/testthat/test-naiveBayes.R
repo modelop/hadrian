@@ -126,6 +126,12 @@ test_that("check Naive Bayes model with missing value inputs", {
                              X3=20, 
                              X4=NA) 
   
+  mixed_dat <- data.frame(X1 = factor(mtcars$cyl), 
+                          X2 = factor(mtcars$gear), 
+                          X3 = mtcars$mpg, 
+                          X4 = mtcars$hp,
+                          Y = factor(mtcars$am))
+  
   mixed_model <- naiveBayes(Y ~ X1 + X2 + X3 + X4, data=mixed_dat)
   
   mixed_model_as_pfa <- pfa(mixed_model, pred_type = 'prob')
