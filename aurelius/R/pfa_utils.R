@@ -1,10 +1,32 @@
 
+#' @include avro.R
+gen_blank_array_of_arrays <- function(avro_type){
+  list(type = avro_array(avro_array(avro_double)),
+          new = list())
+}
+
+#' @include avro.R
+gen_blank_array <- function(avro_type){
+  list(type = avro_array(avro_type),
+          new = list())
+}
+
 #' @include pfa_expr.R
-cutoff_cmp_fcn <- list("cutoff_cmp" = c(list(params = list(list('x' = avro_double), 
-                                                           list('y' = avro_double)),
-                                             ret = avro_int),
-                                        pfa_expr(expr=parse(text=paste('if(x >= y) {1} else {0}')),
-                                                 symbols = list('x', 'y'))))
+normalize_array_fcn <- list("a.normalize" = c(list(params = list(list('x' = avro_array(avro_double))),
+                                                   ret = avro_array(avro_double)),
+                                              pfa_expr(expr=parse(text=paste('la.scale(x, 1/a.sum(x))')),
+                                                       symbols = list('x'))))
+#' @include pfa_expr.R
+ln_la_fcn <- list("la.ln" = c(list(params = list(list('x' = avro_array(avro_array(avro_double)))),
+                                     ret = avro_array(avro_array(avro_double))),
+                                pfa_expr(expr=parse(text=paste('la.map(x, function(y = avro_double -> avro_double) m.ln(y))')),
+                                         symbols = list('x'))))
+
+#' @include pfa_expr.R
+exp_la_fcn <- list("la.exp" = c(list(params = list(list('x' =  avro_array(avro_array(avro_double)))),
+                                       ret = avro_array(avro_array(avro_double))),
+                                  pfa_expr(expr=parse(text=paste('la.map(x, function(y = avro_double -> avro_double) m.exp(y))')),
+                                           symbols = list('x'))))
 
 #' @include pfa_expr.R
 divide_fcn <- list("divide" = c(list(params = list(list('x' = avro_double),

@@ -318,11 +318,11 @@ for(t in trunc_scaled_means) {
                             )
 }
 scaled_means4 <- new(avro_array(avro_array(avro_double)),scaled_means3)
-dist <- la.sub(la.sub(scaled_means4,u.a.ln(prior)),la.dot(input2,la.transpose(trunc_scaled_means)))
+dist <- la.sub(la.sub(scaled_means4,u.la.ln(prior)),la.dot(input2,la.transpose(trunc_scaled_means)))
 dist_min <- a.min(dist[0])
 dist_min_arr <- blank_arr
 for(d in dist[0]){
   dist_min_arr <- a.append(dist_min_arr, dist_min)
 }
-scaled_preds <- u.a.normalize(u.a.exp(la.scale(la.sub(dist, new(avro_array(avro_array(avro_double)), dist_min_arr)), -1))[0])
+scaled_preds <- u.a.normalize(u.la.exp(la.scale(la.sub(dist, new(avro_array(avro_array(avro_double)), dist_min_arr)), -1))[0])
 '
