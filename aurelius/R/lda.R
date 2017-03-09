@@ -242,7 +242,7 @@ pfa.lda <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ra
   this_prior <- prior[extracted_params$classes]
   this_cells[['prior']] <- pfa_cell(type = avro_array(avro_array(avro_double)), 
                                     init = list(as.list(unname(this_prior))))
-  this_fcns <- c(ln_array_fcn, exp_array_fcn, normalize_array_fcn)
+  this_fcns <- c(ln_la_fcn, exp_la_fcn, normalize_array_fcn)
   which_pred_type <- match.arg(pred_type)
   if(which_pred_type == 'response'){
     cutoffs <- validate_cutoffs(cutoffs = cutoffs, classes = extracted_params$classes)
