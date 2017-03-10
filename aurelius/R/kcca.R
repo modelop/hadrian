@@ -236,7 +236,7 @@ extract_params.kccasimple <- extract_params.kcca
 #' (e.g. optimization switches). May be overridden or ignored by PFA consumer
 #' @param ...	additional arguments affecting the PFA produced
 #' @return a \code{list} of lists that compose valid PFA document
-#' @seealso \code{\link[flexclust]{kccasimple}} \code{\link{extract_params.kccasimple}}
+#' @seealso \code{\link[flexclust]{kcca}} \code{\link{extract_params.kccasimple}}
 #' @examples
 #' \dontrun{
 #' model <- kcca(iris[,1:4], k = 3, family=kccaFamily("kmeans"), simple=T)

@@ -53,6 +53,6 @@ model_as_pfa <- pfa(model)
 }
 }
 \seealso{
-\code{\link[flexclust]{kccasimple}} \code{\link{extract_params.kccasimple}}
+\code{\link[flexclust]{kcca}} \code{\link{extract_params.kccasimple}}
 }
 
