@@ -44,6 +44,7 @@ r_packages:
 - glmnet
 - randomForest
 - e1071
+- flexclust
 
 #services
 services:

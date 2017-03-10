@@ -129,6 +129,8 @@ build_model.lda <- function(object, ...){
 #' @param dimen an integer specifying the dimension of the space to be used. 
 #' If this is less than min(p input variables, number of classes - 1) then the 
 #' first N number of dimensions will be used in the calculation
+#' @param method a character string indicating the prediction method. Currently, 
+#' only the plug-in method is supported.
 #' @param pred_type a string with value "response" for returning a prediction on the
 #' same scale as what was provided during modeling, or value "prob", which for classification
 #' problems returns the probability of each class.

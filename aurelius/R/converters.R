@@ -695,7 +695,7 @@ parseString <- function(getNext, getIndex, rewind) {
 }
 
 parseObject <- function(getNext, getIndex, rewind) {
-    out <- json.map()
+    out <- json_map()
     repeat {
         commas <- 0
         while (length(x <- getNext()) != 0  &&  x != "\""  &&  x != "}") {
@@ -739,7 +739,7 @@ parseObject <- function(getNext, getIndex, rewind) {
 }
 
 parseArray <- function(getNext, getIndex, rewind) {
-    out <- json.array()
+    out <- json_array()
 
     while (length(x <- getNext()) != 0  &&  x != "]")
         if (x != " "  &&  x != "\t"  &&  x != "\n"  &&  x != "\r") {
