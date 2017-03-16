@@ -516,7 +516,6 @@ add_to_converters(list(domain = function(name, args) { substr(name, 1, 2) == "u.
                     }))
 
 r_to_pfa <- list()
-
 # lib1/core
 r_to_pfa[["+"]] <- "+"
 r_to_pfa[["-"]] <- function(args) {
@@ -557,6 +556,70 @@ add_to_converters(list(domain = function(name, args) { name %in% names(r_to_pfa)
                             out
                         }
                     }))
+
+r_funs_to_pfa <- list()
+r_funs_to_pfa[["log"]] <- "m.log"
+r_funs_to_pfa[["log2"]] <- "m.log"
+r_funs_to_pfa[["logb"]] <- "m.log"
+r_funs_to_pfa[["log10"]] <- "m.log10"
+r_funs_to_pfa[["log1p"]] <- "m.ln1p"
+r_funs_to_pfa[["exp"]] <- "m.exp"
+r_funs_to_pfa[["expm1"]] <- "m.expm1"
+r_funs_to_pfa[["abs"]] <- "m.abs"
+r_funs_to_pfa[["sqrt"]] <- "m.sqrt"
+r_funs_to_pfa[["sin"]] <- "m.sin"
+r_funs_to_pfa[["cos"]] <- "m.cos"
+r_funs_to_pfa[["tan"]] <- "m.tan"
+r_funs_to_pfa[["asin"]] <- "m.asin"
+r_funs_to_pfa[["acos"]] <- "m.acos"
+r_funs_to_pfa[["atan"]] <- "m.atan"
+r_funs_to_pfa[["sinh"]] <- "m.sinh"
+r_funs_to_pfa[["cosh"]] <- "m.cosh"
+r_funs_to_pfa[["tanh"]] <- "m.tanh"
+r_funs_to_pfa[["floor"]] <- "m.floor"
+r_funs_to_pfa[["ceiling"]] <- "m.ceil"
+r_funs_to_pfa[["round"]] <- "m.round" 
+
+# r_funs_to_pfa[["trunc"]] <- "" # if(x >= 0) m.floor else m.ceil
+# r_funs_to_pfa[["signif"]] <- ""
+# D = 10^(d-ceil(log10(x)))
+# round(x*D)/D
+# r_funs_to_pfa[["asinh"]] <- "m.asin"
+# r_funs_to_pfa[["acosh"]] <- "m.acos"
+# r_funs_to_pfa[["atanh"]] <- "m.atan"
+# r_funs_to_pfa[["sinpi"]] <- "m.sin" # mutiplied by pi in the converter (m.pi * x)
+# r_funs_to_pfa[["cospi"]] <- "m.cos" # mutiplied by pi in the converter (m.pi * x)
+# r_funs_to_pfa[["tanpi"]] <- "m.tan" # mutiplied by pi in the converter (m.pi * x)
+# atan2(y, x)
+# min - ? a.min
+# max - ? a.max
+
+add_to_converters(list(domain = function(name, args) { name %in% names(r_funs_to_pfa) },
+                       apply  = function(name, args, symbols, cells, pools, fcns, env) { 
+                         
+                           # handle special cases 
+                           if(name %in% c('log', 'logb') && length(args) == 1){
+                             pfa_equivalent <- 'm.ln'
+                           } else if(name == 'log2' && length(args) == 1){
+                             pfa_equivalent <- 'm.log'
+                             args[[2]] <- 2
+                           } else {
+                             pfa_equivalent <- r_funs_to_pfa[[name]]
+                           }
+                         
+                           pfa_expr_nested <- function (x) pfa_expr(x, symbols = as.environment(as.list(symbols)), cells = cells, pools = pools, fcns = fcns, env = env)
+                           eval_args <- lapply(args, pfa_expr_nested)
+ 
+                           if (is.function(pfa_equivalent))
+                             pfa_equivalent(eval_args)
+                           else {
+                             out <- list()
+                             out[[pfa_equivalent]] <- eval_args
+                             out
+                           }
+                         }
+                       )
+                  )
 
 #' unjson
 #'
