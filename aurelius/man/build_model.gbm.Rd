@@ -33,4 +33,3 @@ bernoulli_model <- gbm(Y ~ X1 + X2,
 my_tree <- build_model(bernoulli_model, 1)
 }
 }
-

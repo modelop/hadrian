@@ -16,4 +16,3 @@ Constructs a \code{list} of lists Avro schema for the map type.
 avro_map(avro_int)
 avro_map(avro_string)
 }
-

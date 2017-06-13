@@ -15,4 +15,3 @@ Convenience or internal function for generating record names; each call results 
 \examples{
 gen_unique_rec_name()
 }
-

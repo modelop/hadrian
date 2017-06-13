@@ -12,4 +12,3 @@ avro_bytes
 Constructs a \code{list} of lists Avro schema for the bytes (unstructured byte array) type.
 }
 \keyword{datasets}
-

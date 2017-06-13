@@ -19,4 +19,3 @@ Constructs a \code{list} of lists Avro schema for the enum (set of symbols) type
 \examples{
 avro_enum(list("one", "two", "three"))
 }
-

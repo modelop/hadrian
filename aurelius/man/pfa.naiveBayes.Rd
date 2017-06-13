@@ -64,4 +64,3 @@ model_as_pfa <- pfa(model)
 \seealso{
 \code{\link[e1071]{naiveBayes}}
 }
-

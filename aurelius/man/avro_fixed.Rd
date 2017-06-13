@@ -19,4 +19,3 @@ Constructs a \code{list} of lists Avro schema for the fixed (byte array with fix
 \examples{
 avro_fixed(6, "MACAddress")
 }
-

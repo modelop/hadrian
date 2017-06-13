@@ -68,4 +68,3 @@ pfa_document(avro_double, avro_double, expression(input + 10))
 \seealso{
 \code{\link{pfa_engine}}
 }
-

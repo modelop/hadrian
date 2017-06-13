@@ -24,4 +24,3 @@ Convenience function for creating an Avro input schema from a data frame
 \examples{
 avro_from_df(data.frame(x = c(1, 3, 5)))
 }
-

@@ -16,4 +16,3 @@ Constructs a \code{list} of lists Avro schema for the array type.
 avro_array(avro_int)
 avro_array(avro_string)
 }
-

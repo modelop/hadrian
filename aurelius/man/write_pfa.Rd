@@ -35,4 +35,3 @@ write_pfa(my_pfa_doc)
 write_pfa(my_pfa_doc, file = "my-model.pfa")
 }
 }
-

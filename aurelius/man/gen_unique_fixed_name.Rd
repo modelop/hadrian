@@ -15,4 +15,3 @@ Convenience or internal function for generating fixed names; each call results i
 \examples{
 gen_unique_fixed_name()
 }
-

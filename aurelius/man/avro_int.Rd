@@ -12,4 +12,3 @@ avro_int
 Constructs a \code{list} of lists Avro schema for the int (integer numeric with 32-bit precision) type.
 }
 \keyword{datasets}
-

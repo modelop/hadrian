@@ -25,4 +25,3 @@ model <- kcca(iris[,1:4], k = 3, family=kccaFamily("kmeans"), simple=T)
 extracted_params <- extract_params(model)
 }
 }
-

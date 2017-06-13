@@ -25,4 +25,3 @@ model <- lda(Species ~ ., data=iris)
 model_params <- extract_params(model)
 }
 }
-

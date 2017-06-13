@@ -15,4 +15,3 @@ Convenience or internal function for generating enum names; each call results in
 \examples{
 gen_unique_enum_name()
 }
-

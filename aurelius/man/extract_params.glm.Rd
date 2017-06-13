@@ -28,4 +28,3 @@ z <- glm(Y ~ X1 + X2, family = binomial(logit))
 z2 <- extract_params(z)
 }
 }
-

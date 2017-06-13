@@ -15,4 +15,3 @@ Convenience or internal function for generating engine names; each call results 
 \examples{
 gen_unique_eng_name()
 }
-

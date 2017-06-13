@@ -21,4 +21,3 @@ avro_type(factor("hello"))   # "string"
 avro_type(3.14)              # "double"
 avro_type(3)                 # "int"
 }
-

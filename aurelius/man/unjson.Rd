@@ -16,4 +16,3 @@ a list-of-lists structure in which null -> NULL, true -> TRUE, false -> FALSE, n
 Convert a JSON string in memory or a JSON file on disk into a list-of-lists structure.
 }
 \keyword{internal}
-

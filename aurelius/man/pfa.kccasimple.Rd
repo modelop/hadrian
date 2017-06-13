@@ -55,4 +55,3 @@ model_as_pfa <- pfa(model)
 \seealso{
 \code{\link[flexclust]{kcca}} \code{\link{extract_params.kccasimple}}
 }
-

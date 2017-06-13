@@ -21,4 +21,3 @@ json_map()
 json_map(one = 1, two = TRUE, three = "THREE")
 }
 }
-

@@ -70,4 +70,3 @@ model_as_pfa <- pfa(model)
 \seealso{
 \code{\link[randomForest]{randomForest}}
 }
-

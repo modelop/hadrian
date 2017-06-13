@@ -29,4 +29,3 @@ lm_model_as_pfa <- pfa(lm_model)
 write_pfa(lm_model_as_pfa, file = "my-model.pfa")
 }
 }
-

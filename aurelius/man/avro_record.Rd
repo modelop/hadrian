@@ -19,4 +19,3 @@ Constructs a \code{list} of lists Avro schema for the record type.
 \examples{
 avro_record(list(one = avro_int, two = avro_double, three = avro_string))
 }
-

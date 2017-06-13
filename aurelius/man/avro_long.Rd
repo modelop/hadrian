@@ -12,4 +12,3 @@ avro_long
 Constructs a \code{list} of lists Avro schema for the long (integer numeric with 64-bit precision) type.
 }
 \keyword{datasets}
-

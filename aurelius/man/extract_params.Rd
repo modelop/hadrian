@@ -25,4 +25,3 @@ require(utils)
 methods("extract_params")
 }
 }
-

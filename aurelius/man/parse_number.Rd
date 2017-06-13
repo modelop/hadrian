@@ -10,4 +10,3 @@ parse_number(x, getNext, getIndex, rewind)
 parse_number
 }
 \keyword{internal}
-

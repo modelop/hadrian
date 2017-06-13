@@ -27,4 +27,3 @@ Creates a \code{list} of lists representing a PFA pool.
 \examples{
 pfa_pool(avro_double, json_map(one = 1.1, two = 2.2, three = 3.3))
 }
-

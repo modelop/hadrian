@@ -27,4 +27,3 @@ tm("MyType1")           # produces just "MyType1"
 tm("MyType2")           # produces the whole declaration
 tm("MyType2")           # produces the declaration again because this is not a named type
 }
-

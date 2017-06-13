@@ -70,4 +70,3 @@ model_as_pfa <- pfa(model)
 \seealso{
 \code{\link[MASS]{lda}} \code{\link{extract_params.lda}}
 }
-

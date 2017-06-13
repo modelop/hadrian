@@ -30,4 +30,3 @@ url_model <- read_pfa(url(paste0('https://raw.githubusercontent.com/ReportMort/h
                      '/feature/add-r-package-structure/aurelius/inst/extdata/my-model.pfa')))
 }
 }
-

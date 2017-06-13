@@ -48,4 +48,3 @@ methods("pfa")
 \seealso{
 \code{\link{pfa.lm}} \code{\link{pfa.glm}}
 }
-

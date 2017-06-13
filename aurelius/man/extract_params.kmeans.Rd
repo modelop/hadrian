@@ -27,4 +27,3 @@ model <- kmeans(x=iris[, 1:2], centers=3)
 extracted_params <- extract_params(model)
 }
 }
-

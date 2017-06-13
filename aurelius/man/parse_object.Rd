@@ -10,4 +10,3 @@ parse_object(getNext, getIndex, rewind)
 parse_object
 }
 \keyword{internal}
-

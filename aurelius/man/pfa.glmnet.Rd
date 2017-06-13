@@ -65,4 +65,3 @@ model_as_pfa <- pfa(model)
 \seealso{
 \code{\link[glmnet]{glmnet}} \code{\link{extract_params.glmnet}}
 }
-

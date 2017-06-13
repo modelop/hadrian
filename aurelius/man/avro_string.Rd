@@ -12,4 +12,3 @@ avro_string
 Constructs a \code{list} of lists Avro schema for the string (UTF-8) type.
 }
 \keyword{datasets}
-

@@ -27,4 +27,3 @@ Creates a \code{list} of lists representing a PFA cell.
 \examples{
 pfa_cell(avro_double, 12)
 }
-

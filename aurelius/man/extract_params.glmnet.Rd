@@ -29,4 +29,3 @@ model <- glmnet(X, Y, family = 'binomial')
 my_model_params <- extract_params(model)
 }
 }
-

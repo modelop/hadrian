@@ -12,4 +12,3 @@ avro_boolean
 Constructs a \code{list} of lists Avro schema for the boolean (logical) type.
 }
 \keyword{datasets}
-

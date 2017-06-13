@@ -12,4 +12,3 @@ avro_null
 Constructs a \code{list} of lists Avro schema for the null type (type with only one value).
 }
 \keyword{datasets}
-

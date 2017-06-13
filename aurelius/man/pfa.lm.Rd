@@ -53,4 +53,3 @@ model_as_pfa <- pfa(model)
 \seealso{
 \code{\link[stats]{lm}} \code{\link{pfa.glm}}
 }
-

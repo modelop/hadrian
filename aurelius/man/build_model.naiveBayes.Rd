@@ -30,4 +30,3 @@ model <- naiveBayes(Species ~ ., data=iris)
 model_built <- build_model(model)
 }
 }
-

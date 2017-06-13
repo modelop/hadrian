@@ -16,4 +16,3 @@ Constructs a \code{list} of lists Avro schema for the tagged union type.
 avro_union(avro_null, avro_int)         # a way to make a nullable int
 avro_union(avro_double, avro_string)    # any set of types can be unioned
 }
-

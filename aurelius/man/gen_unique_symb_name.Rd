@@ -18,4 +18,3 @@ Convenience or internal function for generating symbol names; each call results 
 \examples{
 gen_unique_symb_name()
 }
-

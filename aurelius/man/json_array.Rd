@@ -22,4 +22,3 @@ json_array()
 json_array(1, TRUE, "THREE")
 }
 }
-

@@ -29,8 +29,8 @@ VignetteBuilder: knitr
 License: file LICENSE
 NeedsCompilation: no
 LazyData: true
-RoxygenNote: 5.0.1
-Collate:
+RoxygenNote: 6.0.1
+Collate: 
     'aurelius.R'
     'avro.R'
     'avro_from_df.R'
@@ -43,9 +43,9 @@ Collate:
     'glm.R'
     'glmnet.R'
     'jsonobj.R'
-    'pfa_expr.R'
     'kcca.R'
     'kmeans.R'
+    'knn.R'
     'lda.R'
     'lm.R'
     'naiveBayes.R'
@@ -53,6 +53,7 @@ Collate:
     'pfa_cellpool.R'
     'pfa_document.R'
     'pfa_engine.R'
+    'pfa_expr.R'
     'pfa_utils.R'
     'randomForest.R'
     'read_pfa.R'

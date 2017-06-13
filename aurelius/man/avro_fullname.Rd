@@ -19,4 +19,3 @@ Yields the full type name (with namespace) of an Avro \code{list} of lists
 avro_fullname(avro_record(list(), "MyRecord"))                   # "MyRecord"
 avro_fullname(avro_record(list(), "MyRecord", "com.wowzers"))    # "com.wowzers.MyRecord"
 }
-

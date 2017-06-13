@@ -55,4 +55,3 @@ model_as_pfa <- pfa(model)
 \seealso{
 \code{\link[stats]{kmeans}} \code{\link{pfa.kcca}}
 }
-

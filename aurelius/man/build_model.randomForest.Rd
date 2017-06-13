@@ -33,4 +33,3 @@ bernoulli_model <- randomForest(Y ~ X1 + X2, data=binomial_dat)
 my_tree <- build_model(bernoulli_model, 1)
 }
 }
-

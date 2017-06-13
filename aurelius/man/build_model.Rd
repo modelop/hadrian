@@ -26,4 +26,3 @@ require(utils)
 methods("build_model")
 }
 }
-
