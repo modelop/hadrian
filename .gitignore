@@ -1,7 +1,8 @@
 pfa
 scoringengine_org
-hadrian.Rproj
+*.Rproj
 .Rproj.user
 .Rhistory
 .RData
 .Rprofile
+.DS_Store
