@@ -249,34 +249,9 @@ pfa.kccasimple <- pfa.kcca
 kcca_func_mapper <- function(family, input_name, centroids_name) {
   switch(family,
          kmeans = sprintf('model.cluster.closest(%s,%s)["id"]', input_name, centroids_name),
-         kmedians = sprintf('model.cluster.closest(%s,%s,manhatten_dist_fun)["id"]', input_name, centroids_name),
+         kmedians = sprintf('model.cluster.closest(%s,%s,manhattan_dist_fun)["id"]', input_name, centroids_name),
          angle = sprintf('model.cluster.closest(%s,%s,angle_dist_fun)["id"]', input_name, centroids_name), 
          jaccard = sprintf('model.cluster.closest(%s,%s,jaccard_dist_fun)["id"]', input_name, centroids_name),
          ejaccard = sprintf('model.cluster.closest(%s,%s,jaccard_dist_fun)["id"]', input_name, centroids_name),
          stop(sprintf('supplied link function not supported: %s', family))) 
 }
-  
-# used as a metric for computing manhatten distance
-manhatten_dist_fun  <- list(params = list(list('x' = avro_array(avro_double)),
-                                          list('y' = avro_array(avro_double))),
-                            ret = avro_double)
-#' @include pfa_expr.R
-manhatten_dist_fun [['do']] <- pfa_expr(expr=parse(text=paste('metric.taxicab(metric.absDiff,x,y)')),
-                                        fcns = list('metric.absDiff'),
-                                        symbols = list('x', 'y'))$do
-
-# used as a metric for computing jaccard distance (not similarity since we multiply by -1)
-jaccard_dist_fun  <- list(params = list(list('x' = avro_array(avro_boolean)),
-                                        list('y' = avro_array(avro_boolean))),
-                          ret = avro_double)
-#' @include pfa_expr.R
-jaccard_dist_fun [['do']] <- pfa_expr(expr=parse(text=paste('-1 * metric.jaccard(x,y)')),
-                                      symbols = list('x', 'y'))$do
-
-# used as a metric for computing angle distance (not similarity since we subtract 1)
-angle_dist_fun <- list(params = list(list('x' = avro_array(avro_array(avro_double))),
-                                     list('y' =  avro_array(avro_array(avro_double)))),
-                       ret = avro_double)
-#' @include pfa_expr.R
-angle_dist_fun[['do']] <- pfa_expr(expr=parse(text=paste('1 - a.sum(a.flatten(la.dot(x,la.transpose(y))))')),
-                                   symbols = list('x', 'y'))$do

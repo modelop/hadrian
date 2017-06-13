@@ -35,6 +35,31 @@ divide_fcn <- list("divide" = c(list(params = list(list('x' = avro_double),
                                 pfa_expr(expr=parse(text=paste('x / y')),
                                          symbols = list('x', 'y'))))
 
+# used as a metric for computing manhatten distance
+manhattan_dist_fun  <- list(params = list(list('x' = avro_array(avro_double)),
+                                          list('y' = avro_array(avro_double))),
+                            ret = avro_double)
+#' @include pfa_expr.R
+manhattan_dist_fun [['do']] <- pfa_expr(expr=parse(text=paste('metric.taxicab(metric.absDiff,x,y)')),
+                                        fcns = list('metric.absDiff'),
+                                        symbols = list('x', 'y'))$do
+
+# used as a metric for computing jaccard distance (not similarity since we multiply by -1)
+jaccard_dist_fun  <- list(params = list(list('x' = avro_array(avro_boolean)),
+                                        list('y' = avro_array(avro_boolean))),
+                          ret = avro_double)
+#' @include pfa_expr.R
+jaccard_dist_fun [['do']] <- pfa_expr(expr=parse(text=paste('-1 * metric.jaccard(x,y)')),
+                                      symbols = list('x', 'y'))$do
+
+# used as a metric for computing angle distance (not similarity since we subtract 1)
+angle_dist_fun <- list(params = list(list('x' = avro_array(avro_array(avro_double))),
+                                     list('y' =  avro_array(avro_array(avro_double)))),
+                       ret = avro_double)
+#' @include pfa_expr.R
+angle_dist_fun[['do']] <- pfa_expr(expr=parse(text=paste('1 - a.sum(a.flatten(la.dot(x,la.transpose(y))))')),
+                                   symbols = list('x', 'y'))$do
+
 #' @include pfa_expr.R
 cutoff_ratio_cmp_fcn <- list("cutoff_ratio_cmp" = c(list(params = list(list('input' = avro_map(avro_double)), 
                                                                        list('cutoffs' = avro_map(avro_double))),
@@ -71,3 +96,9 @@ validate_cutoffs <- function(classes, cutoffs=NULL){
   return(cutoffs)
 }
 
+validate_names <- function(x) {
+  x <- gsub('[^a-zA-Z0-9_]+', '_', x)
+  x <- gsub('(^[0-9]{1})', '_\\1', x)
+  stopifnot(all(grepl('[A-Za-z_][A-Za-z0-9_]*', x)))
+  return(x)
+}
