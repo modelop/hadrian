@@ -19,7 +19,8 @@
 #'
 #' Extract K-nearest neighbor model parameters from a knn3 object created by 
 #' the caret library
-#' 
+#'
+#' @source pfa_utils.R
 #' @param object an object of class "knn3"
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
@@ -148,33 +149,34 @@ pfa.knn3 <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, r
   validate_codebook(extracted_params$codebook)
   # determine the output based on pred_type
   this_cells <- list(k = pfa_cell(type = avro_int, 
-                                  init = as.integer(extracted_params$k)), 
+                                  init = as.integer(extracted_params$k)),
                      codebook = pfa_cell(type = avro_array(tm("Codebook")),
                                          init = extracted_params$codebook))
   
   which_pred_type <- match.arg(pred_type)
-  all_possible_targets <- unique(sapply(extracted_params$codebook,
-                                        FUN = function(x){
-                                          x$target
-                                        }))
-  cutoffs <- validate_cutoffs(cutoffs = cutoffs, classes = all_possible_targets)
-  
   if(extracted_params$output_type == 'classification'){
-
+    
+    all_possible_targets <- unique(sapply(extracted_params$codebook,
+                                          FUN = function(x){
+                                            x$target
+                                          }))
+    cutoffs <- validate_cutoffs(cutoffs = cutoffs, classes = all_possible_targets)
+    this_cells[['all_targets']] <- pfa_cell(type = avro_array(avro_string), 
+                                            init = as.list(all_possible_targets))
     if(which_pred_type == 'response'){
       ouput_type <- avro_string
-      aggregator_action <- parse(text=paste('res <- a.map(closest, function(x = tm("Codebook") -> avro_string) x["target"])',
+      aggregator_action <- parse(text=paste('res <- a.concat(all_targets, a.map(closest, function(x = tm("Codebook") -> avro_string) x["target"]))', 
                                             'counts <- a.groupby(res, function(a = avro_string -> avro_string) a)', 
-                                            'probs <- map.map(counts, function(c = avro_array(avro_string) -> avro_double) a.len(c) / k)', 
+                                            'probs <- map.map(counts, function(c = avro_array(avro_string) -> avro_double) (a.len(c) - 1) / k)', 
                                             'map.argmax(u.cutoff_ratio_cmp(probs, cutoffs))',
                                             sep="\n "))
       this_fcns <- c(divide_fcn, cutoff_ratio_cmp_fcn)
       this_cells[['cutoffs']] <- pfa_cell(type = avro_map(avro_double), init = cutoffs)
     } else if(which_pred_type == 'prob'){
       ouput_type <- avro_map(avro_double)
-      aggregator_action <- parse(text=paste('res <- a.map(closest, function(x = tm("Codebook") -> avro_string) x["target"])', 
+      aggregator_action <- parse(text=paste('res <- a.concat(a.map(closest, function(x = tm("Codebook") -> avro_string) x["target"]), all_targets)', 
                                             'counts <- a.groupby(res, function(a = avro_string -> avro_string) a)', 
-                                            'probs <- map.map(counts, function(c = avro_array(avro_string) -> avro_double) a.len(c) / k)', 
+                                            'probs <- map.map(counts, function(c = avro_array(avro_string) -> avro_double) (a.len(c) - 1) / k)', 
                                             'probs',
                                             sep="\n "))
       this_fcns <- NULL

@@ -75,8 +75,14 @@ validate_cutoffs <- function(classes, cutoffs=NULL){
     names(cutoffs) <- classes
     cutoffs <- as.list(cutoffs)
   } else {
-    if (sum(cutoffs) > 1 || sum(cutoffs) < 0 || !all(cutoffs > 0) || length(cutoffs) != length(classes)) {
-        stop("Incorrect cutoffs specified.")
+    if (sum(cutoffs) > 1 || sum(cutoffs) < 0) {
+        stop("Cutoffs must sum to 1.")
+    }
+    if (!all(cutoffs > 0)) {
+      stop("Each cutoff must be greater than zero to avoid divide by zero issues.")
+    }
+    if (length(cutoffs) != length(classes)) {
+      stop("Cutoffs must be specified for every possible target.")
     }
     if (!is.null(names(cutoffs))) {
       if (!all(names(cutoffs) %in% classes)) {
