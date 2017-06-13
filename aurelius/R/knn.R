@@ -128,20 +128,21 @@ pfa.knn3 <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, r
                           }))
   cast_input_string <- 'knn_input <- knn_input_list'
   
+  target_type <- if(extracted_params$output_type == 'classification') avro_string else avro_double
   if(which_distance_measure %in% c('euclidean', 'manhattan')){
     input_type <- avro_map(avro_double)
     input_name <- 'knn_input'
-    tm <- avro_typemap(Codebook = avro_record(fields = list(target = avro_string, center = avro_array(avro_double))))
+    tm <- avro_typemap(Codebook = avro_record(fields = list(target = target_type, center = avro_array(avro_double))))
   } else if(which_distance_measure %in% c('jaccard', 'ejaccard')){
     input_type <- avro_map(avro_boolean)
     input_name <- 'knn_input'
-    tm <- avro_typemap(Codebook = avro_record(fields = list(target = avro_string, center = avro_array(avro_boolean))))
+    tm <- avro_typemap(Codebook = avro_record(fields = list(target = target_type, center = avro_array(avro_boolean))))
   } else if(which_distance_measure %in% c('angle')){
     input_type <- avro_map(avro_double)
     input_name <- 'knn_input2'
     special_angle_string <- 'knn_input2 <- new(avro_array(avro_array(avro_double)), knn_input)'
     cast_input_string <- paste(cast_input_string, special_angle_string, sep='\n')
-    tm <- avro_typemap(Codebook = avro_record(fields = list(target = avro_string, center = avro_array(avro_double))))
+    tm <- avro_typemap(Codebook = avro_record(fields = list(target = target_type, center = avro_array(avro_double))))
   } else {
     stop('codebook cannot be created for knn models with distance measure %s', which_distance_measure)
   }
@@ -185,7 +186,6 @@ pfa.knn3 <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, r
     }
     
   } else {
-    ouput_type <- avro_double
     aggregator_action <- parse(text=paste('res <- a.map(closest, function(x = tm("Codebook") -> avro_double) x["target"])', 
                                           'a.mean(res)',
                                           sep="\n "))
