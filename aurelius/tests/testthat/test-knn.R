@@ -8,7 +8,7 @@ test_that("Check knn3 model", {
   input <- as.list(iris[73,3:4])
   names(input) <- gsub('\\.', '_', names(input))
   
-  knn_model <- knn3(iris[, 3:4], k = 10)
+  knn_model <- knn3(x = iris[, 3:4], y = iris$Species, k = 10)
 
   knn_model_as_pfa <- pfa(knn_model)
   knn_engine <- pfa_engine(knn_model_as_pfa)

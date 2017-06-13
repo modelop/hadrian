@@ -358,7 +358,7 @@ validate_codebook <- function(codebook, distance_measure = c('euclidean', 'manha
   
   which_distance_measure <- match.arg(distance_measure)
   if(which_distance_measure %in% c('euclidean', 'manhattan', 'angle')){
-    res <- sapply(computed_codebook, 
+    res <- sapply(codebook, 
                   FUN=function(x){
                     all(is.numeric(unlist(x$center)))
                   })
@@ -366,7 +366,7 @@ validate_codebook <- function(codebook, distance_measure = c('euclidean', 'manha
       stop('Models using distance measure euclidean, manhattan, or angle must have their codebook entries coded as all numeric.')  
     }
   } else if(which_distance_measure %in% c('jaccard', 'ejaccard')){
-    res <- sapply(computed_codebook, 
+    res <- sapply(codebook, 
                   FUN=function(x){
                     (all(x %in% c(TRUE, FALSE)) | all(x %in% c(0,1)))
                   })
