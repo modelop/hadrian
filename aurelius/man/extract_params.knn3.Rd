@@ -3,6 +3,9 @@
 \name{extract_params.knn3}
 \alias{extract_params.knn3}
 \title{extract_params.knn3}
+\source{
+pfa_utils.R
+}
 \usage{
 \method{extract_params}{knn3}(object, ...)
 }
