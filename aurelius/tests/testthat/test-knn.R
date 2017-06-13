@@ -36,10 +36,41 @@ test_that("Check knn3 model", {
 })
 
 test_that("Check ipredknn model", {
-  model <- ipredknn(Species ~ Petal_Length + Petal_Width, data = iris2)
   
+  input <- list(X1=4.9, X2=1.5)
+  
+  dat <- data.frame(X1 = iris$Petal.Length, 
+                    X2 = iris$Petal.Width, 
+                    Y = iris$Species, 
+                    stringsAsFactors = FALSE)
+  
+  knn_model <- ipredknn(Y ~ X1 + X2, data = dat, k = 3)
+  
+  knn_model_as_pfa <- pfa(knn_model)
+  knn_engine <- pfa_engine(knn_model_as_pfa)
+  
+  expect_equal(knn_engine$action(input),
+               as.character(predict(knn_model, newdata=as.data.frame(input), type = 'class')))
+  
+  knn_model_as_pfa <- pfa(knn_model, pred_type = 'prob')
+  knn_engine <- pfa_engine(knn_model_as_pfa)
+  
+  # ipred is funny it only provides probs on winning class 
+  # "either the predicted class or the the proportion of the votes for the winning class."
+  winner <- 'versicolor'
+  expect_equal(unname(knn_engine$action(input)[winner]),
+               predict(knn_model, newdata=as.data.frame(input), type = 'prob'))
 })
 
 test_that("Check knnreg model", {
-  model <- knnreg(mpg ~ cyl + hp + am + gear + carb, data = mtcars)
+  
+  input <- as.list(mtcars[9, c('cyl', 'hp', 'wt')])
+  knnreg_model <- knnreg(mpg ~ cyl + hp + wt, data = mtcars)
+  
+  knnreg_model_as_pfa <- pfa.knnreg(knnreg_model)
+  knnreg_engine <- pfa_engine(knnreg_model_as_pfa)
+  
+  pred <- predict(knnreg_model, newdata=as.data.frame(input))[1,]
+  expect_equal(knnreg_engine$action(input),
+               weighted.mean(as.numeric(names(pred)), pred))
 })

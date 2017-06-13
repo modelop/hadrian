@@ -165,7 +165,7 @@ pfa.knn3 <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, r
     this_cells[['all_targets']] <- pfa_cell(type = avro_array(avro_string), 
                                             init = as.list(all_possible_targets))
     if(which_pred_type == 'response'){
-      ouput_type <- avro_string
+      output_type <- avro_string
       aggregator_action <- parse(text=paste('res <- a.concat(all_targets, a.map(closest, function(x = tm("Codebook") -> avro_string) x["target"]))', 
                                             'counts <- a.groupby(res, function(a = avro_string -> avro_string) a)', 
                                             'probs <- map.map(counts, function(c = avro_array(avro_string) -> avro_double) (a.len(c) - 1) / k)', 
@@ -174,7 +174,7 @@ pfa.knn3 <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, r
       this_fcns <- c(divide_fcn, cutoff_ratio_cmp_fcn)
       this_cells[['cutoffs']] <- pfa_cell(type = avro_map(avro_double), init = cutoffs)
     } else if(which_pred_type == 'prob'){
-      ouput_type <- avro_map(avro_double)
+      output_type <- avro_map(avro_double)
       aggregator_action <- parse(text=paste('res <- a.concat(a.map(closest, function(x = tm("Codebook") -> avro_string) x["target"]), all_targets)', 
                                             'counts <- a.groupby(res, function(a = avro_string -> avro_string) a)', 
                                             'probs <- map.map(counts, function(c = avro_array(avro_string) -> avro_double) (a.len(c) - 1) / k)', 
@@ -186,6 +186,7 @@ pfa.knn3 <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, r
     }
     
   } else {
+    output_type <- avro_double
     aggregator_action <- parse(text=paste('res <- a.map(closest, function(x = tm("Codebook") -> avro_double) x["target"])', 
                                           'a.mean(res)',
                                           sep="\n "))
@@ -203,7 +204,7 @@ pfa.knn3 <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, r
   
   # construct the pfa_document
   doc <- pfa_document(input = input_type,
-                      output = ouput_type,
+                      output = output_type,
                       cells = this_cells,
                       action = this_action,
                       fcns = this_fcns,
