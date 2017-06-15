@@ -42,6 +42,7 @@ Collate:
     'gen_unique_name.R'
     'glm.R'
     'glmnet.R'
+    'holtwinters.R'
     'jsonobj.R'
     'kcca.R'
     'kmeans.R'
