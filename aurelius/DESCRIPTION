@@ -38,6 +38,7 @@ Collate:
     'avro_type.R'
     'avro_typemap.R'
     'converters.R'
+    'ets.R'
     'gbm.R'
     'gen_unique_name.R'
     'glm.R'

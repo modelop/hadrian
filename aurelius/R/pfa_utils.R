@@ -1,4 +1,19 @@
 
+validate_names <- function(x) {
+  x <- gsub('[^a-zA-Z0-9_]+', '_', x)
+  x <- gsub('(^[0-9]{1})', '_\\1', x)
+  stopifnot(all(grepl('[A-Za-z_][A-Za-z0-9_]*', x)))
+  return(x)
+}
+
+matrix_to_arr_of_arr <- function(x, row_unpack = TRUE){
+  if(row_unpack){
+    apply(unname(x), 1, FUN=function(y){as.list(y)})
+  } else {
+    apply(unname(x), 1, FUN=function(y){list(y)})
+  }
+}
+
 #' @include avro.R
 gen_blank_array_of_arrays <- function(avro_type){
   list(type = avro_array(avro_array(avro_double)),
@@ -100,11 +115,4 @@ validate_cutoffs <- function(classes, cutoffs=NULL){
   }
   
   return(cutoffs)
-}
-
-validate_names <- function(x) {
-  x <- gsub('[^a-zA-Z0-9_]+', '_', x)
-  x <- gsub('(^[0-9]{1})', '_\\1', x)
-  stopifnot(all(grepl('[A-Za-z_][A-Za-z0-9_]*', x)))
-  return(x)
 }
