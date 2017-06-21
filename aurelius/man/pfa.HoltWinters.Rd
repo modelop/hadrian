@@ -30,15 +30,6 @@ different seeds generated from the global one}
 Initialization or runtime options to customize implementation 
 (e.g. optimization switches). May be overridden or ignored by PFA consumer}
 
-\item{pred_type}{a string with value "response" for returning a prediction on the 
-same scale as what was provided during modeling, or value "prob", which for classification 
-problems returns the probability of each class.}
-
-\item{cutoffs}{(Classification only) A named numeric vector of length equal to 
-number of classes. The "winning" class for an observation is the one with the 
-maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
-same cutoff for each class that is 1/k where k is the number of classes}
-
 \item{...}{additional arguments affecting the PFA produced}
 }
 \value{
@@ -56,5 +47,5 @@ model_as_pfa <- pfa(model)
 }
 }
 \seealso{
-\code{\link[stats]{glm}} \code{\link{extract_params.glm}}
+\code{\link[stats]{HoltWinters}} \code{\link{extract_params.HoltWinters}}
 }

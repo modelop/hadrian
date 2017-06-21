@@ -62,13 +62,6 @@ extract_params.HoltWinters <- function(object, ...) {
 #' 
 #' @source pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 #' @param object an object of class "HoltWinters"
-#' @param pred_type a string with value "response" for returning a prediction on the 
-#' same scale as what was provided during modeling, or value "prob", which for classification 
-#' problems returns the probability of each class.
-#' @param cutoffs (Classification only) A named numeric vector of length equal to 
-#' number of classes. The "winning" class for an observation is the one with the 
-#' maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
-#' same cutoff for each class that is 1/k where k is the number of classes
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -82,7 +75,7 @@ extract_params.HoltWinters <- function(object, ...) {
 #' (e.g. optimization switches). May be overridden or ignored by PFA consumer
 #' @param ...	additional arguments affecting the PFA produced
 #' @return a \code{list} of lists that compose valid PFA document
-#' @seealso \code{\link[stats]{glm}} \code{\link{extract_params.glm}}
+#' @seealso \code{\link[stats]{HoltWinters}} \code{\link{extract_params.HoltWinters}}
 #' @examples
 #' \dontrun{
 #' model <- HoltWinters(co2)
