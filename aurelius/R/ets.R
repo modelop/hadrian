@@ -121,9 +121,9 @@ pfa.ets <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ra
   fit <- extract_params(object)
 
   this_cells <- list(ets_last_state = pfa_cell(type = avro_array(avro_array(avro_double)), 
-                                               init = matrix_to_arr_of_arr(as.matrix(fit$last_state))),
+                                               init = matrix_to_arr_of_arr(matrix(fit$last_state))),
                      ets_H = pfa_cell(type = avro_array(avro_array(avro_double)), 
-                                      init = list(unname(fit$H)[1,])),
+                                      init = list(as.list(fit$H))),
                      ets_F = pfa_cell(type = avro_array(avro_array(avro_double)),
                                       init = matrix_to_arr_of_arr(fit$F)),
                      ets_Fj = pfa_cell(type = avro_array(avro_array(avro_double)),
