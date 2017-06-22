@@ -47,6 +47,7 @@ Collate:
     'avro_typemap.R'
     'converters.R'
     'ets.R'
+    'forecast.R'
     'gbm.R'
     'gen_unique_name.R'
     'glm.R'
