@@ -1,7 +1,7 @@
 Package: aurelius
 Type: Package
 Version: 0.8.4.9000
-Date: 2017-02-11
+Date: 2017-06-22
 Title: Generates PFA Documents from R Code and Optionally Runs Them
 Description: Converts R syntax into PFA and provides tools for assembling a PFA
     document within R. Tests validity and runtime behavior of PFA by offloading
@@ -17,6 +17,7 @@ Depends:
     R (>= 3.2.0)
 Imports:
     methods,
+    stats,
     jsonlite (>= 1.1),
     rPython (>= 0.0-6),
     gbm (>= 2.1.1),
@@ -24,13 +25,20 @@ Imports:
 Suggests:
     knitr,
     rmarkdown,
-    testthat
+    testthat,
+    MASS,
+    forecast,
+    caret, 
+    ipred,
+    flexclust,
+    e1071
 VignetteBuilder: knitr
 License: file LICENSE
 NeedsCompilation: no
 LazyData: true
 RoxygenNote: 6.0.1
 Collate: 
+    'arima.R'
     'aurelius.R'
     'avro.R'
     'avro_from_df.R'
