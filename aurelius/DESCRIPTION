@@ -68,5 +68,6 @@ Collate:
     'pfa_utils.R'
     'randomForest.R'
     'read_pfa.R'
+    'rpart.R'
     'write_pfa.R'
     'zzz.R'
