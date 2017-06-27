@@ -42,22 +42,31 @@ limitations under the License.
       <plugin>
         <groupId>org.scala-tools</groupId>
         <artifactId>maven-scala-plugin</artifactId>
-        <version>2.5.1</version>
+        <version>2.15.2</version>
       </plugin>
     </plugins>
   </reporting>
 
+
   <properties>
     <maven.compiler.source>1.7</maven.compiler.source>
     <maven.compiler.target>1.7</maven.compiler.target>
-    <scala.tools.version>2.10</scala.tools.version>
-    <scala.version>2.10.4</scala.version>
+    <scala.tools.version>2.12</scala.tools.version>
+    <scala.version>2.12.0</scala.version>
     <encoding>UTF-8</encoding>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
 
   <dependencies>
-    <dependency>
+      <!-- https://mvnrepository.com/artifact/org.scala-lang.modules/scala-xml_2.12 -->
+      <dependency>
+          <groupId>org.scala-lang.modules</groupId>
+          <artifactId>scala-xml_2.12</artifactId>
+          <version>1.0.6</version>
+      </dependency>
+
+
+      <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
       <version>${scala.version}</version>
@@ -141,25 +150,29 @@ limitations under the License.
         <version>1.7</version>
     </dependency>
 
-    <dependency>
-        <groupId>com.thesamet</groupId>
-        <artifactId>kdtree_2.10</artifactId>
-        <version>1.0.3</version>
-    </dependency>
+      <!-- https://mvnrepository.com/artifact/com.thesamet/kdtree_2.12 -->
+      <dependency>
+          <groupId>com.thesamet</groupId>
+          <artifactId>kdtree_2.12</artifactId>
+          <version>1.0.5</version>
+      </dependency>
 
-    <dependency>
+
+      <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.11</version>
       <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.scalatest</groupId>
-      <artifactId>scalatest_2.10</artifactId>
-      <version>2.0.M6-SNAP36</version>
-      <scope>test</scope>
-    </dependency>
+      <!-- https://mvnrepository.com/artifact/org.scalatest/scalatest_2.12 -->
+      <dependency>
+          <groupId>org.scalatest</groupId>
+          <artifactId>scalatest_2.12</artifactId>
+          <version>3.0.3</version>
+          <scope>test</scope>
+      </dependency>
+
 
   </dependencies>
 

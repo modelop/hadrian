@@ -144,7 +144,7 @@ action:
   bytes.decodeAscii: input
 """).head
     engine.action(Array[Byte](104, 101, 108, 108, 111)) should be ("hello")
-    evaluating { engine.action(Array[Byte](104, 101, 108, -127, 111)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine.action(Array[Byte](104, 101, 108, -127, 111)) }
   }
 
   it must "decode latin-1" taggedAs(Lib, LibBytes) in {
@@ -207,7 +207,7 @@ action:
   bytes.encodeAscii: input
 """).head
     engine.action("hello") should be (Array[Byte](104, 101, 108, 108, 111))
-    evaluating { engine.action(new String(Array[Byte](104, 101, 108, -127, 111))) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine.action(new String(Array[Byte](104, 101, 108, -127, 111))) }
   }
 
   it must "encode latin-1" taggedAs(Lib, LibBytes) in {

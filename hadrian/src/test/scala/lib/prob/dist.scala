@@ -219,7 +219,7 @@ action:
       - value: {count: 21, mean: 10, variance: -3.0}
         type: {type: record, name: Rec, namespace: what.ever, fields: [{name: count, type: double}, {name: mean, type: double}, {name: variance, type: double}]}
 """).head
-    evaluating { engine1.action(java.lang.Double.valueOf(3.0)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Double.valueOf(3.0)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -227,7 +227,7 @@ output: double
 action:
   - prob.dist.gaussianLL: [input, 10.0, -3.0]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(3.0)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(3.0)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -238,7 +238,7 @@ action:
       - value: {count: 21, mean: 10, variance: -3.0}
         type: {type: record, name: Rec, namespace: what.ever, fields: [{name: count, type: double}, {name: mean, type: double}, {name: variance, type: double}]} 
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(3.0)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(3.0)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -246,7 +246,7 @@ output: double
 action:
   - prob.dist.gaussianCDF: [input, 10.0, -3.0]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(3.0)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(3.0)) }
 
     val engine5 = PFAEngine.fromYaml("""
 input: double
@@ -257,7 +257,7 @@ action:
       - value: {count: 21, mean: 10, variance: -3.0}
         type: {type: record, name: Rec, namespace: what.ever, fields: [{name: count, type: double}, {name: mean, type: double}, {name: variance, type: double}]} 
 """).head
-    evaluating { engine5.action(java.lang.Double.valueOf(3.0)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine5.action(java.lang.Double.valueOf(3.0)) }
 
     val engine6 = PFAEngine.fromYaml("""
 input: double
@@ -265,8 +265,8 @@ output: double
 action:
   - prob.dist.gaussianQF: [input, 10.0, 3.0]
 """).head
-    evaluating { engine6.action(java.lang.Double.valueOf(1.3)) } should produce [PFARuntimeException]
-    evaluating { engine6.action(java.lang.Double.valueOf(-0.3)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine6.action(java.lang.Double.valueOf(1.3)) }
+    intercept[PFARuntimeException] { engine6.action(java.lang.Double.valueOf(-0.3)) }
     }
 
 
@@ -353,7 +353,7 @@ output: double
 action:
   - prob.dist.exponentialPDF: [input, -1.0]
 """).head
-    evaluating { engine1.action(java.lang.Double.valueOf(3.0)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Double.valueOf(3.0)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -361,7 +361,7 @@ output: double
 action:
   - prob.dist.exponentialCDF: [input, -1]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(3.0)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(3.0)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -369,7 +369,7 @@ output: double
 action:
   - prob.dist.exponentialQF: [input, -1]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(0.4)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -377,8 +377,8 @@ output: double
 action:
   - prob.dist.exponentialQF: [input, 1.5]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-1.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-1.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 
 ///////////// POISSON DISTRIBUTION TESTS /////////////////
@@ -467,7 +467,7 @@ output: double
 action:
   - prob.dist.poissonPDF: [input, -4] #[input, lambda]
 """).head
-    evaluating { engine1.action(java.lang.Integer.valueOf(4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Integer.valueOf(4)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: int
@@ -475,7 +475,7 @@ output: double
 action:
   - prob.dist.poissonCDF: [input, -3] #[input, lambda]
 """).head
-    evaluating { engine2.action(java.lang.Integer.valueOf(4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Integer.valueOf(4)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -483,7 +483,7 @@ output: double
 action:
   - prob.dist.poissonQF: [input, -2] #[input, lambda]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(0.4)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -491,8 +491,8 @@ output: double
 action:
   - prob.dist.poissonQF: [input, 2] #[input, lambda]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce  [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -578,7 +578,7 @@ output: double
 action:
   - prob.dist.chi2PDF: [input, -1] #[input, degrees of freedom]
 """).head
-    evaluating { engine5.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine5.action(java.lang.Double.valueOf(0.4)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -586,7 +586,7 @@ output: double
 action:
   - prob.dist.chi2CDF: [input, -3] #[input, degrees of freedom]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(0.4)) }
 
     val engine6 = PFAEngine.fromYaml("""
 input: double
@@ -594,7 +594,7 @@ output: double
 action:
   - prob.dist.chi2QF: [input, -3] #[input, degrees of freedom]
 """).head
-    evaluating { engine6.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine6.action(java.lang.Double.valueOf(0.4)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -602,8 +602,8 @@ output: double
 action:
   - prob.dist.chi2QF: [input, 3] #[input, degrees of freedom]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine3.action(java.lang.Double.valueOf(1.4)) } should produce  [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -663,7 +663,7 @@ output: double
 action:
   - prob.dist.fPDF: [input, 0, 10] #[input, upper degrees of freedom, lower DOF]
 """).head
-    evaluating { engine1.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Double.valueOf(0.4)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -671,7 +671,7 @@ output: double
 action:
   - prob.dist.fCDF: [input, 4, 0] #[input, upper degrees of freedom, lower DOF]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(0.4)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -679,7 +679,7 @@ output: double
 action:
   - prob.dist.fQF: [input, 0, 10] #[input, upper degrees of freedom, lower DOF]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(0.4)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -687,8 +687,8 @@ output: double
 action:
   - prob.dist.fQF: [input, 4, 10] #[input, upper degrees of freedom, lower DOF]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce  [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -746,7 +746,7 @@ output: double
 action:
   - prob.dist.gammaPDF: [input, -1.3, -3] #[input, shape, scale]
 """).head
-    evaluating { engine1.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Double.valueOf(0.4)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -754,7 +754,7 @@ output: double
 action:
   - prob.dist.gammaCDF: [input, -3, 1] #[input, shape, scale]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(0.4)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -762,7 +762,7 @@ output: double
 action:
   - prob.dist.gammaQF: [input, -1, 3.0] #[input, shape, scale]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(0.4)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -770,8 +770,8 @@ output: double
 action:
   - prob.dist.gammaQF: [input, 2, 3] #[input, shape, scale]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce  [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -830,7 +830,7 @@ output: double
 action:
   - prob.dist.betaPDF: [input, 0, 3] #[input, shape1, shape2]
 """).head
-    evaluating { engine1.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Double.valueOf(0.4)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -838,7 +838,7 @@ output: double
 action:
   - prob.dist.betaCDF: [input, 4, -3] #[input, shape1, shape2]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(0.4)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -846,7 +846,7 @@ output: double
 action:
   - prob.dist.betaQF: [input, -4, 0] #[input, shape1, shape2]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(0.4)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -854,8 +854,8 @@ output: double
 action:
   - prob.dist.betaQF: [input, 4, 3] #[input, shape1, shape2]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce  [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -911,7 +911,7 @@ output: double
 action:
   - prob.dist.cauchyPDF: [input, 4, -3] #[input, location, scale]
 """).head
-    evaluating { engine1.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Double.valueOf(0.4)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -919,7 +919,7 @@ output: double
 action:
   - prob.dist.cauchyCDF: [input, 4, 0] #[input, location, scale]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(0.4)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -927,7 +927,7 @@ output: double
 action:
   - prob.dist.cauchyQF: [input, 4, -1] #[input, location, scale]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(0.4)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -935,8 +935,8 @@ output: double
 action:
   - prob.dist.cauchyQF: [input, 4, 3] #[input, location, scale]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce  [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -993,7 +993,7 @@ output: double
 action:
   - prob.dist.lognormalPDF: [input, 2.0, -3.0] #[input, meanlog, sdlog]
 """).head
-    evaluating { engine1.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Double.valueOf(0.4)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -1001,7 +1001,7 @@ output: double
 action:
   - prob.dist.lognormalCDF: [input, 2.0, 0.0] #[input, meanlog, sdlog]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(0.4)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -1009,7 +1009,7 @@ output: double
 action:
   - prob.dist.lognormalQF: [input, 2.0, -1.0] #[input, meanlog, sdlog]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(0.4)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -1017,8 +1017,8 @@ output: double
 action:
   - prob.dist.lognormalQF: [input, 2.0, 1.0] #[input, meanlog, sdlog]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce  [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -1073,7 +1073,7 @@ output: double
 action:
   - prob.dist.tPDF: [input, -2] #[input, degrees of freedom]
 """).head
-    evaluating { engine1.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Double.valueOf(0.4)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -1081,7 +1081,7 @@ output: double
 action:
   - prob.dist.tCDF: [input, -1] #[input, degrees of freedom]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(0.4)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -1089,7 +1089,7 @@ output: double
 action:
   - prob.dist.tQF: [input, 0] #[input, degrees of freedom]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(0.4)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -1097,8 +1097,8 @@ output: double
 action:
   - prob.dist.tQF: [input, 2] #[input, degrees of freedom]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce  [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -1188,7 +1188,7 @@ output: double
 action:
   - prob.dist.binomialPDF: [input, -4, 0.4]  #[input, size, prob]
 """).head
-    evaluating { engine1.action(java.lang.Integer.valueOf(5)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Integer.valueOf(5)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -1196,7 +1196,7 @@ output: double
 action:
   - prob.dist.binomialCDF: [input, 4, 1.1]  #[input, size, prob]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(4.0)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(4.0)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -1204,8 +1204,8 @@ output: double
 action:
   - prob.dist.binomialQF: [input, 4, 0.4]  #[input, size, prob]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -1261,7 +1261,7 @@ output: double
 action:
   - prob.dist.uniformPDF: [input, 5.0, 3.0] #[input, min, max]
 """).head
-    evaluating { engine1.action(java.lang.Double.valueOf(2.0)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Double.valueOf(2.0)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -1269,7 +1269,7 @@ output: double
 action:
   - prob.dist.uniformCDF: [input, 4.0, 3.0] #[input, min, max]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(2.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(2.4)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -1277,7 +1277,7 @@ output: double
 action:
   - prob.dist.uniformQF: [input, 3.0, 3.0] #[input, min, max]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(0.4)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -1285,8 +1285,8 @@ output: double
 action:
   - prob.dist.uniformQF: [input, 1.0, 3.0] #[input, min, max]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce  [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -1342,7 +1342,7 @@ output: double
 action:
   - prob.dist.geometricPDF: [input, 1.4] #[input, probability of success]
 """).head
-    evaluating { engine1.action(java.lang.Integer.valueOf(2)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Integer.valueOf(2)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -1350,7 +1350,7 @@ output: double
 action:
   - prob.dist.geometricCDF: [input, -0.4] #[input, probability of success]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(2.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(2.4)) }
 
 val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -1358,7 +1358,7 @@ output: double
 action:
   - prob.dist.geometricQF: [input, -0.4] #[input, probability of success]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(0.4)) }
 
 val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -1366,8 +1366,8 @@ output: double
 action:
   - prob.dist.geometricQF: [input, 0.4] #[input, probability of success]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce  [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -1429,7 +1429,7 @@ output: double
 action:
   - prob.dist.hypergeometricPDF: [input, 4, 4, 20]
 """).head
-    evaluating { engine1.action(java.lang.Integer.valueOf(3)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Integer.valueOf(3)) }
 
 // check 2
     val engine2 = PFAEngine.fromYaml("""
@@ -1447,8 +1447,8 @@ output: double
 action:
   - prob.dist.hypergeometricQF: [input, 10, 5, 3]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine3.action(java.lang.Double.valueOf(1.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -1518,7 +1518,7 @@ output: double
 action:
   - prob.dist.negativeBinomialPDF: [input, 4, 0.0] #[input, size, probability ]
 """).head
-    evaluating { engine1.action(java.lang.Integer.valueOf(5)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Integer.valueOf(5)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -1526,7 +1526,7 @@ output: double
 action:
   - prob.dist.negativeBinomialCDF: [input, 4, 1.1] #[input, size, probability ]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(4.0)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(4.0)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -1534,7 +1534,7 @@ output: double
 action:
   - prob.dist.negativeBinomialQF: [input, 0, -0.4] #[input, size, probability ]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(0.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(0.4)) }
 
     val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -1542,8 +1542,8 @@ output: double
 action:
   - prob.dist.negativeBinomialQF: [input, 4, 0.4] #[input, size, probability ]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 
 
@@ -1600,7 +1600,7 @@ output: double
 action:
   - prob.dist.weibullPDF: [input, -2, 4] #[input, shape, scale]
 """).head
-    evaluating { engine1.action(java.lang.Double.valueOf(1.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Double.valueOf(1.4)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: double
@@ -1608,7 +1608,7 @@ output: double
 action:
   - prob.dist.weibullCDF: [input, 2, 0] #[input, shape, scale]
 """).head
-    evaluating { engine2.action(java.lang.Double.valueOf(1.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(1.4)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: double
@@ -1616,7 +1616,7 @@ output: double
 action:
   - prob.dist.weibullQF: [input, 0, 4] #[input, shape, scale]
 """).head
-    evaluating { engine3.action(java.lang.Double.valueOf(1.4)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine3.action(java.lang.Double.valueOf(1.4)) }
 
 val engine4 = PFAEngine.fromYaml("""
 input: double
@@ -1624,7 +1624,7 @@ output: double
 action:
   - prob.dist.weibullQF: [input, 2, 4] #[input, shape, scale]
 """).head
-    evaluating { engine4.action(java.lang.Double.valueOf(-0.4)) } should produce [PFARuntimeException]
-    evaluating { engine4.action(java.lang.Double.valueOf(1.4)) } should produce  [PFARuntimeException]
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(-0.4)) }
+    intercept[PFARuntimeException] { engine4.action(java.lang.Double.valueOf(1.4)) }
     }
 }

@@ -112,7 +112,7 @@ action:
   }
 
   it must "handle error cases" taggedAs(Lib, LibStatSample) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept[PFASemanticException]  { PFAEngine.fromYaml("""
 input: double
 output: double
 cells:
@@ -126,9 +126,9 @@ action:
       ret: State
       do: {stat.sample.update: [input, 1.0, state]}
   - {cell: state, path: [[variance]]}
-""") } should produce [PFASemanticException]
+""") }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept[PFASemanticException]  { PFAEngine.fromYaml("""
 input: double
 output: double
 cells:
@@ -142,9 +142,9 @@ action:
       ret: State
       do: {stat.sample.update: [input, 1.0, state]}
   - {cell: state, path: [[variance]]}
-""") } should produce [PFASemanticException]
+""") }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept[PFASemanticException]  { PFAEngine.fromYaml("""
 input: double
 output: double
 cells:
@@ -158,7 +158,7 @@ action:
       ret: State
       do: {stat.sample.update: [input, 1.0, state]}
   - {cell: state, path: [[variance]]}
-""") } should produce [PFASemanticException]
+""") }
 
     val engine = PFAEngine.fromYaml("""
 input: "null"

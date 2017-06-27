@@ -41,7 +41,7 @@ action:
     engine.action(engine.jsonInput(""""A"""")) should be ("A")
     engine.action(engine.jsonInput(""""B"""")) should be ("B")
     engine.action(engine.jsonInput(""""C"""")) should be ("C")
-    evaluating { engine.jsonInput(""""D"""") } should produce [org.apache.avro.AvroTypeException]
+    intercept[org.apache.avro.AvroTypeException] { engine.jsonInput(""""D"""") }
   }
 
   it must "convert to int" taggedAs(Lib, LibEnum) in {

@@ -1829,7 +1829,7 @@ action:
     {value: [1, 2, 3, 4], type: {type: array, items: int}}
 """).head.action(null).asInstanceOf[PFAArray[PFAArray[Int]]].toVector.map(_.toVector) should be (Vector(Vector(1, 2, 3, 4), Vector(1, 2, 4, 3), Vector(1, 3, 2, 4), Vector(1, 3, 4, 2), Vector(1, 4, 2, 3), Vector(1, 4, 3, 2), Vector(2, 1, 3, 4), Vector(2, 1, 4, 3), Vector(2, 3, 1, 4), Vector(2, 3, 4, 1), Vector(2, 4, 1, 3), Vector(2, 4, 3, 1), Vector(3, 1, 2, 4), Vector(3, 1, 4, 2), Vector(3, 2, 1, 4), Vector(3, 2, 4, 1), Vector(3, 4, 1, 2), Vector(3, 4, 2, 1), Vector(4, 1, 2, 3), Vector(4, 1, 3, 2), Vector(4, 2, 1, 3), Vector(4, 2, 3, 1), Vector(4, 3, 1, 2), Vector(4, 3, 2, 1)))
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept[PFATimeoutException] { PFAEngine.fromYaml("""
 input: "null"
 output: {type: array, items: {type: array, items: int}}
 action:
@@ -1837,7 +1837,7 @@ action:
     {value: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20], type: {type: array, items: int}}
 options:
   timeout: 1000
-""").head.action(null) } should produce [PFATimeoutException]
+""").head.action(null) }
   }
 
   it must "flatten" taggedAs(Lib, LibArray) in {

@@ -605,8 +605,8 @@ package data {
     *  - "enum" are loaded into [[com.opendatagroup.hadrian.data.GenericPFAEnumSymbol GenericPFAEnumSymbol]]
     *  - "record" are loaded into [[com.opendatagroup.hadrian.data.GenericPFARecord GenericPFARecord]]
     * 
-    * @param scheam of datum to write
-    * @param pfaSpecificData data model
+    * @param schema of datum to write
+    * @param pfaGenericData data model
     */
   class GenericPFADatumWriter[X](schema: Schema, pfaGenericData: PFAGenericData) extends GenericDatumWriter[X](schema, pfaGenericData) {
     // write bytes as simple Array[Byte], rather than java.nio.ByteBuffer
@@ -624,7 +624,7 @@ package data {
     *  - "enum" are loaded into a dynamically generated subclass of [[com.opendatagroup.hadrian.data.PFAEnumSymbol PFAEnumSymbol]]
     *  - "record" are loaded into a dynamically generated subclass of [[com.opendatagroup.hadrian.data.PFARecord PFARecord]]
     * 
-    * @param scheam of datum to write
+    * @param Schema of datum to write
     * @param pfaSpecificData data model
     */
   class PFADatumWriter[X](schema: Schema, pfaSpecificData: PFASpecificData) extends SpecificDatumWriter[X](schema, pfaSpecificData) {
@@ -2051,7 +2051,7 @@ package object data {
         val decoder = DecoderFactory.get.jsonDecoder(inputType.schema, json)
         reader.read(null.asInstanceOf[X], decoder)
       }
-      def remove(): Unit = throw new java.lang.UnsupportedOperationException
+      override def remove(): Unit = throw new java.lang.UnsupportedOperationException
     }
   }
 
@@ -2074,7 +2074,7 @@ package object data {
         val decoder = DecoderFactory.get.jsonDecoder(inputType.schema, json)
         reader.read(null.asInstanceOf[X], decoder)
       }
-      def remove(): Unit = throw new java.lang.UnsupportedOperationException
+      override def remove(): Unit = throw new java.lang.UnsupportedOperationException
     }
   }
 
@@ -2168,7 +2168,7 @@ package object data {
         val csvRecord = csvIterator.next()
         myMakeRecord(fieldReaders map {case (i, r) => r(unquote(csvRecord.get(i)))} toArray)
       }
-      def remove(): Unit = throw new java.lang.UnsupportedOperationException
+      override def remove(): Unit = throw new java.lang.UnsupportedOperationException
     }
   }
 

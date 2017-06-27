@@ -147,9 +147,9 @@ three:
   }
 
   it must "simplify all fancy types to maps" taggedAs(Yaml) in {
-    evaluating { yamlToJson("""!!set {one, two, three}""") } should produce [org.yaml.snakeyaml.constructor.ConstructorException]
-    evaluating { yamlToJson("""!!omap [one: 1, two: 2, three: 3]""") } should produce [org.yaml.snakeyaml.constructor.ConstructorException]
-    evaluating { yamlToJson("""!!pairs [one: 1, two: 2, three: 3]""") } should produce [org.yaml.snakeyaml.constructor.ConstructorException]
+    intercept[org.yaml.snakeyaml.constructor.ConstructorException] { yamlToJson("""!!set {one, two, three}""") }
+    intercept[org.yaml.snakeyaml.constructor.ConstructorException] { yamlToJson("""!!omap [one: 1, two: 2, three: 3]""") }
+    intercept[org.yaml.snakeyaml.constructor.ConstructorException] { yamlToJson("""!!pairs [one: 1, two: 2, three: 3]""") }
   }
 
   it must "support references" taggedAs(Yaml) in {
@@ -165,13 +165,13 @@ four: *THIS
   }
 
   it must "fail on recursive references" taggedAs(Yaml) in {
-    evaluating { yamlToJson("""
+    intercept[java.lang.StackOverflowError] { yamlToJson("""
 one: 1
 two: &THIS
   - 2
   - 3
   - *THIS
-""") } should produce [java.lang.StackOverflowError]
+""") }
   }
 
   it must "non-string key" taggedAs(Yaml) in {
