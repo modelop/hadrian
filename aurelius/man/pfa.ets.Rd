@@ -8,7 +8,8 @@ pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 }
 \usage{
 \method{pfa}{ets}(object, name = NULL, version = NULL, doc = NULL,
-  metadata = NULL, randseed = NULL, options = NULL, cycle_reset = TRUE)
+  metadata = NULL, randseed = NULL, options = NULL, cycle_reset = TRUE,
+  ...)
 }
 \arguments{
 \item{object}{an object of class "ets"}

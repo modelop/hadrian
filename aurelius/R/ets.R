@@ -115,7 +115,7 @@ extract_params.ets <- function(object, ...) {
 #' }
 #' @export
 pfa.ets <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
-                    cycle_reset = TRUE){
+                    cycle_reset = TRUE, ...){
   
   # extract model parameters
   fit <- extract_params(object)

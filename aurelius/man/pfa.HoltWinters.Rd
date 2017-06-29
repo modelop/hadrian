@@ -8,7 +8,7 @@ pfa_config.R avro_typemap.R avro.R pfa_cellpool.R pfa_expr.R pfa_utils.R
 }
 \usage{
 \method{pfa}{HoltWinters}(object, name = NULL, version = NULL, doc = NULL,
-  metadata = NULL, randseed = NULL, options = NULL)
+  metadata = NULL, randseed = NULL, options = NULL, ...)
 }
 \arguments{
 \item{object}{an object of class "HoltWinters"}

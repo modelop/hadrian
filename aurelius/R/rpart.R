@@ -19,13 +19,13 @@
 #'
 #' Extracts parameters from a tree made by the rpart() function
 #' 
+#' @importFrom utils head
 #' @param object an object of class "rpart"
 #' @param ... further arguments passed to or from other methods
 #' @return a \code{list} that is extracted from the rpart object
 #' @examples 
 #' \dontrun{
-#' object <- rpart(Kyphosis ~ Age + as.factor(Number), data = kyphosis)
-#' gbm_object <- gbm(as.numeric(Kyphosis)-1 ~ Age + as.factor(Number), data = kyphosis)
+#' model <- rpart(Kyphosis ~ Age + as.factor(Number), data = kyphosis)
 #' my_tree <- extract_params(model)
 #' }
 #' @export
@@ -59,6 +59,7 @@ extract_params.rpart <- function(object, ...) {
     
     ss <- ss + 1
     
+    cp <- 0.01
     if (frame$complexity[i] > cp) {
       sons <- 2L * id[i] + c(0L, 1L)
       sons.n <- frame$n[match(sons, id)]

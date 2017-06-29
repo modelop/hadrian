@@ -40,7 +40,10 @@ problems returns the probability of each class.}
 \item{cutoffs}{(Classification only) A named numeric vector of length equal to 
 number of classes. The "winning" class for an observation is the one with the 
 maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
-same cutoff for each class that is 1/k where k is the number of classes}
+same cutoff for each class that is 1/k where k is the number of classes.}
+
+\item{distance_measure}{a string representing the type of distance calculation 
+in order to determine the nearest neighbours.}
 
 \item{...}{additional arguments affecting the PFA produced}
 }
@@ -62,5 +65,5 @@ model_as_pfa <- pfa(model)
 }
 }
 \seealso{
-\code{\link[stats]{knn}} \code{\link{extract_params.knn}}
+\code{\link[caret]{knnreg}} \code{\link{extract_params.knn3}}
 }

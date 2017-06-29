@@ -8,9 +8,9 @@ Description: Converts R syntax into PFA and provides tools for assembling a PFA
     PFA and data to Titus (through rPython). Facilitates conversion of common R
     model output to PFA using aurelius.* libraries.
 Authors@R: c(
-  person("Collin", "Bennett", , "collin.bennett@opendatagroup.com", c("cre")),
-  person("Open", "Data Group", , , c("aut")),
-  person("Steven", "Mortimer", , "reportmort@gmail.com", c("aut"))
+  person("Steven", "Mortimer", , "reportmort@gmail.com", c("aut", "cre")), 
+  person("Collin", "Bennett", , "collin.bennett@opendatagroup.com", c("aut")),
+  person("Open", "Data Group", , , c("aut"))
   )
 URL: https://github.com/opendatagroup/hadrian/tree/master/aurelius
 BugReports: https://github.com/opendatagroup/hadrian/issues
@@ -19,6 +19,7 @@ Depends:
 Imports:
     methods,
     stats,
+    utils,
     jsonlite (>= 1.1),
     rPython (>= 0.0-6),
     gbm (>= 2.1.1),

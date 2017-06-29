@@ -19,8 +19,7 @@ Extracts parameters from a tree made by the rpart() function
 }
 \examples{
 \dontrun{
-object <- rpart(Kyphosis ~ Age + as.factor(Number), data = kyphosis)
-gbm_object <- gbm(as.numeric(Kyphosis)-1 ~ Age + as.factor(Number), data = kyphosis)
+model <- rpart(Kyphosis ~ Age + as.factor(Number), data = kyphosis)
 my_tree <- extract_params(model)
 }
 }

@@ -77,7 +77,9 @@ extract_params.knn3 <- function(object, ...) {
 #' @param cutoffs (Classification only) A named numeric vector of length equal to 
 #' number of classes. The "winning" class for an observation is the one with the 
 #' maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
-#' same cutoff for each class that is 1/k where k is the number of classes
+#' same cutoff for each class that is 1/k where k is the number of classes.
+#' @param distance_measure a string representing the type of distance calculation 
+#' in order to determine the nearest neighbours.
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -91,7 +93,7 @@ extract_params.knn3 <- function(object, ...) {
 #' (e.g. optimization switches). May be overridden or ignored by PFA consumer
 #' @param ...	additional arguments affecting the PFA produced
 #' @return a \code{list} of lists that compose valid PFA document
-#' @seealso \code{\link[stats]{knn}} \code{\link{extract_params.knn}}
+#' @seealso \code{\link[caret]{knn3}} \code{\link{extract_params.knn3}}
 #' @examples
 #' \dontrun{
 #' iris2 <- iris
@@ -252,7 +254,9 @@ extract_params.knnreg <- extract_params.knn3
 #' @param cutoffs (Classification only) A named numeric vector of length equal to 
 #' number of classes. The "winning" class for an observation is the one with the 
 #' maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
-#' same cutoff for each class that is 1/k where k is the number of classes
+#' same cutoff for each class that is 1/k where k is the number of classes.
+#' @param distance_measure a string representing the type of distance calculation 
+#' in order to determine the nearest neighbours.
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -266,7 +270,7 @@ extract_params.knnreg <- extract_params.knn3
 #' (e.g. optimization switches). May be overridden or ignored by PFA consumer
 #' @param ...	additional arguments affecting the PFA produced
 #' @return a \code{list} of lists that compose valid PFA document
-#' @seealso \code{\link[stats]{knn}} \code{\link{extract_params.knn}}
+#' @seealso \code{\link[caret]{knnreg}} \code{\link{extract_params.knn3}}
 #' @examples
 #' \dontrun{
 #' iris2 <- iris
@@ -313,7 +317,9 @@ extract_params.ipredknn <- extract_params.knn3
 #' @param cutoffs (Classification only) A named numeric vector of length equal to 
 #' number of classes. The "winning" class for an observation is the one with the 
 #' maximum ratio of predicted probability to its cutoff. The default cutoffs assume the 
-#' same cutoff for each class that is 1/k where k is the number of classes
+#' same cutoff for each class that is 1/k where k is the number of classes.
+#' @param distance_measure a string representing the type of distance calculation 
+#' in order to determine the nearest neighbours.
 #' @param name a character which is an optional name for the scoring engine
 #' @param version	an integer which is sequential version number for the model
 #' @param doc	a character which is documentation string for archival purposes
@@ -327,7 +333,7 @@ extract_params.ipredknn <- extract_params.knn3
 #' (e.g. optimization switches). May be overridden or ignored by PFA consumer
 #' @param ...	additional arguments affecting the PFA produced
 #' @return a \code{list} of lists that compose valid PFA document
-#' @seealso \code{\link[stats]{knn}} \code{\link{extract_params.knn}}
+#' @seealso \code{\link[ipred]{ipredknn}} \code{\link{extract_params.knn3}}
 #' @examples
 #' \dontrun{
 #' iris2 <- iris

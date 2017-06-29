@@ -82,7 +82,7 @@ extract_params.HoltWinters <- function(object, ...) {
 #' model_as_pfa <- pfa(model)
 #' }
 #' @export
-pfa.HoltWinters <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL){
+pfa.HoltWinters <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...){
   
   # extract model parameters
   fit <- extract_params(object)
