@@ -1,15 +1,16 @@
 Package: aurelius
 Type: Package
 Version: 0.8.4.9000
-Date: 2017-06-22
+Date: 2017-06-29
 Title: Generates PFA Documents from R Code and Optionally Runs Them
 Description: Converts R syntax into PFA and provides tools for assembling a PFA
     document within R. Tests validity and runtime behavior of PFA by offloading
     PFA and data to Titus (through rPython). Facilitates conversion of common R
     model output to PFA using aurelius.* libraries.
 Authors@R: c(
+  person("Collin", "Bennett", , "collin.bennett@opendatagroup.com", c("cre")),
   person("Open", "Data Group", , , c("aut")),
-  person("Collin", "Bennett", , "collin.bennett@opendatagroup.com", c("cre"))
+  person("Steven", "Mortimer", , "reportmort@gmail.com", c("aut"))
   )
 URL: https://github.com/opendatagroup/hadrian/tree/master/aurelius
 BugReports: https://github.com/opendatagroup/hadrian/issues
@@ -31,7 +32,9 @@ Suggests:
     caret, 
     ipred,
     flexclust,
-    e1071
+    e1071,
+    randomForest,
+    rpart
 VignetteBuilder: knitr
 License: file LICENSE
 NeedsCompilation: no
