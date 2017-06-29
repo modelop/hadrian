@@ -21,10 +21,10 @@ Imports:
     stats,
     utils,
     jsonlite (>= 1.1),
-    rPython (>= 0.0-6),
     gbm (>= 2.1.1),
     glmnet (>= 2.0-5)
 Suggests:
+    rPython,
     knitr,
     rmarkdown,
     testthat,
