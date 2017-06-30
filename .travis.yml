@@ -35,8 +35,8 @@ r_binary_packages:
 
 #r_packages
 r_packages:
-- covr
 - devtools
+- covr
 - jsonlite
 - gbm
 - glmnet

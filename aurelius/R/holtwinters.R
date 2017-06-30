@@ -134,7 +134,8 @@ pfa.HoltWinters <- function(object, name=NULL, version=NULL, doc=NULL, metadata=
                       doc=doc, 
                       metadata=metadata, 
                       randseed=randseed, 
-                      options=options
+                      options=options,
+                      ...
   )
   
   return(doc)

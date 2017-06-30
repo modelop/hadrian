@@ -1,7 +1,7 @@
 Package: aurelius
 Type: Package
 Version: 0.8.4.9000
-Date: 2017-06-29
+Date: 2017-06-30
 Title: Generates PFA Documents from R Code and Optionally Runs Them
 Description: Converts R syntax into PFA and provides tools for assembling a PFA
     document within R. Tests validity and runtime behavior of PFA by offloading
@@ -10,7 +10,7 @@ Description: Converts R syntax into PFA and provides tools for assembling a PFA
 Authors@R: c(
   person("Steven", "Mortimer", , "reportmort@gmail.com", c("aut", "cre")), 
   person("Collin", "Bennett", , "collin.bennett@opendatagroup.com", c("aut")),
-  person("Open", "Data Group", , , c("aut"))
+  person("Open Data Group", role=c("cph"))
   )
 URL: https://github.com/opendatagroup/hadrian/tree/master/aurelius
 BugReports: https://github.com/opendatagroup/hadrian/issues
@@ -20,11 +20,11 @@ Imports:
     methods,
     stats,
     utils,
+    rPython (>= 0.0-6),
     jsonlite (>= 1.1),
     gbm (>= 2.1.1),
     glmnet (>= 2.0-5)
 Suggests:
-    rPython,
     knitr,
     rmarkdown,
     testthat,
@@ -37,7 +37,7 @@ Suggests:
     randomForest,
     rpart
 VignetteBuilder: knitr
-License: file LICENSE
+License: Apache-2.0 | file LICENSE
 NeedsCompilation: no
 LazyData: true
 RoxygenNote: 6.0.1

@@ -25,9 +25,9 @@ counter$n <- 0
 #' PFA validity in R).
 #' 
 #' @importFrom utils capture.output
-#' @param doc \code{list} of lists representing a complete PFA document
 #' @importFrom rPython python.exec python.call
 #' @source json.R
+#' @param doc \code{list} of lists representing a complete PFA document
 #' @examples
 #' \dontrun{
 #' my_pfa_doc <- pfa_document(avro_double, avro_double, expression(input + 10))

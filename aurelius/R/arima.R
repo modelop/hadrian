@@ -178,7 +178,8 @@ pfa.Arima <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, 
                       doc=doc, 
                       metadata=metadata, 
                       randseed=randseed, 
-                      options=options
+                      options=options,
+                      ...
   )
   
   return(doc)
