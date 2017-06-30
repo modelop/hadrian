@@ -29,28 +29,41 @@ after_success:
 
 #r_github_packages
 r_github_packages:
-- jimhester/covr
-- hadley/devtools
 
 #r_binary_packages
 r_binary_packages:
 
 #r_packages
 r_packages:
-- rmarkdown
-- RJSONIO
-- rPython
+- covr
+- devtools
+- jsonlite
 - gbm
 - glmnet
-- randomForest
-- e1071
+- rPython
+- knitr
+- rmarkdown
+- testthat
+- MASS
+- forecast
+- caret
+- ipred
 - flexclust
+- e1071
+- randomForest
+- rpart
 
 #services
 services:
 
 #before_install
 before_install:
+- git clone git://github.com/stevengj/nlopt
+- cd nlopt
+- cmake .
+- make
+- sudo make install
+- cd ../titus
 - sudo apt-get install python-setuptools -y
 - sudo pip install numpy
 - cd titus
