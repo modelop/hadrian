@@ -63,7 +63,7 @@ before_install:
 - cmake .
 - make
 - sudo make install
-- cd ../titus
+- cd ..
 - sudo apt-get install python-setuptools -y
 - sudo pip install numpy
 - cd titus
