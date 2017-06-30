@@ -51,7 +51,7 @@ models_table <-
 'Model,Function,Prediction,Libraries
 Autoregressive Integrated Moving Average (ARIMA),"`arima()`, `Arima()`, `auto.arima()`",Time Series,"`stats`, `forecast`"
 Classification and Regression Trees (CART),`rpart()`,"Classification, Regression, Survival",`rpart`
-Exponential Smoothing State Space,`ets()`,Time Series,`forecast`
+Exponential Smoothing State Space,"`ets()`, `ses()`, `hw()`, `holt()`",Time Series,`forecast`
 Generalized Boosted Regression Models,`gbm()`,"Classification, Regression, Survival",`gbm`
 Generalized Linear Model,`glm()`,"Classification, Regression",`stats`
 Holt-Winters Filtering,"`HoltWinters()`, `holt()`",Time Series,"`stats`, `forecast`"
@@ -71,7 +71,7 @@ knitr::kable(read.csv(text = models_table))
 |:-------------------------------------------------|:-------------------------------------|:-------------------------------------|:--------------------|
 | Autoregressive Integrated Moving Average (ARIMA) | `arima()`, `Arima()`, `auto.arima()` | Time Series                          | `stats`, `forecast` |
 | Classification and Regression Trees (CART)       | `rpart()`                            | Classification, Regression, Survival | `rpart`             |
-| Exponential Smoothing State Space                | `ets()`                              | Time Series                          | `forecast`          |
+| Exponential Smoothing State Space                | `ets()`, `ses()`, `hw()`, `holt()`   | Time Series                          | `forecast`          |
 | Generalized Boosted Regression Models            | `gbm()`                              | Classification, Regression, Survival | `gbm`               |
 | Generalized Linear Model                         | `glm()`                              | Classification, Regression           | `stats`             |
 | Holt-Winters Filtering                           | `HoltWinters()`, `holt()`            | Time Series                          | `stats`, `forecast` |
