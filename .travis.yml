@@ -37,6 +37,7 @@ r_binary_packages:
 r_packages:
 - covr
 - devtools
+- lme4
 - jsonlite
 - gbm
 - glmnet
@@ -58,12 +59,6 @@ services:
 
 #before_install
 before_install:
-- git clone git://github.com/stevengj/nlopt
-- cd nlopt
-- cmake .
-- make
-- sudo make install
-- cd ..
 - sudo apt-get install python-setuptools -y
 - sudo pip install numpy
 - cd titus
