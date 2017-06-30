@@ -12,7 +12,8 @@
 
 From win-builder: 
 
-> Package suggested but not available for checking: 'rPython'
+> * checking package dependencies ... ERROR
+> Package required but not available: 'rPython'
  
 ### Notes
 
