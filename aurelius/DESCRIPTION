@@ -37,7 +37,7 @@ Suggests:
     randomForest,
     rpart
 VignetteBuilder: knitr
-License: Apache-2.0 | file LICENSE
+License: Apache License 2.0 | file LICENSE
 NeedsCompilation: no
 LazyData: true
 RoxygenNote: 6.0.1
