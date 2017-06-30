@@ -6,8 +6,8 @@ model <- read_pfa(model_as_string)
 test_that("write_pfa errors for incorrect directory and with invalid inputs", {
   
   filename <- ".../test.pfa"
-  expect_error(write_pfa(model, filename), "cannot open the connection")
-  expect_error(write_pfa(model, c("test.pfa", "foo")), "invalid 'description' argument")
+  expect_error(suppressWarnings(write_pfa(model, file=filename)), "cannot open the connection")
+  expect_error(suppressWarnings(write_pfa(model, file=c("test.pfa", "foo"))), "invalid 'description' argument")
   
 })
 
