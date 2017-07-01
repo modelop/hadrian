@@ -46,27 +46,6 @@ Supported Models
 
 The `pfa()` function in this package supports direct conversion to PFA for objects created by the following functions:
 
-``` r
-models_table <-
-'Model,Function,Prediction,Libraries
-Autoregressive Integrated Moving Average (ARIMA),"`arima()`, `Arima()`, `auto.arima()`",Time Series,"`stats`, `forecast`"
-Classification and Regression Trees (CART),`rpart()`,"Classification, Regression, Survival",`rpart`
-Exponential Smoothing State Space,"`ets()`, `ses()`, `hw()`, `holt()`",Time Series,`forecast`
-Generalized Boosted Regression Models,`gbm()`,"Classification, Regression, Survival",`gbm`
-Generalized Linear Model,`glm()`,"Classification, Regression",`stats`
-Holt-Winters Filtering,"`HoltWinters()`, `holt()`",Time Series,"`stats`, `forecast`"
-K-Centroids Clustering,`kcca()`,Clustering,`flexclust`
-K-Means Clustering,`kmeans()`,Clustering,`stats`
-k-Nearest Neighbour,"`knn3()`, `knnreg()`, `ipredknn()`","Classification, Regression","`caret`, `ipred`"
-Linear Discriminant Analysis,`lda()`,Classification,`MASS`
-Linear Model,`lm()`,Regression,`stats`
-Naive Bayes Classifier,`naiveBayes()`,Classification,`e1071`
-Random Forest,`randomForest()`,"Classification, Regression",`randomForest`
-Regularized Generalized Linear Models,"`glmnet()`, `cv.glmnet()`","Classification, Regression, Survival",`glmnet`
-'
-knitr::kable(read.csv(text = models_table))
-```
-
 | Model                                            | Function                             | Prediction                           | Libraries           |
 |:-------------------------------------------------|:-------------------------------------|:-------------------------------------|:--------------------|
 | Autoregressive Integrated Moving Average (ARIMA) | `arima()`, `Arima()`, `auto.arima()` | Time Series                          | `stats`, `forecast` |
@@ -74,7 +53,7 @@ knitr::kable(read.csv(text = models_table))
 | Exponential Smoothing State Space                | `ets()`, `ses()`, `hw()`, `holt()`   | Time Series                          | `forecast`          |
 | Generalized Boosted Regression Models            | `gbm()`                              | Classification, Regression, Survival | `gbm`               |
 | Generalized Linear Model                         | `glm()`                              | Classification, Regression           | `stats`             |
-| Holt-Winters Filtering                           | `HoltWinters()`, `holt()`            | Time Series                          | `stats`, `forecast` |
+| Holt-Winters Filtering                           | `HoltWinters()`                      | Time Series                          | `stats`, `forecast` |
 | K-Centroids Clustering                           | `kcca()`                             | Clustering                           | `flexclust`         |
 | K-Means Clustering                               | `kmeans()`                           | Clustering                           | `stats`             |
 | k-Nearest Neighbour                              | `knn3()`, `knnreg()`, `ipredknn()`   | Classification, Regression           | `caret`, `ipred`    |
@@ -87,4 +66,4 @@ knitr::kable(read.csv(text = models_table))
 License
 -------
 
-The **aurelius** package is licensed under the Apache License 2.0 (<http://choosealicense.com/licenses/apache-2.0/>).
+The **aurelius** package is licensed under the [Apache License 2.0](http://choosealicense.com/licenses/apache-2.0/).

@@ -64,7 +64,7 @@ my_model <- read_pfa("my-model.pfa")
 The `pfa()` function in this package supports direct conversion to PFA for objects 
 created by the following functions:
 
-```{r supported-models-table}
+```{r supported-models-table, echo=FALSE}
 models_table <-
 'Model,Function,Prediction,Libraries
 Autoregressive Integrated Moving Average (ARIMA),"`arima()`, `Arima()`, `auto.arima()`",Time Series,"`stats`, `forecast`"
@@ -72,7 +72,7 @@ Classification and Regression Trees (CART),`rpart()`,"Classification, Regression
 Exponential Smoothing State Space,"`ets()`, `ses()`, `hw()`, `holt()`",Time Series,`forecast`
 Generalized Boosted Regression Models,`gbm()`,"Classification, Regression, Survival",`gbm`
 Generalized Linear Model,`glm()`,"Classification, Regression",`stats`
-Holt-Winters Filtering,"`HoltWinters()`, `holt()`",Time Series,"`stats`, `forecast`"
+Holt-Winters Filtering,`HoltWinters()`,Time Series,"`stats`, `forecast`"
 K-Centroids Clustering,`kcca()`,Clustering,`flexclust`
 K-Means Clustering,`kmeans()`,Clustering,`stats`
 k-Nearest Neighbour,"`knn3()`, `knnreg()`, `ipredknn()`","Classification, Regression","`caret`, `ipred`"
@@ -87,4 +87,4 @@ knitr::kable(read.csv(text = models_table))
 
 ## License
 
-The **aurelius** package is licensed under the Apache License 2.0 (http://choosealicense.com/licenses/apache-2.0/).  
+The **aurelius** package is licensed under the [Apache License 2.0](http://choosealicense.com/licenses/apache-2.0/).  
