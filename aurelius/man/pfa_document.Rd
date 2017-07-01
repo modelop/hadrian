@@ -8,7 +8,7 @@ pfa_engine.R
 }
 \usage{
 pfa_document(input, output, action, cells = NULL, pools = NULL,
-  fcns = NULL, validate = TRUE, name = NULL, method = NULL,
+  fcns = NULL, validate = FALSE, name = NULL, method = NULL,
   begin = NULL, end = NULL, zero = NULL, merge = NULL,
   randseed = NULL, doc = NULL, version = NULL, metadata = NULL,
   options = NULL, env = parent.frame())

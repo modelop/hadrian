@@ -74,7 +74,7 @@ test_that("check binomial family GLMs", {
                glm_resp_to_prob(cauchit_model, as.data.frame(input)),
                tolerance = .0001)
   
-  cloglog_model <- glm(Y ~ X1 + X2, family = binomial(cloglog))
+  suppressWarnings(cloglog_model <- glm(Y ~ X1 + X2, family = binomial(cloglog)))
   
   cloglog_model_as_pfa <- pfa(cloglog_model, pred_type = 'prob')
   cloglog_engine <- pfa_engine(cloglog_model_as_pfa)

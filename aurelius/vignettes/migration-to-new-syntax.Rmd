@@ -56,7 +56,6 @@ avro_int
 
 # avro.enum no longer in use
 avro_enum(list("one", "two"))
-
 ```
 
 # pfa.* functions
@@ -72,10 +71,8 @@ these older `pfa.*` functions have been renamed to `pfa_*` similar to the change
 Avro functions mentioned above.
 
 ```{r pfa-changes}
-
 # pfa.expr no longer in use
 pfa_expr(quote(2 + 2))
-
 ```
 
 # Functions to Read & Write PFA
@@ -91,7 +88,6 @@ Tests with small documents showed ~10% reduction in size. This is similar to min
 a CSS file to improve speed.
 
 ```{r model-import-export, eval=FALSE}
-
 # convert the lm object to a list-of-lists PFA representation
 lm_model_as_pfa <- pfa(lm(mpg ~ hp, data = mtcars))
 
@@ -99,23 +95,22 @@ lm_model_as_pfa <- pfa(lm(mpg ~ hp, data = mtcars))
 write_pfa(lm_model_as_pfa, file = "my-model.pfa")
 
 my_model <- read_pfa("my-model.pfa")
-  
 ```
 
 # Functions to Create PFA
 
 In addition to the changes in importing and exporting PFA, the function `pfa.config()` 
 has been renamed to `pfa_document()` (also inspired by `xml2` package). It 
-provides a method for creating a valid PFA document and, by default, warns if the 
-document is not valid PFA using Titus-in-Aurelius (`pfa_engine()`)
+provides a method for creating a PFA document and provides an option to check if the 
+document is not valid PFA using Titus-in-Aurelius (`pfa_engine()`). Note, that using 
+`pfa_engine()` requires the `rPython` package to be installed which has special 
+instructions for Windows users.
 
 ```{r pfa-document}
-
 pfa_document(input = avro_double, 
              output = avro_double, 
              action = expression(input + 10), 
-             validate = TRUE)
-
+             validate = FALSE)
 ```
 
 # More Support for Model Producers
@@ -157,7 +152,6 @@ probability to the cutoff is highest. This strategy was adopted from
 `randomForest.predict()`.
 
 ```{r multinomial-glmnet-example, eval=FALSE}
-
 # generate data
 x <- matrix(rnorm(100*3), 100, 3, dimnames = list(NULL, c('X1','X2', 'X3')))
 g3 <- sample(LETTERS[1:3], 100, replace=TRUE)
@@ -171,7 +165,6 @@ multinomial_model <- glmnet(x, g3, family="multinomial", intercept = FALSE)
 multinomial_model_as_pfa <- pfa(multinomial_model, 
                                 pred_type = 'response', 
                                 cutoffs = c(A = .1, B = .2, C = .7))
-  
 ```
 
 # S3 Methods to Extract and Build Models
@@ -182,8 +175,7 @@ to retrieve model information that could be contructed into a PFA document. The
 purpose of having a consistent API is to better facilitate building PFA from 
 model components whenever the user does not want to use a pre-canned producer.
 
-```{r extract-and-build-models, eval=TRUE}
-
+```{r extract-and-build-models, eval=FALSE}
 # generate data
 set.seed(1)
 dat <- data.frame(X1 = rnorm(100), 
@@ -195,7 +187,6 @@ logit_model <- glm(Y ~ X1 + X2, data=dat, family = binomial(logit))
 
 # extract the parameters
 extract_params(logit_model)
-
 ```
 
 # Test Coverage
@@ -208,7 +199,6 @@ of utilizing the package functions.
 ## Testing Predictions
 
 ```{r testing-model-predictions, eval=FALSE}
-
 library(testthat)
 
 # generate data
@@ -231,7 +221,6 @@ expect_equal(lm_engine$action(input),
              unname(predict(lm_model, 
                             newdata = as.data.frame(input))),
              tolerance = .0001)
-
 ```
 
 Test coverage exists even for functions that are not model producers. For 
@@ -241,7 +230,6 @@ behaves as expected for reading PFA from a string, a file, or a url.
 ## Testing read_pfa()
 
 ```{r testing-read-pfa, eval=FALSE}
-
 model_as_list <- list(input='double', 
                       output='double', 
                       action=list(list(`+`=list('input', 10))))
@@ -263,5 +251,4 @@ url_conn <- url(paste0("https://raw.githubusercontent.com/ReportMort/hadrian",
                        "/aurelius/inst/extdata/my-model.pfa"))
 url_model <- read_pfa(url_conn)
 expect_identical(url_model, model_as_list)
-
 ```

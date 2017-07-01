@@ -6,31 +6,26 @@
 
 ## R CMD check results
 
-1 error | 0 warnings | 1 note
-
-### Errors
-
-From win-builder: 
-
-> * checking package dependencies ... ERROR
-> Package required but not available: 'rPython'
+0 errors | 0 warnings | 2 notes
  
 ### Notes
 
 From win-builder:
 
-> Maintainer: 'Steven Mortimer <reportmort@gmail.com>'
-> 
-> New submission
-> 
-> Version contains large components (0.8.4.9000)
-> 
-> Non-FOSS package license (file LICENSE)
-> 
-> Possibly mis-spelled words in DESCRIPTION:
->   PFA (5:18, 6:37, 6:77, 7:63, 8:5, 9:21)
->   aurelius (9:31)
->   rPython (8:36)
->   runtime (7:43)
+>* checking CRAN incoming feasibility ... NOTE
+>Maintainer: 'Steven Mortimer <reportmort@gmail.com>'
+>
+>New submission
+>
+>Possibly mis-spelled words in DESCRIPTION:
+>  PFA (5:18, 6:37, 6:77, 7:63, 8:5, 9:21)
+>  aurelius (9:31)
+>  rPython (8:36)
+>  runtime (7:43)
+
+>* checking package dependencies ... NOTE
+>Package which this enhances but not available for checking: 'rPython'
 
 ## Downstream dependencies
+
+None at this time

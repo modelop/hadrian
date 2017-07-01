@@ -41,20 +41,45 @@ extract_params.Arima <- function(object, ...) {
   this_intercept <- if(!is.finite(this_intercept)) 0 else this_intercept
 
   xr <- object$call$xreg
-  if(!is.null(xr)){
-    xreg_names <- names(eval.parent(xr))
+  
+  if(is.null(xr)){
+    xreg <- NULL 
+  } else {
+    # find the object in some environment
+    this_obj <- tryCatch({
+      eval.parent(xr, n=1)
+    }, error=function(e){
+      return(NULL)
+    })
+    
+    if(is.null(this_obj)){
+      this_obj <- tryCatch({
+        eval.parent(xr, n=2)
+      }, error=function(e){
+        return(NULL)
+      })      
+    }
+    
+    # finally try the global environment
+    if(is.null(this_obj)){
+      this_obj <- tryCatch({
+        eval(xr, .GlobalEnv)
+      }, error=function(e){
+        return(NULL)
+      })      
+    }
+    
+    xreg_names <- names(this_obj)  
     if(is.null(xreg_names)){
-      if(ncol(as.data.frame(eval.parent(xr))) == 1){
+      if(ncol(as.data.frame(this_obj)) == 1){
         xreg_names <- as.character(xr)
       } else {
         stop(paste('Could not determine the names of each external regressor to match up coefficients.', 
-                   'Consider passing the xreg arugment as a data.frame.'))
+                   'Consider passing the xreg argument as a data.frame.'))
       }
     }
     xreg <- as.list(object$coef[xreg_names])
-    names(xreg) <- validate_names(names(xreg))
-  } else {
-    xreg <- NULL
+    names(xreg) <- validate_names(names(xreg))  
   }
   
   list(trans_matrix = object$model$T, 

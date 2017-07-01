@@ -25,7 +25,6 @@ counter$n <- 0
 #' PFA validity in R).
 #' 
 #' @importFrom utils capture.output
-#' @importFrom rPython python.exec python.call
 #' @source json.R
 #' @param doc \code{list} of lists representing a complete PFA document
 #' @examples
@@ -40,36 +39,35 @@ pfa_engine <- function(doc) {
     method <- doc$method
 
     # load PFA into Titus and get an error message if it's malformed
-    python.exec("import json")
-    python.exec("from titus.genpy import PFAEngine")
-    python.exec("def do(*args): return args[-1]")
-    python.exec(paste(name, " = PFAEngine.fromJson(json.loads(r\"\"\"", paste(capture.output(write_pfa(doc)), collapse=''), "\"\"\"))[0]", sep=""))
+    rPython::python.exec("import json")
+    rPython::python.exec("from titus.genpy import PFAEngine")
+    rPython::python.exec("def do(*args): return args[-1]")
+    rPython::python.exec(paste(name, " = PFAEngine.fromJson(json.loads(r\"\"\"", paste(capture.output(write_pfa(doc)), collapse=''), "\"\"\"))[0]", sep=""))
 
     # work-around because python.method.call doesn't seem to work for my auto-generated stuff
-    python.exec(paste(name, "_begin = lambda: ", name, ".begin()", sep = ""))
+    rPython::python.exec(paste(name, "_begin = lambda: ", name, ".begin()", sep = ""))
     
     if (!is.null(method)  &&  method == "emit") {
-        python.exec(paste(name, "_emitted = []", sep = ""))
-        python.exec(paste(name, ".emit = lambda x: ", name, "_emitted.append(x)", sep = ""))
-        python.exec(paste(name, "_action = lambda x: do(", name, ".action(x), ", name, "_emitted.reverse(), [", name, "_emitted.pop() for i in xrange(len(", name, "_emitted))])", sep = ""))
+      rPython::python.exec(paste(name, "_emitted = []", sep = ""))
+      rPython::python.exec(paste(name, ".emit = lambda x: ", name, "_emitted.append(x)", sep = ""))
+      rPython::python.exec(paste(name, "_action = lambda x: do(", name, ".action(x), ", name, "_emitted.reverse(), [", name, "_emitted.pop() for i in xrange(len(", name, "_emitted))])", sep = ""))
     }
     else {
-      python.exec(paste(name, "_action = lambda x: ", name, ".action(x)", sep = ""))
+      rPython::python.exec(paste(name, "_action = lambda x: ", name, ".action(x)", sep = ""))
     }
     
-    python.exec(paste(name, "_end = lambda: ", name, ".end()", sep = ""))
-    python.exec(paste(name, "_actionsStarted = lambda: ", name, ".actionsStarted", sep = ""))
-    python.exec(paste(name, "_actionsFinished = lambda: ", name, ".actionsFinished", sep = ""))
-    python.exec(paste(name, "_config = lambda: ", name, ".config.jsonNode(False, set())", sep = ""))
-    python.exec(paste(name, "_snapshot = lambda: ", name, ".snapshot().jsonNode(False, set())", sep = ""))
+    rPython::python.exec(paste(name, "_end = lambda: ", name, ".end()", sep = ""))
+    rPython::python.exec(paste(name, "_actionsStarted = lambda: ", name, ".actionsStarted", sep = ""))
+    rPython::python.exec(paste(name, "_actionsFinished = lambda: ", name, ".actionsFinished", sep = ""))
+    rPython::python.exec(paste(name, "_config = lambda: ", name, ".config.jsonNode(False, set())", sep = ""))
+    rPython::python.exec(paste(name, "_snapshot = lambda: ", name, ".snapshot().jsonNode(False, set())", sep = ""))
 
     # provide a thing like a class
-    list(begin = function() python.call(paste(name, "_begin", sep="")),
-         action = function(input) python.call(paste(name, "_action", sep=""), input, simplify = FALSE),
-         end = function() python.call(paste(name, "_end", sep="")),
-         actionsStarted = function() python.call(paste(name, "_actionsStarted", sep="")),
-         actionsFinished = function() python.call(paste(name, "_actionsFinished", sep="")),
-         config = function() python.call(paste(name, "_config", sep=""), simplify = FALSE),
-         snapshot = function() python.call(paste(name, "_snapshot", sep=""), simplify = FALSE))
+    list(begin = function() rPython::python.call(paste(name, "_begin", sep="")),
+         action = function(input) rPython::python.call(paste(name, "_action", sep=""), input, simplify = FALSE),
+         end = function() rPython::python.call(paste(name, "_end", sep="")),
+         actionsStarted = function() rPython::python.call(paste(name, "_actionsStarted", sep="")),
+         actionsFinished = function() rPython::python.call(paste(name, "_actionsFinished", sep="")),
+         config = function() rPython::python.call(paste(name, "_config", sep=""), simplify = FALSE),
+         snapshot = function() rPython::python.call(paste(name, "_snapshot", sep=""), simplify = FALSE))
 }
-
