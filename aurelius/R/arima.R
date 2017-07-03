@@ -118,14 +118,11 @@ extract_params.Arima <- function(object, ...) {
 #' model <- forecast::Arima(USAccDeaths, order=c(2,2,2), seasonal=c(0,2,2))
 #' model_as_pfa <- pfa(model)
 #' 
-#' model <- forecast::auto.arima(USAccDeaths)
-#' model_as_pfa <- pfa(model)
-#' 
 #' # with regressors
 #' n <- 100
 #' ext_dat <- data.frame(x1=rnorm(n), x2=rnorm(n))
-#' x <- arima.sim(n=n, model=list(ar=0.4)) + 2 + 0.8 * ext_dat[,1] + 1.5 * ext_dat[,2]
-#' model <- arima(x, order=c(1,0,0), xreg = ext_dat)
+#' x <- stats::arima.sim(n=n, model=list(ar=0.4)) + 2 + 0.8*ext_dat[,1] + 1.5*ext_dat[,2]
+#' model <- stats::arima(x, order=c(1,0,0), xreg = ext_dat)
 #' model_as_pfa <- pfa(model)
 #' @export
 pfa.Arima <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
