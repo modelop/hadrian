@@ -16,11 +16,13 @@
 # limitations under the License.
 
 # extensible ruleset for converting R code into PFA
+#' @keywords internal
 converters <- list()
 add_to_converters <- function(converter) {
     converters[[length(converters) + 1]] <<- converter
 }
 
+#' @keywords internal
 convert_function <- function(name, args, symbols, cells, pools, fcns, env) {
     for (converter in converters)
         if (converter$domain(name, args))
@@ -94,6 +96,7 @@ convert_fcn <- function(name, args, symbols, cells, pools, fcns, env) {
         out$do <- pfa_expr_body(body)
     out
 }
+
 add_to_converters(list(domain = function(name, args) { name == "function"  &&  length(args) >= 2 },
                     apply  = convert_fcn))
 
@@ -625,7 +628,7 @@ add_to_converters(list(domain = function(name, args) { name %in% names(r_funs_to
 #'
 #' Convert a JSON string in memory or a JSON file on disk into a list-of-lists structure.
 #' @param x input string or connection (if not open, this function opens it)
-#' @return a list-of-lists structure in which null -> NULL, true -> TRUE, false -> FALSE, numbers -> numeric, strings -> character, array -> list, object -> named list
+#' @return a \code{list} of lists
 #' @keywords internal
 unjson <- function(x) {
     if (is.character(x)  &&  length(x) == 1) {
@@ -676,6 +679,7 @@ unjson <- function(x) {
     out
 }
 
+#' @keywords internal
 parseValue <- function(getNext, getIndex, rewind) {
     x <- getNext()
     if (length(x) == 0)
@@ -709,6 +713,7 @@ parseValue <- function(getNext, getIndex, rewind) {
         stop(paste("unexpected character", x, "at index", getIndex()))
 }
 
+#' @keywords internal
 parseNumber <- function(x, getNext, getIndex, rewind) {
     y <- character(0)
     while (length(x) != 0  &&  (x == "-"  ||  x == "+"  ||  x == "."  ||  x == "e"  ||  x == "E"  ||  (x >= "0"  &&  x <= "9"))) {
@@ -723,6 +728,7 @@ parseNumber <- function(x, getNext, getIndex, rewind) {
     out
 }
 
+#' @keywords internal
 parseString <- function(getNext, getIndex, rewind) {
     y <- character(0)
     x <- getNext()
@@ -757,6 +763,7 @@ parseString <- function(getNext, getIndex, rewind) {
     paste(y, collapse = "")
 }
 
+#' @keywords internal
 parseObject <- function(getNext, getIndex, rewind) {
     out <- json_map()
     repeat {
@@ -801,6 +808,7 @@ parseObject <- function(getNext, getIndex, rewind) {
     out
 }
 
+#' @keywords internal
 parseArray <- function(getNext, getIndex, rewind) {
     out <- json_array()
 

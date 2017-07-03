@@ -3,13 +3,16 @@
 \name{avro_enum}
 \alias{avro_enum}
 \title{avro_enum}
+\source{
+gen_unique_name.R
+}
 \usage{
 avro_enum(symbols, name = NULL, namespace = NULL)
 }
 \arguments{
 \item{symbols}{list of string-valued symbol names}
 
-\item{name}{required name (if missing, gen_unique_enum_name is invoked)}
+\item{name}{required name (if missing, \code{\link{gen_unique_enum_name}} is invoked)}
 
 \item{namespace}{optional namespace}
 }

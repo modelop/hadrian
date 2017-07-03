@@ -46,9 +46,7 @@
 #' @return a \code{list} of lists representing a complete PFA document
 #' @seealso \code{\link{pfa_engine}}
 #' @examples
-#' \dontrun{
 #' pfa_document(avro_double, avro_double, expression(input + 10))
-#' }
 #' @export
 pfa_document <- function(input,
                          output,

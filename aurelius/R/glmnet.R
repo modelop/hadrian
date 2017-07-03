@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #' extract_params.glmnet
 #'
 #' Extract generalized linear model net parameters from the glmnet library
@@ -27,13 +28,11 @@
 #' @param ... further arguments passed to or from other methods
 #' @return a \code{list} of lists that can be modified to insert into a cell or pool
 #' @examples
-#' \dontrun{
 #' X <- matrix(c(rnorm(100), runif(100)), nrow=100, ncol=2)
-#' Y <- factor(3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3) > 0)
+#' Y <- factor(3 - 5 * X[,1] + 3 * X[,2] + rnorm(100, 0, 3) > 0)
 #' 
-#' model <- glmnet(X, Y, family = 'binomial')
+#' model <- glmnet::glmnet(X, Y, family = 'binomial')
 #' my_model_params <- extract_params(model)
-#' }
 #' @export
 extract_params.glmnet <- function(object, lambda=NULL, ...) {
   
@@ -120,13 +119,11 @@ extract_params.glmnet <- function(object, lambda=NULL, ...) {
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[glmnet]{glmnet}} \code{\link{extract_params.glmnet}}
 #' @examples
-#' \dontrun{
 #' X <- matrix(c(rnorm(100), runif(100)), nrow=100, ncol=2)
-#' Y <- factor(3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3) > 0)
+#' Y <- factor(3 - 5 * X[,1] + 3 * X[,2] + rnorm(100, 0, 3) > 0)
 #' 
-#' model <- glmnet(X, Y, family = 'binomial')
+#' model <- glmnet::glmnet(X, Y, family = 'binomial')
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.glmnet <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                        lambda = NULL,
@@ -276,13 +273,11 @@ pfa.glmnet <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL,
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a \code{list} of lists that can be inserted into a cell or pool
 #' @examples
-#' \dontrun{
 #' X <- matrix(c(rnorm(100), runif(100)), nrow=100, ncol=2)
-#' Y <- factor(3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3) > 0)
+#' Y <- factor(3 - 5 * X[,1] + 3 * X[,2] + rnorm(100, 0, 3) > 0)
 #' 
-#' model <- cv.glmnet(X, Y, family = 'binomial')
+#' model <- glmnet::cv.glmnet(X, Y, family = 'binomial')
 #' my_model_params <- extract_params(model)
-#' }
 #' @export 
 extract_params.cv.glmnet <- function(object, lambda = object[["lambda.1se"]], ...) {
     
@@ -323,13 +318,11 @@ extract_params.cv.glmnet <- function(object, lambda = object[["lambda.1se"]], ..
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[glmnet]{glmnet}} \code{\link{extract_params.glmnet}}
 #' @examples
-#' \dontrun{
 #' X <- matrix(c(rnorm(100), runif(100)), nrow=100, ncol=2)
-#' Y <- factor(3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3) > 0)
+#' Y <- factor(3 - 5 * X[,1] + 3 * X[,2] + rnorm(100, 0, 3) > 0)
 #' 
-#' model <- cv.glmnet(X, Y, family = 'binomial')
+#' model <- glmnet::cv.glmnet(X, Y, family = 'binomial')
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.cv.glmnet <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                           lambda = object[["lambda.1se"]],
@@ -354,7 +347,7 @@ pfa.cv.glmnet <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NU
 
 # not yet supporting
 # mrelnet - multiresponse Gaussian
-
+#' @keywords internal
 glmnet_link_func_mapper <- function(net_type, input_name, model_name) {
 
   model <- sprintf('model.reg.linear(%s, %s)', input_name, model_name)

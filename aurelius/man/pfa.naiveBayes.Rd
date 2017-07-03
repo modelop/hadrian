@@ -55,11 +55,8 @@ and returns a list-of-lists representing in valid PFA document
 that could be used for scoring
 }
 \examples{
-\dontrun{
-model <- naiveBayes(Species ~ ., data=iris) 
-
+model <- e1071::naiveBayes(Species ~ ., data=iris) 
 model_as_pfa <- pfa(model)
-}
 }
 \seealso{
 \code{\link[e1071]{naiveBayes}}

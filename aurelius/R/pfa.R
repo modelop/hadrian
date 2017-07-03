@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #' Generate PFA Document from Object 
 #' 
 #' pfa is a generic function for generating valid PFA documents from the results 
@@ -37,12 +38,8 @@
 #' @return a \code{list} of lists that compose a valid PFA document
 #' @seealso \code{\link{pfa.lm}} \code{\link{pfa.glm}}
 #' @examples
-#' \dontrun{
-#' require(utils)
-#' 
 #' # all the "pfa" methods found
 #' methods("pfa")
-#' }
 #' @export
 pfa <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...) UseMethod("pfa")
 
@@ -55,14 +52,9 @@ pfa <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randse
 #' @param ... further arguments passed to or from other methods
 #' @return a \code{list} that is extracted from the tree model object
 #' @examples
-#' \dontrun{
-#' require(utils)
-#' 
 #' # all the "extract_params" methods found
 #' methods("extract_params")
-#' }
 #' @export
-
 extract_params <- function(object, ...) UseMethod("extract_params")
 
 
@@ -75,12 +67,9 @@ extract_params <- function(object, ...) UseMethod("extract_params")
 #' @return a \code{list} of lists representation of the tree that can be 
 #' inserted into a cell or pool
 #' @examples
-#' \dontrun{
-#' require(utils)
-#' 
 #' # all the "build_model" methods found
 #' methods("build_model")
-#' }
 #' @export
-
 build_model <- function(object, ...) UseMethod("build_model")
+
+

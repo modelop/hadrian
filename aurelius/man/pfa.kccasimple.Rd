@@ -46,11 +46,9 @@ and returns a list-of-lists representing in valid PFA document
 that could be used for scoring
 }
 \examples{
-\dontrun{
-model <- kcca(iris[,1:4], k = 3, family=kccaFamily("kmeans"), simple=T)
-
+model <- flexclust::kcca(iris[,1:4], k = 3, 
+                         family=flexclust::kccaFamily("kmeans"), simple=TRUE)
 model_as_pfa <- pfa(model)
-}
 }
 \seealso{
 \code{\link[flexclust]{kcca}} \code{\link{extract_params.kccasimple}}

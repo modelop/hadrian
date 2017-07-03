@@ -24,10 +24,8 @@
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
-#' \dontrun{
-#' model <- holt(airmiles)
+#' model <- forecast::holt(airmiles)
 #' extracted_model <- extract_params(model)
-#' }
 #' @export
 extract_params.forecast <- function(object, ...) {
   
@@ -58,16 +56,14 @@ extract_params.forecast <- function(object, ...) {
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[forecast]{holt}} \code{\link[forecast]{ses}} \code{\link[forecast]{hw}} \code{\link{pfa.ets}}
 #' @examples
-#' \dontrun{
-#' model1 <- holt(airmiles)
+#' model1 <- forecast::holt(airmiles)
 #' model1_as_pfa <- pfa(model1)
 #' 
-#' model2 <- hw(USAccDeaths,h=48)
+#' model2 <- forecast::hw(USAccDeaths,h=48)
 #' model2_as_pfa <- pfa(model2)
 #' 
-#' model3 <- ses(LakeHuron)
+#' model3 <- forecast::ses(LakeHuron)
 #' model3_as_pfa <- pfa(model3)
-#' }
 #' @export
 pfa.forecast <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...){
   

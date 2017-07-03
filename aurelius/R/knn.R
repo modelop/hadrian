@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #' extract_params.knn3
 #'
 #' Extract K-nearest neighbor model parameters from a knn3 object created by 
@@ -25,13 +26,10 @@
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
-#' \dontrun{
 #' iris2 <- iris
 #' colnames(iris2) <- gsub('\\.', '_', colnames(iris2))
-#' model <- knn3(Species ~ ., iris2)
-#' 
+#' model <- caret::knn3(Species ~ ., iris2)
 #' extracted_params <- extract_params(model)
-#' }
 #' @export
 extract_params.knn3 <- function(object, ...) {
   
@@ -95,13 +93,10 @@ extract_params.knn3 <- function(object, ...) {
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[caret]{knn3}} \code{\link{extract_params.knn3}}
 #' @examples
-#' \dontrun{
 #' iris2 <- iris
 #' colnames(iris2) <- gsub('\\.', '_', colnames(iris2))
-#' model <- knn3(Species ~ ., iris2)
-#' 
+#' model <- caret::knn3(Species ~ ., iris2)
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.knn3 <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                      pred_type = c('response', 'prob'), 
@@ -232,11 +227,8 @@ pfa.knn3 <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, r
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
-#' \dontrun{
-#' model <- knnreg(mpg ~ cyl + hp + am + gear + carb, data = mtcars)
-#' 
+#' model <- caret::knnreg(mpg ~ cyl + hp + am + gear + carb, data = mtcars)
 #' extracted_params <- extract_params(model)
-#' }
 #' @export
 extract_params.knnreg <- extract_params.knn3
 
@@ -273,13 +265,8 @@ extract_params.knnreg <- extract_params.knn3
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[caret]{knnreg}} \code{\link{extract_params.knn3}}
 #' @examples
-#' \dontrun{
-#' iris2 <- iris
-#' colnames(iris2) <- gsub('\\.', '_', colnames(iris2))
-#' model <- knnreg(Species ~ ., iris2)
-#' 
+#' model <- caret::knnreg(mpg ~ cyl + hp + am + gear + carb, data = mtcars)
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.knnreg <- pfa.knn3
 
@@ -293,13 +280,10 @@ pfa.knnreg <- pfa.knn3
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
-#' \dontrun{
 #' iris2 <- iris
 #' colnames(iris2) <- gsub('\\.', '_', colnames(iris2))
-#' model <- ipredknn(Species ~ ., iris2)
-#' 
+#' model <- ipred::ipredknn(Species ~ ., iris2)
 #' params <- extract_params(model)
-#' }
 #' @export
 extract_params.ipredknn <- extract_params.knn3
 
@@ -336,17 +320,15 @@ extract_params.ipredknn <- extract_params.knn3
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[ipred]{ipredknn}} \code{\link{extract_params.knn3}}
 #' @examples
-#' \dontrun{
 #' iris2 <- iris
 #' colnames(iris2) <- gsub('\\.', '_', colnames(iris2))
-#' model <- ipredknn(Species ~ ., iris2)
-#' 
+#' model <- ipred::ipredknn(Species ~ ., iris2)
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.ipredknn <- pfa.knn3
 
 
+#' @keywords internal
 knn_func_mapper <- function(distance_measure, k, input_name, output_name, codebook_name) {
   switch(distance_measure,
          euclidean = sprintf('%s <- model.cluster.closestN(%s,%s,%s)', output_name, k, input_name, codebook_name),
@@ -357,6 +339,8 @@ knn_func_mapper <- function(distance_measure, k, input_name, output_name, codebo
          stop(sprintf('supplied distance measure not supported: %s', distance_measure))) 
 }
 
+
+#' @keywords internal
 as_codebook <- function(y, x){
   lapply(seq.int(nrow(x)), FUN=function(i,y,x){
     list(target = y[i],
@@ -364,6 +348,8 @@ as_codebook <- function(y, x){
   }, y = y, x = x)
 }
 
+
+#' @keywords internal
 validate_codebook <- function(codebook, distance_measure = c('euclidean', 'manhattan', 'angle', 'jaccard', 'ejaccard')){
   
   which_distance_measure <- match.arg(distance_measure)

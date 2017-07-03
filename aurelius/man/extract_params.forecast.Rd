@@ -19,8 +19,6 @@ Extract model parameters from a model with class "forecast" created using
 the forecast package
 }
 \examples{
-\dontrun{
-model <- holt(airmiles)
+model <- forecast::holt(airmiles)
 extracted_model <- extract_params(model)
-}
 }

@@ -18,7 +18,6 @@ object -> named list
 Convert a JSON string in memory or a JSON file on disk into a list-of-lists structure.
 }
 \examples{
-\dontrun{
 # literal JSON string  (useful for small examples)
 toy_model <- read_pfa('{"input":"double","output":"double","action":[{"+":["input",10]}]}')
 
@@ -28,5 +27,4 @@ local_model <- read_pfa(file(system.file("extdata", "my-model.pfa", package = "a
 # from a url (split on two lines so not to exceed 100 char wide during install)
 url_model <- read_pfa(url(paste0('https://raw.githubusercontent.com/ReportMort/hadrian', 
                      '/feature/add-r-package-structure/aurelius/inst/extdata/my-model.pfa')))
-}
 }

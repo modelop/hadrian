@@ -19,9 +19,6 @@ Extract K-nearest neighbor model parameters from a knnreg object created by
 the caret library
 }
 \examples{
-\dontrun{
-model <- knnreg(mpg ~ cyl + hp + am + gear + carb, data = mtcars)
-
+model <- caret::knnreg(mpg ~ cyl + hp + am + gear + carb, data = mtcars)
 extracted_params <- extract_params(model)
-}
 }

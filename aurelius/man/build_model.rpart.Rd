@@ -19,8 +19,6 @@ inserted into a cell or pool
 Builds an entire PFA list of lists based on a single tree
 }
 \examples{
-\dontrun{
-model <- rpart(Kyphosis ~ Age + Number + Start, data = kyphosis)
+model <- rpart::rpart(Kyphosis ~ Age + as.factor(Number), data = rpart::kyphosis)
 my_tree <- build_model(model)
-}
 }

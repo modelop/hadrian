@@ -25,19 +25,15 @@
 #' @return a \code{list} that is extracted from the gbm object
 #' @importFrom gbm pretty.gbm.tree
 #' @examples 
-#' \dontrun{
-#' binomial_dat <- data.frame(X1 = runif(100), 
-#'                            X2 = rnorm(100), 
-#'                            Y = (rexp(100,5) + 5 * X1 - 4 * X2) > 0)
+#' dat <- data.frame(X1 = runif(100), 
+#'                   X2 = rnorm(100)) 
+#' dat$Y <- ((rexp(100,5) + 5 * dat$X1 - 4 * dat$X2) > 0)
 #' 
-#' bernoulli_model <- gbm(Y ~ X1 + X2, 
-#'                        data = binomial_dat, 
-#'                        distribution = 'bernoulli')
-#'   
+#' bernoulli_model <- gbm::gbm(Y ~ X1 + X2, 
+#'                             data = dat, 
+#'                             distribution = 'bernoulli')
 #' my_tree <- extract_params(bernoulli_model, 1)
-#' }
 #' @export
-
 extract_params.gbm <- function(object, which_tree = 1, ...) {
 
     if (is.null(object$trees))
@@ -82,20 +78,16 @@ extract_params.gbm <- function(object, which_tree = 1, ...) {
 #' @param ... further arguments passed to or from other methods
 #' @return a \code{list} of lists representation of the tree that can be 
 #' inserted into a cell or pool
-#' @examples 
-#' \dontrun{
-#' binomial_dat <- data.frame(X1 = runif(100), 
-#'                            X2 = rnorm(100), 
-#'                            Y = (rexp(100,5) + 5 * X1 - 4 * X2) > 0)
+#' @examples
+#' dat <- data.frame(X1 = runif(100), 
+#'                   X2 = rnorm(100))
+#' dat$Y <- ((rexp(100,5) + 5 * dat$X1 - 4 * dat$X2) > 0)
 #' 
-#' bernoulli_model <- gbm(Y ~ X1 + X2, 
-#'                        data = binomial_dat, 
-#'                        distribution = 'bernoulli')
-#'   
+#' bernoulli_model <- gbm::gbm(Y ~ X1 + X2, 
+#'                             data = dat, 
+#'                             distribution = 'bernoulli')
 #' my_tree <- build_model(bernoulli_model, 1)
-#' }
 #' @export
-
 build_model.gbm <- function(object, which_tree = 1, ...){
   
   # pull out the tree from the object
@@ -162,7 +154,7 @@ build_model.gbm <- function(object, which_tree = 1, ...){
 #' @param dataLevels levels of data
 #' @param fieldTypes type of fields
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
-
+#' @keywords internal
 build_node_gbm <- function(tree, categorical_lookup, leaf_val_type, whichNode, valueNeedsTag, dataLevels, fieldTypes){
   
   node <- tree[whichNode,]
@@ -268,18 +260,15 @@ build_node_gbm <- function(tree, categorical_lookup, leaf_val_type, whichNode, v
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[gbm]{gbm}}
 #' @examples
-#' \dontrun{
-#' binomial_dat <- data.frame(X1 = runif(100), 
-#'                            X2 = rnorm(100))
-#' binomial_dat$Y <- as.integer(factor((rexp(100,5) + 
-#'                              5 * binomial_dat$X1 - 
-#'                              4 * binomial_dat$X2) > 0)) - 1
+#' dat <- data.frame(X1 = runif(100), 
+#'                   X2 = rnorm(100))
+#' dat$Y <- ((rexp(100,5) + 5 * dat$X1 - 4 * dat$X2) > 0)
 #' 
-#' model <- gbm(Y ~ X1 + X2, data=binomial_dat, distribution='bernoulli')
-#' model_as_pfa <- pfa(model)
-#' }
+#' bernoulli_model <- gbm::gbm(Y ~ X1 + X2, 
+#'                             data = dat, 
+#'                             distribution = 'bernoulli')
+#' model_as_pfa <- pfa(bernoulli_model)
 #' @export
-
 pfa.gbm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                     pred_type = c('response', 'prob'), 
                     cutoffs = NULL,
@@ -453,6 +442,8 @@ pfa.gbm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ra
   return(doc)
 }
 
+
+#' @keywords internal
 pred_link_action_string <- function(object, output_name, scores_name){
  return(paste0(output_name, 
                ' <- ', 
@@ -461,6 +452,8 @@ pred_link_action_string <- function(object, output_name, scores_name){
                                     scores_name = scores_name)))
 }
 
+
+#' @keywords internal
 tree_score_action_string <- function(output_name, ensemble_name){
   return(sprintf('%s <- a.map(%s,
                           function(tree = tm("TreeNode") -> tm("TargetType"))
@@ -472,6 +465,7 @@ tree_score_action_string <- function(output_name, ensemble_name){
 }
 
 
+#' @keywords internal
 gbm_link_func_mapper <- function(distribution, intercept_value, scores_name='tree_scores') {
   
   lin_pred <- sprintf('%s + a.sum(%s)', intercept_value, scores_name)

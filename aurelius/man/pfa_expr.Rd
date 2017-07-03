@@ -28,7 +28,5 @@ Convert a quoted R expression into a \code{list} of lists that can be
 inserted into PFA
 }
 \examples{
-\dontrun{
 pfa_expr(quote(2 + 2))
-}
 }

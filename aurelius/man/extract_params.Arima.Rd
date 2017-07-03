@@ -19,7 +19,6 @@ Extract model parameters from an ARIMA model created
 using the arima(), Arima(), or auto.arima() functions
 }
 \examples{
-\dontrun{
 model <- stats::arima(presidents, c(3, 0, 0))
 extracted_model <- extract_params(model)
 
@@ -28,5 +27,4 @@ extracted_model <- extract_params(model)
 
 model <- forecast::auto.arima(WWWusage)
 extracted_model <- extract_params(model)
-}
 }

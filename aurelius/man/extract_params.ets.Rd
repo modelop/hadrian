@@ -19,8 +19,6 @@ Extract model parameters from an Exponential smoothing state space model created
 using the ets() function from the forecast package.
 }
 \examples{
-\dontrun{
-model <- ets(USAccDeaths, model="ZZZ")
+model <- forecast::ets(USAccDeaths, model="ZZZ")
 extracted_model <- extract_params(model)
-}
 }

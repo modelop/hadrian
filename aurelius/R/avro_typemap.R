@@ -24,7 +24,6 @@
 #' time it is invoked and just a name on subsequent times.
 #' @param ... key-value pairs of Avro type schemas
 #' @return a function that yields Avro type schemas or just their names
-#' @export avro_typemap
 #' @examples
 #' tm <- avro_typemap(
 #'     MyType1 = avro_record(list(one = avro_int, two = avro_double, three = avro_string)),
@@ -34,7 +33,7 @@
 #' tm("MyType1")           # produces just "MyType1"
 #' tm("MyType2")           # produces the whole declaration
 #' tm("MyType2")           # produces the declaration again because this is not a named type
-
+#' @export
 avro_typemap <- function(...) {
     types <- list(...)
 

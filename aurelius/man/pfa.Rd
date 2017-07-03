@@ -38,12 +38,8 @@ of various model fitting functions. The function invokes particular methods
 which depend on the class of the first argument.
 }
 \examples{
-\dontrun{
-require(utils)
-
 # all the "pfa" methods found
 methods("pfa")
-}
 }
 \seealso{
 \code{\link{pfa.lm}} \code{\link{pfa.glm}}

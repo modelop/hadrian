@@ -10,7 +10,7 @@ unjson(x)
 \item{x}{input string or connection (if not open, this function opens it)}
 }
 \value{
-a list-of-lists structure in which null -> NULL, true -> TRUE, false -> FALSE, numbers -> numeric, strings -> character, array -> list, object -> named list
+a \code{list} of lists
 }
 \description{
 Convert a JSON string in memory or a JSON file on disk into a list-of-lists structure.

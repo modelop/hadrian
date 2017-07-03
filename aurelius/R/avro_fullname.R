@@ -23,18 +23,18 @@
 #' 
 #' @param type Avro \code{list} of lists
 #' @return string representing the full name
-#' @export avro_fullname
 #' @examples
 #' avro_fullname(avro_record(list(), "MyRecord"))                   # "MyRecord"
 #' avro_fullname(avro_record(list(), "MyRecord", "com.wowzers"))    # "com.wowzers.MyRecord"
-
+#' @export
 avro_fullname <- function(type) {
-    if (!is.atomic(type)  &&  !is.null(type$name)) {
-        if (is.null(type$namespace))
-            type$name
-        else
-            paste(type$namespace, type$name, sep=".")
+  if (!is.atomic(type)  &&  !is.null(type$name)) {
+    if (is.null(type$namespace)) {
+        type$name
+    } else {
+        paste(type$namespace, type$name, sep=".")
     }
-    else
-        NULL
+  } else {
+    NULL
+  }
 }

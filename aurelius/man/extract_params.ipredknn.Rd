@@ -19,11 +19,8 @@ Extract K-nearest neighbor model parameters from a ipredknn object created by
 the ipred library
 }
 \examples{
-\dontrun{
 iris2 <- iris
 colnames(iris2) <- gsub('\\\\.', '_', colnames(iris2))
-model <- ipredknn(Species ~ ., iris2)
-
+model <- ipred::ipredknn(Species ~ ., iris2)
 params <- extract_params(model)
-}
 }

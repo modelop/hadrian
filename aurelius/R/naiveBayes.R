@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #' extract_params.naiveBayes
 #'
 #' Extracts a parameters from an ensemble made by the naiveBayes function
@@ -25,14 +26,10 @@
 #' smoothing (to replace zero or close-zero probabilities by theshold.)
 #' @param ... further arguments passed to or from other methods
 #' @return a \code{list} that is extracted from the naiveBayes object
-#' @examples 
-#' \dontrun{
-#' model <- naiveBayes(Species ~ ., data=iris) 
-#'   
+#' @examples
+#' model <- e1071::naiveBayes(Species ~ ., data=iris) 
 #' model_params <- extract_params(model)
-#' }
 #' @export
-
 extract_params.naiveBayes <- function(object, threshold = .001, eps = 0, ...) {
 
   n_classes <- length(object$levels)
@@ -105,13 +102,9 @@ extract_params.naiveBayes <- function(object, threshold = .001, eps = 0, ...) {
 #' @return a \code{list} of lists representation of the naiveBayes model that can be 
 #' inserted into a cell or pool
 #' @examples 
-#' \dontrun{
-#' model <- naiveBayes(Species ~ ., data=iris) 
-#'   
+#' model <- e1071::naiveBayes(Species ~ ., data=iris) 
 #' model_built <- build_model(model)
-#' }
 #' @export
-
 build_model.naiveBayes <- function(object, threshold = .001, eps = 0, ...){
   
   # pull out the parameters from the object
@@ -180,13 +173,9 @@ build_model.naiveBayes <- function(object, threshold = .001, eps = 0, ...){
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[e1071]{naiveBayes}}
 #' @examples
-#' \dontrun{
-#' model <- naiveBayes(Species ~ ., data=iris) 
-#' 
+#' model <- e1071::naiveBayes(Species ~ ., data=iris) 
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
-
 pfa.naiveBayes <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                            threshold = .001, eps = 0,
                            pred_type = c('response', 'prob'), 
@@ -250,6 +239,7 @@ pfa.naiveBayes <- function(object, name=NULL, version=NULL, doc=NULL, metadata=N
 }
 
 
+#' @keywords internal
 inv_class_action_string <- function(class_idx, class_name){
   return(sprintf(paste0('%s <- a.map(var_names, 
                                      function(var = avro_string -> avro_double)
@@ -260,8 +250,12 @@ inv_class_action_string <- function(class_idx, class_name){
                                                         partial=FALSE))'), class_idx, class_name, class_name))
 }
 
+
+#' @keywords internal
 adding_apriori_action_string <- 'scaled_preds <- map.zipmap(apriori_counts, preds, function(a = avro_double, b = avro_double -> avro_double) m.ln(a) + b)'
 
+
+#' @keywords internal
 scaling_preds_action_string <- 'all_preds <- map.map(scaled_preds, 
                                                      function(class_val = avro_double -> avro_double)
                                                               1/a.sum(a.map(map.values(scaled_preds),

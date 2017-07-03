@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# functions to build cells and pools (not really necessary, just helps make the code self-documenting)
 
 #' pfa_cell
 #'
@@ -26,12 +25,12 @@
 #' @param shared if TRUE, the cell is shared across scoring engine instances
 #' @param rollback if TRUE, the cell's value would be rolled back if an uncaught exception is encountered
 #' @return a \code{list} of lists that can be inserted into pfa_config.
-#' @export pfa_cell
 #' @examples
 #' pfa_cell(avro_double, 12)
-
+#' @export
 pfa_cell <- function(type, init, source = "embedded", shared = FALSE, rollback = FALSE)
     list(type = type, init = init, source = source, shared = shared, rollback = rollback)
+
 
 #' pfa_pool
 #'
@@ -42,9 +41,9 @@ pfa_cell <- function(type, init, source = "embedded", shared = FALSE, rollback =
 #' @param shared if TRUE, the pool is shared across scoring engine instances
 #' @param rollback if TRUE, the pool's value would be rolled back if an uncaught exception is encountered
 #' @return a \code{list} of lists that can be inserted into pfa_config.
-#' @export pfa_pool
 #' @examples
 #' pfa_pool(avro_double, json_map(one = 1.1, two = 2.2, three = 3.3))
-
+#' @export
 pfa_pool <- function(type, init, source = "embedded", shared = FALSE, rollback = FALSE)
     list(type = type, init = init, source = source, shared = shared, rollback = rollback)
+

@@ -18,8 +18,6 @@ PFA as a list-of-lists that can be inserted into a cell or pool
 Extract Holt Winters model parameters from the stats library
 }
 \examples{
-\dontrun{
 model <- HoltWinters(co2)
 extracted_model <- extract_params(model)
-}
 }

@@ -61,9 +61,7 @@ Create a complete PFA document as a list-of-lists. Composing with the JSON
 function creates a PFA file on disk.
 }
 \examples{
-\dontrun{
 pfa_document(avro_double, avro_double, expression(input + 10))
-}
 }
 \seealso{
 \code{\link{pfa_engine}}

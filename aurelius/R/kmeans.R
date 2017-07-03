@@ -25,11 +25,8 @@
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
-#' \dontrun{
 #' model <- kmeans(x=iris[, 1:2], centers=3)
-#' 
 #' extracted_params <- extract_params(model)
-#' }
 #' @export
 extract_params.kmeans <- extract_params.kcca
 
@@ -60,10 +57,8 @@ extract_params.kmeans <- extract_params.kcca
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[stats]{kmeans}} \code{\link{pfa.kcca}}
 #' @examples
-#' \dontrun{
 #' model <- kmeans(x=iris[, 1:2], centers=3)
-#' 
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.kmeans <- pfa.kcca
+

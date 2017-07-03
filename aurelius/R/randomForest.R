@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #' extract_params.randomForest
 #'
 #' Extracts parameters from a forest made by the randomForest function
@@ -24,17 +25,12 @@
 #' @param ... further arguments passed to or from other methods
 #' @return a \code{list} that is extracted from the randomForest object
 #' @examples 
-#' \dontrun{
-#' binomial_dat <- data.frame(X1 = runif(100), 
-#'                            X2 = rnorm(100))
-#' binomial_dat$Y <- factor((rexp(100,5) + 
-#'                             5 * binomial_dat$X1 - 
-#'                             4 * binomial_dat$X2) > 0)
+#' dat <- data.frame(X1 = runif(100), 
+#'                   X2 = rnorm(100))
+#' dat$Y <- factor((rexp(100,5) + 5 * dat$X1 - 4 * dat$X2) > 0)
 #' 
-#' bernoulli_model <- randomForest(Y ~ X1 + X2, data=binomial_dat)
-#'   
-#' my_tree <- extract_params(bernoulli_model, 1)
-#' }
+#' model <- randomForest::randomForest(Y ~ X1 + X2, data=dat, ntree=10)
+#' my_tree <- extract_params(model, 1)
 #' @export
 extract_params.randomForest <- function(object, which_tree = 1, ...) {
 
@@ -93,17 +89,12 @@ extract_params.randomForest <- function(object, which_tree = 1, ...) {
 #' @return a \code{list} of lists representation of the tree that can be 
 #' inserted into a cell or pool
 #' @examples 
-#' \dontrun{
-#' binomial_dat <- data.frame(X1 = runif(100), 
-#'                            X2 = rnorm(100))
-#' binomial_dat$Y <- factor((rexp(100,5) + 
-#'                             5 * binomial_dat$X1 - 
-#'                             4 * binomial_dat$X2) > 0)
+#' dat <- data.frame(X1 = runif(100), 
+#'                   X2 = rnorm(100))
+#' dat$Y <- factor((rexp(100,5) + 5 * dat$X1 - 4 * dat$X2) > 0)
 #' 
-#' bernoulli_model <- randomForest(Y ~ X1 + X2, data=binomial_dat)
-#'
-#' my_tree <- build_model(bernoulli_model, 1)
-#' }
+#' model <- randomForest::randomForest(Y ~ X1 + X2, data=dat, ntree=10)
+#' my_tree <- build_model(model, 1)
 #' @export
 build_model.randomForest <- function(object, which_tree = 1, ...){
   
@@ -167,7 +158,7 @@ build_model.randomForest <- function(object, which_tree = 1, ...){
 #' @param dataLevels levels of data
 #' @param fieldTypes type of fields
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
-
+#' @keywords internal
 build_node_randomForest <- function(tree_table, leaf_val_type, whichNode, valueNeedsTag, dataLevels, fieldTypes = NULL) {
   
     node <- tree_table[whichNode,]
@@ -269,16 +260,12 @@ build_node_randomForest <- function(tree_table, leaf_val_type, whichNode, valueN
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[randomForest]{randomForest}}
 #' @examples
-#' \dontrun{
-#' binomial_dat <- data.frame(X1 = runif(100), 
-#'                            X2 = rnorm(100))
-#' binomial_dat$Y <- factor((rexp(100,5) + 
-#'                             5 * binomial_dat$X1 - 
-#'                             4 * binomial_dat$X2) > 0)
+#' dat <- data.frame(X1 = runif(100), 
+#'                   X2 = rnorm(100))
+#' dat$Y <- factor((rexp(100,5) + 5 * dat$X1 - 4 * dat$X2) > 0)
 #' 
-#' model <- randomForest(Y ~ X1 + X2, data=binomial_dat)
+#' model <- randomForest::randomForest(Y ~ X1 + X2, data=dat, ntree=10)
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.randomForest <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                              pred_type=c('response', 'prob'),
@@ -400,4 +387,3 @@ pfa.randomForest <- function(object, name=NULL, version=NULL, doc=NULL, metadata
   
   return(doc)  
 }
-

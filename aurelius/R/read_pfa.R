@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #' read_pfa
 #'
 #' Convert a JSON string in memory or a JSON file on disk into a list-of-lists structure.
@@ -25,7 +26,6 @@
 #' false -> FALSE, numbers -> numeric, strings -> character, array -> list, 
 #' object -> named list
 #' @examples
-#' \dontrun{
 #' # literal JSON string  (useful for small examples)
 #' toy_model <- read_pfa('{"input":"double","output":"double","action":[{"+":["input",10]}]}')
 #' 
@@ -35,7 +35,6 @@
 #' # from a url (split on two lines so not to exceed 100 char wide during install)
 #' url_model <- read_pfa(url(paste0('https://raw.githubusercontent.com/ReportMort/hadrian', 
 #'                      '/feature/add-r-package-structure/aurelius/inst/extdata/my-model.pfa')))
-#' }
 #' @export
 read_pfa <- function(x) {
   

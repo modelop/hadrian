@@ -48,10 +48,8 @@ using the ets() function from the forecast package and returns a
 list-of-lists representing in valid PFA document that could be used for scoring.
 }
 \examples{
-\dontrun{
-model <- ets(USAccDeaths, model="ZZZ")
+model <- forecast::ets(USAccDeaths, model="ZZZ")
 model_as_pfa <- pfa(model)
-}
 }
 \seealso{
 \code{\link[forecast]{ets}} \code{\link{extract_params.ets}}

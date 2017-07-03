@@ -6,7 +6,7 @@ Title: Generates PFA Documents from R Code and Optionally Runs Them
 Description: Provides tools for converting R objects and syntax into the Portable 
     Format for Analytics (PFA). Allows for testing validity and runtime behavior 
     of PFA documents through rPython and Titus, a more complete implementation of 
-    PFA for Python. The Portable Format for Analytics (PFA) is a specification for 
+    PFA for Python. The Portable Format for Analytics is a specification for 
     event-based processors that perform predictive or analytic calculations and is aimed 
     at helping smooth the transition from statistical model development to large-scale 
     and/or online production. See <http://dmg.org/pfa> for more information.

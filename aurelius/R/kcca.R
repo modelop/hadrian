@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #' extract_params.kcca
 #'
 #' Extract K-centroids model parameters from a kcca object created by 
@@ -24,11 +25,8 @@
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
-#' \dontrun{
-#' model <- kcca(iris[,1:4], k = 3, family=kccaFamily("kmeans"))
-#' 
+#' model <- flexclust::kcca(iris[,1:4], k = 3, family=flexclust::kccaFamily("kmeans"))
 #' extracted_params <- extract_params(model)
-#' }
 #' @export
 extract_params.kcca <- function(object, ...) {
   
@@ -85,11 +83,8 @@ extract_params.kcca <- function(object, ...) {
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[flexclust]{kcca}} \code{\link{extract_params.kcca}}
 #' @examples
-#' \dontrun{
-#' model <- kcca(iris[,1:4], k = 3, family=kccaFamily("kmeans"))
-#' 
+#' model <- flexclust::kcca(iris[,1:4], k = 3, family=flexclust::kccaFamily("kmeans"))
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.kcca <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                      cluster_names=NULL, ...){
@@ -204,11 +199,9 @@ pfa.kcca <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, r
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
-#' \dontrun{
-#' model <- kcca(iris[,1:4], k = 3, family=kccaFamily("kmeans"), simple=T)
-#' 
+#' model <- flexclust::kcca(iris[,1:4], k = 3, 
+#'                          family=flexclust::kccaFamily("kmeans"), simple=TRUE)
 #' extracted_params <- extract_params(model)
-#' }
 #' @export
 extract_params.kccasimple <- extract_params.kcca
 
@@ -239,14 +232,14 @@ extract_params.kccasimple <- extract_params.kcca
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[flexclust]{kcca}} \code{\link{extract_params.kccasimple}}
 #' @examples
-#' \dontrun{
-#' model <- kcca(iris[,1:4], k = 3, family=kccaFamily("kmeans"), simple=T)
-#' 
+#' model <- flexclust::kcca(iris[,1:4], k = 3, 
+#'                          family=flexclust::kccaFamily("kmeans"), simple=TRUE)
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.kccasimple <- pfa.kcca
 
+
+#' @keywords internal
 kcca_func_mapper <- function(family, input_name, centroids_name) {
   switch(family,
          kmeans = sprintf('model.cluster.closest(%s,%s)["id"]', input_name, centroids_name),

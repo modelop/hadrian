@@ -19,9 +19,6 @@ inserted into a cell or pool
 Builds an entire PFA list of lists based on a lda() fit
 }
 \examples{
-\dontrun{
-model <- lda(Species ~ ., data=iris)
-
+model <- MASS::lda(Species ~ ., data=iris)
 model_built <- build_model(model)
-}
 }

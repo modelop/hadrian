@@ -15,16 +15,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #' json_map
 #'
 #' Convenience function for making a (possibly empty) named list, which converts to a JSON object.
 #' @param ... optional contents of the named list (as key-value pairs)
 #' @return a named list
 #' @examples
-#' \dontrun{
 #' json_map()
 #' json_map(one = 1, two = TRUE, three = "THREE")
-#' }
 #' @export
 json_map <- function(...) {
     args <- list(...)
@@ -36,6 +35,7 @@ json_map <- function(...) {
         args
 }
 
+
 #' json_array
 #'
 #' Convenience function for making a (possibly empty) unnamed list, which 
@@ -45,15 +45,15 @@ json_map <- function(...) {
 #' @param ... optional contents of the unnamed list
 #' @return an unnamed list
 #' @examples
-#' \dontrun{
 #' json_array()
 #' json_array(1, TRUE, "THREE")
-#' }
 #' @export
 json_array <- function(...) {
     args <- list(...)
-    if (!is.null(names(args)))
-        stop("json_array must not have named parameters")
-    else
-        args
+    if (!is.null(names(args))){
+      stop("json_array must not have named parameters")
+    }
+    else {
+      args
+    }
 }

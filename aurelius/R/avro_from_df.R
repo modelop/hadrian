@@ -26,14 +26,15 @@
 #' @param name required name of the record (if not specified, gen_unique_rec_name() will be invoked)
 #' @param namespace optional namespace of the record
 #' @return a \code{list} of lists representing an Avro record type
-#' @export
 #' @examples
 #' avro_from_df(data.frame(x = c(1, 3, 5)))
-
+#' @export
 avro_from_df <- function(df, exclude = list(), name = NULL, namespace = NULL) {
-    fields <- list()
-    for (x in names(df))
-        if (!(x %in% exclude))
-            fields[[x]] <- avro_type(df[[x]])
-    avro_record(fields, name, namespace)
+  fields <- list()
+  for (x in names(df)){
+      if (!(x %in% exclude)){
+          fields[[x]] <- avro_type(df[[x]])
+      }
+  }
+  avro_record(fields, name, namespace)
 }

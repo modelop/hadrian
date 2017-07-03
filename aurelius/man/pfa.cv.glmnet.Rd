@@ -55,13 +55,11 @@ and returns a list-of-lists representing a valid PFA document
 that could be used for scoring
 }
 \examples{
-\dontrun{
 X <- matrix(c(rnorm(100), runif(100)), nrow=100, ncol=2)
-Y <- factor(3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3) > 0)
+Y <- factor(3 - 5 * X[,1] + 3 * X[,2] + rnorm(100, 0, 3) > 0)
 
-model <- cv.glmnet(X, Y, family = 'binomial')
+model <- glmnet::cv.glmnet(X, Y, family = 'binomial')
 model_as_pfa <- pfa(model)
-}
 }
 \seealso{
 \code{\link[glmnet]{glmnet}} \code{\link{extract_params.glmnet}}

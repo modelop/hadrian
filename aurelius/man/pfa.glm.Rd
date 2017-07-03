@@ -51,15 +51,13 @@ and returns a list-of-lists representing in valid PFA document
 that could be used for scoring
 }
 \examples{
-\dontrun{
 X1 <- rnorm(100)
 X2 <- runif(100)
 Y <- 3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3)
 Y <- Y > 0
 
-model <- glm(Y ~ X1 + X2, family = binomial(logit))
-model_as_pfa <- pfa(model)
-}
+glm_model <- glm(Y ~ X1 + X2, family = binomial(logit))
+model_as_pfa <- pfa(glm_model)
 }
 \seealso{
 \code{\link[stats]{glm}} \code{\link{extract_params.glm}}

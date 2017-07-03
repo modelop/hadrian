@@ -20,15 +20,10 @@ a \code{list} that is extracted from the randomForest object
 Extracts parameters from a forest made by the randomForest function
 }
 \examples{
-\dontrun{
-binomial_dat <- data.frame(X1 = runif(100), 
-                           X2 = rnorm(100))
-binomial_dat$Y <- factor((rexp(100,5) + 
-                            5 * binomial_dat$X1 - 
-                            4 * binomial_dat$X2) > 0)
+dat <- data.frame(X1 = runif(100), 
+                  X2 = rnorm(100))
+dat$Y <- factor((rexp(100,5) + 5 * dat$X1 - 4 * dat$X2) > 0)
 
-bernoulli_model <- randomForest(Y ~ X1 + X2, data=binomial_dat)
-  
-my_tree <- extract_params(bernoulli_model, 1)
-}
+model <- randomForest::randomForest(Y ~ X1 + X2, data=dat, ntree=10)
+my_tree <- extract_params(model, 1)
 }

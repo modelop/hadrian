@@ -39,5 +39,8 @@
 #'   
 #' # save as plain-text JSON
 #' write_pfa(lm_model_as_pfa, file = "my-model.pfa")
+#' 
+#' # read the model back in
+#' read_pfa(file("my-model.pfa"))
 #' }
 NULL

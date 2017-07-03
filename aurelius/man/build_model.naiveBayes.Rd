@@ -24,9 +24,6 @@ inserted into a cell or pool
 Builds an entire PFA list of lists based on a naiveBayes
 }
 \examples{
-\dontrun{
-model <- naiveBayes(Species ~ ., data=iris) 
-  
+model <- e1071::naiveBayes(Species ~ ., data=iris) 
 model_built <- build_model(model)
-}
 }

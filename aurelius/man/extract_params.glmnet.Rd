@@ -21,11 +21,9 @@ a \code{list} of lists that can be modified to insert into a cell or pool
 Extract generalized linear model net parameters from the glmnet library
 }
 \examples{
-\dontrun{
 X <- matrix(c(rnorm(100), runif(100)), nrow=100, ncol=2)
-Y <- factor(3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3) > 0)
+Y <- factor(3 - 5 * X[,1] + 3 * X[,2] + rnorm(100, 0, 3) > 0)
 
-model <- glmnet(X, Y, family = 'binomial')
+model <- glmnet::glmnet(X, Y, family = 'binomial')
 my_model_params <- extract_params(model)
-}
 }

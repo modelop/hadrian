@@ -23,9 +23,6 @@ a \code{list} that is extracted from the naiveBayes object
 Extracts a parameters from an ensemble made by the naiveBayes function
 }
 \examples{
-\dontrun{
-model <- naiveBayes(Species ~ ., data=iris) 
-  
+model <- e1071::naiveBayes(Species ~ ., data=iris) 
 model_params <- extract_params(model)
-}
 }

@@ -22,13 +22,12 @@
 #' Inspects an R object and produces the corresponding Avro type name
 #' @param obj object to inspect
 #' @return a \code{list} of lists Avro schema
-#' @export avro_type
 #' @examples
 #' avro_type("hello")           # "string"
 #' avro_type(factor("hello"))   # "string"
 #' avro_type(3.14)              # "double"
 #' avro_type(3)                 # "int"
-
+#' @export
 avro_type <- function(obj) {
     if (is.factor(obj))
         "string"

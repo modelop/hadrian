@@ -24,11 +24,8 @@
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
-#' \dontrun{
-#' model <- lda(Species ~ ., data=iris)
-#'
+#' model <- MASS::lda(Species ~ ., data=iris)
 #' model_params <- extract_params(model)
-#' }
 #' @export
 extract_params.lda <- function(object, ...) {
 
@@ -82,11 +79,8 @@ extract_params.lda <- function(object, ...) {
 #' @return a \code{list} of lists representation of the linear discriminant model that can be
 #' inserted into a cell or pool
 #' @examples
-#' \dontrun{
-#' model <- lda(Species ~ ., data=iris)
-#'
+#' model <- MASS::lda(Species ~ ., data=iris)
 #' model_built <- build_model(model)
-#' }
 #' @export
 build_model.lda <- function(object, ...){
 
@@ -153,10 +147,8 @@ build_model.lda <- function(object, ...){
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[MASS]{lda}} \code{\link{extract_params.lda}}
 #' @examples
-#' \dontrun{
-#' model <- lda(Species ~ ., data=iris)
+#' model <- MASS::lda(Species ~ ., data=iris)
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.lda <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL,
                     prior = object$prior, dimen=length(object$svd), method = c('plug-in'),
@@ -290,6 +282,7 @@ pfa.lda <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ra
 }
 
 
+#' @keywords internal
 enum_to_model_matrix_string <- function(var_name, target_array, first=FALSE) {
   if(!first){
     x <- sprintf('%s <- a.concat(%s, a.remove(cast.fanoutDouble(input["%s"]), 0))',
@@ -301,6 +294,8 @@ enum_to_model_matrix_string <- function(var_name, target_array, first=FALSE) {
   return(x)
 }
 
+
+#' @keywords internal
 lda_action_string <- 'prior_means <- la.dot(prior,means)
 input2 <- la.dot(la.sub(lda_input_arr_of_arr, prior_means), scaling)
 centered_means <- blank_arr_of_arr

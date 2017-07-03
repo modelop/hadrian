@@ -24,7 +24,6 @@
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
-#' \dontrun{
 #' model <- stats::arima(presidents, c(3, 0, 0))
 #' extracted_model <- extract_params(model)
 #' 
@@ -33,7 +32,6 @@
 #'
 #' model <- forecast::auto.arima(WWWusage)
 #' extracted_model <- extract_params(model)
-#' }
 #' @export
 extract_params.Arima <- function(object, ...) {
   
@@ -117,7 +115,6 @@ extract_params.Arima <- function(object, ...) {
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[forecast]{Arima}} \code{\link[forecast]{auto.arima}} \code{\link[stats]{arima}} \code{\link{extract_params.Arima}}
 #' @examples
-#' \dontrun{
 #' model <- forecast::Arima(USAccDeaths, order=c(2,2,2), seasonal=c(0,2,2))
 #' model_as_pfa <- pfa(model)
 #' 
@@ -130,7 +127,6 @@ extract_params.Arima <- function(object, ...) {
 #' x <- arima.sim(n=n, model=list(ar=0.4)) + 2 + 0.8 * ext_dat[,1] + 1.5 * ext_dat[,2]
 #' model <- arima(x, order=c(1,0,0), xreg = ext_dat)
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.Arima <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                       cycle_reset = TRUE, ...){

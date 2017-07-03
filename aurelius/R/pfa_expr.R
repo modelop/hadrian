@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# function to convert an R expression into a PFA expression
 
 #' pfa_expr
 #'
@@ -31,9 +30,7 @@
 #' @param env environment for resolving unrecognized symbols as substitutions
 #' @return a \code{list} of lists representing a fragment of a PFA document
 #' @examples
-#' \dontrun{
 #' pfa_expr(quote(2 + 2))
-#' }
 #' @export
 pfa_expr <- function(expr, symbols = list(), cells = list(), pools = list(), fcns = list(), env = parent.frame()) {
     symbolsEnv <- new.env()

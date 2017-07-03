@@ -19,10 +19,6 @@ inserted into a cell or pool
 Builds an entire PFA list of lists based on a model object
 }
 \examples{
-\dontrun{
-require(utils)
-
 # all the "build_model" methods found
 methods("build_model")
-}
 }

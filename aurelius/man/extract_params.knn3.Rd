@@ -22,11 +22,8 @@ Extract K-nearest neighbor model parameters from a knn3 object created by
 the caret library
 }
 \examples{
-\dontrun{
 iris2 <- iris
 colnames(iris2) <- gsub('\\\\.', '_', colnames(iris2))
-model <- knn3(Species ~ ., iris2)
-
+model <- caret::knn3(Species ~ ., iris2)
 extracted_params <- extract_params(model)
-}
 }

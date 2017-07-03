@@ -16,8 +16,6 @@ a named list
 Convenience function for making a (possibly empty) named list, which converts to a JSON object.
 }
 \examples{
-\dontrun{
 json_map()
 json_map(one = 1, two = TRUE, three = "THREE")
-}
 }

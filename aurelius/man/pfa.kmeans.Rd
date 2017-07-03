@@ -46,11 +46,8 @@ and returns a list-of-lists representing in valid PFA document
 that could be used for scoring
 }
 \examples{
-\dontrun{
 model <- kmeans(x=iris[, 1:2], centers=3)
-
 model_as_pfa <- pfa(model)
-}
 }
 \seealso{
 \code{\link[stats]{kmeans}} \code{\link{pfa.kcca}}

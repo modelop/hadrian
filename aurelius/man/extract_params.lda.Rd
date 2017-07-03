@@ -19,9 +19,6 @@ Extract linear discriminant model parameters from a model created
 by the lda() function
 }
 \examples{
-\dontrun{
-model <- lda(Species ~ ., data=iris)
-
+model <- MASS::lda(Species ~ ., data=iris)
 model_params <- extract_params(model)
-}
 }

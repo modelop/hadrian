@@ -19,9 +19,6 @@ Extract K-centroids model parameters from a kcca object created by
 the flexclust library
 }
 \examples{
-\dontrun{
-model <- kcca(iris[,1:4], k = 3, family=kccaFamily("kmeans"))
-
+model <- flexclust::kcca(iris[,1:4], k = 3, family=flexclust::kccaFamily("kmeans"))
 extracted_params <- extract_params(model)
-}
 }

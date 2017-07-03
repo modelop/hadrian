@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #' PFA Formatting of Fitted Linear models
 #'
 #' This function takes a linear model fit using lm and 
@@ -39,14 +40,12 @@
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[stats]{lm}} \code{\link{pfa.glm}}
 #' @examples
-#' \dontrun{
 #' X1 <- rnorm(100)
 #' X2 <- runif(100)
 #' Y <- 3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3)
 #' 
 #' model <- lm(Y ~ X1 + X2)
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.lm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, ...){
   

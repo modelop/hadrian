@@ -56,13 +56,10 @@ and returns a list-of-lists representing in valid PFA document
 that could be used for scoring
 }
 \examples{
-\dontrun{
 iris2 <- iris
 colnames(iris2) <- gsub('\\\\.', '_', colnames(iris2))
-model <- knn3(Species ~ ., iris2)
-
+model <- caret::knn3(Species ~ ., iris2)
 model_as_pfa <- pfa(model)
-}
 }
 \seealso{
 \code{\link[caret]{knn3}} \code{\link{extract_params.knn3}}

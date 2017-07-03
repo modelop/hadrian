@@ -21,9 +21,6 @@ PFA as a list-of-lists that can be inserted into a cell or pool
 Extract K-means model parameters from a kmeans object
 }
 \examples{
-\dontrun{
 model <- kmeans(x=iris[, 1:2], centers=3)
-
 extracted_params <- extract_params(model)
-}
 }

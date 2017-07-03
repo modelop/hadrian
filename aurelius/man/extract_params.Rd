@@ -18,10 +18,6 @@ a \code{list} that is extracted from the tree model object
 Extracts parameters of a model object
 }
 \examples{
-\dontrun{
-require(utils)
-
 # all the "extract_params" methods found
 methods("extract_params")
-}
 }

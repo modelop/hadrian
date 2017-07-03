@@ -24,10 +24,8 @@
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
-#' \dontrun{
-#' model <- ets(USAccDeaths, model="ZZZ")
+#' model <- forecast::ets(USAccDeaths, model="ZZZ")
 #' extracted_model <- extract_params(model)
-#' }
 #' @export
 extract_params.ets <- function(object, ...) {
   
@@ -109,10 +107,8 @@ extract_params.ets <- function(object, ...) {
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[forecast]{ets}} \code{\link{extract_params.ets}}
 #' @examples
-#' \dontrun{
-#' model <- ets(USAccDeaths, model="ZZZ")
+#' model <- forecast::ets(USAccDeaths, model="ZZZ")
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.ets <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                     cycle_reset = TRUE, ...){

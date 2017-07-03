@@ -48,7 +48,6 @@ and returns a list-of-lists representing in valid PFA document that could be use
 for scoring.
 }
 \examples{
-\dontrun{
 model <- forecast::Arima(USAccDeaths, order=c(2,2,2), seasonal=c(0,2,2))
 model_as_pfa <- pfa(model)
 
@@ -61,7 +60,6 @@ ext_dat <- data.frame(x1=rnorm(n), x2=rnorm(n))
 x <- arima.sim(n=n, model=list(ar=0.4)) + 2 + 0.8 * ext_dat[,1] + 1.5 * ext_dat[,2]
 model <- arima(x, order=c(1,0,0), xreg = ext_dat)
 model_as_pfa <- pfa(model)
-}
 }
 \seealso{
 \code{\link[forecast]{Arima}} \code{\link[forecast]{auto.arima}} \code{\link[stats]{arima}} \code{\link{extract_params.Arima}}

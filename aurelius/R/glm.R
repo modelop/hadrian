@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #' extract_params.glm
 #'
 #' Extract generalized linear model parameters from the glm library
@@ -23,17 +24,14 @@
 #' @param ... further arguments passed to or from other methods
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
 #' @examples
-#' \dontrun{
 #' X1 <- rnorm(100)
 #' X2 <- runif(100)
 #' Y <- 3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3)
 #' Y <- Y > 0
 #' 
-#' z <- glm(Y ~ X1 + X2, family = binomial(logit))
-#' z2 <- extract_params(z)
-#' }
+#' glm_model <- glm(Y ~ X1 + X2, family = binomial(logit))
+#' model_params <- extract_params(glm_model)
 #' @export
-
 extract_params.glm <- function(object, ...) {
   
     coeff <- as.list(object$coefficients)
@@ -54,6 +52,7 @@ extract_params.glm <- function(object, ...) {
          family = object$family$family, 
          link = object$family$link)
 }
+
 
 #' PFA Formatting of Fitted GLMs
 #'
@@ -85,15 +84,13 @@ extract_params.glm <- function(object, ...) {
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[stats]{glm}} \code{\link{extract_params.glm}}
 #' @examples
-#' \dontrun{
 #' X1 <- rnorm(100)
 #' X2 <- runif(100)
 #' Y <- 3 - 5 * X1 + 3 * X2 + rnorm(100, 0, 3)
 #' Y <- Y > 0
 #' 
-#' model <- glm(Y ~ X1 + X2, family = binomial(logit))
-#' model_as_pfa <- pfa(model)
-#' }
+#' glm_model <- glm(Y ~ X1 + X2, family = binomial(logit))
+#' model_as_pfa <- pfa(glm_model)
 #' @export
 pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                     pred_type = c('response', 'prob'), 
@@ -181,6 +178,7 @@ pfa.glm <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, ra
 }
 
 
+#' @keywords internal
 glm_link_func_mapper <- function(link, input_name, model_name) {
 
   model <- sprintf('model.reg.linear(%s, %s)', input_name, model_name)

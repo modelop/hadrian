@@ -18,8 +18,6 @@ a \code{list} that is extracted from the rpart object
 Extracts parameters from a tree made by the rpart() function
 }
 \examples{
-\dontrun{
-model <- rpart(Kyphosis ~ Age + as.factor(Number), data = kyphosis)
+model <- rpart::rpart(Kyphosis ~ Age + as.factor(Number), data = rpart::kyphosis)
 my_tree <- extract_params(model)
-}
 }

@@ -41,16 +41,14 @@ package and returns a list-of-lists representing in valid PFA document that
 could be used for scoring.
 }
 \examples{
-\dontrun{
-model1 <- holt(airmiles)
+model1 <- forecast::holt(airmiles)
 model1_as_pfa <- pfa(model1)
 
-model2 <- hw(USAccDeaths,h=48)
+model2 <- forecast::hw(USAccDeaths,h=48)
 model2_as_pfa <- pfa(model2)
 
-model3 <- ses(LakeHuron)
+model3 <- forecast::ses(LakeHuron)
 model3_as_pfa <- pfa(model3)
-}
 }
 \seealso{
 \code{\link[forecast]{holt}} \code{\link[forecast]{ses}} \code{\link[forecast]{hw}} \code{\link{pfa.ets}}

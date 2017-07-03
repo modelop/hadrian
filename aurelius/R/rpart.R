@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 #' extract_params.rpart
 #'
 #' Extracts parameters from a tree made by the rpart() function
@@ -24,10 +25,8 @@
 #' @param ... further arguments passed to or from other methods
 #' @return a \code{list} that is extracted from the rpart object
 #' @examples 
-#' \dontrun{
-#' model <- rpart(Kyphosis ~ Age + as.factor(Number), data = kyphosis)
+#' model <- rpart::rpart(Kyphosis ~ Age + as.factor(Number), data = rpart::kyphosis)
 #' my_tree <- extract_params(model)
-#' }
 #' @export
 extract_params.rpart <- function(object, ...) {
   
@@ -86,7 +85,8 @@ extract_params.rpart <- function(object, ...) {
                     LeftNode=left_node, 
                     RightNode=right_node, 
                     MissingNode=missing_node, 
-                    prediction_idx=NA)
+                    prediction_idx=NA, 
+                    stringsAsFactors = FALSE)
     splits_fnd <- rbind(splits_fnd, d)
     
     # loop over surrogates if they exist
@@ -108,7 +108,8 @@ extract_params.rpart <- function(object, ...) {
                         LeftNode=left_node, 
                         RightNode=right_node, 
                         MissingNode=missing_node, 
-                        prediction_idx=NA)
+                        prediction_idx=NA, 
+                        stringsAsFactors = FALSE)
         splits_fnd <- rbind(splits_fnd, d)
       }
       ss <- ss + primary_compete[i] + surr
@@ -156,10 +157,8 @@ extract_params.rpart <- function(object, ...) {
 #' @return a \code{list} of lists representation of the tree that can be 
 #' inserted into a cell or pool
 #' @examples 
-#' \dontrun{
-#' model <- rpart(Kyphosis ~ Age + Number + Start, data = kyphosis)
+#' model <- rpart::rpart(Kyphosis ~ Age + as.factor(Number), data = rpart::kyphosis)
 #' my_tree <- build_model(model)
-#' }
 #' @export
 build_model.rpart <- function(object, ...){
 
@@ -192,11 +191,11 @@ build_model.rpart <- function(object, ...){
                    fieldTypes = fieldTypes)
 }
 
+
 #' build_node_rpart
 #'
 #' Builds one node of a rpart model tree
 #' 
-#' @keywords internal
 #' @param tree tree object
 #' @param categorical_lookup splits used
 #' @param leaf_val_type a character representing an avro type when a value is 
@@ -206,6 +205,7 @@ build_model.rpart <- function(object, ...){
 #' @param dataLevels levels of data
 #' @param fieldTypes type of fields
 #' @return PFA as a list-of-lists that can be inserted into a cell or pool
+#' @keywords internal
 build_node_rpart <- function(tree, categorical_lookup, leaf_val_type, whichNode, valueNeedsTag, dataLevels, fieldTypes){
   
   node <- tree[tree$node_idx == whichNode,]
@@ -303,10 +303,8 @@ build_node_rpart <- function(tree, categorical_lookup, leaf_val_type, whichNode,
 #' @return a \code{list} of lists that compose valid PFA document
 #' @seealso \code{\link[rpart]{rpart}}
 #' @examples
-#' \dontrun{
-#' model <- rpart(Species ~ ., data=iris)
+#' model <- rpart::rpart(Species ~ ., data=iris)
 #' model_as_pfa <- pfa(model)
-#' }
 #' @export
 pfa.rpart <- function(object, name=NULL, version=NULL, doc=NULL, metadata=NULL, randseed=NULL, options=NULL, 
                       pred_type = c('response', 'prob'), 
