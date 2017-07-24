@@ -179,7 +179,7 @@ action:
     engine1.action(java.lang.Integer.valueOf(256))    should be ("100|")
     engine1.action(java.lang.Integer.valueOf(65535))  should be ("ffff|")
     engine1.action(java.lang.Integer.valueOf(65536))  should be ("10000|")
-    evaluating { engine1.action(java.lang.Integer.valueOf(-1)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException]  { engine1.action(java.lang.Integer.valueOf(-1)) }
 
     val engine2 = PFAEngine.fromYaml("""
 input: int
@@ -196,7 +196,7 @@ action:
     engine2.action(java.lang.Integer.valueOf(256))    should be ("     100|")
     engine2.action(java.lang.Integer.valueOf(65535))  should be ("    ffff|")
     engine2.action(java.lang.Integer.valueOf(65536))  should be ("   10000|")
-    evaluating { engine2.action(java.lang.Integer.valueOf(-1)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException]  { engine2.action(java.lang.Integer.valueOf(-1)) }
 
     val engine2a = PFAEngine.fromYaml("""
 input: int
@@ -213,7 +213,7 @@ action:
     engine2a.action(java.lang.Integer.valueOf(256))    should be ("00000100|")
     engine2a.action(java.lang.Integer.valueOf(65535))  should be ("0000ffff|")
     engine2a.action(java.lang.Integer.valueOf(65536))  should be ("00010000|")
-    evaluating { engine2a.action(java.lang.Integer.valueOf(-1)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException]  { engine2a.action(java.lang.Integer.valueOf(-1)) }
 
     val engine3 = PFAEngine.fromYaml("""
 input: int
@@ -230,7 +230,7 @@ action:
     engine3.action(java.lang.Integer.valueOf(256))    should be ("100     |")
     engine3.action(java.lang.Integer.valueOf(65535))  should be ("ffff    |")
     engine3.action(java.lang.Integer.valueOf(65536))  should be ("10000   |")
-    evaluating { engine3.action(java.lang.Integer.valueOf(-1)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException]  { engine3.action(java.lang.Integer.valueOf(-1)) }
   }
 
   it must "do number" taggedAs(Lib, LibString) in {

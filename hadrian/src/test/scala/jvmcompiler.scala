@@ -137,7 +137,7 @@ action:
   }
 
   it must "refuse to change name" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 name: ThisIsMyName
 input: "null"
 output: "null"
@@ -145,18 +145,18 @@ method: map
 action:
   - set: {name: {string: SomethingElse}}
   - null
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException] { PFAEngine.fromYaml("""
 name: ThisIsMyName
 input: "null"
 output: "null"
 method: emit
 action:
   - set: {name: {string: SomethingElse}}
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException] { PFAEngine.fromYaml("""
 name: ThisIsMyName
 input: "null"
 output: "null"
@@ -166,25 +166,25 @@ action:
   - set: {name: {string: SomethingElse}}
   - null
 merge: null
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException] { PFAEngine.fromYaml("""
 name: ThisIsMyName
 input: "null"
 output: "null"
 action: null
 begin:
   - set: {name: {string: SomethingElse}}
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept[PFASemanticException] { PFAEngine.fromYaml("""
 name: ThisIsMyName
 input: "null"
 output: "null"
 action: null
 end:
   - set: {name: {string: SomethingElse}}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   it must "access version" taggedAs(JVMCompilation) in {
@@ -216,12 +216,12 @@ action: {+: [version, tally]}
 merge: {+: [tallyOne, tallyTwo]}
 """).head.action(null) should be (1123)
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept[PFASemanticException] { PFAEngine.fromYaml("""
 input: "null"
 output: int
 method: map
 action: {+: [version, 1000]}
-""").head } should produce [PFASemanticException]
+""").head }
 
     val beginEngine = PFAEngine.fromYaml("""
 version: 123
@@ -233,12 +233,12 @@ begin: {log: {+: [version, 1000]}}
     beginEngine.log = {(x: String, ns: Option[String]) => x should be ("1123")}
     beginEngine.begin()
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept[PFASemanticException] { PFAEngine.fromYaml("""
 input: "null"
 output: "null"
 action: null
 begin: {+: [version, 1000]}
-""").head } should produce [PFASemanticException]
+""").head }
 
     val endEngine = PFAEngine.fromYaml("""
 version: 123
@@ -250,12 +250,12 @@ end: {log: {+: [version, 1000]}}
     endEngine.log = {(x: String, ns: Option[String]) => x should be ("1123")}
     endEngine.end()
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept[PFASemanticException] { PFAEngine.fromYaml("""
 input: "null"
 output: "null"
 action: null
 end: {+: [version, 1000]}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   it must "access metadata" taggedAs(JVMCompilation) in {
@@ -472,8 +472,8 @@ merge: {s.concat: [tallyOne, tallyTwo]}
     compileExpression("""{"float": 2.5}""", """"float"""").apply should be (2.5F)
     compileExpression("""2.5""", """"double"""").apply should be (2.5)
 
-    evaluating { compileExpression("""{"int": "string"}""", """"int"""") } should produce [PFASyntaxException]
-    evaluating { compileExpression("""{"float": "string"}""", """"float"""") } should produce [PFASyntaxException]
+    intercept[PFASyntaxException] { compileExpression("""{"int": "string"}""", """"int"""") }
+    intercept [PFASyntaxException]{ compileExpression("""{"float": "string"}""", """"float"""") }
 
     compileExpression("""{"string": "hello"}""", """"string"""").apply should be ("hello")
     compileExpression("""{"base64": "aGVsbG8="}""", """"bytes"""").apply should be ("hello".getBytes)
@@ -499,26 +499,26 @@ action:
     out.asInstanceOf[PFARecord].get("two") should be (2.2)
     out.asInstanceOf[PFARecord].get("three") should be ("THREE")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept  [PFASemanticException]{ PFAEngine.fromYaml("""
 input: double
 output: {type: record, name: SimpleRecord, fields: [{name: one, type: int}, {name: two, type: double}, {name: three, type: string}]}
 action:
   - {new: {one: {long: 1}, two: 2.2, three: ["THREE"]}, type: SimpleRecord}
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException] { PFAEngine.fromYaml("""
 input: double
 output: {type: record, name: SimpleRecord, fields: [{name: one, type: int}, {name: two, type: double}, {name: three, type: string}]}
 action:
   - {new: {one: 1, two: 2.2, three: ["THREE"], four: 444}, type: SimpleRecord}
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException] { PFAEngine.fromYaml("""
 input: double
 output: {type: record, name: SimpleRecord, fields: [{name: one, type: int}, {name: two, type: double}, {name: three, type: string}]}
 action:
   - {new: {one: 1, two: 2.2}, type: SimpleRecord}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   it must "promote types in a new record" taggedAs(JVMCompilation) in {
@@ -559,26 +559,26 @@ action:
     out.asInstanceOf[PFARecord].get("two") should be (2.2)
     out.asInstanceOf[PFARecord].get("three") should be ("THREE")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept  [PFASemanticException]{ PFAEngine.fromYaml("""
 input: double
 output: SimpleRecord
 action:
   - {new: {one: {long: 1}, two: 2.2, three: ["THREE"]}, type: {type: record, name: SimpleRecord, fields: [{name: one, type: int}, {name: two, type: double}, {name: three, type: string}]}}
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept  [PFASemanticException]{ PFAEngine.fromYaml("""
 input: double
 output: SimpleRecord
 action:
   - {new: {one: 1, two: 2.2, three: ["THREE"], four: 444}, type: {type: record, name: SimpleRecord, fields: [{name: one, type: int}, {name: two, type: double}, {name: three, type: string}]}}
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept  [PFASemanticException]{ PFAEngine.fromYaml("""
 input: double
 output: SimpleRecord
 action:
   - {new: {one: 1, two: 2.2}, type: {type: record, name: SimpleRecord, fields: [{name: one, type: int}, {name: two, type: double}, {name: three, type: string}]}}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   it must "do new map" taggedAs(JVMCompilation) in {
@@ -623,11 +623,11 @@ do:
   - x
 """, """"string"""").apply should be ("hello")
 
-    evaluating { compileExpression("""
+    intercept  [PFASemanticException]{ compileExpression("""
 do:
   - x
   - let: {x: [hello]}
-""", """"null"""") } should produce [PFASemanticException]
+""", """"null"""") }
 
     compileExpression("""
 do:
@@ -635,17 +635,17 @@ do:
   - y
 """, """"int"""").apply should be (12)
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException] { compileExpression("""
 do:
   - let: {x: [hello], y: x}
   - y
-""", """"string"""") } should produce [PFASemanticException]
+""", """"string"""") }
 
-    evaluating { compileExpression("""
+    intercept  [PFASemanticException]{ compileExpression("""
 do:
   - let: {x: {let: {y: [stuff]}}}
   - x
-""", """"null"""") } should produce [PFASemanticException]
+""", """"null"""") }
 
     compileExpression("""
 do:
@@ -666,25 +666,25 @@ do:
   - x
 """, """"string"""").apply should be ("there")
 
-    evaluating { compileExpression("""
+    intercept  [PFASemanticException]{ compileExpression("""
 do:
   - set: {x: [there]}
   - let: {x: [hello]}
   - x
-""", """"string"""") } should produce [PFASemanticException]
+""", """"string"""") }
 
-    evaluating { compileExpression("""
+    intercept  [PFASemanticException]{ compileExpression("""
 do:
   - let: {x: [hello]}
   - set: {x: 12}
   - x
-""", """"int"""").apply } should produce [PFASemanticException]
+""", """"int"""").apply }
   }
 
   it must "call functions" taggedAs(JVMCompilation) in {
     compileExpression("""+: [2, 2]""", """"int"""").apply should be (4)
 
-    evaluating { compileExpression("""+: [2, [hello]]""", """"int"""") } should produce [PFASemanticException]
+    intercept  [PFASemanticException]{ compileExpression("""+: [2, [hello]]""", """"int"""") }
 
     compileExpression("""
 "+":
@@ -692,11 +692,11 @@ do:
   - 2
 """, """"int"""").apply should be (6)
 
-    evaluating { compileExpression("""
+    intercept  [PFASemanticException]{ compileExpression("""
 "+":
   - {let: {x: 5}}
   - 2
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
     compileExpression("""
 "+":
@@ -712,27 +712,27 @@ do:
       - 2
 """, """"int"""").apply should be (7)
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException] { compileExpression("""
 do:
   - {let: {x: 5}}
   - "+":
       - {do: [{let: {x: 5}}, x]}
       - 2
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
-    evaluating { compileExpression("""
+    intercept  [PFASemanticException]{ compileExpression("""
 do:
   - {let: {x: 5}}
   - "+":
       - {do: [{set: {x: 10}}, x]}
       - 2
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
   }
 
   it must "do if expressions" taggedAs(JVMCompilation) in {
     compileExpression("""{if: true, then: [3]}""", """"null"""").apply should be (null.asInstanceOf[java.lang.Void])
 
-    evaluating { compileExpression("""{if: [hello], then: [3]}""", """"string"""") } should produce [PFASemanticException]
+    intercept  [PFASemanticException]{ compileExpression("""{if: [hello], then: [3]}""", """"string"""") }
 
     compileExpression("""
 do:
@@ -743,14 +743,14 @@ do:
   - x
 """, """"int"""").apply should be (99)
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException] { compileExpression("""
 do:
   - {let: {x: 3}}
   - if: true
     then:
       - {let: {x: 99}}
   - x
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
     compileExpression("""
 do:
@@ -807,23 +807,23 @@ else:
   - 50
 """, """"int"""").apply should be (999)
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException] { compileExpression("""
 if: true
 then:
   - {let: {x: 999}}
   - x
 else:
   - x
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
-    evaluating { compileExpression("""
+    intercept  [PFASemanticException]{ compileExpression("""
 if: true
 then:
   - x
 else:
   - {let: {x: 999}}
   - x
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
     compileExpression("""
 if: {"!=": [2, 3]}
@@ -946,20 +946,20 @@ cond:
   - {if: false, then: [{let: {x: 5}}, 3]}
 """, """"null"""").apply should be (null.asInstanceOf[java.lang.Void])
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 cond:
   - {if: false, then: [{let: {x: 5}}, 1]}
   - {if: false, then: [{let: {x: 5}}, 2]}
   - {if: false, then: [{let: {x: 5}}, 3]}
 else: [{set: {x: 5}}, 4]
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 cond:
   - {if: false, then: [{let: {x: 5}}, 1]}
   - {if: false, then: [{set: {x: 5}}, 2]}
   - {if: false, then: [{set: {x: 5}}, 3]}
-""", """"null"""") } should produce [PFASemanticException]
+""", """"null"""") }
 
     compileExpression("""
 cond:
@@ -977,7 +977,7 @@ cond:
 else: [{let: {x: 5}}, 4]
 """, """"int"""").apply should be (1)
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {x: 3}}
   - cond:
@@ -985,9 +985,9 @@ do:
       - {if: {do: [{let: {x: 5}}, false]}, then: [2]}
       - {if: {do: [{let: {x: 5}}, false]}, then: [3]}
     else: [{let: {x: 5}}, 4]
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {x: 3}}
   - cond:
@@ -996,7 +996,7 @@ do:
       - {if: {do: [{set: {x: 3}}, false]}, then: [3]}
     else: [4]
   - x
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
     compileExpression("""
 cond:
@@ -1027,7 +1027,7 @@ do:
   - x
 """, """"int"""").apply should be (5)
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {x: 0}}
   - while: {+: [2, 2]}
@@ -1036,9 +1036,9 @@ do:
       - {set: {x: {+: [x, 1]}}}
       - x
   - x
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {x: 0}}
   - while: {let: {y: 12}}
@@ -1047,7 +1047,7 @@ do:
       - {set: {x: {+: [x, 1]}}}
       - x
   - x
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
     compileExpression("""
 do:
@@ -1059,7 +1059,7 @@ do:
   - x
 """, """"int"""").apply should be (5)
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {x: 0}}
   - {let: {y: 0}}
@@ -1068,7 +1068,7 @@ do:
       - {set: {x: {+: [x, 1]}}}
       - x
   - x
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
     compileExpression("""
 do:
@@ -1079,7 +1079,7 @@ do:
   - x
 """, """"int"""").apply should be (5)
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {x: 0}}
   - while: {"!=": [y, 5]}
@@ -1087,7 +1087,7 @@ do:
       - {let: {y: {+: [x, 1]}}}
       - {set: {x: y}}
   - x
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
     compileExpression("""
 do:
@@ -1147,7 +1147,7 @@ do:
   - x
 """, """"int"""").apply should be (5)
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {x: 0}}
   - do:
@@ -1155,7 +1155,7 @@ do:
       - {set: {x: y}}
     until: {==: [y, 5]}
   - y
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
     compileExpression("""
 do:
@@ -1185,7 +1185,7 @@ do:
       - x
 """, """"null"""").apply should be (null.asInstanceOf[java.lang.Void])
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - for: {x: 0}
     while: {"!=": [x, 5]}
@@ -1193,7 +1193,7 @@ do:
     do:
       - x
   - x
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
     compileExpression("""
 do:
@@ -1214,13 +1214,13 @@ do:
   - x
 """, """"null"""").apply should be (null.asInstanceOf[java.lang.Void])
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 for: {x: {let: {y: 0}}}
 while: {"!=": [x, {+: [2, 3]}]}
 step: {x: {+: [x, {-: [3, 2]}]}}
 do:
   - x
-""", """"null"""") } should produce [PFASemanticException]
+""", """"null"""") }
 
     compileExpression("""
 for: {x: {do: [{let: {y: 0}}, y]}}
@@ -1239,23 +1239,23 @@ do:
   - y
 """, """"null"""").apply should be (null.asInstanceOf[java.lang.Void])
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 for: {x: 0}
 while: {"!=": [x, 5]}
 step: {x: {+: [y, 1]}}
 do:
   - {let: {y: x}}
   - y
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 for: {x: 0}
 while: {"!=": [y, 5]}
 step: {x: {+: [x, 1]}}
 do:
   - {let: {y: x}}
   - y
-""", """"int"""") } should produce [PFASemanticException]
+""", """"int"""") }
 
     compileExpression("""
 for: {x: 0}
@@ -1300,7 +1300,7 @@ do:
   - y
 """, """"null"""").apply should be (null.asInstanceOf[java.lang.Void])
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {y: [zero]}}
   - foreach: x
@@ -1308,7 +1308,7 @@ do:
     do:
       - {set: {y: x}}
       - y
-""", """"string"""") } should produce [PFASemanticException]
+""", """"string"""") }
 
     compileExpression("""
 do:
@@ -1332,7 +1332,7 @@ do:
   - y
 """, """"string"""").apply should be ("three")
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {y: [zero], array: {type: {type: array, items: string}, value: [one, two, three]}}}
   - foreach: x
@@ -1341,7 +1341,7 @@ do:
       - {set: {y: x}}
     seq: false
   - y
-""", """"string"""") } should produce [PFASemanticException]
+""", """"string"""") }
 
     compileExpression("""
 do:
@@ -1423,7 +1423,7 @@ do:
       - {as: "string", named: y, do: [{log: [x, y]}]}
 """, """"null"""")) should be ((None, """{"double":2.2} 2.2""") :: Nil)
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {x: {type: ["int", "double", "string"], value: {"double": 2.2}}}}
   - cast: x
@@ -1432,16 +1432,16 @@ do:
       - {as: "double", named: y, do: [{log: [x, y]}]}
       - {as: "string", named: y, do: [{log: [x, y]}]}
       - {as: "bytes", named: y, do: [{log: [x, y]}]}
-""", """"null"""") } should produce [PFASemanticException]
+""", """"null"""") }
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {x: {type: ["int", "double", "string"], value: {"double": 2.2}}}}
   - cast: x
     cases:
       - {as: "int", named: y, do: [{log: [x, y]}]}
       - {as: "double", named: y, do: [{log: [x, y]}]}
-""", """"null"""") } should produce [PFASemanticException]
+""", """"null"""") }
 
     collectLogs(compileExpressionEngine("""
 do:
@@ -1510,19 +1510,19 @@ do:
 {upcast: 3, as: ["double", "string"]}
 """, """["string", "double"]""").apply should be (3.0)
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {fred: {upcast: 3, as: "double"}}}
   - {set: {fred: [hello]}}
   - fred
-""", """"double"""").apply } should produce [PFASemanticException]
+""", """"double"""").apply }
 
-    evaluating { compileExpression("""
+    intercept [PFASemanticException]{ compileExpression("""
 do:
   - {let: {fred: {upcast: 3, as: "double"}}}
   - {set: {fred: [hello]}}
   - fred
-""", """"string"""").apply } should produce [PFASemanticException]
+""", """"string"""").apply }
 
     compileExpression("""
 do:
@@ -1689,7 +1689,7 @@ merge:
     engine.action(Array[Byte](1, 2, 3)).asInstanceOf[Array[Byte]].toList should be (List[Byte](1, 2, 3))
     engine.action(Array[Byte](4, 5, 6)).asInstanceOf[Array[Byte]].toList should be (List[Byte](1, 2, 3, 4, 5, 6))
     engine.action(Array[Byte](7, 8, 9)).asInstanceOf[Array[Byte]].toList should be (List[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9))
-    evaluating { engine.action(Array[Byte](0, 0)) } should produce [PFARuntimeException]
+    intercept [PFARuntimeException]{ engine.action(Array[Byte](0, 0)) }
   }
 
   it must "pack byte arrays as nullterminated" taggedAs(JVMCompilation) in {
@@ -1735,8 +1735,8 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](10)) should be (null)
-    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](1, 2)) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte]()) }
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2)) }
   }
 
   it must "unpack boolean" taggedAs(JVMCompilation) in {
@@ -1752,8 +1752,8 @@ action:
     engine.action(Array[Byte](0)).asInstanceOf[java.lang.Boolean].booleanValue should be (false)
     engine.action(Array[Byte](1)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
     engine.action(Array[Byte](8)).asInstanceOf[java.lang.Boolean].booleanValue should be (true)
-    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](1, 2)) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte]()) }
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2)) }
   }
 
   it must "unpack byte" taggedAs(JVMCompilation) in {
@@ -1767,8 +1767,8 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](10)).asInstanceOf[java.lang.Integer].intValue should be (10)
-    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](1, 2)) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte]()) }
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2)) }
 
     val engineUnsigned = PFAEngine.fromYaml("""
 input: bytes
@@ -1795,8 +1795,8 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](0, 4)).asInstanceOf[java.lang.Integer].intValue should be (4)
-    evaluating { engine.action(Array[Byte](1)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](1, 2, 3)) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte](1)) }
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2, 3)) }
 
     val engineLittleEndian = PFAEngine.fromYaml("""
 input: bytes
@@ -1847,8 +1847,8 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](0, 0, 0, 4)).asInstanceOf[java.lang.Integer].intValue should be (4)
-    evaluating { engine.action(Array[Byte](1, 2, 3)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5)) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2, 3)) }
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2, 3, 4, 5)) }
 
     val engineLittleEndian = PFAEngine.fromYaml("""
 input: bytes
@@ -1899,8 +1899,8 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](0, 0, 0, 0, 0, 0, 0, 4)).asInstanceOf[java.lang.Long].longValue should be (4)
-    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5, 6, 7)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9)) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2, 3, 4, 5, 6, 7)) }
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9)) } 
 
     val engineLittleEndian = PFAEngine.fromYaml("""
 input: bytes
@@ -1947,8 +1947,8 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](64, 72, -11, -61)).asInstanceOf[java.lang.Float].doubleValue should be (3.14 +- 0.000001)
-    evaluating { engine.action(Array[Byte](1, 2, 3)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5)) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2, 3)) } 
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2, 3, 4, 5)) } 
 
     val engineLittleEndian = PFAEngine.fromYaml("""
 input: bytes
@@ -1973,8 +1973,8 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](64, 9, 30, -72, 81, -21, -123, 31)).asInstanceOf[java.lang.Double].doubleValue should be (3.14 +- 0.000001)
-    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5, 6, 7)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9)) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2, 3, 4, 5, 6, 7)) } 
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2, 3, 4, 5, 6, 7, 8, 9)) } 
 
     val engineLittleEndian = PFAEngine.fromYaml("""
 input: bytes
@@ -1999,8 +1999,8 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](104, 101, 108, 108, 111)) should be ("hello")
-    evaluating { engine.action(Array[Byte](1, 2, 3, 4)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](1, 2, 3, 4, 5, 6)) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2, 3, 4)) } 
+    intercept [PFAUserException]{ engine.action(Array[Byte](1, 2, 3, 4, 5, 6)) } 
   }
 
   it must "unpack tonull" taggedAs(JVMCompilation) in {
@@ -2014,8 +2014,8 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](104, 101, 108, 108, 111, 0)) should be ("hello")
-    evaluating { engine.action(Array[Byte](104, 101, 108, 108, 111)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte](104, 101, 108, 108, 111)) } 
+    intercept [PFAUserException]{ engine.action(Array[Byte]()) } 
   }
 
   it must "unpack lengthprefixed" taggedAs(JVMCompilation) in {
@@ -2029,9 +2029,9 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](5, 104, 101, 108, 108, 111)) should be ("hello")
-    evaluating { engine.action(Array[Byte](5, 104, 101, 108, 108, 111, 99)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](5, 104, 101, 108, 108)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte](5, 104, 101, 108, 108, 111, 99)) }
+    intercept [PFAUserException]{ engine.action(Array[Byte](5, 104, 101, 108, 108)) }
+    intercept [PFAUserException]{ engine.action(Array[Byte]()) }
   }
 
   it must "unpack multiple with raw" taggedAs(JVMCompilation) in {
@@ -2045,9 +2045,9 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 4)) should be ("hello")
-    evaluating { engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 4, 1)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 4, 1)) }
+    intercept [PFAUserException]{ engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0)) }
+    intercept [PFAUserException]{ engine.action(Array[Byte]()) }
 
     val engineLittleEndian = PFAEngine.fromYaml("""
 input: bytes
@@ -2059,9 +2059,9 @@ action:
   else: {error: "Ack!"}
 """).head
     engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 4)) should be ("hello")
-    evaluating { engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 4, 1)) } should produce [PFAUserException]
-    evaluating { engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0)) } should produce [PFAUserException]
-    evaluating { engineLittleEndian.action(Array[Byte]()) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 4, 1)) }
+    intercept [PFAUserException]{ engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0)) }
+    intercept [PFAUserException]{ engineLittleEndian.action(Array[Byte]()) }
   }
 
   it must "unpack multiple with tonull" taggedAs(JVMCompilation) in {
@@ -2075,9 +2075,9 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 0, 4)) should be ("hello")
-    evaluating { engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 0, 4, 1)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 0)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 0, 4, 1)) }
+    intercept [PFAUserException]{ engine.action(Array[Byte](99, 104, 101, 108, 108, 111, 0, 0, 0, 0)) }
+    intercept [PFAUserException]{ engine.action(Array[Byte]()) }
 
     val engineLittleEndian = PFAEngine.fromYaml("""
 input: bytes
@@ -2089,9 +2089,9 @@ action:
   else: {error: "Ack!"}
 """).head
     engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 0, 4)) should be ("hello")
-    evaluating { engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 0, 4, 1)) } should produce [PFAUserException]
-    evaluating { engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 0)) } should produce [PFAUserException]
-    evaluating { engineLittleEndian.action(Array[Byte]()) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 0, 4, 1)) }
+    intercept [PFAUserException]{ engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 104, 101, 108, 108, 111, 0, 0, 0, 0)) }
+    intercept [PFAUserException]{ engineLittleEndian.action(Array[Byte]()) }
   }
 
   it must "unpack multiple with lengthprefixed" taggedAs(JVMCompilation) in {
@@ -2105,9 +2105,9 @@ action:
   else: {error: "Ack!"}
 """).head
     engine.action(Array[Byte](99, 5, 104, 101, 108, 108, 111, 0, 0, 0, 4)) should be ("hello")
-    evaluating { engine.action(Array[Byte](99, 5, 104, 101, 108, 108, 111, 0, 0, 0, 4, 1)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte](99, 5, 104, 101, 108, 108, 111, 0, 0, 0)) } should produce [PFAUserException]
-    evaluating { engine.action(Array[Byte]()) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(Array[Byte](99, 5, 104, 101, 108, 108, 111, 0, 0, 0, 4, 1)) }
+    intercept [PFAUserException]{ engine.action(Array[Byte](99, 5, 104, 101, 108, 108, 111, 0, 0, 0)) }
+    intercept [PFAUserException]{ engine.action(Array[Byte]()) }
 
     val engineLittleEndian = PFAEngine.fromYaml("""
 input: bytes
@@ -2119,9 +2119,9 @@ action:
   else: {error: "Ack!"}
 """).head
     engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 5, 104, 101, 108, 108, 111, 0, 0, 0, 4)) should be ("hello")
-    evaluating { engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 5, 104, 101, 108, 108, 111, 0, 0, 0, 4, 1)) } should produce [PFAUserException]
-    evaluating { engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 5, 104, 101, 108, 108, 111, 0, 0, 0)) } should produce [PFAUserException]
-    evaluating { engineLittleEndian.action(Array[Byte]()) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 5, 104, 101, 108, 108, 111, 0, 0, 0, 4, 1)) }
+    intercept [PFAUserException]{ engineLittleEndian.action(Array[Byte](0, 0, 0, 4, 5, 104, 101, 108, 108, 111, 0, 0, 0)) }
+    intercept [PFAUserException]{ engineLittleEndian.action(Array[Byte]()) }
   }
 
   it must "not break other variables" taggedAs(JVMCompilation) in {
@@ -2174,7 +2174,7 @@ then:
   }
 
   it must "do error" taggedAs(JVMCompilation) in {
-    evaluating { compileExpression("""{error: "This is bad"}""", """"null"""").apply } should produce [PFAUserException]
+    intercept [PFAUserException]{ compileExpression("""{error: "This is bad"}""", """"null"""").apply } 
 
     try {
       compileExpression("""{error: "This is bad", code: -12}""", """"null"""").apply
@@ -2184,11 +2184,11 @@ then:
       case err: PFAUserException => err.code should be (Some(-12))
     }
 
-    evaluating { compileExpression("""
+    intercept [PFAUserException]{ compileExpression("""
 if: true
 then:
   - {error: "This is bad"}
-""", """"null"""").apply } should produce [PFAUserException]
+""", """"null"""").apply } 
 
     compileExpression("""
 if: false
@@ -2225,31 +2225,31 @@ action:
   else: {do: {error: "This is bad"}}
 """).head.action(null) should be ("hello")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 output: "null"
 action:
   if: true
   then: {error: "err 1"}
   else: {error: "err 2"}
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 output: string
 action:
   if: false
   then: {string: "hello"}
   else: {error: "This is bad"}
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 output: "null"
 action:
   if: true
   then: {error: "This is bad"}
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
 
     PFAEngine.fromYaml("""
 input: "null"
@@ -2268,7 +2268,7 @@ action:
     {error: "err 4"}
 """).head.action(null) should be ("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 output: "null"
 action:
@@ -2281,18 +2281,18 @@ action:
       then: {error: "err 3"}
   else:
     {error: "err 4"}
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: "null"
 output: int
 action:
   - let:
       x: {error: "should not be able to assign the bottom type"}
   - 123
-""").head.action(null) } should produce [PFASemanticException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: "null"
 output: int
 action:
@@ -2301,9 +2301,9 @@ action:
   - set:
       x: {error: "even if it's a null object"}
   - 123
-""").head.action(null) } should produce [PFASemanticException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: "null"
 output: int
 cells:
@@ -2320,9 +2320,9 @@ action:
     path: [{string: x}]
     to: {error: "even if it's a null object"}
   - 123
-""").head.action(null) } should produce [PFASemanticException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: "null"
 output: int
 cells:
@@ -2339,9 +2339,9 @@ action:
     path: [{string: x}]
     to: {error: "even if it's a null object"}
   - 123
-""").head.action(null) } should produce [PFASemanticException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: "null"
 output: int
 pools:
@@ -2362,9 +2362,9 @@ action:
       type: Whatever
       value: {x: null}
   - 123
-""").head.action(null) } should produce [PFASemanticException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 output: "null"
 action: {u.somefcn: []}
@@ -2373,9 +2373,9 @@ fcns:
     params: []
     ret: "null"
     do: {error: "but this is okay"}
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 output: int
 action: {u.somefcn: []}
@@ -2384,9 +2384,9 @@ fcns:
     params: []
     ret: int
     do: {error: "this, too"}
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: "null"
 output: int
 action:
@@ -2396,9 +2396,9 @@ fcns:
     params: [{x: "null"}]
     ret: int
     do: 12
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 output: int
 action:
@@ -2408,7 +2408,7 @@ fcns:
     params: [{x: "null"}]
     ret: int
     do: 12
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
 
     PFAEngine.fromYaml("""
 input: "null"
@@ -2447,7 +2447,7 @@ action:
   partial: true
 """).head.action(null) should be (null)
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 cells:
   someobj:
@@ -2463,9 +2463,9 @@ action:
     - as: string
       named: x
       do: {error: "really oughta be an int"}
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 cells:
   someobj:
@@ -2482,15 +2482,15 @@ action:
       named: x
       do: {error: "really oughta be an int"}
   partial: true
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: "null"
 output: "null"
 action:
   upcast: {error: "wtf?"}
   as: "null"
-""").head } should produce [PFASemanticException]
+""").head }
 
     PFAEngine.fromYaml("""
 input: "null"
@@ -2505,7 +2505,7 @@ action:
   else: {error: "I really wanted an int"}
 """).head.action(null) should be (12)
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 output: int
 cells:
@@ -2516,39 +2516,39 @@ action:
   ifnotnull: {x: {cell: someobj}}
   then: x
   else: {error: "I really wanted an int"}
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: "null"
 output: int
 action:
   ifnotnull: {x: {error: "wtf?"}}
   then: x
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 output: "null"
 action:
   - log: {error: "wtf?"}
   - null
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 output: "null"
 action:
   - log: [12, {error: "wtf?"}]
   - null
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAUserException]{ PFAEngine.fromYaml("""
 input: "null"
 output: "null"
 action:
   - log: [{error: "wtf?"}, 12]
   - null
-""").head.action(null) } should produce [PFAUserException]
+""").head.action(null) }
   }
 
   "JVM engine compilation" must "minimally work" taggedAs(JVMCompilation) in {
@@ -2580,21 +2580,21 @@ action:
   }
 
   it must "identify type errors 1" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: double
 output: string
 action:
   - {+: [input, input]}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   it must "identify type errors 2" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
   - {+: [input, input]}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   it must "define functions" taggedAs(JVMCompilation) in {
@@ -2688,7 +2688,7 @@ merge: {+: [tallyOne, tallyTwo]}
   }
 
   it must "refuse tally in user functions" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: double
 output: double
 method: fold
@@ -2703,7 +2703,7 @@ fcns:
     do:
       - {+: [x, tally]}
 merge: {+: [tallyOne, tallyTwo]}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   it must "but passing tally in is fine" taggedAs(JVMCompilation) in {
@@ -2760,7 +2760,7 @@ action:
   }
 
   it must "not accept bad indexes" taggedAs(JVMCompilation) in {
-    evaluating {
+    intercept [PFARuntimeException]{
       val engine = PFAEngine.fromYaml("""
 input: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}
 output: int
@@ -2769,9 +2769,9 @@ action:
   - {attr: input, path: [[one], 3, x]}
 """).head
       engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}"""))
-    } should produce [PFARuntimeException]
+    }
 
-    evaluating {
+    intercept [PFARuntimeException]{
       val engine = PFAEngine.fromYaml("""
 input: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}
 output: int
@@ -2780,11 +2780,11 @@ action:
   - {attr: input, path: [[one], 2, x]}
 """).head
       engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}"""))
-    } should produce [PFARuntimeException]
+    }
   }
 
   it must "not accept bad index types" taggedAs(JVMCompilation) in {
-    evaluating {
+    intercept [PFASemanticException]{
       val engine = PFAEngine.fromYaml("""
 input: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}
 output: int
@@ -2793,9 +2793,9 @@ action:
   - {attr: input, path: [[ONE], 2, x]}
 """).head
       engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""")) should be (2)
-    } should produce [PFASemanticException]
+    }
 
-    evaluating {
+    intercept [PFASemanticException]{
       val engine = PFAEngine.fromYaml("""
 input: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}
 output: int
@@ -2804,9 +2804,9 @@ action:
   - {attr: input, path: [[one], x, x]}
 """).head
       engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""")) should be (2)
-    } should produce [PFASemanticException]
+    }
 
-   evaluating {
+   intercept [PFASemanticException]{
       val engine = PFAEngine.fromYaml("""
 input: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}
 output: int
@@ -2814,7 +2814,7 @@ action:
   - {attr: input, path: [[one], 2, 2]}
 """).head
       engine.action(engine.jsonInput("""{"one": [{"zero": 0}, {"one": 1}, {"two": 2}]}""")) should be (2)
-   } should produce [PFASemanticException]
+   }
   }
 
   "attr-set" must "change a deep object" taggedAs(JVMCompilation) in {
@@ -2930,63 +2930,63 @@ cells:
   }
 
   it must "not find non-existent cells" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: string
 output: int
 action:
   - cell: y
 cells:
   x: {type: int, init: 12}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   it must "not accept bad indexes" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: int
 action:
   - {cell: x, path: [[one], 3, input]}
 cells:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {one: [{zero: 0}, {one: 1}, {two: 2}]}}
-""").head.action("two") } should produce [PFARuntimeException]
+""").head.action("two") }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: int
 action:
   - {cell: x, path: [[one], 2, input]}
 cells:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {one: [{zero: 0}, {one: 1}, {two: 2}]}}
-""").head.action("TWO") } should produce [PFARuntimeException]
+""").head.action("TWO") }
   }
 
   it must "not accept bad index types" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: string
 output: int
 action:
   - {cell: x, path: [[ONE], 2, input]}
 cells:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {one: [{zero: 0}, {one: 1}, {two: 2}]}}
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: string
 output: int
 action:
   - {cell: x, path: [[one], input, input]}
 cells:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {one: [{zero: 0}, {one: 1}, {two: 2}]}}
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: string
 output: int
 action:
   - {cell: x, path: [[one], 2, 2]}
 cells:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {one: [{zero: 0}, {one: 1}, {two: 2}]}}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   "cell-set" must "change private cells" taggedAs(JVMCompilation) in {
@@ -3356,63 +3356,63 @@ pools:
   }
 
   it must "not find non-existent pools" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: string
 output: int
 action:
   - {pool: y, path: [input]}
 pools:
   x: {type: int, init: {whatever: 12}}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   it must "not accept bad indexes" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: int
 action:
   - {pool: x, path: [[whatever], [one], 3, input]}
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
-""").head.action("two") } should produce [PFARuntimeException]
+""").head.action("two") }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: int
 action:
   - {pool: x, path: [[whatever], [one], 2, input]}
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
-""").head.action("TWO") } should produce [PFARuntimeException]
+""").head.action("TWO") }
   }
 
   it must "not accept bad index types" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: string
 output: int
 action:
   - {pool: x, path: [[whatever], [ONE], 2, input]}
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: string
 output: int
 action:
   - {pool: x, path: [[whatever], [one], input, input]}
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
-""").head } should produce [PFASemanticException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: string
 output: int
 action:
   - {pool: x, path: [[whatever], [one], 2, 2]}
 pools:
   x: {type: {type: record, name: SimpleRecord, fields: [{name: one, type: {type: array, items: {type: map, values: int}}}]}, init: {whatever: {one: [{zero: 0}, {one: 1}, {two: 2}]}}}
-""").head } should produce [PFASemanticException]
+""").head }
   }
 
   "pool-set" must "change private pools" taggedAs(JVMCompilation) in {
@@ -3890,7 +3890,7 @@ cells:
   notempty: {type: "null", init: null}
 """).head.action("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -3898,7 +3898,7 @@ action:
   - input
 cells:
   notempty: {type: "null", init: null}
-""").head } should produce [PFASemanticException]
+""").head }
 
     PFAEngine.fromYaml("""
 input: string
@@ -3911,7 +3911,7 @@ cells:
   notempty: {type: {type: map, values: "null"}, init: {this: null, is: null, a: null, set: null}}
 """).head.action("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -3920,7 +3920,7 @@ action:
   - input
 cells:
   notempty: {type: {type: map, values: "null"}, init: {this: null, is: null, a: null, set: null}}
-""").head.action("hey") } should produce [PFARuntimeException]
+""").head.action("hey") }
 
     PFAEngine.fromYaml("""
 input: string
@@ -3933,7 +3933,7 @@ cells:
   notempty: {type: {type: array, items: "null"}, init: [null, null, null, null]}
 """).head.action("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -3942,11 +3942,11 @@ action:
   - input
 cells:
   notempty: {type: {type: array, items: "null"}, init: [null, null, null, null]}
-""").head.action("hey") } should produce [PFARuntimeException]
+""").head.action("hey") }
   }
 
   "unshared pools" must "handle null cases" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASyntaxException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -3954,7 +3954,7 @@ action:
   - input
 pools:
   notempty: {type: "null", init: {whatever: null}}
-""").head.action("hey") } should produce [PFASyntaxException]
+""").head.action("hey") }
 
     PFAEngine.fromYaml("""
 input: string
@@ -3966,7 +3966,7 @@ pools:
   notempty: {type: "null", init: {whatever: null}}
 """).head.action("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -3974,7 +3974,7 @@ action:
   - input
 pools:
   notempty: {type: "null", init: {whatever: null}}
-""").head.action("hey") } should produce [PFARuntimeException]
+""").head.action("hey") }
 
     PFAEngine.fromYaml("""
 input: string
@@ -3987,7 +3987,7 @@ pools:
   notempty: {type: {type: map, values: "null"}, init: {whatever: {this: null, is: null, a: null, set: null}}}
 """).head.action("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -3996,7 +3996,7 @@ action:
   - input
 pools:
   notempty: {type: {type: map, values: "null"}, init: {whatever: {this: null, is: null, a: null, set: null}}}
-""").head.action("hey") } should produce [PFARuntimeException]
+""").head.action("hey") }
 
     PFAEngine.fromYaml("""
 input: string
@@ -4009,7 +4009,7 @@ pools:
   notempty: {type: {type: array, items: "null"}, init: {whatever: [null, null, null, null]}}
 """).head.action("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -4018,7 +4018,7 @@ action:
   - input
 pools:
   notempty: {type: {type: array, items: "null"}, init: {whatever: [null, null, null, null]}}
-""").head.action("hey") } should produce [PFARuntimeException]
+""").head.action("hey") }
   }
 
   "shared cells" must "handle null cases" taggedAs(JVMCompilation) in {
@@ -4032,7 +4032,7 @@ cells:
   notempty: {type: "null", init: null, shared: true}
 """).head.action("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -4040,7 +4040,7 @@ action:
   - input
 cells:
   notempty: {type: "null", init: null, shared: true}
-""").head } should produce [PFASemanticException]
+""").head }
 
     PFAEngine.fromYaml("""
 input: string
@@ -4053,7 +4053,7 @@ cells:
   notempty: {type: {type: map, values: "null"}, init: {this: null, is: null, a: null, set: null}, shared: true}
 """).head.action("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -4062,7 +4062,7 @@ action:
   - input
 cells:
   notempty: {type: {type: map, values: "null"}, init: {this: null, is: null, a: null, set: null}, shared: true}
-""").head.action("hey") } should produce [PFARuntimeException]
+""").head.action("hey") }
 
     PFAEngine.fromYaml("""
 input: string
@@ -4075,7 +4075,7 @@ cells:
   notempty: {type: {type: array, items: "null"}, init: [null, null, null, null], shared: true}
 """).head.action("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -4084,11 +4084,11 @@ action:
   - input
 cells:
   notempty: {type: {type: array, items: "null"}, init: [null, null, null, null], shared: true}
-""").head.action("hey") } should produce [PFARuntimeException]
+""").head.action("hey") }
   }
 
   "shared pools" must "handle null cases" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASyntaxException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -4096,7 +4096,7 @@ action:
   - input
 pools:
   notempty: {type: "null", init: {whatever: null}, shared: true}
-""").head.action("hey") } should produce [PFASyntaxException]
+""").head.action("hey") }
 
     PFAEngine.fromYaml("""
 input: string
@@ -4108,7 +4108,7 @@ pools:
   notempty: {type: "null", init: {whatever: null}, shared: true}
 """).head.action("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -4116,7 +4116,7 @@ action:
   - input
 pools:
   notempty: {type: "null", init: {whatever: null}, shared: true}
-""").head.action("hey") } should produce [PFARuntimeException]
+""").head.action("hey") }
 
     PFAEngine.fromYaml("""
 input: string
@@ -4129,7 +4129,7 @@ pools:
   notempty: {type: {type: map, values: "null"}, init: {whatever: {this: null, is: null, a: null, set: null}}, shared: true}
 """).head.action("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -4138,7 +4138,7 @@ action:
   - input
 pools:
   notempty: {type: {type: map, values: "null"}, init: {whatever: {this: null, is: null, a: null, set: null}}, shared: true}
-""").head.action("hey") } should produce [PFARuntimeException]
+""").head.action("hey") }
 
     PFAEngine.fromYaml("""
 input: string
@@ -4151,7 +4151,7 @@ pools:
   notempty: {type: {type: array, items: "null"}, init: {whatever: [null, null, null, null]}, shared: true}
 """).head.action("hey")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFARuntimeException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -4160,7 +4160,7 @@ action:
   - input
 pools:
   notempty: {type: {type: array, items: "null"}, init: {whatever: [null, null, null, null]}, shared: true}
-""").head.action("hey") } should produce [PFARuntimeException]
+""").head.action("hey") }
   }
 
   "pool to and init" must "handle a typical use-case" taggedAs(JVMCompilation) in {
@@ -4211,7 +4211,7 @@ action:
 """).head
 
     engine.action("somesuch") should be (12)
-    evaluating { engine.action("whatever") } should produce [PFARuntimeException]
+    intercept [PFARuntimeException]{ engine.action("whatever") }
   }
 
   it must "remove public pool items" taggedAs(JVMCompilation) in {
@@ -4226,11 +4226,11 @@ action:
 """).head
 
     engine.action("somesuch") should be (12)
-    evaluating { engine.action("whatever") } should produce [PFARuntimeException]
+    intercept [PFARuntimeException]{ engine.action("whatever") }
   }
 
   "execution clock" must "stop int-running processes" taggedAs(JVMCompilation) in {
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFATimeoutException]{ PFAEngine.fromYaml("""
 input: string
 output: "null"
 action:
@@ -4240,7 +4240,7 @@ action:
     do: [x]
 options:
   timeout: 1000
-""").head.action("hey") } should produce [PFATimeoutException]
+""").head.action("hey") }
   }
 
   "begin and end" must "work" taggedAs(JVMCompilation) in {
@@ -4321,7 +4321,7 @@ cells:
   y: {type: "null", init: null}
 """).head
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAInitializationException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -4333,9 +4333,9 @@ fcns:
 cells:
   x: {type: "null", init: null}
   y: {type: "null", init: null}
-""").head } should produce [PFAInitializationException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAInitializationException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -4346,7 +4346,7 @@ fcns:
 cells:
   x: {type: "null", init: null}
   y: {type: "null", init: null}
-""").head } should produce [PFAInitializationException]
+""").head }
 
     PFAEngine.fromYaml("""
 input: string
@@ -4375,7 +4375,7 @@ pools:
   y: {type: "null", init: {whatever: null}}
 """).head
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAInitializationException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -4387,9 +4387,9 @@ fcns:
 pools:
   x: {type: "null", init: {whatever: null}}
   y: {type: "null", init: {whatever: null}}
-""").head } should produce [PFAInitializationException]
+""").head }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFAInitializationException]{ PFAEngine.fromYaml("""
 input: string
 output: string
 action:
@@ -4400,7 +4400,7 @@ fcns:
 pools:
   x: {type: "null", init: {whatever: null}}
   y: {type: "null", init: {whatever: null}}
-""").head } should produce [PFAInitializationException]
+""").head }
 
   }
 
@@ -4575,7 +4575,7 @@ fcns:
     engine2.action(engine2.jsonInput(""""two"""")).asInstanceOf[java.lang.Double].doubleValue should be (100.2 +- 0.01)
     engine2.action(engine2.jsonInput(""""three"""")) should be ("hello")
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input:
   type: enum
   name: Input
@@ -4597,9 +4597,9 @@ fcns:
     params: [{x: double}]
     ret: string
     do: {string: hello}
-""") } should produce [PFASemanticException]
+""") }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input:
   type: enum
   name: Input
@@ -4621,7 +4621,7 @@ fcns:
     params: [{x: double}]
     ret: string
     do: {string: hello}
-""") } should produce [PFASemanticException]
+""") }
 
   }
 
@@ -4677,7 +4677,7 @@ fcns:
 """).head
     engine3.action(null).asInstanceOf[PFAArray[Int]].toVector should be (Vector(111, 112, 113, 114, 115))
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASemanticException]{ PFAEngine.fromYaml("""
 input: "null"
 output: {type: array, items: int}
 action:
@@ -4691,9 +4691,9 @@ fcns:
     params: [{x: int}, {y: int}, {z: int}]
     ret: int
     do: {+: [x, {+: [y, z]}]}
-""") } should produce [PFASemanticException]
+""") }
 
-    evaluating { PFAEngine.fromYaml("""
+    intercept [PFASyntaxException]{ PFAEngine.fromYaml("""
 input: "null"
 output: {type: array, items: int}
 action:
@@ -4707,7 +4707,7 @@ fcns:
     params: [{x: int}, {y: int}, {z: int}]
     ret: int
     do: {+: [x, {+: [y, z]}]}
-""") } should produce [PFASyntaxException]
+""") }
   }
 
   it must "work with library functions" taggedAs(JVMCompilation) in {
@@ -4763,7 +4763,7 @@ action:
     engine.action(java.lang.Integer.valueOf(1)) should be (java.lang.Integer.valueOf(1))
     engine.action(java.lang.Integer.valueOf(2)) should be (java.lang.Integer.valueOf(2))
     engine.action(java.lang.Integer.valueOf(3)) should be (null)
-    evaluating { engine.action(java.lang.Integer.valueOf(4)) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(java.lang.Integer.valueOf(4)) }
     engine.action(java.lang.Integer.valueOf(5)) should be (java.lang.Integer.valueOf(5))
   }
 
@@ -4785,7 +4785,7 @@ action:
     engine.action(java.lang.Integer.valueOf(1)) should be (java.lang.Integer.valueOf(1))
     engine.action(java.lang.Integer.valueOf(2)) should be (java.lang.Integer.valueOf(2))
     engine.action(java.lang.Integer.valueOf(3)) should be (null)
-    evaluating { engine.action(java.lang.Integer.valueOf(4)) } should produce [PFAUserException]
+    intercept [PFAUserException]{ engine.action(java.lang.Integer.valueOf(4)) }
     engine.action(java.lang.Integer.valueOf(5)) should be (java.lang.Integer.valueOf(5))
   }
 
@@ -4840,7 +4840,7 @@ action:
     val out1 = engine1.action(null)
     out1.toString should be ("""[{"a": 1, "b": 1.1, "c": "ONE"}, {"a": 2, "b": 2.2, "c": "TWO"}, {"a": 3, "b": 3.3, "c": "THREE"}]""")
 
-    evaluating { engine2.action(out1) } should produce [java.lang.ClassCastException]
+    intercept [java.lang.ClassCastException]{ engine2.action(out1) }
 
     val out2 = engine2.action(engine2.fromPFAData(out1))
     out2.toString should be ("""[{"a": 101, "b": 101.1, "c": "ONE-100"}, {"a": 102, "b": 102.2, "c": "TWO-100"}, {"a": 103, "b": 103.3, "c": "THREE-100"}]""")

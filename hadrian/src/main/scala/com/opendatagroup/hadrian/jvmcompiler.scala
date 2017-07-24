@@ -1385,7 +1385,7 @@ package jvmcompiler {
           val decoder = DecoderFactory.get.jsonDecoder(inputType.schema, json)
           reader.read(null.asInstanceOf[X], decoder)
         }
-        def remove(): Unit = throw new java.lang.UnsupportedOperationException
+        override def remove(): Unit = throw new java.lang.UnsupportedOperationException
       }
     }
 
@@ -1407,7 +1407,7 @@ package jvmcompiler {
           val decoder = DecoderFactory.get.jsonDecoder(inputType.schema, json)
           reader.read(null.asInstanceOf[X], decoder)
         }
-        def remove(): Unit = throw new java.lang.UnsupportedOperationException
+        override def remove(): Unit = throw new java.lang.UnsupportedOperationException
       }
     }
 
@@ -1415,7 +1415,7 @@ package jvmcompiler {
       * 
       * The objects produced by this iterator are suitable inputs to the `action` method.
       * 
-      * @param inputStream serialized data
+      * @param inputIterator serialized data
       * @return unserialized data
       */
     def jsonInputIterator[X <: AnyRef](inputIterator: scala.collection.Iterator[String]): scala.collection.Iterator[X] = {

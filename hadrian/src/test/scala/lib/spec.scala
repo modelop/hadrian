@@ -53,7 +53,7 @@ action:
   - m.special.lnBeta: [input, -3] # [a, b]
 """).head
 
-    evaluating { engine2.action(java.lang.Double.valueOf(0.5)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(0.5)) }
     }
 
 
@@ -78,8 +78,8 @@ output: int
 action:
   - m.special.nChooseK: [input, 4]
 """).head
-    evaluating { engine.action(java.lang.Integer.valueOf(1)) } should produce [PFARuntimeException]
-    evaluating { engine.action(java.lang.Integer.valueOf(0)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine.action(java.lang.Integer.valueOf(1)) }
+    intercept[PFARuntimeException] { engine.action(java.lang.Integer.valueOf(0)) }
 
     val engine1 = PFAEngine.fromYaml("""
 input: int
@@ -87,7 +87,7 @@ output: int
 action:
   - m.special.nChooseK: [input, 4] #[input, lambda]
 """).head
-    evaluating { engine1.action(java.lang.Integer.valueOf(-2)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Integer.valueOf(-2)) }
   }
 
 
@@ -142,8 +142,8 @@ output: double
 action:
   - {m.special.lnGamma: input}
 """).head
-    evaluating { engine1.action(java.lang.Double.valueOf(-2.0)) } should produce [PFARuntimeException]
-    evaluating { engine1.action(java.lang.Double.valueOf(-2.2)) } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine1.action(java.lang.Double.valueOf(-2.0)) }
+    intercept[PFARuntimeException] { engine1.action(java.lang.Double.valueOf(-2.2)) }
   }
 
 //"regularized gamma P function" must "evaluate correctly" taggedAs(Lib, LibSpec) in {
@@ -167,8 +167,8 @@ action:
 //  - m.special.regularizedgammapfcn: [input, -3] # [a, b]
 //""").head
 //
-//    evaluating { engine2.action(java.lang.Double.valueOf(1.40)) } should produce [PFARuntimeException]
-//    evaluating { engine2.action(java.lang.Double.valueOf(-1.2)) } should produce [PFARuntimeException]
+//    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(1.40)) }
+//    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(-1.2)) }
 //    }
 //
 //"regularized gamma Q function" must "evaluate correctly" taggedAs(Lib, LibSpec) in {
@@ -192,7 +192,7 @@ action:
 //  - m.special.regularizedgammaqfcn: [input, -3] # [a, b]
 //""").head
 //
-//    evaluating { engine2.action(java.lang.Double.valueOf(1.40)) } should produce [PFARuntimeException]
-//    evaluating { engine2.action(java.lang.Double.valueOf(-1.2)) } should produce [PFARuntimeException]
+//    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(1.40)) }
+//    intercept[PFARuntimeException] { engine2.action(java.lang.Double.valueOf(-1.2)) }
 //    }
 }

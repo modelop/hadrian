@@ -85,11 +85,11 @@ class TypeCheckSuite extends FlatSpec with Matchers {
 
   it must "test new" taggedAs(TypeCheck) in {
     inferType(jsonToAst.expr("""{"new": [1, 2, 3], "type": {"type": "array", "items": "int"}}""")) should be (AvroArray(AvroInt()))
-    evaluating { inferType(jsonToAst.expr("""{"new": [1, 2, ["three"]], "type": {"type": "array", "items": "int"}}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"new": [1, 2, ["three"]], "type": {"type": "array", "items": "int"}}""")) }
     inferType(jsonToAst.expr("""{"new": [1, 2, ["three"]], "type": {"type": "array", "items": ["string", "int"]}}""")) should be (AvroArray(AvroUnion(List(AvroString(), AvroInt()))))
 
     inferType(jsonToAst.expr("""{"new": {"one": 1, "two": 2, "three": 3}, "type": {"type": "map", "values": "int"}}""")) should be (AvroMap(AvroInt()))
-    evaluating { inferType(jsonToAst.expr("""{"new": {"one": 1, "two": 2, "three": ["three"]}, "type": {"type": "map", "values": "int"}}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"new": {"one": 1, "two": 2, "three": ["three"]}, "type": {"type": "map", "values": "int"}}""")) }
     inferType(jsonToAst.expr("""{"new": {"one": 1, "two": 2, "three": ["three"]}, "type": {"type": "map", "values": ["int", "string"]}}""")) should be (AvroMap(AvroUnion(List(AvroInt(), AvroString()))))
 
     inferType(jsonToAst.expr("""{"new": {"one": 1, "two": 2.2, "three": ["three"]}, "type": {"type": "record", "name": "MyRecord", "fields": [{"name": "one", "type": "int"}, {"name": "two", "type": "double"}, {"name": "three", "type": "string"}]}}""")) should be (AvroRecord(List(AvroField("one", AvroInt()), AvroField("two", AvroDouble()), AvroField("three", AvroString())), "MyRecord"))
@@ -109,63 +109,63 @@ class TypeCheckSuite extends FlatSpec with Matchers {
     inferType(jsonToAst.expr("""{"do": [{"let": {"x": 12, "y": 12.4, "z": ["hello"]}}]}""")) should be (AvroNull())
     inferType(jsonToAst.expr("""{"let": {"x": 12, "y": 12.4, "z": ["hello"]}}""")) should be (AvroNull())
     inferType(jsonToAst.expr("""{"let": {"x": 12}}""")) should be (AvroNull())
-    evaluating { inferType(jsonToAst.expr("""{"let": {}}""")) } should produce [PFASyntaxException]
-    evaluating { inferType(jsonToAst.expr("""{"let": {"y": {"let": {"x": 12}}}}""")) } should produce [PFASemanticException]
+    intercept[PFASyntaxException] { inferType(jsonToAst.expr("""{"let": {}}""")) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"let": {"y": {"let": {"x": 12}}}}""")) }
     inferType(jsonToAst.expr("""{"let": {"y": {"do": {"let": {"x": 12}}}}}"""))
     inferType(jsonToAst.expr("""{"do": [{"let": {"y": {"do": {"let": {"x": 12}}}}}, "y"]}""")) should be (AvroNull())
-    evaluating { inferType(jsonToAst.expr("""{"do": [{"let": {"x": 12}}, {"let": {"x": 12}}]}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"do": [{"let": {"x": 12}}, {"let": {"x": 12}}]}""")) }
   }
 
   it must "test set" taggedAs(TypeCheck) in {
     inferType(jsonToAst.expr("""{"do": [{"let": {"x": 12}}, {"set": {"x": 999}}, "x"]}""")) should be (AvroInt())
     inferType(jsonToAst.expr("""{"do": [{"let": {"x": 12}}, {"set": {"x": 999}}]}""")) should be (AvroNull())
-    evaluating { inferType(jsonToAst.expr("""{"set": {"x": 999}}""")) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"do": [{"set": {"x": 999}}]}""")) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"do": [{"set": {"x": 999}}, {"let": {"x": 12}}]}""")) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"set": {}}""")) } should produce [PFASyntaxException]
-    evaluating { inferType(jsonToAst.expr("""{"do": [{"let": {"x": 12}}, {"set": {}}]}""")) } should produce [PFASyntaxException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"set": {"x": 999}}""")) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"do": [{"set": {"x": 999}}]}""")) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"do": [{"set": {"x": 999}}, {"let": {"x": 12}}]}""")) }
+    intercept[PFASyntaxException] { inferType(jsonToAst.expr("""{"set": {}}""")) }
+    intercept[PFASyntaxException] { inferType(jsonToAst.expr("""{"do": [{"let": {"x": 12}}, {"set": {}}]}""")) }
     inferType(jsonToAst.expr("""{"do": [{"let": {"x": 12.4}}, {"set": {"x": 999}}, "x"]}""")) should be (AvroDouble())
-    evaluating { inferType(jsonToAst.expr("""{"do": [{"let": {"x": 12}}, {"set": {"x": 99.9}}, "x"]}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"do": [{"let": {"x": 12}}, {"set": {"x": 99.9}}, "x"]}""")) }
   }
 
   it must "test ref" taggedAs(TypeCheck) in {
-    evaluating { inferType(jsonToAst.expr(""""x"""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr(""""x"""")) }
     inferType(jsonToAst.expr(""""x""""), Map("x" -> AvroInt())) should be (AvroInt())
   }
 
   it must "test attr" taggedAs(TypeCheck) in {
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": []}"""), Map("x" -> AvroArray(AvroInt()))) } should produce [PFASyntaxException]
+    intercept[PFASyntaxException] { inferType(jsonToAst.expr("""{"attr": "x", "path": []}"""), Map("x" -> AvroArray(AvroInt()))) }
     inferType(jsonToAst.expr("""{"attr": "x", "path": [2]}"""), Map("x" -> AvroArray(AvroInt()))) should be (AvroInt())
     inferType(jsonToAst.expr("""{"attr": "x", "path": [1, 2, 3]}"""), Map("x" -> AvroArray(AvroArray(AvroArray(AvroInt()))))) should be (AvroInt())
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [1]}"""), Map("x" -> AvroInt())) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [1, 2, 3, 4]}"""), Map("x" -> AvroArray(AvroArray(AvroArray(AvroInt()))))) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [1]}"""), Map("x" -> AvroInt())) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [1, 2, 3, 4]}"""), Map("x" -> AvroArray(AvroArray(AvroArray(AvroInt()))))) }
     inferType(jsonToAst.expr("""{"attr": "x", "path": ["y"]}"""), Map("x" -> AvroArray(AvroInt()), "y" -> AvroInt())) should be (AvroInt())
     inferType(jsonToAst.expr("""{"attr": "x", "path": [["one"]]}"""), Map("x" -> AvroMap(AvroInt()))) should be (AvroInt())
     inferType(jsonToAst.expr("""{"attr": "x", "path": [["one"], ["two"], ["three"]]}"""), Map("x" -> AvroMap(AvroMap(AvroMap(AvroInt()))))) should be (AvroInt())
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [["one"], ["two"], ["three"], ["four"]]}"""), Map("x" -> AvroMap(AvroMap(AvroMap(AvroInt()))))) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [["one"]]}"""), Map("x" -> AvroInt())) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [2]}"""), Map("x" -> AvroMap(AvroInt()))) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [["one"], ["two"], ["three"], ["four"]]}"""), Map("x" -> AvroMap(AvroMap(AvroMap(AvroInt()))))) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [["one"]]}"""), Map("x" -> AvroInt())) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [2]}"""), Map("x" -> AvroMap(AvroInt()))) }
     inferType(jsonToAst.expr("""{"attr": "x", "path": ["y"]}"""), Map("x" -> AvroMap(AvroInt()), "y" -> AvroString())) should be (AvroInt())
     inferType(jsonToAst.expr("""{"attr": "x", "path": [["one"], 1, ["one"], 1]}"""), Map("x" -> AvroMap(AvroArray(AvroMap(AvroArray(AvroInt())))))) should be (AvroInt())
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [["one"], 1, ["one"], 1]}"""), Map("x" -> AvroMap(AvroArray(AvroArray(AvroMap(AvroInt())))))) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [["one"], 1, ["one"], 1]}"""), Map("x" -> AvroMap(AvroArray(AvroArray(AvroMap(AvroInt())))))) }
     inferType(jsonToAst.expr("""{"attr": "x", "path": [["one"]]}"""), Map("x" -> AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"))) should be (AvroInt())
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": ["y"]}"""), Map("x" -> AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"), "y" -> AvroString())) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [["two"]]}"""), Map("x" -> AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"))) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": ["y"]}"""), Map("x" -> AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"), "y" -> AvroString())) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [["two"]]}"""), Map("x" -> AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"))) }
     inferType(jsonToAst.expr("""{"attr": "x", "path": ["y", 1, ["one"], 1]}"""), Map("x" -> AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord"))), "y" -> AvroString())) should be (AvroInt())
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [["one"], 1, "y", 1]}"""), Map("x" -> AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord"))), "y" -> AvroString())) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [["one"], 1, "y", 1]}"""), Map("x" -> AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord"))), "y" -> AvroString())) }
   }
 
   it must "test attr-to" taggedAs(TypeCheck) in {
     inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": 12}"""), Map("x" -> AvroArray(AvroInt()))) should be (AvroArray(AvroInt()))
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": 12.4}"""), Map("x" -> AvroArray(AvroInt()))) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": 12.4}"""), Map("x" -> AvroArray(AvroInt()))) }
 
     inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": {"params": [{"x": "int"}], "ret": "int", "do": "x"}}"""), Map("x" -> AvroArray(AvroInt()))) should be (AvroArray(AvroInt()))
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": {"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}}"""), Map("x" -> AvroArray(AvroInt()))) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": {"params": [{"x": "string"}], "ret": "int", "do": 12}}"""), Map("x" -> AvroArray(AvroInt()))) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": {"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}}"""), Map("x" -> AvroArray(AvroInt()))) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": {"params": [{"x": "string"}], "ret": "int", "do": 12}}"""), Map("x" -> AvroArray(AvroInt()))) }
 
     inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": {"fcn": "u.f"}}"""), Map("x" -> AvroArray(AvroInt())), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "int"}], "ret": "int", "do": "x"}""")))) should be (AvroArray(AvroInt()))
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": {"fcn": "u.f"}}"""), Map("x" -> AvroArray(AvroInt())), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}""")))) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": {"fcn": "u.f"}}"""), Map("x" -> AvroArray(AvroInt())), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "string"}], "ret": "int", "do": 12}""")))) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": {"fcn": "u.f"}}"""), Map("x" -> AvroArray(AvroInt())), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}""")))) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"attr": "x", "path": [2], "to": {"fcn": "u.f"}}"""), Map("x" -> AvroArray(AvroInt())), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "string"}], "ret": "int", "do": 12}""")))) }
   }
 
   it must "test cell" taggedAs(TypeCheck) in {
@@ -174,37 +174,37 @@ class TypeCheckSuite extends FlatSpec with Matchers {
       inferType(jsonToAst.expr("""{"cell": "x", "path": []}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroArray(AvroInt()))
       inferType(jsonToAst.expr("""{"cell": "x", "path": [2]}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
       inferType(jsonToAst.expr("""{"cell": "x", "path": [1, 2, 3]}"""), cells = Map("x" -> Cell(AvroArray(AvroArray(AvroArray(AvroInt()))), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroArray(AvroArray(AvroInt())))), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [1]}"""), cells = Map("x" -> Cell(AvroInt(), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroInt()), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [1, 2, 3, 4]}"""), cells = Map("x" -> Cell(AvroArray(AvroArray(AvroArray(AvroInt()))), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroArray(AvroArray(AvroInt())))), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [1]}"""), cells = Map("x" -> Cell(AvroInt(), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroInt()), shared, false, CellPoolSource.EMBEDDED))) }
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [1, 2, 3, 4]}"""), cells = Map("x" -> Cell(AvroArray(AvroArray(AvroArray(AvroInt()))), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroArray(AvroArray(AvroInt())))), shared, false, CellPoolSource.EMBEDDED))) }
       inferType(jsonToAst.expr("""{"cell": "x", "path": ["y"]}"""), Map("y" -> AvroInt()), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
       inferType(jsonToAst.expr("""{"cell": "x", "path": [["one"]]}"""), cells = Map("x" -> Cell(AvroMap(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
       inferType(jsonToAst.expr("""{"cell": "x", "path": [["one"], ["two"], ["three"]]}"""), cells = Map("x" -> Cell(AvroMap(AvroMap(AvroMap(AvroInt()))), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroMap(AvroMap(AvroInt())))), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [["one"], ["two"], ["three"], ["four"]]}"""), cells = Map("x" -> Cell(AvroMap(AvroMap(AvroMap(AvroInt()))), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroMap(AvroMap(AvroInt())))), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [["one"]]}"""), cells = Map("x" -> Cell(AvroInt(), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroInt()), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [2]}"""), cells = Map("x" -> Cell(AvroMap(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [["one"], ["two"], ["three"], ["four"]]}"""), cells = Map("x" -> Cell(AvroMap(AvroMap(AvroMap(AvroInt()))), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroMap(AvroMap(AvroInt())))), shared, false, CellPoolSource.EMBEDDED))) }
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [["one"]]}"""), cells = Map("x" -> Cell(AvroInt(), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroInt()), shared, false, CellPoolSource.EMBEDDED))) }
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [2]}"""), cells = Map("x" -> Cell(AvroMap(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) }
       inferType(jsonToAst.expr("""{"cell": "x", "path": ["y"]}"""), Map("y" -> AvroString()), cells = Map("x" -> Cell(AvroMap(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
       inferType(jsonToAst.expr("""{"cell": "x", "path": [["one"], 1, ["one"], 1]}"""), cells = Map("x" -> Cell(AvroMap(AvroArray(AvroMap(AvroArray(AvroInt())))), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroArray(AvroMap(AvroArray(AvroInt()))))), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [["one"], 1, ["one"], 1]}"""), cells = Map("x" -> Cell(AvroMap(AvroArray(AvroArray(AvroMap(AvroInt())))), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroArray(AvroArray(AvroMap(AvroInt()))))), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [["one"], 1, ["one"], 1]}"""), cells = Map("x" -> Cell(AvroMap(AvroArray(AvroArray(AvroMap(AvroInt())))), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroArray(AvroArray(AvroMap(AvroInt()))))), shared, false, CellPoolSource.EMBEDDED))) }
       inferType(jsonToAst.expr("""{"cell": "x", "path": [["one"]]}"""), cells = Map("x" -> Cell(AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroRecord(List(AvroField("one", AvroInt())), "MyRecord")), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": ["y"]}"""), Map("y" -> AvroString()), cells = Map("x" -> Cell(AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroRecord(List(AvroField("one", AvroInt())), "MyRecord")), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [["two"]]}"""), cells = Map("x" -> Cell(AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroRecord(List(AvroField("one", AvroInt())), "MyRecord")), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": ["y"]}"""), Map("y" -> AvroString()), cells = Map("x" -> Cell(AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroRecord(List(AvroField("one", AvroInt())), "MyRecord")), shared, false, CellPoolSource.EMBEDDED))) }
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [["two"]]}"""), cells = Map("x" -> Cell(AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroRecord(List(AvroField("one", AvroInt())), "MyRecord")), shared, false, CellPoolSource.EMBEDDED))) }
       inferType(jsonToAst.expr("""{"cell": "x", "path": ["y", 1, ["one"], 1]}"""), Map("y" -> AvroString()), cells = Map("x" -> Cell(AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord"))), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord")))), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [["one"], 1, "y", 1]}"""), Map("y" -> AvroString()), cells = Map("x" -> Cell(AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord"))), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord")))), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [["one"], 1, "y", 1]}"""), Map("y" -> AvroString()), cells = Map("x" -> Cell(AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord"))), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord")))), shared, false, CellPoolSource.EMBEDDED))) }
     }
   }
 
   it must "test cell-to" taggedAs(TypeCheck) in {
     for (shared <- List(true, false)) {
       inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": 12}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroArray(AvroInt()))
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": 12.4}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": 12.4}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) }
 
       inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": {"params": [{"x": "int"}], "ret": "int", "do": "x"}}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroArray(AvroInt()))
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": {"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": {"params": [{"x": "string"}], "ret": "int", "do": 12}}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": {"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) }
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": {"params": [{"x": "string"}], "ret": "int", "do": 12}}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) }
 
       inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": {"fcn": "u.f"}}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED)), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "int"}], "ret": "int", "do": "x"}""")))) should be (AvroArray(AvroInt()))
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": {"fcn": "u.f"}}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED)), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}""")))) } should produce [PFASemanticException]
-      evaluating { inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": {"fcn": "u.f"}}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED)), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "string"}], "ret": "int", "do": 12}""")))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": {"fcn": "u.f"}}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED)), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}""")))) }
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cell": "x", "path": [2], "to": {"fcn": "u.f"}}"""), cells = Map("x" -> Cell(AvroArray(AvroInt()), EmbeddedJsonDomCellSource(JsonArray(Seq()), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED)), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "string"}], "ret": "int", "do": 12}""")))) }
     }
   }
 
@@ -213,39 +213,39 @@ class TypeCheckSuite extends FlatSpec with Matchers {
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"]]}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroArray(AvroInt()))
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2]}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 1, 2, 3]}"""), pools = Map("x" -> Pool(AvroArray(AvroArray(AvroArray(AvroInt()))), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroArray(AvroArray(AvroInt())))), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 1]}"""), pools = Map("x" -> Pool(AvroInt(), EmbeddedJsonDomPoolSource(Map(), AvroInt()), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 1, 2, 3, 4]}"""), pools = Map("x" -> Pool(AvroArray(AvroArray(AvroArray(AvroInt()))), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroArray(AvroArray(AvroInt())))), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 1]}"""), pools = Map("x" -> Pool(AvroInt(), EmbeddedJsonDomPoolSource(Map(), AvroInt()), shared, false, CellPoolSource.EMBEDDED))) }
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 1, 2, 3, 4]}"""), pools = Map("x" -> Pool(AvroArray(AvroArray(AvroArray(AvroInt()))), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroArray(AvroArray(AvroInt())))), shared, false, CellPoolSource.EMBEDDED))) }
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], "y"]}"""), Map("y" -> AvroInt()), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["one"]]}"""), pools = Map("x" -> Pool(AvroMap(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["one"], ["two"], ["three"]]}"""), pools = Map("x" -> Pool(AvroMap(AvroMap(AvroMap(AvroInt()))), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroMap(AvroMap(AvroInt())))), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["one"], ["two"], ["three"], ["four"]]}"""), pools = Map("x" -> Pool(AvroMap(AvroMap(AvroMap(AvroInt()))), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroMap(AvroMap(AvroInt())))), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["one"]]}"""), pools = Map("x" -> Pool(AvroInt(), EmbeddedJsonDomPoolSource(Map(), AvroInt()), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2]}"""), pools = Map("x" -> Pool(AvroMap(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["one"], ["two"], ["three"], ["four"]]}"""), pools = Map("x" -> Pool(AvroMap(AvroMap(AvroMap(AvroInt()))), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroMap(AvroMap(AvroInt())))), shared, false, CellPoolSource.EMBEDDED))) }
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["one"]]}"""), pools = Map("x" -> Pool(AvroInt(), EmbeddedJsonDomPoolSource(Map(), AvroInt()), shared, false, CellPoolSource.EMBEDDED))) }
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2]}"""), pools = Map("x" -> Pool(AvroMap(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) }
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], "y"]}"""), Map("y" -> AvroString()), pools = Map("x" -> Pool(AvroMap(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["one"], 1, ["one"], 1]}"""), pools = Map("x" -> Pool(AvroMap(AvroArray(AvroMap(AvroArray(AvroInt())))), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroArray(AvroMap(AvroArray(AvroInt()))))), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["one"], 1, ["one"], 1]}"""), pools = Map("x" -> Pool(AvroMap(AvroArray(AvroArray(AvroMap(AvroInt())))), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroArray(AvroArray(AvroMap(AvroInt()))))), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["one"], 1, ["one"], 1]}"""), pools = Map("x" -> Pool(AvroMap(AvroArray(AvroArray(AvroMap(AvroInt())))), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroArray(AvroArray(AvroMap(AvroInt()))))), shared, false, CellPoolSource.EMBEDDED))) }
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["one"]]}"""), pools = Map("x" -> Pool(AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"), EmbeddedJsonDomPoolSource(Map(), AvroRecord(List(AvroField("one", AvroInt())), "MyRecord")), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], "y"]}"""), Map("y" -> AvroString()), pools = Map("x" -> Pool(AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"), EmbeddedJsonDomPoolSource(Map(), AvroRecord(List(AvroField("one", AvroInt())), "MyRecord")), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["two"]]}"""), pools = Map("x" -> Pool(AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"), EmbeddedJsonDomPoolSource(Map(), AvroRecord(List(AvroField("one", AvroInt())), "MyRecord")), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], "y"]}"""), Map("y" -> AvroString()), pools = Map("x" -> Pool(AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"), EmbeddedJsonDomPoolSource(Map(), AvroRecord(List(AvroField("one", AvroInt())), "MyRecord")), shared, false, CellPoolSource.EMBEDDED))) }
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["two"]]}"""), pools = Map("x" -> Pool(AvroRecord(List(AvroField("one", AvroInt())), "MyRecord"), EmbeddedJsonDomPoolSource(Map(), AvroRecord(List(AvroField("one", AvroInt())), "MyRecord")), shared, false, CellPoolSource.EMBEDDED))) }
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], "y", 1, ["one"], 1]}"""), Map("y" -> AvroString()), pools = Map("x" -> Pool(AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord"))), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord")))), shared, false, CellPoolSource.EMBEDDED))) should be (AvroInt())
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["one"], 1, "y", 1]}"""), Map("y" -> AvroString()), pools = Map("x" -> Pool(AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord"))), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord")))), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], ["one"], 1, "y", 1]}"""), Map("y" -> AvroString()), pools = Map("x" -> Pool(AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord"))), EmbeddedJsonDomPoolSource(Map(), AvroMap(AvroArray(AvroRecord(List(AvroField("one", AvroArray(AvroInt()))), "MyRecord")))), shared, false, CellPoolSource.EMBEDDED))) }
     }
   }
 
   it must "test pool-to" taggedAs(TypeCheck) in {
     for (shared <- List(true, false)) {
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": 12, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroArray(AvroInt()))
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": 12.4, "init": {"value": [999.9], "type": {"type": "array", "items": "double"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": 12.4, "init": {"value": [999.9], "type": {"type": "array", "items": "double"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) }
 
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "int"}], "ret": "int", "do": "x"}, "init": {"value": [999.9], "type": {"type": "array", "items": "double"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "int"}], "ret": "int", "do": "x"}, "init": {"value": [999.9], "type": {"type": "array", "items": "double"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) }
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "int"}], "ret": "int", "do": "x"}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) should be (AvroArray(AvroInt()))
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "string"}], "ret": "int", "do": 12}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) }
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"params": [{"x": "string"}], "ret": "int", "do": 12}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED))) }
 
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"fcn": "u.f"}, "init": {"value": [999.9], "type": {"type": "array", "items": "double"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED)), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "int"}], "ret": "int", "do": "x"}""")))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"fcn": "u.f"}, "init": {"value": [999.9], "type": {"type": "array", "items": "double"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED)), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "int"}], "ret": "int", "do": "x"}""")))) }
       inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"fcn": "u.f"}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED)), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "int"}], "ret": "int", "do": "x"}""")))) should be (AvroArray(AvroInt()))
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"fcn": "u.f"}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED)), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}""")))) } should produce [PFASemanticException]
-      evaluating { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"fcn": "u.f"}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED)), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "string"}], "ret": "int", "do": 12}""")))) } should produce [PFASemanticException]
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"fcn": "u.f"}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED)), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "int"}], "ret": "string", "do": [["hello"]]}""")))) }
+      intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"pool": "x", "path": [["p"], 2], "to": {"fcn": "u.f"}, "init": {"value": [999], "type": {"type": "array", "items": "int"}}}"""), pools = Map("x" -> Pool(AvroArray(AvroInt()), EmbeddedJsonDomPoolSource(Map(), AvroArray(AvroInt())), shared, false, CellPoolSource.EMBEDDED)), fcns = Map("u.f" -> UserFcn.fromFcnDef("u.f", jsonToAst.fcn("""{"params": [{"x": "string"}], "ret": "int", "do": 12}""")))) }
     }
   }
 
@@ -256,7 +256,7 @@ class TypeCheckSuite extends FlatSpec with Matchers {
     inferType(jsonToAst.expr("""{"if": true, "then": 12, "else": {"type": ["string", "int"], "value": 12}}""")) should be (AvroUnion(List(AvroInt(), AvroString())))
     inferType(jsonToAst.expr("""{"if": true, "then": {"type": ["int", "null"], "value": 12}, "else": 12}""")) should be (AvroUnion(List(AvroInt(), AvroNull())))
     inferType(jsonToAst.expr("""{"if": true, "then": {"type": ["int", "null"], "value": 12}, "else": {"type": ["string", "int"], "value": 12}}""")) should be (AvroUnion(List(AvroInt(), AvroNull(), AvroString())))
-    evaluating { inferType(jsonToAst.expr("""{"if": null, "then": 12}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"if": null, "then": 12}""")) }
   }
 
   it must "test cond" taggedAs(TypeCheck) in {
@@ -268,72 +268,72 @@ class TypeCheckSuite extends FlatSpec with Matchers {
     inferType(jsonToAst.expr("""{"cond": [{"if": true, "then": 12}, {"if": true, "then": {"string": "hello"}}, {"if": true, "then": {"base64": "aGVsbG8="}}]}""")) should be (AvroNull())
     inferType(jsonToAst.expr("""{"cond": [{"if": true, "then": 12}, {"if": true, "then": {"string": "hello"}}, {"if": true, "then": {"base64": "aGVsbG8="}}], "else": 999}""")) should be (AvroUnion(List(AvroInt(), AvroString(), AvroBytes())))
 
-    evaluating { inferType(jsonToAst.expr("""{"cond": []}""")) } should produce [PFASyntaxException]
-    evaluating { inferType(jsonToAst.expr("""{"cond": [], "else": 999}""")) } should produce [PFASyntaxException]
+    intercept[PFASyntaxException] { inferType(jsonToAst.expr("""{"cond": []}""")) }
+    intercept[PFASyntaxException] { inferType(jsonToAst.expr("""{"cond": [], "else": 999}""")) }
   }
 
   it must "test while" taggedAs(TypeCheck) in {
     inferType(jsonToAst.expr("""{"while": true, "do": 12}""")) should be (AvroNull())
-    evaluating { inferType(jsonToAst.expr("""{"while": null, "do": 12}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"while": null, "do": 12}""")) }
   }
 
   it must "test do-until" taggedAs(TypeCheck) in {
     inferType(jsonToAst.expr("""{"do": 12, "until": true}""")) should be (AvroNull())
-    evaluating { inferType(jsonToAst.expr("""{"do": 12, "until": null}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"do": 12, "until": null}""")) }
   }
 
   it must "test for" taggedAs(TypeCheck) in {
     inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"x": 1}, "do": 12}""")) should be (AvroNull())
     inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"x": 1}, "do": "x"}""")) should be (AvroNull())
-    evaluating { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"x": 1}, "do": "y"}""")) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"for": {}, "while": true, "step": {"x": 1}, "do": 12}""")) } should produce [PFASyntaxException]
-    evaluating { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": null, "step": {"x": 1}, "do": 12}""")) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {}, "do": 12}""")) } should produce [PFASyntaxException]
-    evaluating { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"y": 1}, "do": 12}""")) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"x": 2.2}, "do": 12}""")) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"x": 1}, "do": 12}"""), Map("x" -> AvroInt())) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"x": 1}, "do": "y"}""")) }
+    intercept[PFASyntaxException] { inferType(jsonToAst.expr("""{"for": {}, "while": true, "step": {"x": 1}, "do": 12}""")) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": null, "step": {"x": 1}, "do": 12}""")) }
+    intercept[PFASyntaxException] { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {}, "do": 12}""")) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"y": 1}, "do": 12}""")) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"x": 2.2}, "do": 12}""")) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"x": 1}, "do": 12}"""), Map("x" -> AvroInt())) }
     inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"x": 1}, "do": {"set": {"x": 12}}}""")) should be (AvroNull())
-    evaluating { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"x": 1}, "do": {"set": {"x": 12.4}}}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"for": {"x": 0}, "while": true, "step": {"x": 1}, "do": {"set": {"x": 12.4}}}""")) }
   }
 
   it must "test foreach" taggedAs(TypeCheck) in {
     inferType(jsonToAst.expr("""{"foreach": "x", "in": {"type": {"type": "array", "items": "int"}, "value": [1, 2, 3]}, "do": 12}""")) should be (AvroNull())
     inferType(jsonToAst.expr("""{"foreach": "x", "in": {"type": {"type": "array", "items": "int"}, "value": [1, 2, 3]}, "do": "x"}""")) should be (AvroNull())
-    evaluating { inferType(jsonToAst.expr("""{"foreach": "x", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": 12}""")) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"foreach": "x", "in": {"type": {"type": "array", "items": "int"}, "value": [1, 2, 3]}, "do": 12}"""), Map("x" -> AvroInt())) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"foreach": "x", "in": {"type": {"type": "array", "items": "int"}, "value": [1, 2, 3]}, "do": "y"}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"foreach": "x", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": 12}""")) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"foreach": "x", "in": {"type": {"type": "array", "items": "int"}, "value": [1, 2, 3]}, "do": 12}"""), Map("x" -> AvroInt())) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"foreach": "x", "in": {"type": {"type": "array", "items": "int"}, "value": [1, 2, 3]}, "do": "y"}""")) }
     inferType(jsonToAst.expr("""{"foreach": "x", "in": {"type": {"type": "array", "items": "int"}, "value": [1, 2, 3]}, "do": {"set": {"x": 12}}}""")) should be (AvroNull())
-    evaluating { inferType(jsonToAst.expr("""{"foreach": "x", "in": {"type": {"type": "array", "items": "int"}, "value": [1, 2, 3]}, "do": {"set": {"x": 12.4}}}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"foreach": "x", "in": {"type": {"type": "array", "items": "int"}, "value": [1, 2, 3]}, "do": {"set": {"x": 12.4}}}""")) }
   }
 
   it must "test forkeyval" taggedAs(TypeCheck) in {
     inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": 12}""")) should be (AvroNull())
     inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": "k"}""")) should be (AvroNull())
     inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": "v"}""")) should be (AvroNull())
-    evaluating { inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "array", "items": "int"}, "value": [1, 2, 3]}, "do": 12}""")) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": 12}"""), Map("k" -> AvroString())) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": 12}"""), Map("v" -> AvroInt())) } should produce [PFASemanticException]
-    evaluating { inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": "z"}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "array", "items": "int"}, "value": [1, 2, 3]}, "do": 12}""")) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": 12}"""), Map("k" -> AvroString())) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": 12}"""), Map("v" -> AvroInt())) }
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": "z"}""")) }
     inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": {"set": {"k": ["hello"]}}}""")) should be (AvroNull())
-    evaluating { inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": {"set": {"k": 12}}}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": {"set": {"k": 12}}}""")) }
     inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": {"set": {"v": 12}}}""")) should be (AvroNull())
-    evaluating { inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": {"set": {"v": ["hello"]}}}""")) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"forkey": "k", "forval": "v", "in": {"type": {"type": "map", "values": "int"}, "value": {"one": 1, "two": 2, "three": 3}}, "do": {"set": {"v": ["hello"]}}}""")) }
   }
 
   it must "test cast-case" taggedAs(TypeCheck) in {
     inferType(jsonToAst.expr("""{"cast": "x", "cases": [{"as": "int", "named": "xi", "do": 12}, {"as": "string", "named": "xs", "do": 999}]}"""), Map("x" -> AvroUnion(List(AvroInt(), AvroString())))) should be (AvroInt())
     inferType(jsonToAst.expr("""{"cast": "x", "cases": [{"as": "int", "named": "xi", "do": 12}, {"as": "string", "named": "xs", "do": 999}], "partial": true}"""), Map("x" -> AvroUnion(List(AvroInt(), AvroString())))) should be (AvroNull())
 
-    evaluating { inferType(jsonToAst.expr("""{"cast": "x", "cases": [{"as": "int", "named": "xi", "do": 12}, {"as": "string", "named": "xs", "do": 999}, {"as": "bytes", "named": "xb", "do": 999}]}"""), Map("x" -> AvroUnion(List(AvroInt(), AvroString())))) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cast": "x", "cases": [{"as": "int", "named": "xi", "do": 12}, {"as": "string", "named": "xs", "do": 999}, {"as": "bytes", "named": "xb", "do": 999}]}"""), Map("x" -> AvroUnion(List(AvroInt(), AvroString())))) }
 
-    evaluating { inferType(jsonToAst.expr("""{"cast": "x", "cases": [{"as": "int", "named": "xi", "do": 12}, {"as": "string", "named": "xs", "do": 999}]}"""), Map("x" -> AvroUnion(List(AvroInt(), AvroString(), AvroBytes())))) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"cast": "x", "cases": [{"as": "int", "named": "xi", "do": 12}, {"as": "string", "named": "xs", "do": 999}]}"""), Map("x" -> AvroUnion(List(AvroInt(), AvroString(), AvroBytes())))) }
 
     inferType(jsonToAst.expr("""{"cast": "x", "cases": [{"as": "int", "named": "xi", "do": 12}, {"as": "string", "named": "xs", "do": 999}], "partial": true}"""), Map("x" -> AvroUnion(List(AvroInt(), AvroString(), AvroBytes())))) should be (AvroNull())
   }
 
   it must "test upcast" taggedAs(TypeCheck) in {
     inferType(jsonToAst.expr("""{"upcast": "x", "as": "double"}"""), Map("x" -> AvroInt())) should be (AvroDouble())
-    evaluating { inferType(jsonToAst.expr("""{"upcast": "x", "as": "int"}"""), Map("x" -> AvroDouble())) } should produce [PFASemanticException]
+    intercept[PFASemanticException] { inferType(jsonToAst.expr("""{"upcast": "x", "as": "int"}"""), Map("x" -> AvroDouble())) }
   }
 
   it must "test ifnotnull" taggedAs(TypeCheck) in {

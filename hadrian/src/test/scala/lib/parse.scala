@@ -41,9 +41,9 @@ action: {parse.int: [input, 10]}
     engine.action("   +123   ") should be (123)
     engine.action("   -123   ") should be (-123)
     engine.action("   2147483647   ") should be (2147483647)
-    evaluating { engine.action("   2147483648   ") } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine.action("   2147483648   ") }
     engine.action("   -2147483648   ") should be (-2147483648)
-    evaluating { engine.action("   -2147483649   ") } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine.action("   -2147483649   ") }
   }
 
   it must "parse long" taggedAs(Lib, LibParse) in {
@@ -56,9 +56,9 @@ action: {parse.long: [input, 10]}
     engine.action("   +123   ") should be (123L)
     engine.action("   -123   ") should be (-123L)
     engine.action("   9223372036854775807   ") should be (9223372036854775807L)
-    evaluating { engine.action("   9223372036854775808   ") } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine.action("   9223372036854775808   ") }
     engine.action("   -9223372036854775808   ") should be (-9223372036854775808L)
-    evaluating { engine.action("   -9223372036854775809   ") } should produce [PFARuntimeException]
+    intercept[PFARuntimeException] { engine.action("   -9223372036854775809   ") }
   }
 
   it must "parse float" taggedAs(Lib, LibParse) in {
