@@ -15,171 +15,174 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#' avro.null
+#' avro_null
 #'
-#' Constructs a list-of-lists Avro schema for the null type (type with only one value).
+#' Constructs a \code{list} of lists Avro schema for the null type (type with only one value).
 #'
-#' @export avro.null
-#' @name avro.null
+#' @name avro_null
+#' @export
+avro_null <- "null"
 
-avro.null <- "null"
-
-#' avro.boolean
+#' avro_boolean
 #'
-#' Constructs a list-of-lists Avro schema for the boolean (logical) type.
+#' Constructs a \code{list} of lists Avro schema for the boolean (logical) type.
 #'
-#' @export avro.boolean
-#' @name avro.boolean
+#' @name avro_boolean
+#' @export
+avro_boolean <- "boolean"
 
-avro.boolean <- "boolean"
-
-#' avro.int
+#' avro_int
 #'
-#' Constructs a list-of-lists Avro schema for the int (integer numeric with 32-bit precision) type.
+#' Constructs a \code{list} of lists Avro schema for the int (integer numeric with 32-bit precision) type.
 #'
-#' @export avro.int
-#' @name avro.int
+#' @name avro_int
+#' @export
+avro_int <- "int"
 
-avro.int <- "int"
-
-#' avro.long
+#' avro_long
 #'
-#' Constructs a list-of-lists Avro schema for the long (integer numeric with 64-bit precision) type.
+#' Constructs a \code{list} of lists Avro schema for the long (integer numeric with 64-bit precision) type.
 #'
-#' @export avro.long
-#' @name avro.long
+#' @name avro_long
+#' @export
+avro_long <- "long"
 
-avro.long <- "long"
-
-#' avro.float
+#' avro_float
 #'
-#' Constructs a list-of-lists Avro schema for the float (floating-point numeric with 32-bit precision) type.
+#' Constructs a \code{list} of lists Avro schema for the float (floating-point numeric with 32-bit precision) type.
 #'
-#' @export avro.float
-#' @name avro.float
+#' @name avro_float
+#' @export
+avro_float <- "float"
 
-avro.float <- "float"
-
-#' avro.double
+#' avro_double
 #'
-#' Constructs a list-of-lists Avro schema for the double (floating-point numeric with 64-bit precision) type.
+#' Constructs a \code{list} of lists Avro schema for the double (floating-point numeric with 64-bit precision) type.
 #'
-#' @export avro.double
-#' @name avro.double
+#' @name avro_double
+#' @export
+avro_double <- "double"
 
-avro.double <- "double"
-
-#' avro.bytes
+#' avro_bytes
 #'
-#' Constructs a list-of-lists Avro schema for the bytes (unstructured byte array) type.
+#' Constructs a \code{list} of lists Avro schema for the bytes (unstructured byte array) type.
 #'
-#' @export avro.bytes
-#' @name avro.bytes
+#' @name avro_bytes
+#' @export
+avro_bytes <- "bytes"
 
-avro.bytes <- "bytes"
-
-#' avro.fixed
+#' avro_fixed
 #'
-#' Constructs a list-of-lists Avro schema for the fixed (byte array with fixed size) type.
+#' Constructs a \code{list} of lists Avro schema for the fixed (byte array with fixed size) type.
+#' @source gen_unique_name.R
 #' @param size size of the byte array
-#' @param name required name (if missing, uniqueFixedName is invoked)
+#' @param name required name (if missing, \code{\link{gen_unique_fixed_name}} is invoked)
 #' @param namespace optional namespace
-#' @export avro.fixed
 #' @examples
-#' avro.fixed(6, "MACAddress")
+#' avro_fixed(6, "MACAddress")
+#' @export
+avro_fixed <- function(size, name = NULL, namespace = NULL) {
+    
+  if (is.null(name)){
+    name <- gen_unique_fixed_name()
+  }
 
-avro.fixed <- function(size, name = NULL, namespace = NULL) {
-    if (is.null(name))
-        name <- uniqueFixedName()
-    if (is.null(namespace))
-        list(type = "fixed", size = size, name = name)
-    else
-        list(type = "fixed", size = size, name = name, namespace = namespace)
+  if (is.null(namespace)){
+    list(type = "fixed", size = size, name = name)
+  } else {
+    list(type = "fixed", size = size, name = name, namespace = namespace)
+  }
 }
 
-#' avro.string
+#' avro_string
 #'
-#' Constructs a list-of-lists Avro schema for the string (UTF-8) type.
+#' Constructs a \code{list} of lists Avro schema for the string (UTF-8) type.
 #'
-#' @export avro.string
-#' @name avro.string
+#' @name avro_string
+#' @export
+avro_string <- "string"
 
-avro.string <- "string"
-
-#' avro.enum
+#' avro_enum
 #'
-#' Constructs a list-of-lists Avro schema for the enum (set of symbols) type.
+#' Constructs a \code{list} of lists Avro schema for the enum (set of symbols) type.
+#' @source gen_unique_name.R
 #' @param symbols list of string-valued symbol names
-#' @param name required name (if missing, uniqueEnumName is invoked)
+#' @param name required name (if missing, \code{\link{gen_unique_enum_name}} is invoked)
 #' @param namespace optional namespace
-#' @export avro.enum
 #' @examples
-#' avro.enum(list("one", "two", "three"))
-
-avro.enum <- function(symbols, name = NULL, namespace = NULL) {
-    if (is.null(name))
-        name <- uniqueEnumName()
-    if (is.null(namespace))
-        list(type = "enum", symbols = symbols, name = name)
-    else
-        list(type = "enum", symbols = symbols, name = name, namespace = namespace)
+#' avro_enum(list("one", "two", "three"))
+#' @export
+avro_enum <- function(symbols, name = NULL, namespace = NULL){
+  
+  if (is.null(name)){
+    name <- gen_unique_enum_name()
+  }
+  
+  if (is.null(namespace)){
+    list(type = "enum", symbols = symbols, name = name)
+  } else {
+    list(type = "enum", symbols = symbols, name = name, namespace = namespace)
+  }
 }
 
-#' avro.array
+#' avro_array
 #'
-#' Constructs a list-of-lists Avro schema for the array type.
+#' Constructs a \code{list} of lists Avro schema for the array type.
 #' @param items schema for the homogeneous array
-#' @export avro.array
 #' @examples
-#' avro.array(avro.int)
-#' avro.array(avro.string)
-
-avro.array <- function(items) {
-    list(type = "array", items = items)
+#' avro_array(avro_int)
+#' avro_array(avro_string)
+#' @export
+avro_array <- function(items) {
+  list(type = "array", items = items)
 }
 
-#' avro.map
+#' avro_map
 #'
-#' Constructs a list-of-lists Avro schema for the map type.
+#' Constructs a \code{list} of lists Avro schema for the map type.
 #' @param values schema for the homogeneous map
-#' @export avro.map
 #' @examples
-#' avro.map(avro.int)
-#' avro.map(avro.string)
-
-avro.map <- function(values) {
-    list(type = "map", values = values)
+#' avro_map(avro_int)
+#' avro_map(avro_string)
+#' @export
+avro_map <- function(values) {
+  list(type = "map", values = values)
 }
 
-#' avro.record
+#' avro_record
 #'
-#' Constructs a list-of-lists Avro schema for the record type.
+#' Constructs a \code{list} of lists Avro schema for the record type.
 #' @param fields named list of field names and schemas
-#' @param name required name (if missing, uniqueRecordName is invoked)
+#' @param name required name (if missing, gen_unique_rec_name is invoked)
 #' @param namespace optional namespace
-#' @export avro.record
 #' @examples
-#' avro.record(list(one = avro.int, two = avro.double, three = avro.string))
-
-avro.record <- function(fields, name = NULL, namespace = NULL) {
-    outputFields <- list()
-    for (x in names(fields))
-        outputFields[[length(outputFields) + 1]] = list(name = x, type = fields[[x]])
-    if (is.null(name))
-        name <- uniqueRecordName()
-    if (is.null(namespace))
-        list(type = "record", fields = outputFields, name = name)
-    else
-        list(type = "record", fields = outputFields, name = name, namespace = namespace)
+#' avro_record(list(one = avro_int, two = avro_double, three = avro_string))
+#' @export
+avro_record <- function(fields, name = NULL, namespace = NULL) {
+    
+  outputFields <- list()
+    
+  for (x in names(fields)){
+    outputFields[[length(outputFields) + 1]] = list(name = x, type = fields[[x]])
+  }
+  
+  if (is.null(name)){
+    name <- gen_unique_rec_name()
+  }
+  
+  if (is.null(namespace)){
+    list(type = "record", fields = outputFields, name = name)
+  } else {
+    list(type = "record", fields = outputFields, name = name, namespace = namespace)
+  }
 }
 
-#' avro.union
+#' avro_union
 #'
-#' Constructs a list-of-lists Avro schema for the tagged union type.
+#' Constructs a \code{list} of lists Avro schema for the tagged union type.
 #' @param ... schemas for each of the possible sub-types
-#' @export avro.union
 #' @examples
-#' avro.union(avro.null, avro.int)         # a way to make a nullable int
-#' avro.union(avro.double, avro.string)    # any set of types can be unioned
-
-avro.union <- function(...) list(...)
+#' avro_union(avro_null, avro_int)         # a way to make a nullable int
+#' avro_union(avro_double, avro_string)    # any set of types can be unioned
+#' @export
+avro_union <- function(...) list(...)

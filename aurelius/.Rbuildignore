@@ -1,0 +1,14 @@
+.Rprofile
+^.*\.RData$
+^.*\.Rhistory$
+^.*\.Rproj$
+^\.Rproj\.user$
+^README-.*\.png$
+^NEWS\.md$          
+^CONTRIBUTING\.md$
+^\.travis\.yml$
+^.git$
+^internal$
+codecov.yml
+cran-comments.md
+README.Rmd

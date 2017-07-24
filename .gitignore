@@ -1,2 +1,8 @@
 pfa
 scoringengine_org
+*.Rproj
+.Rproj.user
+.Rhistory
+.RData
+.Rprofile
+.DS_Store

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Steven Mortimer" />
+
+<meta name="date" content="2017-02-11" />
+
+<title>Major Syntax Changes</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Major Syntax Changes</h1>
+<h4 class="author"><em>Steven Mortimer</em></h4>
+<h4 class="date"><em>2017-02-11</em></h4>
+
+
+<div id="TOC">
+<ul>
+<li><a href="#motivation">Motivation</a></li>
+<li><a href="#avro.-functions">avro.* functions</a></li>
+<li><a href="#pfa.-functions">pfa.* functions</a></li>
+<li><a href="#functions-to-read-write-pfa">Functions to Read &amp; Write PFA</a></li>
+<li><a href="#functions-to-create-pfa">Functions to Create PFA</a></li>
+<li><a href="#more-support-for-model-producers">More Support for Model Producers</a></li>
+<li><a href="#s3-methods-to-extract-and-build-models">S3 Methods to Extract and Build Models</a></li>
+<li><a href="#test-coverage">Test Coverage</a><ul>
+<li><a href="#testing-predictions">Testing Predictions</a></li>
+<li><a href="#testing-read_pfa">Testing read_pfa()</a></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="motivation" class="section level1">
+<h1>Motivation</h1>
+<p>A number of changes have been introduced in the <code>aurelius</code> package to increase functionality, usability, and consistency to other R packages. These changes may cause existing scripts to fail because they are not backwards compatible with prior versions of the package. The purpose of this document is to make more clear these changes and how they can be implemented.</p>
+</div>
+<div id="avro.-functions" class="section level1">
+<h1>avro.* functions</h1>
+<p>First, Avro functions were typically prefixed by <code>avro.*</code> with the function or object name following the period. Periods within function names in R usually indicate an S3 method, which is a way of specifying a function with different behavior based on the class of object that it’s operating on. In this case, these functions within <code>aurelius</code> were not S3 methods, they were simply prefixed to make them more easily identifiable. In an effort to still make them easy to find through naming and tab completion, all of these functions now start with <code>avro_*</code>. In this case they are no longer confused as S3 methods. The behavior is exactly the same as prior to this superficial naming change.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(aurelius)
+
+<span class="co"># avro.int no longer in use</span>
+avro_int
+<span class="co">#&gt; [1] &quot;int&quot;</span>
+
+<span class="co"># avro.enum no longer in use</span>
+<span class="kw">avro_enum</span>(<span class="kw">list</span>(<span class="st">&quot;one&quot;</span>, <span class="st">&quot;two&quot;</span>))
+<span class="co">#&gt; $type</span>
+<span class="co">#&gt; [1] &quot;enum&quot;</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $symbols</span>
+<span class="co">#&gt; $symbols[[1]]</span>
+<span class="co">#&gt; [1] &quot;one&quot;</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $symbols[[2]]</span>
+<span class="co">#&gt; [1] &quot;two&quot;</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $name</span>
+<span class="co">#&gt; [1] &quot;Enum_1&quot;</span></code></pre></div>
+</div>
+<div id="pfa.-functions" class="section level1">
+<h1>pfa.* functions</h1>
+<p>Second, there were a number of functions within <code>aurelius</code> which were prefixed by <code>pfa.*</code>. These functions were supporting PFA document creation, such as, <code>pfa.expr</code>, which would convert an R expression to its PFA equivalent. However, in an effort to add producers to the package a generic S3 method <code>pfa()</code> has been introduced, which always produces a complete, valid PFA document from an R object (usually a model). These producers conflict because there are no models of class <code>expr</code>, which is how R interprets the function named <code>pfa.expr()</code>. In order to avoid this confusion these older <code>pfa.*</code> functions have been renamed to <code>pfa_*</code> similar to the change in Avro functions mentioned above.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
+<span class="co"># pfa.expr no longer in use</span>
+<span class="kw">pfa_expr</span>(<span class="kw">quote</span>(<span class="dv">2</span> +<span class="st"> </span><span class="dv">2</span>))
+<span class="co">#&gt; $`+`</span>
+<span class="co">#&gt; $`+`[[1]]</span>
+<span class="co">#&gt; [1] 2</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $`+`[[2]]</span>
+<span class="co">#&gt; [1] 2</span></code></pre></div>
+</div>
+<div id="functions-to-read-write-pfa" class="section level1">
+<h1>Functions to Read &amp; Write PFA</h1>
+<p>The two functions <code>json()</code> &amp; <code>unjson()</code> have been renamed to <code>read_pfa()</code> and <code>write_pfa()</code>. The motivation was to make it more obvious the behavior of these functions since there are many JSON related functions, so it’s not confusing as to what the function <code>json()</code> actually does. The new names were taken with inspiration from the <code>xml2</code> package’s naming conventions when dealing with XML documents. In addition to these name changes, the <code>write_pfa()</code> function has been modified to remove all whitespace which reduces the size of generated files. Tests with small documents showed ~10% reduction in size. This is similar to minifying a CSS file to improve speed.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
+<span class="co"># convert the lm object to a list-of-lists PFA representation</span>
+lm_model_as_pfa &lt;-<span class="st"> </span><span class="kw">pfa</span>(<span class="kw">lm</span>(mpg ~<span class="st"> </span>hp, <span class="dt">data =</span> mtcars))
+
+<span class="co"># save as plain-text JSON</span>
+<span class="kw">write_pfa</span>(lm_model_as_pfa, <span class="dt">file =</span> <span class="st">&quot;my-model.pfa&quot;</span>)
+
+my_model &lt;-<span class="st"> </span><span class="kw">read_pfa</span>(<span class="st">&quot;my-model.pfa&quot;</span>)
+  </code></pre></div>
+</div>
+<div id="functions-to-create-pfa" class="section level1">
+<h1>Functions to Create PFA</h1>
+<p>In addition to the changes in importing and exporting PFA, the function <code>pfa.config()</code> has been renamed to <code>pfa_document()</code> (also inspired by <code>xml2</code> package). It provides a method for creating a valid PFA document and, by default, warns if the document is not valid PFA using Titus-in-Aurelius (<code>pfa_engine()</code>)</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
+<span class="kw">pfa_document</span>(<span class="dt">input =</span> avro_double, 
+             <span class="dt">output =</span> avro_double, 
+             <span class="dt">action =</span> <span class="kw">expression</span>(input +<span class="st"> </span><span class="dv">10</span>), 
+             <span class="dt">validate =</span> <span class="ot">TRUE</span>)
+<span class="co">#&gt; $input</span>
+<span class="co">#&gt; [1] &quot;double&quot;</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $output</span>
+<span class="co">#&gt; [1] &quot;double&quot;</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $action</span>
+<span class="co">#&gt; $action[[1]]</span>
+<span class="co">#&gt; $action[[1]]$`+`</span>
+<span class="co">#&gt; $action[[1]]$`+`[[1]]</span>
+<span class="co">#&gt; [1] &quot;input&quot;</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $action[[1]]$`+`[[2]]</span>
+<span class="co">#&gt; [1] 10</span></code></pre></div>
+</div>
+<div id="more-support-for-model-producers" class="section level1">
+<h1>More Support for Model Producers</h1>
+<p>The biggest change has been an expansion in model-to-PFA producers. Previously, only a couple model types were supported for a limited type of outputs, mainly for classification. Direct to PFA translation is available for almost all model types created by <code>gbm</code>, <code>glmnet</code>, and <code>randomForest</code> packages. More specifically:</p>
+<ul>
+<li><p>The <code>randomForest</code> functions only supported classification problems, now supports classification (majority vote) and regression (mean aggregation).</p></li>
+<li><p>The <code>gbm</code> functions only supported classification fits, now supports:</p>
+<ul>
+<li>gaussian, laplace, tdist, huberized (regression data)</li>
+<li>coxph (survival data)</li>
+<li>poisson (count data)</li>
+<li>bernoulli, adaboost (binary classification data)</li>
+<li>multinomial (multinomial classification data)</li>
+</ul></li>
+<li><p>The <code>glmnet</code> functions only supported classification fits, now supports:</p>
+<ul>
+<li>guassian</li>
+<li>binomial</li>
+<li>poisson</li>
+<li>cox</li>
+<li>multinomial</li>
+</ul></li>
+</ul>
+<p>In addition, there is an option to control the prediction types generated by the PFA. For example, you might prefer a multinomial glmnet model to return the predicted probabilies of each class, or you might prefer the PFA to return only the predicted class. The new <code>pred_type</code> option allows users to specify this behavior. There is also an argument <code>cutoffs</code> which is helpful for classification problems where the user might not want to use the default cutoff for determining the predicted class. For example, typically in binomial classification if the predicted probability exceeds 50%, then that class is predicted. Now, the cutoffs function allows predicted classes to be chosen whenever the ratio of predicted probability to the cutoff is highest. This strategy was adopted from <code>randomForest.predict()</code>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
+<span class="co"># generate data</span>
+x &lt;-<span class="st"> </span><span class="kw">matrix</span>(<span class="kw">rnorm</span>(<span class="dv">100</span>*<span class="dv">3</span>), <span class="dv">100</span>, <span class="dv">3</span>, <span class="dt">dimnames =</span> <span class="kw">list</span>(<span class="ot">NULL</span>, <span class="kw">c</span>(<span class="st">'X1'</span>,<span class="st">'X2'</span>, <span class="st">'X3'</span>)))
+g3 &lt;-<span class="st"> </span><span class="kw">sample</span>(LETTERS[<span class="dv">1</span>:<span class="dv">3</span>], <span class="dv">100</span>, <span class="dt">replace=</span><span class="ot">TRUE</span>)
+
+<span class="co"># fit multinomial model without an intercept</span>
+multinomial_model &lt;-<span class="st"> </span><span class="kw">glmnet</span>(x, g3, <span class="dt">family=</span><span class="st">&quot;multinomial&quot;</span>, <span class="dt">intercept =</span> <span class="ot">FALSE</span>)
+
+<span class="co"># convert to pfa, where the output is the predicted probability of each class</span>
+<span class="co"># the cutoffs specify that the predicted class should be the one </span>
+<span class="co"># which is the largest relative to its specified cutoff.</span>
+multinomial_model_as_pfa &lt;-<span class="st"> </span><span class="kw">pfa</span>(multinomial_model, 
+                                <span class="dt">pred_type =</span> <span class="st">'response'</span>, 
+                                <span class="dt">cutoffs =</span> <span class="kw">c</span>(<span class="dt">A =</span> .<span class="dv">1</span>, <span class="dt">B =</span> .<span class="dv">2</span>, <span class="dt">C =</span> .<span class="dv">7</span>))
+  </code></pre></div>
+</div>
+<div id="s3-methods-to-extract-and-build-models" class="section level1">
+<h1>S3 Methods to Extract and Build Models</h1>
+<p>In addition to new model producers S3 methods generic functions have been introduced as <code>extract_params()</code> and <code>build_model()</code> to provide a consistent way to retrieve model information that could be contructed into a PFA document. The purpose of having a consistent API is to better facilitate building PFA from model components whenever the user does not want to use a pre-canned producer.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
+<span class="co"># generate data</span>
+<span class="kw">set.seed</span>(<span class="dv">1</span>)
+dat &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">X1 =</span> <span class="kw">rnorm</span>(<span class="dv">100</span>), 
+                  <span class="dt">X2 =</span> <span class="kw">runif</span>(<span class="dv">100</span>))
+dat$Y &lt;-<span class="st"> </span>((<span class="dv">3</span> -<span class="st"> </span><span class="dv">4</span> *<span class="st"> </span>dat$X1 +<span class="st"> </span><span class="dv">3</span> *<span class="st"> </span>dat$X2 +<span class="st"> </span><span class="kw">rnorm</span>(<span class="dv">100</span>, <span class="dv">0</span>, <span class="dv">4</span>)) &gt;<span class="st"> </span><span class="dv">0</span>)
+
+<span class="co"># build the model</span>
+logit_model &lt;-<span class="st"> </span><span class="kw">glm</span>(Y ~<span class="st"> </span>X1 +<span class="st"> </span>X2, <span class="dt">data=</span>dat, <span class="dt">family =</span> <span class="kw">binomial</span>(logit))
+
+<span class="co"># extract the parameters</span>
+<span class="kw">extract_params</span>(logit_model)
+<span class="co">#&gt; $coeff</span>
+<span class="co">#&gt; $coeff$X1</span>
+<span class="co">#&gt; [1] -1.64257</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $coeff$X2</span>
+<span class="co">#&gt; [1] 0.5614079</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $const</span>
+<span class="co">#&gt; [1] 1.442272</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $regressors</span>
+<span class="co">#&gt; $regressors[[1]]</span>
+<span class="co">#&gt; [1] &quot;X1&quot;</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $regressors[[2]]</span>
+<span class="co">#&gt; [1] &quot;X2&quot;</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $family</span>
+<span class="co">#&gt; [1] &quot;binomial&quot;</span>
+<span class="co">#&gt; </span>
+<span class="co">#&gt; $link</span>
+<span class="co">#&gt; [1] &quot;logit&quot;</span></code></pre></div>
+</div>
+<div id="test-coverage" class="section level1">
+<h1>Test Coverage</h1>
+<p>Unit test coverage has been introduced mainly to test that the PFA produced by the <code>pfa()</code> functions behave similarly to their equivalent <code>predict()</code> functions in R. These tests are an excellent source of examples because they cover most all cases of utilizing the package functions.</p>
+<div id="testing-predictions" class="section level2">
+<h2>Testing Predictions</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
+<span class="kw">library</span>(testthat)
+
+<span class="co"># generate data</span>
+<span class="kw">set.seed</span>(<span class="dv">1</span>)
+dat &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">X1 =</span> <span class="kw">rnorm</span>(<span class="dv">100</span>), 
+                  <span class="dt">X2 =</span> <span class="kw">runif</span>(<span class="dv">100</span>))
+dat$Y &lt;-<span class="st"> </span><span class="dv">3</span> -<span class="st"> </span><span class="dv">5</span> *<span class="st"> </span>dat$X1 +<span class="st"> </span><span class="dv">3</span> *<span class="st"> </span>dat$X2 +<span class="st"> </span><span class="kw">rnorm</span>(<span class="dv">100</span>, <span class="dv">0</span>, <span class="dv">3</span>)
+
+<span class="co"># build the model</span>
+lm_model &lt;-<span class="st"> </span><span class="kw">lm</span>(Y ~<span class="st"> </span>X1 +<span class="st"> </span>X2, <span class="dt">data =</span> dat)
+
+lm_model_as_pfa &lt;-<span class="st"> </span><span class="kw">pfa</span>(lm_model)
+lm_engine &lt;-<span class="st"> </span><span class="kw">pfa_engine</span>(lm_model_as_pfa)
+
+<span class="co"># create the sample input vector</span>
+input &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">X1=</span>.<span class="dv">5</span>, <span class="dt">X2=</span>.<span class="dv">5</span>)
+
+<span class="co"># test equality</span>
+<span class="kw">expect_equal</span>(lm_engine$<span class="kw">action</span>(input), 
+             <span class="kw">unname</span>(<span class="kw">predict</span>(lm_model, 
+                            <span class="dt">newdata =</span> <span class="kw">as.data.frame</span>(input))),
+             <span class="dt">tolerance =</span> .<span class="dv">0001</span>)</code></pre></div>
+<p>Test coverage exists even for functions that are not model producers. For example, their are test cases for using <code>read_pfa()</code> to check that the function behaves as expected for reading PFA from a string, a file, or a url.</p>
+</div>
+<div id="testing-read_pfa" class="section level2">
+<h2>Testing read_pfa()</h2>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
+model_as_list &lt;-<span class="st"> </span><span class="kw">list</span>(<span class="dt">input=</span><span class="st">'double'</span>, 
+                      <span class="dt">output=</span><span class="st">'double'</span>, 
+                      <span class="dt">action=</span><span class="kw">list</span>(<span class="kw">list</span>(<span class="st">`</span><span class="dt">+</span><span class="st">`</span>=<span class="kw">list</span>(<span class="st">'input'</span>, <span class="dv">10</span>))))
+
+<span class="co"># literal JSON string  (useful for small examples)</span>
+toy_model &lt;-<span class="st"> </span><span class="kw">read_pfa</span>(<span class="kw">paste0</span>(<span class="st">'{&quot;input&quot;: &quot;double&quot;, '</span>, 
+                              <span class="st">'&quot;output&quot;: &quot;double&quot;, '</span>, 
+                              <span class="st">'&quot;action&quot;: [{&quot;+&quot;: [&quot;input&quot;, 10]}]}'</span>))
+<span class="kw">expect_identical</span>(toy_model, model_as_list)
+
+<span class="co"># from a local path, must be wrapped in &quot;file&quot; command to create a connection</span>
+file_conn &lt;-<span class="st"> </span><span class="kw">file</span>(<span class="kw">system.file</span>(<span class="st">&quot;extdata&quot;</span>, <span class="st">&quot;my-model.pfa&quot;</span>, <span class="dt">package =</span> <span class="st">&quot;aurelius&quot;</span>))
+local_model &lt;-<span class="st"> </span><span class="kw">read_pfa</span>(file_conn)
+<span class="kw">expect_identical</span>(local_model, model_as_list)
+
+<span class="co"># from a url</span>
+url_conn &lt;-<span class="st"> </span><span class="kw">url</span>(<span class="kw">paste0</span>(<span class="st">&quot;https://raw.githubusercontent.com/ReportMort/hadrian&quot;</span>,
+                       <span class="st">&quot;/feature/add-r-package-structure&quot;</span>, 
+                       <span class="st">&quot;/aurelius/inst/extdata/my-model.pfa&quot;</span>))
+url_model &lt;-<span class="st"> </span><span class="kw">read_pfa</span>(url_conn)
+<span class="kw">expect_identical</span>(url_model, model_as_list)</code></pre></div>
+</div>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>

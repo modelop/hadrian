@@ -1,0 +1,254 @@
+---
+title: "Major Syntax Changes"
+author: "Steven Mortimer"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 4
+    keep_md: true
+vignette: >
+  %\VignetteIndexEntry{Major Syntax Changes}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+
+# Motivation
+
+A number of changes have been introduced in the `aurelius` package to increase 
+functionality, usability, and consistency to other R packages. These changes may 
+cause existing scripts to fail because they are not backwards compatible with 
+prior versions of the package. The purpose of this document is to make more clear 
+these changes and how they can be implemented.
+
+```{r echo = FALSE}
+NOT_CRAN <- identical(tolower(Sys.getenv("NOT_CRAN")), "true")
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  purl = NOT_CRAN,
+  eval = NOT_CRAN
+)
+## this is nice during development = on github
+## this is not so nice for preparing vignettes for CRAN
+#options(knitr.table.format = 'markdown')
+```
+
+
+# avro.* functions
+
+First, Avro functions were typically prefixed by `avro.*` with the function or 
+object name following the period. Periods within function names in R usually 
+indicate an S3 method, which is a way of specifying a function with different 
+behavior based on the class of object that it's operating on. In this case, these 
+functions within `aurelius` were not S3 methods, they were simply prefixed to 
+make them more easily identifiable. In an effort to still make them easy to find 
+through naming and tab completion, all of these functions now start with `avro_*`. 
+In this case they are no longer confused as S3 methods. The behavior is exactly 
+the same as prior to this superficial naming change.
+
+```{r avro-changes}
+library(aurelius)
+
+# avro.int no longer in use
+avro_int
+
+# avro.enum no longer in use
+avro_enum(list("one", "two"))
+```
+
+# pfa.* functions
+
+Second, there were a number of functions within `aurelius` which were prefixed 
+by `pfa.*`. These functions were supporting PFA document creation, such as, `pfa.expr`,
+which would convert an R expression to its PFA equivalent. However, in an effort to 
+add producers to the package a generic S3 method `pfa()` has been introduced, which 
+always produces a complete, valid PFA document from an R object (usually a model). 
+These producers conflict because there are no models of class `expr`, which is how 
+R interprets the function named `pfa.expr()`. In order to avoid this confusion 
+these older `pfa.*` functions have been renamed to `pfa_*` similar to the change in 
+Avro functions mentioned above.
+
+```{r pfa-changes}
+# pfa.expr no longer in use
+pfa_expr(quote(2 + 2))
+```
+
+# Functions to Read & Write PFA
+
+The two functions `json()` & `unjson()` have been renamed to `read_pfa()` and 
+`write_pfa()`. The motivation was to make it more obvious the behavior of these 
+functions since there are many JSON related functions, so it's not 
+confusing as to what the function `json()` actually does. The new names were taken 
+with inspiration from the `xml2` package's naming conventions when dealing with 
+XML documents. In addition to these name changes, the `write_pfa()` function has 
+been modified to remove all whitespace which reduces the size of generated files. 
+Tests with small documents showed ~10% reduction in size. This is similar to minifying
+a CSS file to improve speed.
+
+```{r model-import-export, eval=FALSE}
+# convert the lm object to a list-of-lists PFA representation
+lm_model_as_pfa <- pfa(lm(mpg ~ hp, data = mtcars))
+
+# save as plain-text JSON
+write_pfa(lm_model_as_pfa, file = "my-model.pfa")
+
+my_model <- read_pfa("my-model.pfa")
+```
+
+# Functions to Create PFA
+
+In addition to the changes in importing and exporting PFA, the function `pfa.config()` 
+has been renamed to `pfa_document()` (also inspired by `xml2` package). It 
+provides a method for creating a PFA document and provides an option to check if the 
+document is not valid PFA using Titus-in-Aurelius (`pfa_engine()`). Note, that using 
+`pfa_engine()` requires the `rPython` package to be installed which has special 
+instructions for Windows users.
+
+```{r pfa-document}
+pfa_document(input = avro_double, 
+             output = avro_double, 
+             action = expression(input + 10), 
+             validate = FALSE)
+```
+
+# More Support for Model Producers
+
+The biggest change has been an expansion in model-to-PFA producers. Previously, 
+only a couple model types were supported for a limited type of outputs, mainly 
+for classification. Direct to PFA translation is available for almost all model 
+types created by `gbm`, `glmnet`, and `randomForest` packages. More specifically: 
+
++ The `randomForest` functions only supported classification problems, now 
+supports classification (majority vote) and regression (mean aggregation).
+
++ The `gbm` functions only supported classification fits, now supports: 
+
+    * gaussian, laplace, tdist, huberized (regression data)
+    * coxph (survival data)
+    * poisson (count data)
+    * bernoulli, adaboost (binary classification data)
+    * multinomial (multinomial classification data)
+  
++ The `glmnet` functions only supported classification fits, now supports:
+
+    * guassian
+    * binomial
+    * poisson
+    * cox 
+    * multinomial
+  
+In addition, there is an option to control the prediction types generated by 
+the PFA. For example, you might prefer a multinomial glmnet model to return 
+the predicted probabilies of each class, or you might prefer the PFA to return 
+only the predicted class. The new `pred_type` option allows users to specify this 
+behavior. There is also an argument `cutoffs` which is helpful for classification 
+problems where the user might not want to use the default cutoff for determining 
+the predicted class. For example, typically in binomial classification if the 
+predicted probability exceeds 50%, then that class is predicted. Now, the cutoffs 
+function allows predicted classes to be chosen whenever the ratio of predicted 
+probability to the cutoff is highest. This strategy was adopted from 
+`randomForest.predict()`.
+
+```{r multinomial-glmnet-example, eval=FALSE}
+# generate data
+x <- matrix(rnorm(100*3), 100, 3, dimnames = list(NULL, c('X1','X2', 'X3')))
+g3 <- sample(LETTERS[1:3], 100, replace=TRUE)
+
+# fit multinomial model without an intercept
+multinomial_model <- glmnet(x, g3, family="multinomial", intercept = FALSE)
+
+# convert to pfa, where the output is the predicted probability of each class
+# the cutoffs specify that the predicted class should be the one 
+# which is the largest relative to its specified cutoff.
+multinomial_model_as_pfa <- pfa(multinomial_model, 
+                                pred_type = 'response', 
+                                cutoffs = c(A = .1, B = .2, C = .7))
+```
+
+# S3 Methods to Extract and Build Models
+
+In addition to new model producers S3 methods generic functions have been 
+introduced as `extract_params()` and `build_model()` to provide a consistent way 
+to retrieve model information that could be contructed into a PFA document. The 
+purpose of having a consistent API is to better facilitate building PFA from 
+model components whenever the user does not want to use a pre-canned producer.
+
+```{r extract-and-build-models, eval=FALSE}
+# generate data
+set.seed(1)
+dat <- data.frame(X1 = rnorm(100), 
+                  X2 = runif(100))
+dat$Y <- ((3 - 4 * dat$X1 + 3 * dat$X2 + rnorm(100, 0, 4)) > 0)
+
+# build the model
+logit_model <- glm(Y ~ X1 + X2, data=dat, family = binomial(logit))
+
+# extract the parameters
+extract_params(logit_model)
+```
+
+# Test Coverage
+
+Unit test coverage has been introduced mainly to test that the PFA produced by the 
+`pfa()` functions behave similarly to their equivalent `predict()` functions in R. 
+These tests are an excellent source of examples because they cover most all cases 
+of utilizing the package functions. 
+
+## Testing Predictions
+
+```{r testing-model-predictions, eval=FALSE}
+library(testthat)
+
+# generate data
+set.seed(1)
+dat <- data.frame(X1 = rnorm(100), 
+                  X2 = runif(100))
+dat$Y <- 3 - 5 * dat$X1 + 3 * dat$X2 + rnorm(100, 0, 3)
+
+# build the model
+lm_model <- lm(Y ~ X1 + X2, data = dat)
+
+lm_model_as_pfa <- pfa(lm_model)
+lm_engine <- pfa_engine(lm_model_as_pfa)
+
+# create the sample input vector
+input <- list(X1=.5, X2=.5)
+
+# test equality
+expect_equal(lm_engine$action(input), 
+             unname(predict(lm_model, 
+                            newdata = as.data.frame(input))),
+             tolerance = .0001)
+```
+
+Test coverage exists even for functions that are not model producers. For 
+example, their are test cases for using `read_pfa()` to check that the function 
+behaves as expected for reading PFA from a string, a file, or a url. 
+
+## Testing read_pfa()
+
+```{r testing-read-pfa, eval=FALSE}
+model_as_list <- list(input='double', 
+                      output='double', 
+                      action=list(list(`+`=list('input', 10))))
+
+# literal JSON string  (useful for small examples)
+toy_model <- read_pfa(paste0('{"input": "double", ', 
+                              '"output": "double", ', 
+                              '"action": [{"+": ["input", 10]}]}'))
+expect_identical(toy_model, model_as_list)
+
+# from a local path, must be wrapped in "file" command to create a connection
+file_conn <- file(system.file("extdata", "my-model.pfa", package = "aurelius"))
+local_model <- read_pfa(file_conn)
+expect_identical(local_model, model_as_list)
+
+# from a url
+url_conn <- url(paste0("https://raw.githubusercontent.com/ReportMort/hadrian",
+                       "/feature/add-r-package-structure", 
+                       "/aurelius/inst/extdata/my-model.pfa"))
+url_model <- read_pfa(url_conn)
+expect_identical(url_model, model_as_list)
+```

@@ -1,0 +1,68 @@
+# R for travis: see documentation at https://docs.travis-ci.com/user/languages/r
+
+# Header
+language: r
+sudo: required
+warnings_are_errors: false
+r_check_args: --no-vignettes
+
+#env
+env:
+  global:
+  - CRAN: http://cran.rstudio.com
+  - NOT_CRAN: true
+  
+#notifications
+notifications:
+  email:
+    on_success: change
+    on_failure: change
+    
+#before_script
+before_script:
+  
+#after_success
+after_success:
+- Rscript -e 'covr::codecov()'
+
+# Custom parts:
+
+#r_github_packages
+r_github_packages:
+
+#r_binary_packages
+r_binary_packages:
+
+#r_packages
+r_packages:
+- devtools
+- covr
+- jsonlite
+- gbm
+- glmnet
+- rPython
+- knitr
+- rmarkdown
+- testthat
+- MASS
+- forecast
+- caret
+- ipred
+- flexclust
+- e1071
+- randomForest
+- rpart
+
+#services
+services:
+
+#before_install
+before_install:
+- sudo apt-get install python-setuptools -y
+- sudo pip install numpy
+- cd titus
+- sudo python setup.py install
+- cd ../aurelius
+
+#install
+install:
