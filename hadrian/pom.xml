@@ -22,6 +22,7 @@ limitations under the License.
 
   <name>hadrian</name>
   <description>JVM (Scala) implementation of Portable Format for Analytics (PFA): consumer with dynamic compilation.</description>
+  <url>https://github.com/opendatagroup/hadrian</url>
   <inceptionYear>2014</inceptionYear>
 
   <groupId>com.opendatagroup</groupId>
@@ -37,6 +38,15 @@ limitations under the License.
     </license>
   </licenses>
 
+  <developers>
+    <developer>
+      <name>Nate Bradac</name>
+      <email>nate.bradac@opendatagroup.com</email>
+      <organization>Open Data Group</organization>
+      <organizationUrl>http://www.opendatagroup.com</organizationUrl>
+    </developer>
+  </developers>
+
   <reporting>
     <plugins>
       <plugin>
@@ -46,6 +56,12 @@ limitations under the License.
       </plugin>
     </plugins>
   </reporting>
+
+  <scm>
+    <connection>scm:git:git://github.com/opendatagroup/hadrian.git</connection>
+    <developerConnection>scm:git:git://github.com/opendatagroup/hadrian.git</developerConnection>
+    <url>http://github.com/opendatagroup/hadrian</url>
+  </scm>
 
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -180,14 +196,79 @@ limitations under the License.
     </dependency>
 -->
 
-
   </dependencies>
 
   <repositories>
   </repositories>
 
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
+
   <build>
     <plugins>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <version>1.5</version>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <phase>verify</phase>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.sonatype.plugins</groupId>
+        <artifactId>nexus-staging-maven-plugin</artifactId>
+        <version>1.6.7</version>
+        <extensions>true</extensions>
+        <configuration>
+           <serverId>ossrh</serverId>
+           <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+           <autoReleaseAfterClose>true</autoReleaseAfterClose>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <version>2.2.1</version>
+        <executions>
+          <execution>
+            <id>attach-sources</id>
+            <goals>
+              <goal>jar-no-fork</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <version>2.9.1</version>
+        <executions>
+          <execution>
+            <id>attach-javadocs</id>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
 
       <plugin>
         <!-- see http://davidb.github.com/scala-maven-plugin -->
@@ -229,6 +310,19 @@ limitations under the License.
             </manifest>
           </archive>
         </configuration>
+        <executions>
+          <execution>
+            <id>empty-javadoc-jar</id>
+            <phase>package</phase>
+            <goals>
+              <goal>jar</goal>
+            </goals>
+            <configuration>
+              <classifier>javadoc</classifier>
+              <classesDirectory>${basedir}/javadoc</classesDirectory>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
 
       <plugin>
@@ -239,60 +333,58 @@ limitations under the License.
           <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
           <junitxml>.</junitxml>
 
-<tagsToInclude>
-    AstToJson
-    Data
-    DataType
-    DumpState
-    JsonToAst
-    JVMCompilation
-    MakeDocs
-    Memory
-    MultiThreaded
-    RandomJson
-    Shared
-    SignatureMatch
-    TypeCheck
-    Yaml
-    LibArray
-    LibBytes
-    LibCast
-    LibCore
-    LibEnum
-    LibFixed
-    LibImpute
-    LibInterp
-    LibKernel
-    LibLA
-    LibLink
-    LibMap
-    LibMath
-    LibMetric
-    LibParse
-    LibRand
-    LibRegex
-    LibSpec
-    LibString
-    LibTime
-    LibProbDist
-    LibStatTest
-    LibStatSample
-    LibStatChange
-    LibModelReg
-    LibModelTree
-    LibModelCluster
-    LibModelNeighbor
-    LibModelNaive
-    LibModelNeural
-    LibModelSvm
+          <tagsToInclude>
+              AstToJson
+              Data
+              DataType
+              DumpState
+              JsonToAst
+              JVMCompilation
+              MakeDocs
+              Memory
+              MultiThreaded
+              RandomJson
+              Shared
+              SignatureMatch
+              TypeCheck
+              Yaml
+              LibArray
+              LibBytes
+              LibCast
+              LibCore
+              LibEnum
+              LibFixed
+              LibImpute
+              LibInterp
+              LibKernel
+              LibLA
+              LibLink
+              LibMap
+              LibMath
+              LibMetric
+              LibParse
+              LibRand
+              LibRegex
+              LibSpec
+              LibString
+              LibTime
+              LibProbDist
+              LibStatTest
+              LibStatSample
+              LibStatChange
+              LibModelReg
+              LibModelTree
+              LibModelCluster
+              LibModelNeighbor
+              LibModelNaive
+              LibModelNeural
+              LibModelSvm
+          </tagsToInclude>
 
-</tagsToInclude>
-
-<tagsToExclude>
-
-    Speed
-    ThreadSafety
-</tagsToExclude>
+          <tagsToExclude>
+              Speed
+              ThreadSafety
+          </tagsToExclude>
 
         </configuration>
         <executions>
