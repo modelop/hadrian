@@ -65,7 +65,7 @@ class ValidCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
 
         elif len(args) == 1 and isinstance(args[0], parser.Word):
             if args[0].text not in self.mode.pfaFiles:
@@ -76,7 +76,7 @@ class ValidCommand(Command):
             self.syntaxError()
 
         model.engine
-        print "PFA document is syntactically and semantically valid"
+        print("PFA document is syntactically and semantically valid")
         
 class InputOutputCommand(Command):
     """The 'pfa input' and 'pfa output' commands in pfainspector."""
@@ -120,7 +120,7 @@ class InputOutputCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
         else:
             options = {"pretty": True}
             while len(args) > 0 and isinstance(args[-1], parser.Option):
@@ -156,7 +156,7 @@ class InputOutputCommand(Command):
                     node = model.engine.parser.getAvroType(node).jsonNode(set())
 
             if options["pretty"]:
-                print avscToPretty(node)
+                print(avscToPretty(node))
             else:
                 t.look(node, inlineDepth=1)
 
@@ -202,7 +202,7 @@ class TypesCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
         else:
             options = {"pretty": True}
             while len(args) > 0 and isinstance(args[-1], parser.Option):
@@ -229,16 +229,16 @@ class TypesCommand(Command):
             names = sorted(model.engine.parser.names.names.keys())
             for index, name in enumerate(names):
                 node = model.engine.parser.getAvroType(name).jsonNode(set())
-                print name + ":"
+                print(name + ":")
                 if options["pretty"]:
-                    print avscToPretty(node, 4)
+                    print(avscToPretty(node, 4))
                 else:
                     t.look(node, inlineDepth=1)
                 if index != len(names) - 1:
-                    print
+                    print("")
 
             if len(names) == 0:
-                print "PFA document contains no named types"
+                print("PFA document contains no named types")
         
 class UserFcnsCommand(Command):
     """The 'pfa userfcns' command in pfainspector."""
@@ -282,7 +282,7 @@ class UserFcnsCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
         else:
             options = {"pretty": True}
             while len(args) > 0 and isinstance(args[-1], parser.Option):
@@ -309,37 +309,37 @@ class UserFcnsCommand(Command):
             names = sorted(model.engineConfig.fcns)
             for index, name in enumerate(names):
                 fcn = model.engineConfig.fcns[name]
-                print "u." + name + ":"
-                print "    parameters:"
+                print("u." + name + ":")
+                print("    parameters:")
                 for pname in fcn.paramNames:
                     ptype = fcn.params[pname]
                     if options["pretty"]:
-                        print "        " + pname + ": " + avscToPretty(ptype.jsonNode(set()), 10 + len(pname)).lstrip()
+                        print("        " + pname + ": " + avscToPretty(ptype.jsonNode(set()), 10 + len(pname)).lstrip())
                     else:
-                        print "        " + pname + ": " + ptype.toJson()
+                        print("        " + pname + ": " + ptype.toJson())
 
                 if options["pretty"]:
-                    print "    returns " + avscToPretty(fcn.ret.jsonNode(set()), 12).lstrip()
+                    print("    returns " + avscToPretty(fcn.ret.jsonNode(set()), 12).lstrip())
                 else:
-                    print "    returns " + fcn.ret.toJson()
+                    print("    returns " + fcn.ret.toJson())
 
                 if model.engine.isRecursive("u." + name):
-                    print "    recursive"
+                    print("    recursive")
                 elif model.engine.hasRecursive("u." + name):
-                    print "    can call a recursive function"
+                    print("    can call a recursive function")
                 else:
-                    print "    call depth: " + str(model.engine.callDepth("u." + name))
+                    print("    call depth: " + str(model.engine.callDepth("u." + name)))
                 if model.engine.hasSideEffects("u." + name):
-                    print "    can modify a cell or pool"
+                    print("    can modify a cell or pool")
 
                 calledBy = sorted(model.engine.calledBy("u." + name))
-                print "    called by: " + ", ".join(calledBy) if len(calledBy) > 0 else "(none)"
+                print("    called by: " + ", ".join(calledBy) if len(calledBy) > 0 else "(none)")
 
                 if index != len(names) - 1:
-                    print
+                    print("")
 
             if len(names) == 0:
-                print "PFA document contains no user functions"
+                print("PFA document contains no user functions")
         
 class CallsCommand(Command):
     """The 'pfa calls' command in pfainspector."""
@@ -379,7 +379,7 @@ class CallsCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
 
         elif len(args) == 1 and isinstance(args[0], parser.Word):
             if args[0].text not in self.mode.pfaFiles:
@@ -390,7 +390,7 @@ class CallsCommand(Command):
             self.syntaxError()
 
         for name in sorted(model.engine.callGraph):
-            print name + ": " + ", ".join(sorted(model.engine.callGraph[name]))
+            print(name + ": " + ", ".join(sorted(model.engine.callGraph[name])))
 
 class CellsPoolsCommand(Command):
     """The 'pfa cells' and 'pfa pools' commands in pfainspector."""
@@ -434,7 +434,7 @@ class CellsPoolsCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
         else:
             options = {"pretty": True}
             while len(args) > 0 and isinstance(args[-1], parser.Option):
@@ -473,15 +473,15 @@ class CellsPoolsCommand(Command):
 
                 ptype = obj.avroType
                 if options["pretty"]:
-                    print preamble + avscToPretty(ptype.jsonNode(set()), len(preamble)).lstrip()
+                    print(preamble + avscToPretty(ptype.jsonNode(set()), len(preamble)).lstrip())
                 else:
-                    print preamble + ptype.toJson()
+                    print(preamble + ptype.toJson())
 
                 if index != len(names) - 1:
                     print
 
             if len(names) == 0:
-                print "PFA document contains no " + self.name
+                print("PFA document contains no " + self.name)
     
 class ExternalizeCommand(Command):
     """The 'pfa externalize' command in pfainspector."""
@@ -546,7 +546,7 @@ class ExternalizeCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
         else:
             options = {"cell": True}
             while len(args) > 0 and isinstance(args[-1], parser.Option):
@@ -591,7 +591,7 @@ class ExternalizeCommand(Command):
                 if obj.get("source", "embedded") != "embedded":
                     raise InspectorError("{0} \"{1}\" is not currently embedded".format(which, args[1].text))
 
-                print "Externalizing {0} \"{1}\" to {2}".format(which, args[1].text, args[2].text)
+                print("Externalizing {0} \"{1}\" to {2}".format(which, args[1].text, args[2].text))
                 json.dump(obj.get("init"), open(args[2].text, "w"))
 
                 obj["source"] = "json"
@@ -657,7 +657,7 @@ class InternalizeCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
         else:
             options = {"cell": True}
             while len(args) > 0 and isinstance(args[-1], parser.Option):
@@ -706,7 +706,7 @@ class InternalizeCommand(Command):
                 if not isinstance(url, basestring):
                     raise InspectorError("{0} \"{1}\" does not have a string-valued init".format(which, args[1].text))
 
-                print "Internalizing {0} \"{1}\" from {2}".format(which, args[1].text, url)
+                print("Internalizing {0} \"{1}\" from {2}".format(which, args[1].text, url))
                 if re.match("^[a-zA-Z][a-zA-Z0-9\+\-\.]*://", url) is not None:
                     init = json.load(urllib.urlopen(url))
                 else:

@@ -66,6 +66,6 @@ if __name__ == "__main__":
     result = titus.producer.chain.json(pfas, False, not arguments.no_check, arguments.name, arguments.randseed, arguments.doc, arguments.version, arguments.metadata, arguments.options, False, arguments.verbose)
 
     if arguments.output == "-":
-        print result
+        print(result)
     else:
         open(arguments.output, "w").write(result)

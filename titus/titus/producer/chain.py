@@ -703,7 +703,7 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
 ## eng, = engine(pfas)
 
 ## def emit(x):
-##     print x
+##     print(x)
 ## eng.emit = emit
 ## eng.begin()
 ## eng.action({"value": "6"})

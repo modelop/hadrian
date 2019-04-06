@@ -1289,9 +1289,9 @@ def genericLog(message, namespace):
     """
 
     if namespace is None:
-        print " ".join(map(json.dumps, message))
+        print(" ".join(map(json.dumps, message)))
     else:
-        print namespace + ": " + " ".join(map(json.dumps, message))
+        print(namespace + ": " + " ".join(map(json.dumps, message)))
     
 class FakeEmitForExecution(titus.fcn.Fcn):
     """Placeholder so that the ``emit`` function looks like any other function to PFA."""
@@ -1446,7 +1446,7 @@ class PFAEngine(object):
 
         context, code = engineConfig.walk(GeneratePython.makeTask(style), titus.pfaast.SymbolTable.blank(), functionTable, engineOptions, pfaVersion)
         if debug:
-            print code
+            print(code)
 
         sandbox = {# Scoring engine architecture
                    "PFAEngine": PFAEngine,

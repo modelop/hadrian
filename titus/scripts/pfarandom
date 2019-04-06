@@ -210,6 +210,6 @@ if __name__ == "__main__":
         engine.end()
             
     if arguments.fileName == "-":
-        print json.dumps(pfaDocument)
+        print(json.dumps(pfaDocument))
     else:
         json.dump(pfaDocument, open(arguments.fileName, "w"))

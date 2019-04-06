@@ -95,9 +95,9 @@ def doMap(parser, stack, currentCounter):
             shouldTrack = currentCounter is None and len(stack) == 2 and (stack[0] == "cells" or stack[0] == "pools") and key == "init"
             if shouldTrack:
                 if stack[0] == "cells":
-                    print "Cell: {0}".format(stack[1])
+                    print("Cell: {0}".format(stack[1]))
                 elif stack[0] == "pools":
-                    print "Pool: {0}".format(stack[1])
+                    print("Pool: {0}".format(stack[1]))
                 currentCounter = CurrentCounter()
 
             prefix, event, value = parser.next()

@@ -97,7 +97,7 @@ class LookCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
         else:
             options = {"maxDepth": 8, "indexWidth": 30}
             while len(args) > 0 and isinstance(args[-1], parser.Option):
@@ -132,7 +132,7 @@ class LookCommand(Command):
                 self.syntaxError()
 
             if not depthGreaterThan(node, 0):
-                print json.dumps(node)
+                print(json.dumps(node))
 
             else:
                 content = StringIO.StringIO()
@@ -145,7 +145,7 @@ class LookCommand(Command):
 
                 content = content.getvalue()
                 if content.count("\n") <= 100:
-                    print content
+                    print(content)
                 else:
                     proc = pipe("less")
                     try:
@@ -202,7 +202,7 @@ class CountCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
         else:
             if len(args) == 2 and isinstance(args[0], parser.Word):
                 if args[0].text not in self.mode.pfaFiles:
@@ -220,7 +220,7 @@ class CountCommand(Command):
                 self.syntaxError()
 
             regex = args[-1].regex()
-            print "{0} matches".format(t.count(regex, node))
+            print("{0} matches".format(t.count(regex, node)))
 
 class IndexCommand(Command):
     """The 'json index' command in pfainspector."""
@@ -269,7 +269,7 @@ class IndexCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
         else:
             if len(args) == 2 and isinstance(args[0], parser.Word):
                 if args[0].text not in self.mode.pfaFiles:
@@ -296,13 +296,13 @@ class IndexCommand(Command):
                 else:
                     return str(i)
 
-            print "Indexes that match the pattern:"
+            print("Indexes that match the pattern:")
             count = 0
             for index in t.indexes(regex, node):
-                print "    [" + ", ".join(display(i) for i in index) + "]"
+                print("    [" + ", ".join(display(i) for i in index) + "]")
                 count += 1
             if count == 0:
-                print "    (none)"
+                print("    (none)")
 
 class FindCommand(Command):
     """The 'json find' command in pfainspector."""
@@ -355,7 +355,7 @@ class FindCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
         else:
             options = {"maxDepth": 3, "indexWidth": 30}
             while len(args) > 0 and isinstance(args[-1], parser.Option):
@@ -418,11 +418,11 @@ class FindCommand(Command):
                 content.write("\n")
                 count += 1
             if count == 0:
-                print "    (none)"
+                print("    (none)")
 
             content = content.getvalue()
             if content.count("\n") <= 100:
-                print content
+                print(content)
             else:
                 proc = pipe("less")
                 try:
@@ -482,7 +482,7 @@ class ChangeCommand(Command):
         """
 
         if len(args) == 1 and args[0] == parser.Word("help"):
-            print self.help
+            print(self.help)
         else:
             if len(args) == 4 and isinstance(args[0], parser.Word):
                 if args[0].text not in self.mode.pfaFiles:
@@ -551,9 +551,9 @@ class ChangeCommand(Command):
                     replacedReplacement = replace(replacement, match.groups)
 
                     if ask:
-                        print "At index [" + ", ".join(display(i) for i in index) + "]:"
-                        print "Original:  " + json.dumps(removeAts(t.get(node, index)))
-                        print "Change to: " + json.dumps(replacedReplacement)
+                        print("At index [" + ", ".join(display(i) for i in index) + "]:")
+                        print("Original:  " + json.dumps(removeAts(t.get(node, index))))
+                        print("Change to: " + json.dumps(replacedReplacement))
                         action = None
                         while action is None:
                             response = raw_input("(Y/n/all/stop/revert): ")

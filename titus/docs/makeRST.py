@@ -36,7 +36,7 @@ for moduleName, module in modules.items():
     for objName in dir(module):
         obj = getattr(module, objName)
         if not objName.startswith("_") and callable(obj) and obj.__module__ == moduleName:
-            print objName, obj
+            print(objName, obj)
             documented.append(moduleName + "." + objName)
             if inspect.isclass(obj):
                 open(moduleName + "." + objName + ".rst", "w").write('''

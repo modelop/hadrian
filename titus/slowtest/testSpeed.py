@@ -38,7 +38,7 @@ class TestSpeed(unittest.TestCase):
             engine.action(datum)
             i += 1
             if i % 5000 == 0:
-                print "{0}, {1}".format(time.time() - startTime, i)
+                print("{0}, {1}".format(time.time() - startTime, i))
 
 if __name__ == "__main__":
     unittest.main()

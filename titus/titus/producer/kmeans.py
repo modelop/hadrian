@@ -147,17 +147,17 @@ def printValue(format="g"):
                     break
             if "n" in state:
                 state["ready"] = True
-            print "iter  values"
-            print "----------------------------------"
+            print("iter  values")
+            print("----------------------------------")
         for index, v in enumerate(values):
             if index == 0:
                 it = repr(iterationNumber)
             else:
                 it = ""
             if v is None:
-                print state["j"].format(it)
+                print(state["j"].format(it))
             else:
-                print state["n"].format(it, *v)
+                print(state["n"].format(it, *v))
         return True
     return out
 
@@ -180,17 +180,17 @@ def printChange(format="g"):
                     break
             if "n" in state:
                 state["ready"] = True
-            print "iter  changes"
-            print "----------------------------------"
+            print("iter  changes")
+            print("----------------------------------")
         for index, corr in enumerate(corrections):
             if index == 0:
                 it = repr(iterationNumber)
             else:
                 it = ""
             if corr is None:
-                print state["j"].format(it)
+                print(state["j"].format(it))
             else:
-                print state["n"].format(it, *corr)
+                print(state["n"].format(it, *corr))
         return True
     return out
 

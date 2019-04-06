@@ -136,13 +136,13 @@ class ProgressMessages(ProgressTrait):
 
 class ProgressMeter(ProgressTrait):
     def __init__(self, inputStream):
-        print "First pass determines JSON object size (takes about 10 secs per GB)"
+        print("First pass determines JSON object size (takes about 10 secs per GB)")
         self.size = 0
         chunk = inputStream.read(1024)
         while chunk:
             self.size += chunk.count("{") + chunk.count("[")
             chunk = inputStream.read(1024)
-        print "Input contains {0} objects/arrays; reopening to perform transformation".format(self.size)
+        print("Input contains {0} objects/arrays; reopening to perform transformation".format(self.size))
         self.startTime = time.time()
         self.lastPercent = -1.0
         self.lastP = -1
