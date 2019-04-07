@@ -19,7 +19,7 @@
 
 import copy
 import json
-import StringIO
+import io
 
 import titus.producer.tools as t
 from titus.inspector.defs import *
@@ -135,7 +135,7 @@ class LookCommand(Command):
                 print(json.dumps(node))
 
             else:
-                content = StringIO.StringIO()
+                content = io.StringIO()
                 if not depthGreaterThan(node, 1):
                     t.look(node, maxDepth=options["maxDepth"], indexWidth=options["indexWidth"], inlineDepth=0, stream=content)
                 elif not depthGreaterThan(node, 2):
@@ -399,7 +399,7 @@ class FindCommand(Command):
                 else:
                     return str(i)
 
-            content = StringIO.StringIO()
+            content = io.StringIO()
             count = 0
             for index in t.indexes(regex, node):
                 content.write("At index [" + ", ".join(display(i) for i in index) + "]:\n")

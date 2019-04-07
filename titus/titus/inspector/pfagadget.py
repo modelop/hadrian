@@ -19,7 +19,6 @@
 
 import copy
 import json
-import StringIO
 import re
 import urllib
 
