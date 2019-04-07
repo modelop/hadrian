@@ -242,7 +242,7 @@ def case(clazz):
     try:
         code = clazz.__init__.__func__
     except AttributeError:
-        code = clazz.__init__.func_code
+        code = clazz.__init__.__code__
 
     context = dict(globals())
     context[clazz.__name__] = clazz
