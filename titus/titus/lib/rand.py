@@ -20,6 +20,7 @@
 import math
 
 from six.moves import range
+from six import unichr
 
 from titus.fcn import Fcn
 from titus.fcn import LibFcn

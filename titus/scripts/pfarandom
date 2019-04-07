@@ -24,6 +24,7 @@ import random
 
 import six
 from six.moves import range
+from six import unichr
 
 from titus.datatype import *
 from titus.genpy import PFAEngine
