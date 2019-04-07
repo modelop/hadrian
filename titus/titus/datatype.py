@@ -582,7 +582,11 @@ class AvroUnion(AvroType):
             raise titus.errors.AvroException("duplicate in union: " + ", ".join(map(ts, types)))
         if "union" in names:
             raise titus.errors.AvroException("nested union: " + ", ".join(map(ts, types)))
-        self._schema = avro.schema.UnionSchema([], avro.schema.Names())
+        # avro on Python 2 takes an extra arg for names
+        schema_args = [[]]
+        if sys.version_info[0] == 2:
+            schema_args.append(avro.schema.Names())
+        self._schema = avro.schema.UnionSchema(*schema_args)
         self._schema._schemas = [x.schema for x in types]
     @property
     def types(self):
@@ -614,7 +618,14 @@ class AvroField(object):
         :type order: "ascending", "descending", or "ignore"
         :param order: sort order (used in Hadoop secondary sort)
         """
-        self._schema = avro.schema.Field(avroType.schema.to_json(), name, default is not None, default, order, avro.schema.Names())
+        # avro Field class takes different init args on Python 2 vs. 3
+        field_args = dict(type=avroType.schema.to_json(), name=name,
+            has_default=default is not None, default=default, order=order,
+            names=avro.schema.Names())
+        if sys.version_info[0] == 3:
+            field_args['index'] = 0
+        self._schema = avro.schema.Field(**field_args)
+
     @property
     def schema(self):
         """Get the field type as an avro.schema.Schema."""
