@@ -126,7 +126,7 @@ def yamlToAst(yamlInput):
     def read(parser):
         try:
             while True:
-                event = parser.next()
+                event = next(parser)
         
                 if isinstance(event, yaml.ScalarEvent):
                     if not event.implicit[0]:

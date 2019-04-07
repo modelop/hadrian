@@ -1769,7 +1769,7 @@ class FastAvroCorrector(object):
         return self
 
     def next(self):
-        return self.correctFastAvro(self.reader.next(), self.avroType)
+        return self.correctFastAvro(next(self.reader), self.avroType)
 
     def correctFastAvro(self, x, avroType):
         if isinstance(avroType, (titus.datatype.AvroString, titus.datatype.AvroEnum)) and isinstance(x, str):

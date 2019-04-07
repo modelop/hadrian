@@ -95,7 +95,7 @@ def doMap(parser, writer, stack, extractCells, extractPools, progress):
                 file = None
                 subwriter = writer
 
-            prefix, event, value = parser.next()
+            prefix, event, value = next(parser)
             doValue(event, value, parser, subwriter, stack + [key], extractCells, extractPools, progress)
 
             if file is not None:

@@ -458,7 +458,7 @@ class Sig(Signature):
             while not found and not atypesPermutations_isEmpty:
                 available = OrderedDict((i, x) for i, x in enumerate(pat.types))
                 try:
-                    nextPermutation = atypesPermutations.next()
+                    nextPermutation = next(atypesPermutations)
                 except StopIteration:
                     atypesPermutations_isEmpty = True
                 else:

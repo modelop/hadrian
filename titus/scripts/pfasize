@@ -100,7 +100,7 @@ def doMap(parser, stack, currentCounter):
                     print("Pool: {0}".format(stack[1]))
                 currentCounter = CurrentCounter()
 
-            prefix, event, value = parser.next()
+            prefix, event, value = next(parser)
             doValue(event, value, parser, stack + [key], currentCounter)
 
             if shouldTrack:
