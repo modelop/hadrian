@@ -397,7 +397,7 @@ def _readBoolean(data, dot):
         raise PFASyntaxException("expected boolean, not " + _trunc(repr(data)), dot)
 
 def _readInt(data, dot):
-    if isinstance(data, (int, long)):
+    if isinstance(data, int):
         if -2147483648 <= data <= 2147483647:
             return data
         else:
@@ -406,7 +406,7 @@ def _readInt(data, dot):
         raise PFASyntaxException("expected int, not " + _trunc(repr(data)), dot)
 
 def _readLong(data, dot):
-    if isinstance(data, (int, long)):
+    if isinstance(data, int):
         if -9223372036854775808 <= data <= 9223372036854775807:
             return data
         else:
@@ -415,13 +415,13 @@ def _readLong(data, dot):
         raise PFASyntaxException("expected long, not " + _trunc(repr(data)), dot)
 
 def _readFloat(data, dot):
-    if isinstance(data, (int, long, float)):
+    if isinstance(data, (int, float)):
         return float(data)
     else:
         raise PFASyntaxException("expected float, not " + _trunc(repr(data)), dot)
 
 def _readDouble(data, dot):
-    if isinstance(data, (int, long, float)):
+    if isinstance(data, (int, float)):
         return float(data)
     else:
         raise PFASyntaxException("expected double, not " + _trunc(repr(data)), dot)
@@ -567,7 +567,7 @@ def _readArgument(data, dot, avroTypeBuilder):
         return LiteralNull(dot)
     elif isinstance(data, bool):
         return LiteralBoolean(data, dot)
-    elif isinstance(data, (int, long)):
+    elif isinstance(data, int):
         if -2147483648 <= data <= 2147483647:
             return LiteralInt(data, dot)
         elif -9223372036854775808 <= data <= 9223372036854775807:

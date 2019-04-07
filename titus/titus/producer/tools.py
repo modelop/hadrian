@@ -138,7 +138,7 @@ def getmatch(pattern, haystack):
                 return None
         return out
 
-    elif isinstance(pattern, (basestring, long, int, float)):
+    elif isinstance(pattern, (basestring, int, float)):
         if pattern == haystack:
             return Match(haystack, haystack)
         else:
@@ -286,7 +286,7 @@ class Approx(Matcher):
     def __repr__(self):
         return "Approx(" + repr(self.central) + ", " + repr(self.error) + ")"
     def getmatch(self, haystack):
-        if not isinstance(haystack, (long, int, float)) or abs(haystack - self.central) > self.error:
+        if not isinstance(haystack, (int, float)) or abs(haystack - self.central) > self.error:
             return None
         else:
             return Match(haystack, haystack)
@@ -298,7 +298,7 @@ class LT(Matcher):
     def __repr__(self):
         return "LT(" + repr(self.value) + ")"
     def getmatch(self, haystack):
-        if not isinstance(haystack, (long, int, float)) or haystack >= self.value:
+        if not isinstance(haystack, (int, float)) or haystack >= self.value:
             return None
         else:
             return Match(haystack, haystack)
@@ -310,7 +310,7 @@ class LE(Matcher):
     def __repr__(self):
         return "LE(" + repr(self.value) + ")"
     def getmatch(self, haystack):
-        if not isinstance(haystack, (long, int, float)) or haystack > self.value:
+        if not isinstance(haystack, (int, float)) or haystack > self.value:
             return None
         else:
             return Match(haystack, haystack)
@@ -322,7 +322,7 @@ class GT(Matcher):
     def __repr__(self):
         return "GT(" + repr(self.value) + ")"
     def getmatch(self, haystack):
-        if not isinstance(haystack, (long, int, float)) or haystack <= self.value:
+        if not isinstance(haystack, (int, float)) or haystack <= self.value:
             return None
         else:
             return Match(haystack, haystack)
@@ -334,7 +334,7 @@ class GE(Matcher):
     def __repr__(self):
         return "GE(" + repr(self.value) + ")"
     def getmatch(self, haystack):
-        if not isinstance(haystack, (long, int, float)) or haystack < self.value:
+        if not isinstance(haystack, (int, float)) or haystack < self.value:
             return None
         else:
             return Match(haystack, haystack)

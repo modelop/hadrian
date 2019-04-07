@@ -312,7 +312,7 @@ class Range(Ast):
         return isinstance(other, Range) and self.operator == other.operator and self.comparator == other.comparator
     def regex(self):
         if self.operator is None:
-            return t.Any(long, int, float)
+            return t.Any(int, float)
         elif self.operator == "<":
             return t.LT(self.comparator)
         elif self.operator == "<=":

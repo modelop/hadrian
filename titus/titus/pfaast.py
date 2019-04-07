@@ -758,13 +758,13 @@ class EngineConfig(Ast):
         if not isinstance(pools, dict) or not all(isinstance(x, Pool) for x in pools.values()):
             raise PFASyntaxException("\"pools\" must be a dictionary of Pools", pos)
 
-        if not isinstance(randseed, (int, long)) and not randseed is None:
+        if not isinstance(randseed, int) and not randseed is None:
             raise PFASyntaxException("\"randseed\" must be an int or None", pos)
 
         if not isinstance(doc, basestring) and not doc is None:
             raise PFASyntaxException("\"doc\" must be a string or None", pos)
 
-        if not isinstance(version, (int, long)) and not version is None:
+        if not isinstance(version, int) and not version is None:
             raise PFASyntaxException("\"version\" must be an int or None", pos)
 
         if not isinstance(metadata, dict) or not all(isinstance(x, basestring) for x in metadata.values()):
@@ -2202,7 +2202,7 @@ class LiteralInt(LiteralValue):
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(value, (int, long)):
+        if not isinstance(value, int):
             raise PFASyntaxException("\"value\" must be an int", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions, version):
@@ -2257,7 +2257,7 @@ class LiteralLong(LiteralValue):
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(value, (int, long)):
+        if not isinstance(value, int):
             raise PFASyntaxException("\"value\" must be an int", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions, version):
@@ -2314,7 +2314,7 @@ class LiteralFloat(LiteralValue):
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(value, (int, long, float)):
+        if not isinstance(value, (int, float)):
             raise PFASyntaxException("\"value\" must be a number", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions, version):
@@ -2371,7 +2371,7 @@ class LiteralDouble(LiteralValue):
         if not isinstance(pos, basestring) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(value, (int, long, float)):
+        if not isinstance(value, (int, float)):
             raise PFASyntaxException("\"value\" must be a number", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions, version):
@@ -6039,7 +6039,7 @@ class Error(Expression):
         if not isinstance(message, basestring):
             raise PFASyntaxException("\"message\" must be a string", pos)
 
-        if (not isinstance(code, (int, long)) and not code is None) or not code < 0:
+        if (not isinstance(code, int) and not code is None) or not code < 0:
             raise PFASyntaxException("\"code\" must be a negative int or None", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions, version):

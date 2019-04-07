@@ -69,7 +69,7 @@ class PFAVersion(object):
         :type release: non-negative integer
         :param release: release version number (bug-fixes)
         """
-        if major < 0 or minor < 0 or release < 0 or not isinstance(major, (int, long)) or not isinstance(minor, (int, long)) or not isinstance(release, (int, long)):
+        if major < 0 or minor < 0 or release < 0 or not isinstance(major, int) or not isinstance(minor, int) or not isinstance(release, int):
             raise ValueError("PFA version major, minor, and release numbers must be non-negative integers")
         self.major = major
         self.minor = minor

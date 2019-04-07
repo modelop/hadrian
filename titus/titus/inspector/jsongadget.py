@@ -110,10 +110,10 @@ class LookCommand(Command):
                 else:
                     raise InspectorError("option {0} unrecognized".format(opt.word.text))
 
-            if not isinstance(options["maxDepth"], (int, long)) or options["maxDepth"] <= 0:
+            if not isinstance(options["maxDepth"], int) or options["maxDepth"] <= 0:
                 raise InspectorError("maxDepth must be a positive integer")
 
-            if not isinstance(options["indexWidth"], (int, long)) or options["indexWidth"] <= 0:
+            if not isinstance(options["indexWidth"], int) or options["indexWidth"] <= 0:
                 raise InspectorError("indexWidth must be a positive integer")
 
             if len(args) == 1 and isinstance(args[0], parser.Word):
@@ -368,10 +368,10 @@ class FindCommand(Command):
                 else:
                     raise InspectorError("option {1} unrecognized".format(opt.word.text))
 
-            if not isinstance(options["maxDepth"], (int, long)) or options["maxDepth"] <= 0:
+            if not isinstance(options["maxDepth"], int) or options["maxDepth"] <= 0:
                 raise InspectorError("maxDepth must be a positive integer")
 
-            if not isinstance(options["indexWidth"], (int, long)) or options["indexWidth"] <= 0:
+            if not isinstance(options["indexWidth"], int) or options["indexWidth"] <= 0:
                 raise InspectorError("indexWidth must be a positive integer")
 
             if len(args) == 2 and isinstance(args[0], parser.Word):

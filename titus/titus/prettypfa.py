@@ -251,7 +251,7 @@ class Section(object):
                 self.content, = self.content
             else:
                 raise PrettyPfaException("Only one item allowed in randseed section")
-        if not isinstance(self.content, MiniNumber) or not isinstance(self.content.value, (int, long)):
+        if not isinstance(self.content, MiniNumber) or not isinstance(self.content.value, int):
             raise PrettyPfaException("randseed must be an integer at PrettyPFA line {0}".format(self.lineno))
         return self.content.value
 
@@ -275,7 +275,7 @@ class Section(object):
                 self.content, = self.content
             else:
                 raise PrettyPfaException("Only one item allowed in version section")
-        if not isinstance(self.content, MiniNumber) or not isinstance(self.content.value, (int, long)):
+        if not isinstance(self.content, MiniNumber) or not isinstance(self.content.value, int):
             raise PrettyPfaException("version must be an integer at PrettyPFA line {0}".format(self.lineno))
         return self.content.value
 
@@ -494,7 +494,7 @@ class MiniNumber(MiniAst):
     def __repr__(self):
         return "MiniNumber({0})".format(repr(self.value))
     def asExpr(self, state):
-        if isinstance(self.value, (int, long)):
+        if isinstance(self.value, int):
             return LiteralInt(self.value, self.pos)
         else:
             return LiteralDouble(self.value, self.pos)
@@ -639,7 +639,7 @@ class MiniCall(MiniAst):
             elif len(params) == 1:
                 if params[0].name != "code":
                     raise PrettyPfaException("error function has only 1 optional parameter, \"code\", not {0}, at {1}".format(params[0].name, self.pos))
-                if not isinstance(params[0].typeExpr, MiniNumber) and not isinstance(params[0].typeExpr.value, (int, long)):
+                if not isinstance(params[0].typeExpr, MiniNumber) and not isinstance(params[0].typeExpr.value, int):
                     raise PrettyPfaException("error function has optional parameter \"code\" must be an integer, not {0}, at {1}".format(params[0].typeExpr, self.pos))
                 code = params[0].typeExpr.value
             else:
@@ -707,7 +707,7 @@ class MiniCall(MiniAst):
             if len(self.args) < 1 or len(self.args) > 2:
                 raise PrettyPfaException("fixed type should have 1 or 2 arguments, not {0}, at {1}".format(len(self.args), self.pos))
 
-            if not isinstance(self.args[0], MiniNumber) or not isinstance(self.args[0].value, (int, long)) or self.args[0].value <= 0:
+            if not isinstance(self.args[0], MiniNumber) or not isinstance(self.args[0].value, int) or self.args[0].value <= 0:
                 raise PrettyPfaException("fixed type first argument should be a positive integer, not {0}, at {1}".format(self.args[0], self.pos))
             size = self.args[0].value
 
@@ -1098,7 +1098,7 @@ class MiniTry(MiniAst):
         if self.filters is None:
             filters = None
         else:
-            if any(not isinstance(x, (MiniDotName, MiniString)) and not (isinstance(x, MiniNumber) and isinstance(x.value, (int, long))) for x in self.filters):
+            if any(not isinstance(x, (MiniDotName, MiniString)) and not (isinstance(x, MiniNumber) and isinstance(x.value, int)) for x in self.filters):
                 raise PrettyPfaException("try filters must all be strings or integers, not {0}, at {1}".format(self.filters, self.pos))
             filters = [x.name if isinstance(x, MiniDotName) else x.value for x in self.filters]
 
