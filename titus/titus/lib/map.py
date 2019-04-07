@@ -168,7 +168,7 @@ class Update(LibFcn):
     sig = Sig([{"base": P.Map(P.Wildcard("A"))}, {"overlay": P.Map(P.Wildcard("A"))}], P.Map(P.Wildcard("A")))
     errcodeBase = 26090
     def __call__(self, state, scope, pos, paramTypes, base, overlay):
-        return dict(base.items() + overlay.items())
+        return dict(list(base.items()) + list(overlay.items()))
 provide(Update())
 
 class Split(LibFcn):
@@ -355,7 +355,7 @@ class Union(LibFcn):
     sig = Sig([{"a": P.Map(P.Wildcard("A"))}, {"b": P.Map(P.Wildcard("A"))}], P.Map(P.Wildcard("A")))
     errcodeBase = 26230
     def __call__(self, state, scope, pos, paramTypes, a, b):
-        return dict(a.items() + b.items())
+        return dict(list(a.items()) + list(b.items()))
 provide(Union())
 
 class Intersection(LibFcn):
@@ -380,7 +380,7 @@ class SymDiff(LibFcn):
     errcodeBase = 26260
     def __call__(self, state, scope, pos, paramTypes, a, b):
         cc = set(a.keys()).symmetric_difference(set(b.keys()))
-        return dict((k, v) for k, v in a.items() + b.items() if k in cc)
+        return dict((k, v) for k, v in list(a.items()) + list(b.items()) if k in cc)
 provide(SymDiff())
 
 class Subset(LibFcn):

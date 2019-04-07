@@ -55,7 +55,7 @@ output: {type: array, items: string}
 action:
   - {map.keys: [input]}
 ''')
-        self.assertEqual(engine.action({}), [])
+        self.assertEqual(list(engine.action({})), [])
 
     def testGetValues(self):
         engine, = PFAEngine.fromYaml('''
