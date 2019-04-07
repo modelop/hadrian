@@ -74,17 +74,37 @@ class PFAVersion(object):
         self.major = major
         self.minor = minor
         self.release = release
+
     def __repr__(self):
         """Represent a PFAVersion as a dotted triple on the screen."""
         return "{0}.{1}.{2}".format(self.major, self.minor, self.release)
-    def __cmp__(self, other):
-        """Strict ordering on PFAVersions: check major number first, then minor, then release."""
-        if self.major == other.major and self.minor == other.minor:
-            return cmp(self.release, other.release)
+    
+    def __eq__(self, other):
+        return self.major == other.major and self.minor == other.minor and \
+               self.release == other.release
+    
+    def __ne__(self, other):
+        return not self == other
+    
+    def __gt__(self, other):
+        if self.major > other.major:
+            return True
         elif self.major == other.major:
-            return cmp(self.minor, other.minor)
-        else:
-            return cmp(self.major, other.major)
+            if self.minor > other.minor:
+               return True
+            elif self.minor == other.minor and self.release > other.release:
+                return True
+        return False
+
+    def __lt__(self, other):
+        return not (self > other or self == other)
+
+    def __ge__(self, other):
+        return not self < other
+    
+    def __le__(self, other):
+        return not self > other
+
     @staticmethod
     def fromString(x):
         """Create a ``PFAVersion`` from a dotted string.
