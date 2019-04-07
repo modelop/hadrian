@@ -24,6 +24,7 @@ import json
 from collections import OrderedDict
 
 import six
+from six.moves import range
 import numpy
 
 from titus.signature import LabelData
@@ -141,7 +142,7 @@ class Dataset(object):
                         raise ValueError("record type must be a real number or a string, not {0}".format(type(word)))
                 if names is None:
                     formatter = "var{0:0%dd}" % len(str(len(line)))
-                    names = [formatter.format(i) for i in xrange(len(line))]
+                    names = [formatter.format(i) for i in range(len(line))]
                 else:
                     if len(names) != len(fields):
                         raise ValueError("number of columns in dataset is not the same as the number of names")
@@ -221,7 +222,7 @@ class TreeNode(object):
         elif self.predictand.tpe == six.string_types:
             if self.datasetSize > 0:
                 self.predictandDistribution = []
-                for category in xrange(len(self.predictand.intToStr)):
+                for category in range(len(self.predictand.intToStr)):
                     frac = 1.0 * numpy.sum(self.predictand.data == category) / len(self.predictand.data)
                     self.predictandDistribution.append(frac)
             else:
@@ -395,8 +396,8 @@ class TreeNode(object):
         antiSelectionEntropy = numpy.zeros(self.datasetSize, dtype=numpy.dtype(float))
 
         # sum over categories using a Python for loop
-        # (dataset pre-processing has ensured that the N categories are integers from 0 to N-1, so xrange)
-        for category in xrange(len(self.predictand.intToStr)):
+        # (dataset pre-processing has ensured that the N categories are integers from 0 to N-1, so range)
+        for category in range(len(self.predictand.intToStr)):
             # number of instances of this category for value <= cut
             numAtAndBeforeIndex = numpy.cumsum(categories == category)
 
@@ -450,27 +451,27 @@ class TreeNode(object):
         # get a selection array for each category of the variable we want to use to make the prediciton
         numPredictorCategories = len(field.strToInt)
         predictorSelection = numpy.zeros((self.datasetSize, numPredictorCategories), dtype=numpy.dtype(bool))
-        for predictorCategory in xrange(numPredictorCategories):
+        for predictorCategory in range(numPredictorCategories):
             predictorSelection[:,predictorCategory] = (field.data == predictorCategory)
 
         # get a selection array for each category that we want to predict
         numPredictandCategories = len(self.predictand.strToInt)
         predictandSelection = numpy.zeros((self.datasetSize, numPredictandCategories), dtype=numpy.dtype(bool))
-        for predictandCategory in xrange(numPredictandCategories):
+        for predictandCategory in range(numPredictandCategories):
             predictandSelection[:,predictandCategory] = (self.predictand.data == predictandCategory)
 
         # combine them for all combinations of predictor category and predictand category
         # bitwise_and is equivalent to logical_and (for these boolean arrays) and faster
         numInCategory = [numpy.array([numpy.sum(numpy.bitwise_and(predictorSelection[:,i], predictandSelection[:,j]))
-                          for i in xrange(numPredictorCategories)])
-                         for j in xrange(numPredictandCategories)]
+                          for i in range(numPredictorCategories)])
+                         for j in range(numPredictandCategories)]
 
         # for the denominators
-        numMarginal = numpy.array([numpy.sum(predictorSelection[:,i]) for i in xrange(numPredictorCategories)])
+        numMarginal = numpy.array([numpy.sum(predictorSelection[:,i]) for i in range(numPredictorCategories)])
 
         # only consider categories that still have instances at this depth of the tree
-        remainingPredictorCategories = [i for i in xrange(numPredictorCategories) if numMarginal[i] > 0]
-        remainingPredictandCategories = numpy.array([i for i in xrange(numPredictandCategories) if self.predictandDistribution[i] > 0])
+        remainingPredictorCategories = [i for i in range(numPredictorCategories) if numMarginal[i] > 0]
+        remainingPredictandCategories = numpy.array([i for i in range(numPredictandCategories) if self.predictandDistribution[i] > 0])
 
         # we will iterate over (N choose k) for all k from 1 to the highest informative k (half of N, rounding up)
         # or a user-supplied maxSubsetSize (to avoid very long calculations)
@@ -482,7 +483,7 @@ class TreeNode(object):
 
         bestGainTerm = None
         bestCombination = None
-        for howMany in xrange(1, maxSubsetSize + 1):
+        for howMany in range(1, maxSubsetSize + 1):
             # itertools.combinations does (N choose k) for a specific k
             for categorySet in itertools.combinations(remainingPredictorCategories, howMany):
                 selection = numpy.array(categorySet)
@@ -608,9 +609,9 @@ class TreeNode(object):
 
         bestGainTerm = None
         bestCombination = None
-        for howMany in xrange(1, maxSubsetSize + 1):
+        for howMany in range(1, maxSubsetSize + 1):
             # itertools.combinations does (N choose k) for a specific k
-            for categorySet in itertools.combinations(xrange(len(fieldUniques)), howMany):
+            for categorySet in itertools.combinations(range(len(fieldUniques)), howMany):
                 selection = numpy.array(categorySet)
 
                 # for the selection

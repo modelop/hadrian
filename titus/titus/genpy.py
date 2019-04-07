@@ -27,6 +27,7 @@ import struct
 
 from avro.datafile import DataFileReader, DataFileWriter
 from avro.io import DatumReader, DatumWriter
+from six.moves import range
 
 from titus.errors import *
 import titus.pfaast
@@ -314,7 +315,7 @@ class GeneratePython(titus.pfaast.Task):
             return "self.f[" + repr(context.fcn.name) + "]"
 
         elif isinstance(context, FcnRefFill.Context):
-            reducedArgs = ["\"$" + str(x) + "\"" for x in xrange(len(context.fcnType.params))]
+            reducedArgs = ["\"$" + str(x) + "\"" for x in range(len(context.fcnType.params))]
             j = 0
             args = []
             for name in context.originalParamNames:
@@ -1500,7 +1501,7 @@ class PFAEngine(object):
                 sharedState.pools[poolName] = Pool(value, poolConfig.shared, poolConfig.rollback, poolConfig.source)
 
         out = []
-        for index in xrange(multiplicity):
+        for index in range(multiplicity):
             cells = dict(sharedState.cells)
             pools = dict(sharedState.pools)
 
@@ -1523,7 +1524,7 @@ class PFAEngine(object):
                 rand = random.Random()
             else:
                 rand = random.Random(engineConfig.randseed)
-                for skip in xrange(index):
+                for skip in range(index):
                     rand = random.Random(rand.randint(0, 2**31 - 1))
 
             engine = cls(cells, pools, engineConfig, engineOptions, genericLog, genericEmit, zero, index, rand)
@@ -1780,7 +1781,7 @@ class FastAvroCorrector(object):
 
         elif isinstance(avroType, titus.datatype.AvroArray):
             itemType = avroType.items
-            for i in xrange(len(x)):
+            for i in range(len(x)):
                 x[i] = self.correctFastAvro(x[i], itemType)
 
         elif isinstance(avroType, titus.datatype.AvroMap):

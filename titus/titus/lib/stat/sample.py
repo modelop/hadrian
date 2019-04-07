@@ -19,6 +19,8 @@
 
 import math
 
+from six.moves import range
+
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
 from titus.signature import Sig
@@ -158,9 +160,9 @@ class UpdateCovariance(LibFcn):
             newCount = oldCount + w
             newMean = [oldm + div((x[i] - oldm) * w, newCount) for i, oldm in enumerate(oldMean)]
             newCovariance = []
-            for i in xrange(size):
+            for i in range(size):
                 row = []
-                for j in xrange(size):
+                for j in range(size):
                     row.append(div((oldCovariance[i][j]*oldCount) + div((x[i] - oldMean[i]) * (x[j] - oldMean[j]) * w*oldCount, newCount), newCount))
                 newCovariance.append(row)
 
@@ -419,7 +421,7 @@ class ForecastHoltWinters(LibFcn):
         trend = theState["trend"]
 
         if not hasPeriodic:
-            return [level + i*trend for i in xrange(1, n + 1)]
+            return [level + i*trend for i in range(1, n + 1)]
         else:
             cycle = theState["cycle"]
             L = len(cycle)
@@ -427,9 +429,9 @@ class ForecastHoltWinters(LibFcn):
                 raise PFARuntimeException("empty cycle", self.errcodeBase + 0, self.name, pos)
 
             if theState["multiplicative"]:
-                return [(level + i*trend) * cycle[i % L] for i in xrange(1, n + 1)]
+                return [(level + i*trend) * cycle[i % L] for i in range(1, n + 1)]
             else:
-                return [level + i*trend + cycle[i % L] for i in xrange(1, n + 1)]
+                return [level + i*trend + cycle[i % L] for i in range(1, n + 1)]
 
 provide(ForecastHoltWinters())
 

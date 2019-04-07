@@ -1267,15 +1267,15 @@ def checkData(data, avroType):
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, (AvroBytes, AvroFixed)):
-        if isinstance(data, unicode):
-            return data.encode("utf-8", "replace")
-        elif isinstance(data, str):
+        if isinstance(data, six.string_types):
             return data
+        elif isinstance(data, unicode):
+            return data.encode("utf-8", "replace")
         else:
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, (AvroString, AvroEnum)):
-        if isinstance(data, str):
+        if isinstance(data, six.string_types):
             return data.decode("utf-8", "replace")
         elif isinstance(data, unicode):
             return data
@@ -1293,7 +1293,7 @@ def checkData(data, avroType):
             newData = {}
             for key in data:
                 value = checkData(data[key], avroType.values)
-                if isinstance(key, str):
+                if isinstance(key, six.string_types):
                     newData[key.decode("utf-8", "replace")] = value
                 elif isinstance(key, unicode):
                     newData[key] = value

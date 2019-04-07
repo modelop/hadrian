@@ -19,6 +19,8 @@
 
 import math
 
+from six.moves import range
+
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
 from titus.signature import Sig
@@ -101,7 +103,7 @@ class RandomChoices(LibFcn):
     def __call__(self, state, scope, pos, paramTypes, size, population):
         if len(population) == 0:
             raise PFARuntimeException("population must not be empty", self.errcodeBase + 0, self.name, pos)
-        return [population[state.rand.randint(0, len(population) - 1)] for x in xrange(size)]
+        return [population[state.rand.randint(0, len(population) - 1)] for x in range(size)]
 provide(RandomChoices())
 
 class RandomSample(LibFcn):
@@ -158,16 +160,16 @@ class RandomString(LibFcn):
     def __call__(self, state, scope, pos, paramTypes, size, *args):
         if size <= 0: raise PFARuntimeException("size must be positive", self.errcodeBase + 0, self.name, pos)
         if len(args) == 0:
-            return "".join(unichr(state.rand.randint(1, 0xD800)) for x in xrange(size))
+            return "".join(unichr(state.rand.randint(1, 0xD800)) for x in range(size))
         elif len(args) == 1:
             if len(args[0]) == 0:
                 raise PFARuntimeException("population must be non-empty", self.errcodeBase + 3, self.name, pos)
-            return "".join(args[0][state.rand.randint(0, len(args[0]) - 1)] for x in xrange(size))
+            return "".join(args[0][state.rand.randint(0, len(args[0]) - 1)] for x in range(size))
         else:
             low, high = args
             if high <= low: raise PFARuntimeException("high must be greater than low", self.errcodeBase + 1, self.name, pos)
             if low < 1 or low > 0xD800 or high < 1 or high > 0xD800: raise PFARuntimeException("invalid char", self.errcodeBase + 2, self.name, pos)
-            return u"".join(unichr(state.rand.randint(low, high - 1)) for x in xrange(size))
+            return u"".join(unichr(state.rand.randint(low, high - 1)) for x in range(size))
 provide(RandomString())
 
 class RandomBytes(LibFcn):
@@ -179,16 +181,16 @@ class RandomBytes(LibFcn):
     def __call__(self, state, scope, pos, paramTypes, size, *args):
         if size <= 0: raise PFARuntimeException("size must be positive", self.errcodeBase + 0, self.name, pos)
         if len(args) == 0:
-            return "".join(chr(state.rand.randint(0, 255)) for x in xrange(size))
+            return "".join(chr(state.rand.randint(0, 255)) for x in range(size))
         elif len(args) == 1:
             if len(args[0]) == 0:
                 raise PFARuntimeException("population must be non-empty", self.errcodeBase + 3, self.name, pos)
-            return "".join(args[0][state.rand.randint(0, len(args[0]) - 1)] for x in xrange(size))
+            return "".join(args[0][state.rand.randint(0, len(args[0]) - 1)] for x in range(size))
         else:
             low, high = args
             if high <= low: raise PFARuntimeException("high must be greater than low", self.errcodeBase + 1, self.name, pos)
             if low < 0 or low > 255 or high < 0 or high > 256: raise PFARuntimeException("invalid byte", self.errcodeBase + 2, self.name, pos)
-            return "".join(chr(state.rand.randint(low, high - 1)) for x in xrange(size))
+            return "".join(chr(state.rand.randint(low, high - 1)) for x in range(size))
 provide(RandomBytes())
 
 class RandomUUID(LibFcn):

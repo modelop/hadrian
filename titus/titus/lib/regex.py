@@ -29,6 +29,8 @@ import titus.P as P
 import sys
 import ctypes
 
+from six.moves import range
+
 provides = {}
 def provide(fcn):
     provides[fcn.name] = fcn
@@ -169,7 +171,7 @@ class Region(object):
 def utf8ByteIndexes(s):
     out = []
     cumulative = 0
-    for i in xrange(len(s)):
+    for i in range(len(s)):
         out.append(cumulative)
         c = ord(s[i])
         if   (c <=     0x7f): cumulative += 1

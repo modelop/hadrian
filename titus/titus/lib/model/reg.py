@@ -19,6 +19,8 @@
 
 import math
 
+from six.moves import range
+
 def np():
     import numpy
     return numpy
@@ -261,7 +263,7 @@ class GaussianProcess(LibFcn):
 
             else:
                 out = [None] * n_outputs
-                for i in xrange(n_outputs):
+                for i in range(n_outputs):
                     y = np().array([t["to"][i] for t in table])
                     if "sigma" in table[0]:
                         nugget = np().array([(t["sigma"][i]/t["to"][i])**2 if t["to"][i] != 0.0 else float("inf") for t in table])
@@ -295,7 +297,7 @@ class GaussianProcess(LibFcn):
 
             else:
                 out = [None] * n_outputs
-                for i in xrange(n_outputs):
+                for i in range(n_outputs):
                     y = np().array([t["to"][i] for t in table])
                     if "sigma" in table[0]:
                         nugget = np().array([(t["sigma"][i]/t["to"][i])**2 if t["to"][i] != 0.0 else float("inf") for t in table])

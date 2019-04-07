@@ -19,6 +19,8 @@
 
 import math
 
+from six.moves import range
+
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
 from titus.signature import Sig
@@ -171,7 +173,7 @@ class Linear(LibFcn):
         unitless = div((datum - onex), (twox - onex))
         if len(oney) != len(twoy):
             raise PFARuntimeException("inconsistent dimensionality", code, fcnName, pos)
-        return [(1.0 - unitless)*oney[i] + unitless*twoy[i] for i in xrange(len(oney))]
+        return [(1.0 - unitless)*oney[i] + unitless*twoy[i] for i in range(len(oney))]
     def __call__(self, state, scope, pos, paramTypes, datum, table):
         one, two, between = Linear.closest(datum, table, self.errcodeBase + 0, self.name, pos)
         if isinstance(paramTypes[-1], dict) and paramTypes[-1].get("type") == "array":

@@ -19,6 +19,8 @@
 
 import math
 
+from six.moves import range
+
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
 from titus.signature import Sig
@@ -63,11 +65,11 @@ class Mean(LibFcn):
             else:
                 w = callfcn(state, scope, weight, [point])
 
-            for i in xrange(dimensions):
+            for i in range(dimensions):
                 numer[i] += w * point[i]
                 denom[i] += w
 
-        for i in xrange(dimensions):
+        for i in range(dimensions):
             numer[i] /= denom[i]
         return numer
 provide(Mean())

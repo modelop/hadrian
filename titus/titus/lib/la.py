@@ -19,6 +19,8 @@
 
 import math
 
+from six.moves import range
+
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
 from titus.signature import Sig
@@ -275,7 +277,7 @@ class Transpose(LibFcn):
                 raise PFARuntimeException("too few rows/cols", self.errcodeBase + 0, self.name, pos)
             if raggedArray(x):
                 raise PFARuntimeException("ragged columns", self.errcodeBase + 1, self.name, pos)
-            return [[x[r][c] for r in xrange(rows)] for c in xrange(cols)]
+            return [[x[r][c] for r in range(rows)] for c in range(cols)]
 
         elif isinstance(x, dict) and all(isinstance(x[i], dict) for i in x.keys()):
             rows = rowKeys(x)
@@ -329,7 +331,7 @@ class Trace(LibFcn):
                 cols = len(x[0])
                 if raggedArray(x):
                     raise PFARuntimeException("ragged columns", self.errcodeBase + 0, self.name, pos)
-                return sum(x[i][i] for i in xrange(min(rows, cols)))
+                return sum(x[i][i] for i in range(min(rows, cols)))
 
         elif isinstance(x, dict) and all(isinstance(x[i], dict) for i in x.keys()):
             keys = rowKeys(x).intersection(colKeys(x))
@@ -397,7 +399,7 @@ class Symmetric(LibFcn):
                 raise PFARuntimeException("ragged columns", self.errcodeBase + 1, self.name, pos)
             if rows != cols:
                 raise PFARuntimeException("non-square matrix", self.errcodeBase + 2, self.name, pos)
-            return all(all(self.same(x[i][j], x[j][i], tol) for j in xrange(cols)) for i in xrange(rows))
+            return all(all(self.same(x[i][j], x[j][i], tol) for j in range(cols)) for i in range(rows))
 
         elif isinstance(x, dict) and all(isinstance(x[i], dict) for i in x.keys()):
             keys = list(rowKeys(x).union(colKeys(x)))
@@ -418,14 +420,14 @@ class EigenBasis(LibFcn):
 
         evals, evects = np().linalg.eig(symm)
         evects = np().array(evects)
-        evects2 = [evects[:,i] * (-1.0 if evects[0,i] < 0.0 else 1.0) for i in xrange(size)]
+        evects2 = [evects[:,i] * (-1.0 if evects[0,i] < 0.0 else 1.0) for i in range(size)]
 
         eigvalm2 = [div(1.0, math.sqrt(abs(ei))) for ei in evals]
         order = np().argsort(eigvalm2)
 
         out = np().empty((size, size), dtype=np().double)
-        for i in xrange(size):
-            for j in xrange(size):
+        for i in range(size):
+            for j in range(size):
                 out[i,j] = evects2[order[i]][j] * eigvalm2[order[i]]
         return out
 
@@ -451,7 +453,7 @@ class EigenBasis(LibFcn):
                 raise PFARuntimeException("too few rows/cols", self.errcodeBase + 0, self.name, pos)
             if any(any(math.isnan(z) or math.isinf(z) for z in row.values()) for row in x.values()):
                 raise PFARuntimeException("non-finite matrix", self.errcodeBase + 3, self.name, pos)
-            return matrixToMaps(self.calculate(mapsToMatrix(x, keys, keys), len(keys)), map(str, xrange(len(keys))), keys)
+            return matrixToMaps(self.calculate(mapsToMatrix(x, keys, keys), len(keys)), map(str, range(len(keys))), keys)
 
 provide(EigenBasis())
 

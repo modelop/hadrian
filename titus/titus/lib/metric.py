@@ -20,6 +20,8 @@
 import math
 import itertools
 
+from six.moves import range
+
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
 from titus.signature import Sig
@@ -73,7 +75,7 @@ class MetricWithMissingValues(LibFcn):
         tally = 0.0
         numer = 0.0
         denom = 0.0
-        for i in xrange(length):
+        for i in range(length):
             xi = x[i]
             yi = y[i]
             if xi is not None and yi is not None:
@@ -160,7 +162,7 @@ class Minkowski(LibFcn):
         numer = 0.0
         denom = 0.0
         if math.isinf(p):
-            for i in xrange(length):
+            for i in range(length):
                 xi = x[i]
                 yi = y[i]
                 if xi is not None and yi is not None:
@@ -178,7 +180,7 @@ class Minkowski(LibFcn):
             else:
                 return tally * numer / denom
         else:
-            for i in xrange(length):
+            for i in range(length):
                 xi = x[i]
                 yi = y[i]
                 if xi is not None and yi is not None:

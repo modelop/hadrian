@@ -23,6 +23,7 @@ import sys
 import random
 
 import six
+from six.moves import range
 
 from titus.datatype import *
 from titus.genpy import PFAEngine
@@ -70,17 +71,17 @@ def makeData(avroType):
     elif isinstance(avroType, AvroDouble):
         return random.random()
     elif isinstance(avroType, AvroBytes):
-        return "".join(chr(random.randint(0, 255)) for x in xrange(10))
+        return "".join(chr(random.randint(0, 255)) for x in range(10))
     elif isinstance(avroType, AvroFixed):
-        return "".join(chr(random.randint(0, 255)) for x in xrange(avroType.size))
+        return "".join(chr(random.randint(0, 255)) for x in range(avroType.size))
     elif isinstance(avroType, AvroString):
-        return "".join(random.choice(unicodeAlphabet) for x in xrange(10))
+        return "".join(random.choice(unicodeAlphabet) for x in range(10))
     elif isinstance(avroType, AvroEnum):
         return random.choice(avroType.symbols)
     elif isinstance(avroType, AvroArray):
-        return [makeData(avroType.items) for x in xrange(0, random.randint(0, 10))]
+        return [makeData(avroType.items) for x in range(0, random.randint(0, 10))]
     elif isinstance(avroType, AvroMap):
-        return dict(("".join(random.choice(unicodeAlphabet) for x in xrange(10)), makeData(avroType.values)) for x in xrange(0, random.randint(0, 10)))
+        return dict(("".join(random.choice(unicodeAlphabet) for x in range(10)), makeData(avroType.values)) for x in range(0, random.randint(0, 10)))
     elif isinstance(avroType, AvroRecord):
         return dict((f.name, makeData(f.avroType)) for f in avroType.fields)
     elif isinstance(avroType, AvroUnion):
@@ -204,7 +205,7 @@ if __name__ == "__main__":
     if arguments.check:
         engine, = PFAEngine.fromJson(pfaDocument)
         engine.begin()
-        for i in xrange(100):
+        for i in range(100):
             datum = makeData(inputType)
             sys.stderr.write("INPUT: " + repr(datum) + "\n")
             result = engine.action(datum)

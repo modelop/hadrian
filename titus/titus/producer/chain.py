@@ -22,6 +22,7 @@ import sys
 import time
 
 import avro.schema
+from six.moves import range
 
 import titus.pfaast
 import titus.reader
@@ -335,7 +336,7 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
             return True
         else:
             return False
-    for i in xrange(len(pfas) - 1):
+    for i in range(len(pfas) - 1):
         first = pfas[i].output
         second = pfas[i + 1].input
         if not chainPair(i, first, second, set()):
