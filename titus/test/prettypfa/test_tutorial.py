@@ -41,7 +41,7 @@ class TestTutorial(unittest.TestCase):
 
     def check(self, inputs, pfa, outputs, allowedExceptions=()):
         inputs = map(json.loads, inputs.strip().split("\n"))
-        outputs = map(json.loads, outputs.strip().split("\n"))
+        outputs = list(map(json.loads, outputs.strip().split("\n")))
 
         engine, = titus.prettypfa.engine(pfa)
 
