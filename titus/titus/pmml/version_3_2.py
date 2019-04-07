@@ -17,7 +17,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import version_independent as ind    
+from . import version_independent as ind
 
 namespace = "http://www.dmg.org/PMML-3_2"
         
