@@ -19,6 +19,7 @@
 
 import json
 import math
+import sys
 
 import avro.io
 import avro.schema
@@ -27,6 +28,11 @@ import six
 import titus.errors
 import titus.util
 from titus.util import ts
+
+if sys.version_info[0] == 3:
+    from avro.schema import SchemaFromJSONData as make_avsc_object
+else:
+    from avro.schema import make_avsc_object
 
 ######################################################### the most general types
 
@@ -696,10 +702,12 @@ class AvroFilledPlaceholder(AvroPlaceholder):
 
 def parseAvroType(obj):
     """Parse an AVSC object without any memory of named types."""
-    return schemaToAvroType(avro.schema.make_avsc_object(obj, avro.schema.Names()))
+    return schemaToAvroType(make_avsc_object(obj, avro.schema.Names()))
 
 class ForwardDeclarationParser(object):
-    """Container that stores Avro types as they're collected from a PFA file, returning titus.datatype.AvroPlaceholder objects, and then resolves those types independent of the order in which they were read from the file."""
+    """Container that stores Avro types as they're collected from a PFA file,
+    returning titus.datatype.AvroPlaceholder objects, and then resolves those
+    types independent of the order in which they were read from the file."""
 
     def __init__(self):
         self.names = avro.schema.Names()
@@ -733,7 +741,7 @@ class ForwardDeclarationParser(object):
                         oldnames = dict(self.names.names)
 
                         try:
-                            gotit = avro.schema.make_avsc_object(obj, self.names)
+                            gotit = make_avsc_object(obj, self.names)
                         except avro.schema.SchemaParseException as err:
                             self.names.names = oldnames
                             errorMessages[jsonString] = str(err)
