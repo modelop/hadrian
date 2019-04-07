@@ -526,8 +526,11 @@ class AvroMap(AvroContainer, AvroMapping):
     def jsonNode(self, memo):
         return {"type": "map", "values": self.values.jsonNode(memo)}
 
+
 class AvroRecord(AvroContainer, AvroMapping, AvroCompiled):
-    """Avro "record" type for inhomogeneous collections of named (and required) fields."""
+    """Avro "record" type for inhomogeneous collections of named (and required)
+    fields."""
+
     def __init__(self, fields, name=None, namespace=None):
         """Create an AvroRecord manually.
 
@@ -540,10 +543,17 @@ class AvroRecord(AvroContainer, AvroMapping, AvroCompiled):
         """
         if name is None:
             name = titus.util.uniqueRecordName()
-        self._schema = avro.schema.RecordSchema(
-            name=name, namespace=namespace, fields=[],
-            names=avro.schema.Names())
-        self._schema.set_prop("fields", [x.schema for x in fields])
+
+        fields = [x.schema for x in fields]
+
+        if sys.version_info[0] == 3:
+            self._schema = avro.schema.RecordSchema(
+                name=name, namespace=namespace, fields=fields,
+                names=avro.schema.Names())
+        else:
+            self._schema = avro.schema.RecordSchema(
+                name, namespace, [], avro.schema.Names(), "record")
+            self._schema.set_prop("fields", fields)
 
     @property
     def fields(self):
@@ -603,12 +613,14 @@ class AvroUnion(AvroType):
 
 class AvroField(object):
     """Field of a titus.datatype.AvroRecord."""
+
     @staticmethod
     def fromSchema(schema):
         """Create a field from an avro.schema.Schema."""
         out = AvroField.__new__(AvroField)
         out._schema = schema
         return out
+
     def __init__(self, name, avroType, default=None, order=None):
         """Create an AvroField manually.
 
@@ -622,33 +634,41 @@ class AvroField(object):
         :param order: sort order (used in Hadoop secondary sort)
         """
         # avro Field class takes different init args on Python 2 vs. 3
-        field_args = dict(type=avroType.schema.to_json(), name=name,
-            has_default=default is not None, default=default, order=order,
-            names=avro.schema.Names())
         if sys.version_info[0] == 3:
-            field_args['index'] = 0
-        self._schema = avro.schema.Field(**field_args)
+            self._schema = avro.schema.Field(
+                type=avroType.schema, name=name,
+                has_default=default is not None, default=default, order=order,
+                names=avro.schema.Names(), index=0)
+        else:
+            self._schema = avro.schema.Field(
+                avroType.schema.to_json(), name, default is not None, default,
+                order, avro.schema.Names())
 
     @property
     def schema(self):
         """Get the field type as an avro.schema.Schema."""
         return self._schema
+
     def __repr__(self):
         return json.dumps(self.schema.to_json())
+
     @property
     def name(self):
         """Get the field name."""
         return self.schema.name
+
     @property
     def avroType(self):
         """Get the field type as a titus.datatype.AvroType."""
         return schemaToAvroType(self.schema.type)
+
     @property
     def default(self):
         """Get the field default value."""
         # On avro-python3, .default won't be set if None was passed at init,
         # so use .get on the internal _props dictionary.
         return self.schema._props.get('default')
+
     @property
     def order(self):
         """Get the field order."""
@@ -767,7 +787,10 @@ class ForwardDeclarationParser(object):
                         try:
                             gotit = make_avsc_object(obj, self.names)
                         except avro.schema.SchemaParseException as err:
-                            self.names.names = oldnames
+                            if sys.version_info[0] == 3:
+                                self.names._names = oldnames
+                            else:
+                                self.names.names = oldnames
                             errorMessages[jsonString] = str(err)
                         else:
                             schemae[jsonString] = gotit
