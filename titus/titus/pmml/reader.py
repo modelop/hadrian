@@ -21,6 +21,7 @@ import gzip
 import io
 import xml.sax
 import xml.sax.handler
+import six
 
 from titus.datatype import AvroTypeBuilder
 import titus.pmml.version_independent
@@ -113,7 +114,7 @@ def loadPMML(pmmlInput, processNamespaces=False):
     :return: loaded PMML
     """
 
-    if isinstance(pmmlInput, basestring):
+    if isinstance(pmmlInput, six.string_types):
         if len(pmmlInput) >= 2 and pmmlInput[0:2] == "\x1f\x8b":
             pmmlInput = gzip.GzipFile(fileobj=io.StringIO(pmmlInput))
         elif pmmlInput.find("<") != -1:

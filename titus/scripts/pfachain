@@ -21,6 +21,8 @@ import argparse
 import json
 import sys
 
+import six
+
 import titus.producer.chain
 
 if __name__ == "__main__":
@@ -46,7 +48,7 @@ if __name__ == "__main__":
         arguments.metadata = json.loads(arguments.metadata)
     except ValueError:
         argparser.error("Metadata must be JSON formatted.")
-    if not isinstance(arguments.metadata, dict) or any(not isinstance(x, basestring) for x in arguments.metadata.values()):
+    if not isinstance(arguments.metadata, dict) or any(not isinstance(x, six.string_types) for x in arguments.metadata.values()):
         argparser.error("Metadata must be a JSON object of strings.")
 
     try:

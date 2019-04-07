@@ -19,6 +19,7 @@
 
 import math
 
+import six
 import numpy
 
 from titus.pfaast import Ast
@@ -106,7 +107,7 @@ class Transformation(object):
             return sum((Transformation.findFields(v) for k, v in x.items() if k != "@"), [])
         elif isinstance(x, (list, tuple)):
             return sum((Transformation.findFields(xi) for xi in x), [])
-        elif isinstance(x, basestring):
+        elif isinstance(x, six.string_types):
             return [x]
         else:
             return []
@@ -127,7 +128,7 @@ class Transformation(object):
             return dict((k, Transformation.replace(v, subs)) for k, v in x.items())
         elif isinstance(x, (list, tuple)):
             return [Transformation.replace(xi, subs) for xi in x]
-        elif isinstance(x, basestring) and x in subs:
+        elif isinstance(x, six.string_types) and x in subs:
             return subs[x]
         else:
             return x
@@ -253,7 +254,7 @@ class Transformation(object):
 
         if isinstance(x, Ast):
             return x.jsonNode(False, set())
-        elif isinstance(x, basestring):
+        elif isinstance(x, six.string_types):
             return ppfa(x).jsonNode(False, set())
         else:
             return pfa(x).jsonNode(False, set())
@@ -292,7 +293,7 @@ class Transformation(object):
         elif isinstance(avroType, AvroRecord):
             return {"type": avroType.name,
                     "new": dict((k, Transformation.replace(v, subs2)) for k, v in self.pfas.items())}
-        elif isinstance(avroType, dict) and avroType["type"] == "record" or isinstance(avroType, basestring):
+        elif isinstance(avroType, dict) and avroType["type"] == "record" or isinstance(avroType, six.string_types):
             return {"type": avroType,
                     "new": dict((k, Transformation.replace(v, subs2)) for k, v in self.pfas.items())}
 

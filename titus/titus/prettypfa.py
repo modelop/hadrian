@@ -22,6 +22,7 @@ import base64
 import json as jsonlib
 import re
 from collections import OrderedDict
+import six
 
 from titus.pfaast import Subs
 from titus.pfaast import validSymbolName
@@ -333,7 +334,7 @@ class ResolvedSubs(Token, MiniAst):
     def asExpr(self, state):
         if isinstance(self.value, Ast):
             return self.value
-        elif isinstance(self.value, basestring):
+        elif isinstance(self.value, six.string_types):
             return ppfa(self.value)
         else:
             return pfa(self.value)
@@ -2150,7 +2151,7 @@ def subs(originalAst, **subs2):
     def pf(node):
         out = subs2[node.name]
         if node.context == "expr":
-            if isinstance(out, basestring):
+            if isinstance(out, six.string_types):
                 out = ppfa(out)
             elif not isinstance(out, Ast):
                 out = pfa(out)

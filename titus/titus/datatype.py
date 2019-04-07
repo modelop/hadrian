@@ -22,6 +22,7 @@ import math
 
 import avro.io
 import avro.schema
+import six
 
 import titus.errors
 import titus.util
@@ -725,7 +726,7 @@ class ForwardDeclarationParser(object):
                 if jsonString not in schemae:
                     obj = json.loads(jsonString)
 
-                    if isinstance(obj, basestring) and self.names.has_name(obj, None):
+                    if isinstance(obj, six.string_types) and self.names.has_name(obj, None):
                         gotit = self.names.get_name(obj, None)
                         schemae[jsonString] = gotit
                     else:
@@ -760,7 +761,7 @@ class ForwardDeclarationParser(object):
             return result.avroType
 
     def getAvroType(self, description):
-        if isinstance(description, basestring):
+        if isinstance(description, six.string_types):
             if self.names.has_name(description, None):
                 return schemaToAvroType(self.names.get_name(description, None))
             elif description == "null":
@@ -912,18 +913,18 @@ def jsonDecoder(avroType, value):
         except (ValueError, TypeError):
             pass
     elif isinstance(avroType, AvroBytes):
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             return bytes(value)
     elif isinstance(avroType, AvroFixed):
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             out = bytes(value)
             if len(out) == avroType.size:
                 return out
     elif isinstance(avroType, AvroString):
-        if isinstance(value, basestring):
+        if isinstance(value, six.string_types):
             return value
     elif isinstance(avroType, AvroEnum):
-        if isinstance(value, basestring) and value in avroType.symbols:
+        if isinstance(value, six.string_types) and value in avroType.symbols:
             return value
     elif isinstance(avroType, AvroArray):
         if isinstance(value, (list, tuple)):
@@ -982,15 +983,15 @@ def jsonEncoder(avroType, value, tagged=True):
         return float(value)
     elif isinstance(avroType, AvroDouble) and isinstance(value, (int, float)) and value is not True and value is not False:
         return float(value)
-    elif isinstance(avroType, AvroBytes) and isinstance(value, basestring):
+    elif isinstance(avroType, AvroBytes) and isinstance(value, six.string_types):
         return value
-    elif isinstance(avroType, AvroFixed) and isinstance(value, basestring):
+    elif isinstance(avroType, AvroFixed) and isinstance(value, six.string_types):
         out = bytes(value)
         if len(out) == avroType.size:
             return out
-    elif isinstance(avroType, AvroString) and isinstance(value, basestring):
+    elif isinstance(avroType, AvroString) and isinstance(value, six.string_types):
         return value
-    elif isinstance(avroType, AvroEnum) and isinstance(value, basestring) and value in avroType.symbols:
+    elif isinstance(avroType, AvroEnum) and isinstance(value, six.string_types) and value in avroType.symbols:
         return value
     elif isinstance(avroType, AvroArray) and isinstance(value, (list, tuple)):
         return [jsonEncoder(avroType.items, x, tagged) for x in value]
@@ -1079,13 +1080,13 @@ def compare(avroType, x, y):
                 return -1
             else:
                 return cmp(x, y)
-    elif isinstance(avroType, AvroBytes) and isinstance(x, basestring) and isinstance(y, basestring):
+    elif isinstance(avroType, AvroBytes) and isinstance(x, six.string_types) and isinstance(y, six.string_types):
         return cmp(x, y)
-    elif isinstance(avroType, AvroFixed) and isinstance(x, basestring) and isinstance(y, basestring):
+    elif isinstance(avroType, AvroFixed) and isinstance(x, six.string_types) and isinstance(y, six.string_types):
         return cmp(x, y)
-    elif isinstance(avroType, AvroString) and isinstance(x, basestring) and isinstance(y, basestring):
+    elif isinstance(avroType, AvroString) and isinstance(x, six.string_types) and isinstance(y, six.string_types):
         return cmp(x, y)
-    elif isinstance(avroType, AvroEnum) and isinstance(x, basestring) and x in avroType.symbols and isinstance(y, basestring) and y in avroType.symbols:
+    elif isinstance(avroType, AvroEnum) and isinstance(x, six.string_types) and x in avroType.symbols and isinstance(y, six.string_types) and y in avroType.symbols:
         comparison = avroType.symbols.index(x) - avroType.symbols.index(y)
         if comparison < 0:
             return -1
@@ -1210,7 +1211,7 @@ def checkData(data, avroType):
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroInt):
-        if isinstance(data, basestring):
+        if isinstance(data, six.string_types):
             try:
                 data = int(data)
             except ValueError:
@@ -1223,7 +1224,7 @@ def checkData(data, avroType):
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroLong):
-        if isinstance(data, basestring):
+        if isinstance(data, six.string_types):
             try:
                 data = int(data)
             except ValueError:
@@ -1236,7 +1237,7 @@ def checkData(data, avroType):
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroFloat):
-        if isinstance(data, basestring):
+        if isinstance(data, six.string_types):
             try:
                 data = float(data)
             except ValueError:
@@ -1251,7 +1252,7 @@ def checkData(data, avroType):
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroDouble):
-        if isinstance(data, basestring):
+        if isinstance(data, six.string_types):
             try:
                 data = float(data)
             except ValueError:

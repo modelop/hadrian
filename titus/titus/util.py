@@ -20,6 +20,14 @@
 import inspect
 import sys
 
+import six
+
+# For Python 2 and 3 compatibility
+try:
+    from inspect import getfullargspec as get_args
+except ImportError:
+    from inspect import getargspec as get_args
+
 TYPE_ERRORS_IN_PRETTYPFA = True
 def ts(avroType):
     """Create a human-readable type string of a type.
@@ -237,7 +245,7 @@ def case(clazz):
     When applied to a class, read the parameters of the ``__init__`` and turn them into class fields and show them in the ``__repr__`` representation.
     """
 
-    fields = [x for x in inspect.getargspec(clazz.__init__).args[1:] if x != "pos"]
+    fields = [x for x in get_args(clazz.__init__).args[1:] if x != "pos"]
 
     try:
         code = clazz.__init__.__func__
@@ -247,7 +255,7 @@ def case(clazz):
     context = dict(globals())
     context[clazz.__name__] = clazz
 
-    if "pos" in inspect.getargspec(clazz.__init__).args:
+    if "pos" in get_args(clazz.__init__).args:
         argFields = fields + ["pos=None"]
         assignFields = fields + ["pos"]
     else:
@@ -345,7 +353,7 @@ def avscToPretty(avsc, indent=0):
     :return: PrettyPFA representation
     """
 
-    if isinstance(avsc, basestring):
+    if isinstance(avsc, six.string_types):
         return " " * indent + avsc
     elif isinstance(avsc, dict) and "type" in avsc:
         tpe = avsc["type"]

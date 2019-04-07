@@ -23,6 +23,7 @@ import math
 import json
 from collections import OrderedDict
 
+import six
 import numpy
 
 from titus.signature import LabelData
@@ -66,7 +67,7 @@ class Dataset(object):
 
             if self.tpe == numbers.Real:
                 self.data = numpy.array(self.data, dtype=numpy.dtype(float))
-            elif self.tpe == basestring:
+            elif self.tpe == six.string_types:
                 unique = sorted(set(self.data))
                 intToStr = dict(enumerate(unique))
                 strToInt = dict((x, i) for i, x in enumerate(unique))
@@ -103,7 +104,7 @@ class Dataset(object):
 
             if self.tpe == numbers.Real:
                 self.data = list(self.data)
-            elif self.tpe == basestring:
+            elif self.tpe == six.string_types:
                 converter = numpy.array([x for i, x in sorted(self.intToStr.items())], dtype=numpy.dtype(object))
                 self.data = list(converter[self.data])
             return self
@@ -116,7 +117,7 @@ class Dataset(object):
     def fromIterable(cls, iterable, limit=None, names=None):
         """Constructor for Dataset that takes a Python iterable (rows) of iterables (columns).
 
-        Each row must have the same number of fields with the same types (``numbers.Real`` or ``basestring``).
+        Each row must have the same number of fields with the same types (``numbers.Real`` or ``six.string_types``).
 
         :type iterable: Python iterable
         :param iterable: input dataset
@@ -134,8 +135,8 @@ class Dataset(object):
                 for word in line:
                     if isinstance(word, numbers.Real):
                         fields.append(cls.Field(numbers.Real))
-                    elif isinstance(word, basestring):
-                        fields.append(cls.Field(basestring))
+                    elif isinstance(word, six.string_types):
+                        fields.append(cls.Field(six.string_types))
                     else:
                         raise ValueError("record type must be a real number or a string, not {0}".format(type(word)))
                 if names is None:
@@ -217,7 +218,7 @@ class TreeNode(object):
             except TypeError:
                 self.predictandUnique = numpy.unique1d(self.predictand.data)
 
-        elif self.predictand.tpe == basestring:
+        elif self.predictand.tpe == six.string_types:
             if self.datasetSize > 0:
                 self.predictandDistribution = []
                 for category in xrange(len(self.predictand.intToStr)):
@@ -248,7 +249,7 @@ class TreeNode(object):
 
         If the predictand is numerical (``numbers.Real``), the node has attributes: ``datasetSize``, ``predictandUnique``, ``nTimesVariance``, and ``gain``.
 
-        If the predictand is categorical (``basestring``), the node has attributes: ``datasetSize``, ``predictandDistribution``, ``entropy``, and ``gain``.
+        If the predictand is categorical (``six.string_types``), the node has attributes: ``datasetSize``, ``predictandDistribution``, ``entropy``, and ``gain``.
 
         Splits are performed *in-place*, changing this ``TreeNode``.
 
@@ -269,7 +270,7 @@ class TreeNode(object):
 
         if self.predictand.tpe == numbers.Real:
             return len(self.predictandUnique) > 1
-        elif self.predictand.tpe == basestring:
+        elif self.predictand.tpe == six.string_types:
             return numpy.count_nonzero(self.predictandDistribution) > 0
         else:
             raise RuntimeError
@@ -279,7 +280,7 @@ class TreeNode(object):
 
         if self.predictand.tpe == numbers.Real:
             return numpy.mean(self.predictand.data)
-        elif self.predictand.tpe == basestring:
+        elif self.predictand.tpe == six.string_types:
             return self.predictand.intToStr[numpy.argmax(self.predictandDistribution)]
         else:
             raise RuntimeError
@@ -287,7 +288,7 @@ class TreeNode(object):
     def splitOnce(self):
         """Compute an optimized split in one field, adding two new ``TreeNodes`` below this one.
 
-        If the predictand is numerical (``numbers.Real``), the split minimizes entropy; if categorical (``basestring``), it minimizes n-times-variance.
+        If the predictand is numerical (``numbers.Real``), the split minimizes entropy; if categorical (``six.string_types``), it minimizes n-times-variance.
         """
 
         # build a regression tree using n-times-variance as the metric to optimize
@@ -302,7 +303,7 @@ class TreeNode(object):
             for fieldIndex, field in enumerate(self.dataset.fields):
                 if field.tpe == numbers.Real:
                     gainTerm, split = self.numericalNVarianceGainTerm(field)
-                elif field.tpe == basestring:
+                elif field.tpe == six.string_types:
                     gainTerm, split = self.categoricalNVarianceGainTerm(field, self.maxSubsetSize)
                 else:
                     raise RuntimeError
@@ -318,7 +319,7 @@ class TreeNode(object):
                     self.field = field
             
         # build a classification tree using entropy as the metric to optimize
-        elif self.predictand.tpe == basestring:
+        elif self.predictand.tpe == six.string_types:
             # find the best split by maximizing entropic gain
             self.entropy = 0.0
             for frac in self.predictandDistribution:
@@ -334,7 +335,7 @@ class TreeNode(object):
                 # go to a function that finds the best choice for that field
                 if field.tpe == numbers.Real:
                     gainTerm, split = self.numericalEntropyGainTerm(field)
-                elif field.tpe == basestring:
+                elif field.tpe == six.string_types:
                     gainTerm, split = self.categoricalEntropyGainTerm(field, self.maxSubsetSize)
                 else:
                     raise RuntimeError
@@ -355,7 +356,7 @@ class TreeNode(object):
         # construct a new dataset by splitting the best field, best split
         if self.field.tpe == numbers.Real:
             passSelection = self.field.data <= self.split
-        elif self.field.tpe == basestring:
+        elif self.field.tpe == six.string_types:
             passSelection = numpy.in1d(self.field.data, self.split)
         failSelection = numpy.logical_not(passSelection)
 
@@ -696,7 +697,7 @@ class TreeNode(object):
                     if field["type"] not in ("int", "long", "float", "double"):
                         raise TypeError("dataType field \"{0}\" must be a numeric type, since this was a numeric type in the dataset training".format(field["name"]))
                     dataFieldTypes.append(field["type"])
-                elif self.dataset.fields[fieldIndex].tpe == basestring:
+                elif self.dataset.fields[fieldIndex].tpe == six.string_types:
                     if field["type"] != "string":
                         raise TypeError("dataType field \"{0}\" must be a string, since this was a string in the dataset training".format(field["name"]))
                     if self.maxSubsetSize == 1:
@@ -717,7 +718,7 @@ class TreeNode(object):
 
         if self.predictand.tpe == numbers.Real:
             return "double"
-        elif self.predictand.tpe == basestring:
+        elif self.predictand.tpe == six.string_types:
             return "string"
         else:
             raise RuntimeError
@@ -767,7 +768,7 @@ class TreeNode(object):
             out["fields"].append({"name": "datasetSize", "type": "int"})
 
         if predictandDistribution:
-            if self.predictand.tpe != basestring:
+            if self.predictand.tpe != six.string_types:
                 raise TypeError("predictandDistribution can only be used if the predictand is a string (classification trees)")
             out["fields"].append({"name": "scoreDistribution", "type": {"type": "map", "values": "int"}})
 
@@ -775,7 +776,7 @@ class TreeNode(object):
             out["fields"].append({"name": "scoreValues", "type": {"type": "array", "items": scoreType}})
 
         if entropy:
-            if self.predictand.tpe != basestring:
+            if self.predictand.tpe != six.string_types:
                 raise TypeError("entropy can only be used if the predictand is a string (classification trees)")
             out["fields"].append({"name": "entropy", "type": "double"})
 
@@ -834,7 +835,7 @@ class TreeNode(object):
             if self.field.tpe == numbers.Real:
                 operator = "<="
                 value = self.split
-            elif self.field.tpe == basestring:
+            elif self.field.tpe == six.string_types:
                 if self.maxSubsetSize == 1:
                     operator = "=="
                     value = self.dataset.fields[self.fieldIndex].intToStr[self.split[0]]
@@ -875,7 +876,7 @@ class TreeNode(object):
                 out["datasetSize"] = self.datasetSize
 
             if predictandDistribution:
-                if self.predictand.tpe != basestring:
+                if self.predictand.tpe != six.string_types:
                     raise TypeError("predictandDistribution can only be used if the predictand is a string (classification trees)")
                 out["scoreDistribution"] = OrderedDict(sorted((self.predictand.intToStr[i], x) for i, x in enumerate(self.predictandDistribution)))
 
@@ -888,7 +889,7 @@ class TreeNode(object):
                     raise RuntimeError
 
             if entropy:
-                if self.predictand.tpe != basestring:
+                if self.predictand.tpe != six.string_types:
                     raise TypeError("entropy can only be used if the predictand is a string (classification trees)")
                 out["entropy"] = self.entropy
 

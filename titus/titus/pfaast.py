@@ -22,6 +22,8 @@ import json
 import re
 from collections import OrderedDict
 
+import six
+
 import titus.lib.core
 import titus.lib.pfamath
 import titus.lib.spec
@@ -719,10 +721,10 @@ class EngineConfig(Ast):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(name, basestring):
+        if not isinstance(name, six.string_types):
             raise PFASyntaxException("\"name\" must be a string", pos)
 
         if method not in (Method.MAP, Method.EMIT, Method.FOLD):
@@ -746,7 +748,7 @@ class EngineConfig(Ast):
         if not isinstance(fcns, dict) or not all(isinstance(x, FcnDef) for x in fcns.values()):
             raise PFASyntaxException("\"fcns\" must be a dictionary of FcnDefs", pos)
 
-        if not isinstance(zero, basestring) and not zero is None:
+        if not isinstance(zero, six.string_types) and not zero is None:
             raise PFASyntaxException("\"zero\" must be a string or None", pos)
 
         if (not isinstance(merge, (list, tuple)) or not all(isinstance(x, Expression) for x in merge)) and not merge is None:
@@ -761,13 +763,13 @@ class EngineConfig(Ast):
         if not isinstance(randseed, int) and not randseed is None:
             raise PFASyntaxException("\"randseed\" must be an int or None", pos)
 
-        if not isinstance(doc, basestring) and not doc is None:
+        if not isinstance(doc, six.string_types) and not doc is None:
             raise PFASyntaxException("\"doc\" must be a string or None", pos)
 
         if not isinstance(version, int) and not version is None:
             raise PFASyntaxException("\"version\" must be an int or None", pos)
 
-        if not isinstance(metadata, dict) or not all(isinstance(x, basestring) for x in metadata.values()):
+        if not isinstance(metadata, dict) or not all(isinstance(x, six.string_types) for x in metadata.values()):
             raise PFASyntaxException("\"metadata\" must be a dictionary of strings", pos)
 
         if not isinstance(options, dict):
@@ -1124,13 +1126,13 @@ class Cell(Ast):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(avroPlaceholder, (AvroPlaceholder, AvroType)):
             raise PFASyntaxException("\"avroPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
 
-        if not isinstance(init, basestring) and not callable(init):
+        if not isinstance(init, six.string_types) and not callable(init):
             raise PFASyntaxException("\"init\" must be a string or callable", pos)
 
         if not isinstance(shared, bool):
@@ -1139,7 +1141,7 @@ class Cell(Ast):
         if not isinstance(rollback, bool):
             raise PFASyntaxException("\"rollback\" must be boolean", pos)
 
-        if not isinstance(source, basestring) and not source is None:
+        if not isinstance(source, six.string_types) and not source is None:
             raise PFASyntaxException("\"source\" must be a string or None", pos)
         
         if shared and rollback:
@@ -1224,13 +1226,13 @@ class Pool(Ast):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(avroPlaceholder, (AvroPlaceholder, AvroType)):
             raise PFASyntaxException("\"avroPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
 
-        if not isinstance(init, dict) or not all(isinstance(x, basestring) or x is None for x in init.values()):
+        if not isinstance(init, dict) or not all(isinstance(x, six.string_types) or x is None for x in init.values()):
             raise PFASyntaxException("\"init\" must be a string or callable", pos)
 
         if not isinstance(shared, bool):
@@ -1239,7 +1241,7 @@ class Pool(Ast):
         if not isinstance(rollback, bool):
             raise PFASyntaxException("\"rollback\" must be boolean", pos)
 
-        if not isinstance(source, basestring) and not source is None:
+        if not isinstance(source, six.string_types) and not source is None:
             raise PFASyntaxException("\"source\" must be a string or None", pos)
 
         if shared and rollback:
@@ -1419,7 +1421,7 @@ class FcnDef(Argument):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(paramsPlaceholder, (list, tuple)) or not all(isinstance(x, dict) and len(x) == 1 and isinstance(x.values()[0], (AvroPlaceholder, AvroType)) for x in paramsPlaceholder):
@@ -1552,10 +1554,10 @@ class FcnRef(Argument):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(name, basestring):
+        if not isinstance(name, six.string_types):
             raise PFASyntaxException("\"name\" must be a string", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions, version):
@@ -1631,10 +1633,10 @@ class FcnRefFill(Argument):
         :param pos: source file location from the locator mark
         """
         
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(name, basestring):
+        if not isinstance(name, six.string_types):
             raise PFASyntaxException("\"name\" must be a string", pos)
 
         if not isinstance(fill, dict) or not all(isinstance(x, Argument) for x in fill.values()):
@@ -1770,7 +1772,7 @@ class CallUserFcn(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(name, Expression):
@@ -1910,10 +1912,10 @@ class Call(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(name, basestring):
+        if not isinstance(name, six.string_types):
             raise PFASyntaxException("\"name\" must be a string", pos)
 
         if not isinstance(args, (list, tuple)) or not all(isinstance(x, Argument) for x in args):
@@ -2039,10 +2041,10 @@ class Ref(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(name, basestring):
+        if not isinstance(name, six.string_types):
             raise PFASyntaxException("\"name\" must be a string", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions, version):
@@ -2092,7 +2094,7 @@ class LiteralNull(LiteralValue):
         """:type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
     def walk(self, task, symbolTable, functionTable, engineOptions, version):
@@ -2144,7 +2146,7 @@ class LiteralBoolean(LiteralValue):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(value, bool):
@@ -2199,7 +2201,7 @@ class LiteralInt(LiteralValue):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(value, int):
@@ -2254,7 +2256,7 @@ class LiteralLong(LiteralValue):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(value, int):
@@ -2311,7 +2313,7 @@ class LiteralFloat(LiteralValue):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(value, (int, float)):
@@ -2368,7 +2370,7 @@ class LiteralDouble(LiteralValue):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(value, (int, float)):
@@ -2423,10 +2425,10 @@ class LiteralString(LiteralValue):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(value, basestring):
+        if not isinstance(value, six.string_types):
             raise PFASyntaxException("\"value\" must be a string", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions, version):
@@ -2480,10 +2482,10 @@ class LiteralBase64(LiteralValue):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(value, basestring):
+        if not isinstance(value, six.string_types):
             raise PFASyntaxException("\"value\" must be a string", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions, version):
@@ -2539,13 +2541,13 @@ class Literal(LiteralValue):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(avroPlaceholder, (AvroPlaceholder, AvroType)):
             raise PFASyntaxException("\"avroPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
 
-        if not isinstance(value, basestring):
+        if not isinstance(value, six.string_types):
             raise PFASyntaxException("\"value\" must be a string", pos)
 
     def equals(self, other):
@@ -2614,7 +2616,7 @@ class NewObject(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(fields, dict) or not all(isinstance(x, Expression) for x in fields.values()):
@@ -2747,7 +2749,7 @@ class NewArray(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(items, (list, tuple)) or not all(isinstance(x, Expression) for x in items):
@@ -2867,7 +2869,7 @@ class Do(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(body, (list, tuple)) or not all(isinstance(x, Expression) for x in body):
@@ -2964,7 +2966,7 @@ class Let(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(values, dict) or not all(isinstance(x, Expression) for x in values.values()):
@@ -3083,7 +3085,7 @@ class SetVar(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(values, dict) or not all(isinstance(x, Expression) for x in values.values()):
@@ -3193,7 +3195,7 @@ class AttrGet(Expression, HasPath):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(expr, Expression):
@@ -3300,7 +3302,7 @@ class AttrTo(Expression, HasPath):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(expr, Expression):
@@ -3432,10 +3434,10 @@ class CellGet(Expression, HasPath):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(cell, basestring):
+        if not isinstance(cell, six.string_types):
             raise PFASyntaxException("\"cell\" must be a string", pos)
 
         if not isinstance(path, (list, tuple)) or not all(isinstance(x, Expression) for x in path):
@@ -3535,10 +3537,10 @@ class CellTo(Expression, HasPath):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(cell, basestring):
+        if not isinstance(cell, six.string_types):
             raise PFASyntaxException("\"cell\" must be a string", pos)
 
         if not isinstance(path, (list, tuple)) or not all(isinstance(x, Expression) for x in path):
@@ -3663,10 +3665,10 @@ class PoolGet(Expression, HasPath):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(pool, basestring):
+        if not isinstance(pool, six.string_types):
             raise PFASyntaxException("\"pool\" must be a string", pos)
 
         if not isinstance(path, (list, tuple)) or not all(isinstance(x, Expression) for x in path):
@@ -3770,10 +3772,10 @@ class PoolTo(Expression, HasPath):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(pool, basestring):
+        if not isinstance(pool, six.string_types):
             raise PFASyntaxException("\"pool\" must be a string", pos)
 
         if not isinstance(path, (list, tuple)) or not all(isinstance(x, Expression) for x in path):
@@ -3913,10 +3915,10 @@ class PoolDel(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(pool, basestring):
+        if not isinstance(pool, six.string_types):
             raise PFASyntaxException("\"pool\" must be a string", pos)
 
         if not isinstance(dell, Expression):
@@ -4018,7 +4020,7 @@ class If(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(predicate, Expression):
@@ -4159,7 +4161,7 @@ class Cond(Expression):
         :type pos: string or ``None``
         :param pos: source file location from the locator mark
         """
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(ifthens, (list, tuple)) or not all(isinstance(x, If) for x in ifthens):
@@ -4311,7 +4313,7 @@ class While(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(predicate, Expression):
@@ -4419,7 +4421,7 @@ class DoUntil(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(body, (list, tuple)) or not all(isinstance(x, Expression) for x in body):
@@ -4531,7 +4533,7 @@ class For(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(init, dict) or not all(isinstance(x, Expression) for x in init.values()):
@@ -4702,10 +4704,10 @@ class Foreach(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(name, basestring):
+        if not isinstance(name, six.string_types):
             raise PFASyntaxException("\"name\" must be a string", pos)
 
         if not isinstance(array, Expression):
@@ -4838,13 +4840,13 @@ class Forkeyval(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(forkey, basestring):
+        if not isinstance(forkey, six.string_types):
             raise PFASyntaxException("\"forkey\" must be a string", pos)
 
-        if not isinstance(forval, basestring):
+        if not isinstance(forval, six.string_types):
             raise PFASyntaxException("\"forval\" must be a string", pos)
 
         if not isinstance(map, Expression):
@@ -4977,13 +4979,13 @@ class CastCase(Ast):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(avroPlaceholder, (AvroPlaceholder, AvroType)):
             raise PFASyntaxException("\"avroPlaceholder\" must be an AvroPlaceholder or AvroType", pos)
 
-        if not isinstance(named, basestring):
+        if not isinstance(named, six.string_types):
             raise PFASyntaxException("\"named\" must be a string", pos)
 
         if not isinstance(body, (list, tuple)) or not all(isinstance(x, Expression) for x in body):
@@ -5091,7 +5093,7 @@ class CastBlock(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(expr, Expression):
@@ -5227,7 +5229,7 @@ class Upcast(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(expr, Expression):
@@ -5334,7 +5336,7 @@ class IfNotNull(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(exprs, dict) or not all(isinstance(x, Expression) for x in exprs.values()):
@@ -5702,10 +5704,10 @@ class Pack(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(exprs, (list, tuple)) or not all(isinstance(x, (list, tuple)) and len(x) == 2 and isinstance(x[0], basestring) and isinstance(x[1], Expression) for x in exprs):
+        if not isinstance(exprs, (list, tuple)) or not all(isinstance(x, (list, tuple)) and len(x) == 2 and isinstance(x[0], six.string_types) and isinstance(x[1], Expression) for x in exprs):
             raise PFASyntaxException("\"exprs\" must be a list of (string, Expression) tuples", pos)
 
         if len(self.exprs) < 1:
@@ -5813,13 +5815,13 @@ class Unpack(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(bytes, Expression):
             raise PFASyntaxException("\"bytes\" must be an Expression", pos)
 
-        if not isinstance(format, (list, tuple)) or not all(isinstance(x, (list, tuple)) and len(x) == 2 and isinstance(x[0], basestring) and isinstance(x[1], basestring) for x in format):
+        if not isinstance(format, (list, tuple)) or not all(isinstance(x, (list, tuple)) and len(x) == 2 and isinstance(x[0], six.string_types) and isinstance(x[1], six.string_types) for x in format):
             raise PFASyntaxException("\"format\" must be a list of (string, string) tuples", pos)
 
         if not isinstance(thenClause, (list, tuple)) or not all(isinstance(x, Expression) for x in thenClause):
@@ -5973,10 +5975,10 @@ class Doc(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(comment, basestring):
+        if not isinstance(comment, six.string_types):
             raise PFASyntaxException("\"comment\" must be a string", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions, version):
@@ -6033,10 +6035,10 @@ class Error(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(message, basestring):
+        if not isinstance(message, six.string_types):
             raise PFASyntaxException("\"message\" must be a string", pos)
 
         if (not isinstance(code, int) and not code is None) or not code < 0:
@@ -6098,13 +6100,13 @@ class Try(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(exprs, (list, tuple)) or not all(isinstance(x, Expression) for x in exprs):
             raise PFASyntaxException("\"exprs\" must be a list of Expressions", pos)
 
-        if (not isinstance(filter, (list, tuple)) or not all(isinstance(x, (basestring, int, long)) for x in filter)) and not filter is None:
+        if (not isinstance(filter, (list, tuple)) or not all(isinstance(x, (six.string_types, int, long)) for x in filter)) and not filter is None:
             raise PFASyntaxException("\"filter\" must be a list of strings and integers or None", pos)
 
     def collect(self, pf):
@@ -6208,13 +6210,13 @@ class Log(Expression):
         :param pos: source file location from the locator mark
         """
 
-        if not isinstance(pos, basestring) and not pos is None:
+        if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
         if not isinstance(exprs, (list, tuple)) or not all(isinstance(x, Expression) for x in exprs):
             raise PFASyntaxException("\"exprs\" must be a list of Expressions", pos)
 
-        if not isinstance(namespace, basestring) and not namespace is None:
+        if not isinstance(namespace, six.string_types) and not namespace is None:
             raise PFASyntaxException("\"namespace\" must be a string or None", pos)
 
     def collect(self, pf):

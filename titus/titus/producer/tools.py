@@ -22,6 +22,7 @@ import copy
 import json
 import re
 import sys
+import six
 
 ############################################## quick access functions
 
@@ -37,7 +38,7 @@ def splitIndex(index):
 
 def get(expr, index):
     """Get a subexpression from the root expr and index."""
-    if isinstance(index, basestring):
+    if isinstance(index, six.string_types):
         index = splitIndex(index)
     out = expr
     for i in index:
@@ -46,7 +47,7 @@ def get(expr, index):
 
 def assign(expr, index, to):
     """Destructively (in-place) replace a subexpression at a given index with another expression."""
-    if isinstance(index, basestring):
+    if isinstance(index, six.string_types):
         index = splitIndex(index)
     out = expr
     for i in index[:-1]:
@@ -73,7 +74,7 @@ def assignedAt(pattern, expr, to):
 
 def remove(expr, index):
     """Destructively (in-place) remove a subexpression at a given index."""
-    if isinstance(index, basestring):
+    if isinstance(index, six.string_types):
         index = splitIndex(index)
     out = expr
     for i in index[:-1]:
@@ -138,7 +139,7 @@ def getmatch(pattern, haystack):
                 return None
         return out
 
-    elif isinstance(pattern, (basestring, int, float)):
+    elif isinstance(pattern, (six.string_types, int, float)):
         if pattern == haystack:
             return Match(haystack, haystack)
         else:
@@ -351,7 +352,7 @@ class RegEx(Matcher):
     def __repr__(self):
         return "RegEx(" + repr(self.pattern) + ", " + repr(self.to) + ", " + repr(self.flags) + ")"
     def getmatch(self, haystack):
-        if not isinstance(haystack, basestring):
+        if not isinstance(haystack, six.string_types):
             return None
         flags = 0
         if self.flags is not None:

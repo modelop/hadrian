@@ -18,6 +18,7 @@
 # limitations under the License.
 
 import ast
+import six
 from collections import OrderedDict
 
 class PythonToPfaException(Exception):
@@ -385,7 +386,7 @@ def _literal(expr, state):
     if isinstance(expr, ast.Dict):
         out = OrderedDict()
         for key, value in zip(expr.keys, expr.values):
-            if isinstance(key, ast.Str) or (isinstance(key, ast.Name) and isinstance(state["subs"].get(key.id, None), basestring)):
+            if isinstance(key, ast.Str) or (isinstance(key, ast.Name) and isinstance(state["subs"].get(key.id, None), six.string_types)):
                 kkey = _literal(key, state)
                 vvalue = _literal(value, state)
                 out[kkey] = vvalue

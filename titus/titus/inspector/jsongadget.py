@@ -21,6 +21,8 @@ import copy
 import json
 import io
 
+import six
+
 import titus.producer.tools as t
 from titus.inspector.defs import *
 
@@ -288,7 +290,7 @@ class IndexCommand(Command):
 
             regex = args[-1].regex()
             def display(i):
-                if isinstance(i, basestring):
+                if isinstance(i, six.string_types):
                     if " " in i:
                         return json.dumps(i)
                     else:
@@ -391,7 +393,7 @@ class FindCommand(Command):
 
             regex = args[-1].regex()
             def display(i):
-                if isinstance(i, basestring):
+                if isinstance(i, six.string_types):
                     if " " in i:
                         return json.dumps(i)
                     else:
@@ -512,7 +514,7 @@ class ChangeCommand(Command):
                 self.syntaxError()
 
             def display(i):
-                if isinstance(i, basestring):
+                if isinstance(i, six.string_types):
                     if " " in i:
                         return json.dumps(i)
                     else:
