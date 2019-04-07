@@ -20,6 +20,7 @@
 import base64
 import codecs
 import re
+import sys
 
 from titus.fcn import Fcn
 from titus.fcn import LibFcn
@@ -130,11 +131,16 @@ provide(isUtf16LE())
 class Decoder(LibFcn):
     sig = Sig([{"x": P.Bytes()}], P.String())
     codec = None
+
     def __call__(self, state, scope, pos, paramTypes, x):
+        # Hack for Python 3: return without doing anything
+        if sys.version_info[0] == 3 and isinstance(x, str):
+            return x
         try:
             return codecs.decode(x, self.codec, "strict")
         except UnicodeDecodeError as err:
             raise PFARuntimeException("invalid bytes", self.errcodeBase + 0, self.name, pos)
+
 
 class DecodeAscii(Decoder):
     name = prefix + "decodeAscii"
