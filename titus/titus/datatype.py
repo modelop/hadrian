@@ -31,8 +31,10 @@ from titus.util import ts
 
 if sys.version_info[0] == 3:
     from avro.schema import SchemaFromJSONData as make_avsc_object
+    from avro.schema import Parse as schema_parse
 else:
     from avro.schema import make_avsc_object
+    from avro.schema import parse as schema_parse
 
 ######################################################### the most general types
 
@@ -89,7 +91,7 @@ def jsonToAvroType(x):
     :return: AvroType object
     """
 
-    return schemaToAvroType(avro.schema.parse(x))
+    return schemaToAvroType(schema_parse(x))
 
 def jsonNodeToAvroType(x):
     """Convert a Python-encoded Avro type into a titus.datatype.AvroType.
@@ -100,7 +102,7 @@ def jsonNodeToAvroType(x):
     :return: AvroType object
     """
 
-    return schemaToAvroType(avro.schema.parse(json.dumps(x)))
+    return schemaToAvroType(schema_parse(json.dumps(x)))
 
 def schemaToAvroType(schema):
     """Convert an Avro schema into a titus.datatype.AvroType.
@@ -510,7 +512,7 @@ class AvroMap(AvroContainer, AvroMapping):
         :param values: type of the contained objects
         """
         if sys.version_info[0] == 3:
-            self._schema = avro.schema.MapSchema(values)
+            self._schema = avro.schema.MapSchema(values.schema)
         else:
             self._schema = avro.schema.MapSchema("null", avro.schema.Names())
             self._schema.set_prop("values", values.schema)
