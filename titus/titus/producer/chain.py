@@ -449,7 +449,7 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
         lazyFcnReplacer = None
         def genericReplacer(expr, self):
             if isinstance(expr, FcnDef):
-                return FcnDef([{t.keys()[0]: newPlaceholder(i, list(t.values())[0])} for t in expr.params],
+                return FcnDef([{list(t.keys())[0]: newPlaceholder(i, list(t.values())[0])} for t in expr.params],
                               newPlaceholder(i, expr.ret),
                               [x.replace(lazyFcnReplacer) for x in expr.body],     # this is the one place where we should pass down fcnReplacer rather than self
                               expr.pos)
@@ -583,7 +583,7 @@ def ast(pfas, check=True, name=None, randseed=None, doc=None, version=None, meta
         # convert all of the user functions into user functions
         for fcnName, fcnDef in pfa.fcns.items():
             # note: some of these user-defined functions may call emit; if so, they'll call the right emit
-            fcns[prefixFcnDef(i, pfa, fcnName)] = FcnDef([{t.keys()[0]: newPlaceholder(i, list(t.values())[0])} for t in fcnDef.paramsPlaceholder],
+            fcns[prefixFcnDef(i, pfa, fcnName)] = FcnDef([{list(t.keys())[0]: newPlaceholder(i, list(t.values())[0])} for t in fcnDef.paramsPlaceholder],
                                                          newPlaceholder(i, fcnDef.ret),
                                                          [x.replace(fcnReplacer) for x in fcnDef.body],
                                                          fcnDef.pos)

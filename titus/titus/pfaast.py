@@ -328,7 +328,7 @@ class UserFcn(Fcn):
 
     def genpy(self, paramTypes, args, pos=None):
         """Generate an executable Python string for this function; usually ```call(state, DynamicScope(None), self.f["function name"], {arguments...})```."""
-        parNames = [x.keys()[0] for x in self.sig.params]
+        parNames = [list(x.keys())[0] for x in self.sig.params]
         return "call(state, DynamicScope(None), self.f[" + repr(self.name) + "], {" + ", ".join([repr(k) + ": " + v for k, v in zip(parNames, args)]) + "})"
 
     @staticmethod
@@ -342,7 +342,7 @@ class UserFcn(Fcn):
         :rtype: titus.pfaast.UserFcn
         :return: the executable function
         """
-        return UserFcn(n, Sig([{t.keys()[0]: P.fromType(list(t.values())[0])} for t in fcnDef.params], P.fromType(fcnDef.ret)))
+        return UserFcn(n, Sig([{list(t.keys())[0]: P.fromType(list(t.values())[0])} for t in fcnDef.params], P.fromType(fcnDef.ret)))
 
 class EmitFcn(Fcn):
     """The special ``emit`` function."""
@@ -1442,17 +1442,17 @@ class FcnDef(Argument):
     @property
     def paramNames(self):
         """Names of the parameters (list of strings)."""
-        return [t.keys()[0] for t in self.paramsPlaceholder]
+        return [list(t.keys())[0] for t in self.paramsPlaceholder]
 
     @property
     def params(self):
         """Resolved parameter types (list of {string: titus.datatype.AvroType} singletons)."""
-        return [{t.keys()[0]: list(t.values())[0].avroType} for t in self.paramsPlaceholder]
+        return [{list(t.keys())[0]: list(t.values())[0].avroType} for t in self.paramsPlaceholder]
 
     @property
     def paramsDict(self):
         """Resolved parameter types as an unordered dictionary (dict of titus.datatype.AvroType)."""
-        return dict((t.keys()[0], list(t.values())[0].avroType) for t in self.paramsPlaceholder)
+        return dict((list(t.keys())[0], list(t.values())[0].avroType) for t in self.paramsPlaceholder)
 
     @property
     def ret(self):
@@ -1537,7 +1537,7 @@ class FcnDef(Argument):
         :return: JSON representation
         """
         out = self.startDict(lineNumbers)
-        out["params"] = [{x.keys()[0]: list(x.values())[0].jsonNode(memo)} for x in self.paramsPlaceholder]
+        out["params"] = [{list(x.keys())[0]: list(x.values())[0].jsonNode(memo)} for x in self.paramsPlaceholder]
         out["ret"] = self.retPlaceholder.jsonNode(memo)
         out["do"] = [x.jsonNode(lineNumbers, memo) for x in self.body]
         return out
@@ -1730,13 +1730,13 @@ class FcnRefFill(Argument):
         try:
             params, ret = fcnsig.params, fcnsig.ret
 
-            originalParamNames = [x.keys()[0] for x in params]
+            originalParamNames = [list(x.keys())[0] for x in params]
             fillNames = set(argTypeResult.keys())
 
             if not fillNames.issubset(set(originalParamNames)):
                 raise PFASemanticException("fill argument names (\"{0}\") are not a subset of function \"{1}\" parameter names (\"{2}\")".format("\", \"".join(sorted(fillNames)), self.name, "\", \"".join(originalParamNames)), self.pos)
 
-            fcnType = FcnType([P.mustBeAvro(P.toType(list(p.values())[0])) for p in params if p.keys()[0] not in fillNames], P.mustBeAvro(P.toType(ret)))
+            fcnType = FcnType([P.mustBeAvro(P.toType(list(p.values())[0])) for p in params if list(p.keys())[0] not in fillNames], P.mustBeAvro(P.toType(ret)))
         except IncompatibleTypes:
             raise PFASemanticException("only one-signature functions without constraints can be referenced (wrap \"{0}\" in a function definition with the desired signature)".format(self.name), self.pos)
 

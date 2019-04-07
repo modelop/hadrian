@@ -358,7 +358,7 @@ class Sig(Signature):
 
     def __repr__(self):
         alreadyLabeled = set()
-        return "(" + ", ".join(p.keys()[0] + ": " + toText(list(p.values())[0], alreadyLabeled) for p in self.params) + " -> " + toText(self.ret, alreadyLabeled) + ")"
+        return "(" + ", ".join(list(p.keys())[0] + ": " + toText(list(p.values())[0], alreadyLabeled) for p in self.params) + " -> " + toText(self.ret, alreadyLabeled) + ")"
 
     def accepts(self, args, version):
         """Determine if this signature accepts the given arguments for a given PFA version number.

@@ -51,7 +51,7 @@ def simpleComparison(paramTypes, datum, comparison, missingOperators, parser, co
             else:
                 fieldValueType = withoutNull
 
-            if isinstance(fieldValue, dict) and len(fieldValue) == 1 and any(parser.getAvroType(x).name == fieldValue.keys()[0] for x in withoutNull):
+            if isinstance(fieldValue, dict) and len(fieldValue) == 1 and any(parser.getAvroType(x).name == list(fieldValue.keys())[0] for x in withoutNull):
                 fieldValue, = fieldValue.values()
         
     fieldValueType = parser.getAvroType(fieldValueType)

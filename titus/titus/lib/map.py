@@ -443,8 +443,8 @@ class FilterMap(LibFcn):
         for k, v in m.items():
             vv = callfcn(state, scope, fcn, [v])
             if vv is not None:
-                if isinstance(vv, dict) and len(vv) == 1 and vv.keys()[0] in typeNames:
-                    tag, value = vv.items()[0]
+                if isinstance(vv, dict) and len(vv) == 1 and list(vv.keys())[0] in typeNames:
+                    tag, value = list(vv.items())[0]
                 else:
                     value = vv
                 out[k] = value
@@ -461,8 +461,8 @@ class FilterMapWithKey(LibFcn):
         for k, v in m.items():
             vv = callfcn(state, scope, fcn, [k, v])
             if vv is not None:
-                if isinstance(vv, dict) and len(vv) == 1 and vv.keys()[0] in typeNames:
-                    tag, value = vv.items()[0]
+                if isinstance(vv, dict) and len(vv) == 1 and list(vv.keys())[0] in typeNames:
+                    tag, value = list(vv.items())[0]
                 else:
                     value = vv
                 out[k] = value

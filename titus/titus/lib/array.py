@@ -961,8 +961,8 @@ class FilterMap(LibFcn):
         for x in a:
             y = callfcn(state, scope, fcn, [x])
             if y is not None:
-                if isinstance(y, dict) and len(y) == 1 and y.keys()[0] in typeNames:
-                    tag, value = y.items()[0]
+                if isinstance(y, dict) and len(y) == 1 and list(y.keys())[0] in typeNames:
+                    tag, value = list(y.items())[0]
                 else:
                     value = y
                 out.append(value)
@@ -979,8 +979,8 @@ class FilterMapWithIndex(LibFcn):
         for i, x in enumerate(a):
             y = callfcn(state, scope, fcn, [i, x])
             if y is not None:
-                if isinstance(y, dict) and len(y) == 1 and y.keys()[0] in typeNames:
-                    tag, value = y.items()[0]
+                if isinstance(y, dict) and len(y) == 1 and list(y.keys())[0] in typeNames:
+                    tag, value = list(y.items())[0]
                 else:
                     value = y
                 out.append(value)

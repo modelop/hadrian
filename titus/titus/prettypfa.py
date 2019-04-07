@@ -1133,8 +1133,8 @@ class MiniAssignment(MiniAst):
     def __repr__(self):
         return "MiniAssignment({0}, {1})".format(self.pairs, self.qualifier)
     def asExpr(self, state):
-        if self.qualifier is None and len(self.pairs) == 1 and "." in self.pairs.keys()[0]:
-            pieces = self.pairs.keys()[0].split(".")
+        if self.qualifier is None and len(self.pairs) == 1 and "." in list(self.pairs.keys())[0]:
+            pieces = list(self.pairs.keys())[0].split(".")
             base = pieces[0]
             path = [LiteralString(x, self.pos) for x in pieces[1:]]
 
