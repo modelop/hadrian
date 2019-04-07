@@ -969,10 +969,10 @@ def jsonDecoder(avroType, value):
             pass
     elif isinstance(avroType, AvroBytes):
         if isinstance(value, six.string_types):
-            return bytes(value)
+            return six.binary_type(value)
     elif isinstance(avroType, AvroFixed):
         if isinstance(value, six.string_types):
-            out = bytes(value)
+            out = six.binary_type(value)
             if len(out) == avroType.size:
                 return out
     elif isinstance(avroType, AvroString):
@@ -1041,7 +1041,7 @@ def jsonEncoder(avroType, value, tagged=True):
     elif isinstance(avroType, AvroBytes) and isinstance(value, six.string_types):
         return value
     elif isinstance(avroType, AvroFixed) and isinstance(value, six.string_types):
-        out = bytes(value)
+        out = six.binary_type(value)
         if len(out) == avroType.size:
             return out
     elif isinstance(avroType, AvroString) and isinstance(value, six.string_types):
@@ -1247,7 +1247,6 @@ def checkData(data, avroType):
 
     # define type tuples that work on both Python 2 and Python 3
     STRING_OR_BYTES = tuple(list(six.string_types) + [bytes])
-    BYTES = bytes if sys.version_info[0] == 3 else str
 
     if isinstance(avroType, AvroNull):
         if data == "null":
@@ -1326,7 +1325,7 @@ def checkData(data, avroType):
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, (AvroBytes, AvroFixed)):
-        if isinstance(data, BYTES):
+        if isinstance(data, six.binary_type):
             return data
         elif isinstance(data, six.string_types):
             return data.encode("utf-8", "replace")
@@ -1334,7 +1333,7 @@ def checkData(data, avroType):
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, (AvroString, AvroEnum)):
-        if isinstance(data, BYTES):
+        if isinstance(data, six.binary_type):
             return data.decode("utf-8", "replace")
         elif isinstance(data, STRING_OR_BYTES):
             return data
@@ -1352,7 +1351,7 @@ def checkData(data, avroType):
             newData = {}
             for key in data:
                 value = checkData(data[key], avroType.values)
-                if isinstance(key, BYTES):
+                if isinstance(key, six.binary_type):
                     newData[key.decode("utf-8", "replace")] = value
                 elif isinstance(key, STRING_OR_BYTES):
                     newData[key] = value
