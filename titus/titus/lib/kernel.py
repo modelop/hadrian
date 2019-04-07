@@ -63,7 +63,7 @@ class Linear(LibFcn):
                {"y": P.Array(P.Double())}], P.Double())
     errcodeBase = 23000
     def __call__(self, state, scope, pos, paramTypes, x, y):
-	return dot(x, y, self.errcodeBase + 0, self.name, pos)
+	    return dot(x, y, self.errcodeBase + 0, self.name, pos)
 provide(Linear())
 
 class Poly(LibFcn):
@@ -75,7 +75,8 @@ class Poly(LibFcn):
                {"degree": P.Double()}], P.Double())
     errcodeBase = 23020
     def __call__(self, state, scope, pos, paramTypes, x, y, gamma, intercept, degree):
-	return powLikeJava(gamma*dot(x, y, self.errcodeBase + 0, self.name, pos) + intercept, degree)
+	    return powLikeJava(gamma*dot(x, y, self.errcodeBase + 0,
+                                     self.name, pos) + intercept, degree)
 provide(Poly())
 
 class Sigmoid(LibFcn):
@@ -86,5 +87,6 @@ class Sigmoid(LibFcn):
                {"intercept": P.Double()}], P.Double())
     errcodeBase = 23030
     def __call__(self, state, scope, pos, paramTypes, x, y, gamma, intercept):
-	return math.tanh(gamma * dot(x, y, self.errcodeBase + 0, self.name, pos) + intercept)
+	    return math.tanh(gamma * dot(x, y, self.errcodeBase + 0,
+                                     self.name, pos) + intercept)
 provide(Sigmoid())
