@@ -1245,6 +1245,10 @@ except ImportError:
 def checkData(data, avroType):
     """Return ``True`` if ``data`` satisfies ``avroType`` and can be used in PFAEngine.action."""
 
+    # define type tuples that work on both Python 2 and Python 3
+    STRING_OR_BYTES = tuple(list(six.string_types) + [bytes])
+    BYTES = bytes if sys.version_info[0] == 3 else str
+
     if isinstance(avroType, AvroNull):
         if data == "null":
             data = None
@@ -1266,7 +1270,7 @@ def checkData(data, avroType):
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroInt):
-        if isinstance(data, six.string_types):
+        if isinstance(data, STRING_OR_BYTES):
             try:
                 data = int(data)
             except ValueError:
@@ -1279,7 +1283,7 @@ def checkData(data, avroType):
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroLong):
-        if isinstance(data, six.string_types):
+        if isinstance(data, STRING_OR_BYTES):
             try:
                 data = int(data)
             except ValueError:
@@ -1292,7 +1296,7 @@ def checkData(data, avroType):
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroFloat):
-        if isinstance(data, six.string_types):
+        if isinstance(data, STRING_OR_BYTES):
             try:
                 data = float(data)
             except ValueError:
@@ -1307,7 +1311,7 @@ def checkData(data, avroType):
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, AvroDouble):
-        if isinstance(data, six.string_types):
+        if isinstance(data, STRING_OR_BYTES):
             try:
                 data = float(data)
             except ValueError:
@@ -1322,17 +1326,17 @@ def checkData(data, avroType):
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, (AvroBytes, AvroFixed)):
-        if isinstance(data, six.string_types):
+        if isinstance(data, BYTES):
             return data
-        elif isinstance(data, unicode):
+        elif isinstance(data, six.string_types):
             return data.encode("utf-8", "replace")
         else:
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
 
     elif isinstance(avroType, (AvroString, AvroEnum)):
-        if isinstance(data, six.string_types):
+        if isinstance(data, BYTES):
             return data.decode("utf-8", "replace")
-        elif isinstance(data, unicode):
+        elif isinstance(data, STRING_OR_BYTES):
             return data
         else:
             raise TypeError("expecting {0}, found {1}".format(ts(avroType), data))
@@ -1348,9 +1352,9 @@ def checkData(data, avroType):
             newData = {}
             for key in data:
                 value = checkData(data[key], avroType.values)
-                if isinstance(key, six.string_types):
+                if isinstance(key, BYTES):
                     newData[key.decode("utf-8", "replace")] = value
-                elif isinstance(key, unicode):
+                elif isinstance(key, STRING_OR_BYTES):
                     newData[key] = value
                 else:
                     raise TypeError("expecting {0}, found key {1}".format(ts(avroType), key))
