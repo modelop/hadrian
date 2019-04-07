@@ -6044,7 +6044,7 @@ class Error(Expression):
         if not isinstance(message, six.string_types):
             raise PFASyntaxException("\"message\" must be a string", pos)
 
-        if (not isinstance(code, int) and not code is None) or not code < 0:
+        if not (isinstance(code, int) and code < 0) and code is not None:
             raise PFASyntaxException("\"code\" must be a negative int or None", pos)
 
     def walk(self, task, symbolTable, functionTable, engineOptions, version):
