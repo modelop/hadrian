@@ -45,7 +45,7 @@ class ErrorOnNull(LibFcn):
                 return x
             else:
                 if isinstance(x, dict):
-                    return x.values()[0]
+                    return list(x.values())[0]
                 else:
                     return x
 provide(ErrorOnNull())
@@ -62,7 +62,7 @@ class DefaultOnNull(LibFcn):
                 return x
             else:
                 if isinstance(x, dict):
-                    return x.values()[0]
+                    return list(x.values())[0]
                 else:
                     return x
 provide(DefaultOnNull())

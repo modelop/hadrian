@@ -358,7 +358,7 @@ class Sig(Signature):
 
     def __repr__(self):
         alreadyLabeled = set()
-        return "(" + ", ".join(p.keys()[0] + ": " + toText(p.values()[0], alreadyLabeled) for p in self.params) + " -> " + toText(self.ret, alreadyLabeled) + ")"
+        return "(" + ", ".join(p.keys()[0] + ": " + toText(list(p.values())[0], alreadyLabeled) for p in self.params) + " -> " + toText(self.ret, alreadyLabeled) + ")"
 
     def accepts(self, args, version):
         """Determine if this signature accepts the given arguments for a given PFA version number.
@@ -373,10 +373,10 @@ class Sig(Signature):
 
         if self.lifespan.current(version) or self.lifespan.deprecated(version):
             labelData = {}
-            if len(self.params) == len(args) and all(self.check(p.values()[0], a, labelData, False, False) for p, a in zip(self.params, args)):
+            if len(self.params) == len(args) and all(self.check(list(p.values())[0], a, labelData, False, False) for p, a in zip(self.params, args)):
                 try:
                     assignments = dict((l, ld.determineAssignment()) for l, ld in labelData.items())
-                    assignedParams = [self.assign(p.values()[0], a, assignments) for p, a in zip(self.params, args)]
+                    assignedParams = [self.assign(list(p.values())[0], a, assignments) for p, a in zip(self.params, args)]
                     assignedRet = self.assignRet(self.ret, assignments)
                     return (self, assignedParams, assignedRet)
                 except IncompatibleTypes:

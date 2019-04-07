@@ -669,8 +669,8 @@ class DefineFunction(PmmlBinding):
 
         symbolTable = {}
         for p in params:
-            n = p.keys()[0]
-            v = p.values()[0]
+            n = list(p.keys())[0]
+            v = list(p.values())[0]
             symbolTable[n] = v
 
         expr = expressions[0].toPFA(options, context.copy(scope=symbolTable))

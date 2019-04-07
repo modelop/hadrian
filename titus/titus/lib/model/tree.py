@@ -194,7 +194,7 @@ class SurrogateTest(LibFcn):
             result = callfcn(state, scope, missingTest, [datum, comparison])
             if result is not None:
                 if isinstance(result, dict) and result.keys() == ["boolean"]:
-                    return result.values()[0]
+                    return list(result.values())[0]
                 else:
                     return result
         raise PFARuntimeException("no successful surrogate", self.errcodeBase + 0, self.name, pos)

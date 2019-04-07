@@ -342,7 +342,7 @@ class UserFcn(Fcn):
         :rtype: titus.pfaast.UserFcn
         :return: the executable function
         """
-        return UserFcn(n, Sig([{t.keys()[0]: P.fromType(t.values()[0])} for t in fcnDef.params], P.fromType(fcnDef.ret)))
+        return UserFcn(n, Sig([{t.keys()[0]: P.fromType(list(t.values())[0])} for t in fcnDef.params], P.fromType(fcnDef.ret)))
 
 class EmitFcn(Fcn):
     """The special ``emit`` function."""
@@ -1424,7 +1424,10 @@ class FcnDef(Argument):
         if not isinstance(pos, six.string_types) and not pos is None:
             raise PFASyntaxException("\"pos\" must be a string or None", None)
 
-        if not isinstance(paramsPlaceholder, (list, tuple)) or not all(isinstance(x, dict) and len(x) == 1 and isinstance(x.values()[0], (AvroPlaceholder, AvroType)) for x in paramsPlaceholder):
+        if not isinstance(paramsPlaceholder, (list, tuple)) or not \
+                all(isinstance(x, dict) and len(x) == 1 and \
+                isinstance(list(x.values())[0], (AvroPlaceholder, AvroType)) \
+                for x in paramsPlaceholder):
             raise PFASyntaxException("\"paramsPlaceholder\" must be a list of single-key dictionaries of AvroPlaceholders or AvroTypes", pos)
 
         if not isinstance(retPlaceholder, (AvroPlaceholder, AvroType)):
@@ -1444,12 +1447,12 @@ class FcnDef(Argument):
     @property
     def params(self):
         """Resolved parameter types (list of {string: titus.datatype.AvroType} singletons)."""
-        return [{t.keys()[0]: t.values()[0].avroType} for t in self.paramsPlaceholder]
+        return [{t.keys()[0]: list(t.values())[0].avroType} for t in self.paramsPlaceholder]
 
     @property
     def paramsDict(self):
         """Resolved parameter types as an unordered dictionary (dict of titus.datatype.AvroType)."""
-        return dict((t.keys()[0], t.values()[0].avroType) for t in self.paramsPlaceholder)
+        return dict((t.keys()[0], list(t.values())[0].avroType) for t in self.paramsPlaceholder)
 
     @property
     def ret(self):
@@ -1520,7 +1523,7 @@ class FcnDef(Argument):
         if not isinstance(inferredRetType, ExceptionType) and not self.ret.accepts(inferredRetType):
             raise PFASemanticException("function's inferred return type is {0} but its declared return type is {1}".format(ts(results[-1][0].retType), ts(self.ret)), self.pos)
 
-        context = self.Context(FcnType([t.values()[0] for t in self.params], self.ret), set(titus.util.flatten([x[0].calls for x in results])), self.paramNames, self.paramsDict, self.ret, scope.inThisScope, [x[1] for x in results])
+        context = self.Context(FcnType([list(t.values())[0] for t in self.params], self.ret), set(titus.util.flatten([x[0].calls for x in results])), self.paramNames, self.paramsDict, self.ret, scope.inThisScope, [x[1] for x in results])
         return context, task(context, engineOptions)
 
     def jsonNode(self, lineNumbers, memo):
@@ -1534,7 +1537,7 @@ class FcnDef(Argument):
         :return: JSON representation
         """
         out = self.startDict(lineNumbers)
-        out["params"] = [{x.keys()[0]: x.values()[0].jsonNode(memo)} for x in self.paramsPlaceholder]
+        out["params"] = [{x.keys()[0]: list(x.values())[0].jsonNode(memo)} for x in self.paramsPlaceholder]
         out["ret"] = self.retPlaceholder.jsonNode(memo)
         out["do"] = [x.jsonNode(lineNumbers, memo) for x in self.body]
         return out
@@ -1595,7 +1598,7 @@ class FcnRef(Argument):
 
         try:
             params, ret = fcnsig.params, fcnsig.ret
-            fcnType = FcnType([P.toType(p.values()[0]) for p in params], P.mustBeAvro(P.toType(ret)))
+            fcnType = FcnType([P.toType(list(p.values())[0]) for p in params], P.mustBeAvro(P.toType(ret)))
         except IncompatibleTypes:
             raise PFASemanticException("only one-signature functions without generics can be referenced (wrap \"{0}\" in a function definition with the desired signature)".format(self.name), self.pos)
 
@@ -1733,7 +1736,7 @@ class FcnRefFill(Argument):
             if not fillNames.issubset(set(originalParamNames)):
                 raise PFASemanticException("fill argument names (\"{0}\") are not a subset of function \"{1}\" parameter names (\"{2}\")".format("\", \"".join(sorted(fillNames)), self.name, "\", \"".join(originalParamNames)), self.pos)
 
-            fcnType = FcnType([P.mustBeAvro(P.toType(p.values()[0])) for p in params if p.keys()[0] not in fillNames], P.mustBeAvro(P.toType(ret)))
+            fcnType = FcnType([P.mustBeAvro(P.toType(list(p.values())[0])) for p in params if p.keys()[0] not in fillNames], P.mustBeAvro(P.toType(ret)))
         except IncompatibleTypes:
             raise PFASemanticException("only one-signature functions without constraints can be referenced (wrap \"{0}\" in a function definition with the desired signature)".format(self.name), self.pos)
 
