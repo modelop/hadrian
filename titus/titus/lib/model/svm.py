@@ -60,12 +60,13 @@ class Score(LibFcn):
                 raise PFARuntimeException("support vectors must have same length as datum", self.errcodeBase + 1, self.name, pos)
             coeff  = sv["coeff"]
             negClassScore += callfcn(state, scope, kernel, [supVec, datum])*coeff
-	posClassScore = 0.0
+        posClassScore = 0.0
         for sv in posClass:
             supVec = sv["supVec"]
             if len(supVec) != len(datum):
                 raise PFARuntimeException("support vectors must have same length as datum", self.errcodeBase + 1, self.name, pos)
             coeff  = sv["coeff"]
             posClassScore += callfcn(state, scope, kernel, [supVec, datum])*coeff
-	return negClassScore + posClassScore + const
+        return negClassScore + posClassScore + const
+
 provide(Score())
