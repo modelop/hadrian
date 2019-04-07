@@ -19,6 +19,7 @@
 
 import math
 import random
+import sys
 from collections import OrderedDict
 
 import numpy
@@ -26,6 +27,9 @@ from six.moves import range
 
 from titus.producer.transformation import Transformation
 import titus.prettypfa
+
+if sys.version_info[0] == 3:
+    from titus.util import cmp
 
 ### metrics are nested objects like Euclidean(AbsDiff()), and they may
 ### be user-defined.  They mirror the metrics and similarity functions

@@ -21,6 +21,9 @@ import sys
 import os
 import xml.etree.ElementTree as etree
 
+if sys.version_info[0] == 3:
+    from titus.util import cmp
+
 superset = set()
 
 def fixName(name):

@@ -32,6 +32,7 @@ from titus.util import ts
 if sys.version_info[0] == 3:
     from avro.schema import SchemaFromJSONData as make_avsc_object
     from avro.schema import Parse as schema_parse
+    from titus.util import cmp
 else:
     from avro.schema import make_avsc_object
     from avro.schema import parse as schema_parse

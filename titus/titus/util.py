@@ -405,3 +405,7 @@ def avscToPretty(avsc, indent=0):
 
     else:
         raise TypeError("malformed Avro schema")
+
+def cmp(a, b):
+    ''' Python 3 equivalent to Python 2's built-in cmp(). '''
+    return ((a > b) - (a < b))
