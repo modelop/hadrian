@@ -183,7 +183,12 @@ class AvroType(Type):
 
     def __hash__(self):
         """Return a unique hash of the type."""
-        return hash(self.schema)
+        # Explicitly hash schema's properties because avro doesn't implement
+        # __hash__, which is required in Python 3 if __eq__ is implemented.
+        seen = []
+        for k, v in self.schema.props.items():
+            seen.extend([k, v])
+        return hash(tuple(seen))
 
     def _recordFieldsOkay(self, other, memo, checkRecord):
         for xf in self.fields:
