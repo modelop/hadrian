@@ -630,7 +630,9 @@ class AvroField(object):
     @property
     def default(self):
         """Get the field default value."""
-        return self.schema.default
+        # On avro-python3, .default won't be set if None was passed at init,
+        # so use .get on the internal _props dictionary.
+        return self.schema._props.get('default')
     @property
     def order(self):
         """Get the field order."""
