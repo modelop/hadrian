@@ -540,8 +540,11 @@ class AvroRecord(AvroContainer, AvroMapping, AvroCompiled):
         """
         if name is None:
             name = titus.util.uniqueRecordName()
-        self._schema = avro.schema.RecordSchema(name, namespace, [], avro.schema.Names(), "record")
+        self._schema = avro.schema.RecordSchema(
+            name=name, namespace=namespace, fields=[],
+            names=avro.schema.Names())
         self._schema.set_prop("fields", [x.schema for x in fields])
+
     @property
     def fields(self):
         """Get the fields as a list of titus.datatype.AvroField objects."""
