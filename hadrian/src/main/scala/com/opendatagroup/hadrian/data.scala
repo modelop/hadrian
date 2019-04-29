@@ -105,7 +105,7 @@ package data {
     * 
     * @param schema object type for comparison
     */
-  class Comparison(schema: Schema) extends Function2[AnyRef, AnyRef, Int] {
+  class Comparison(schema: Schema) {
     def ensureUnit(x: Int): Int =
       if (x < 0) -1
       else if (x > 0) 1
@@ -127,7 +127,7 @@ package data {
     *  - +2: greater than or equal to (`>=`)
     *  - +3: greater than (`>`)
     */
-  class ComparisonOperator(schema: Schema, operator: Int) extends Function2[AnyRef, AnyRef, Boolean] {
+  class ComparisonOperator(schema: Schema, operator: Int) {
     /** Returns the result of the chosen `operator` on `x` and `y`.
       */
     def apply(x: AnyRef, y: AnyRef): Boolean = {

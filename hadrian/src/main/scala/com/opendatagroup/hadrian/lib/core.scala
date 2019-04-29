@@ -396,7 +396,7 @@ package object core {
       case _: AvroInt | _: AvroLong | _: AvroFloat | _: AvroDouble => 
         JavaCode("com.opendatagroup.hadrian.data.NumericalEQ")
       case x: AvroType =>
-        JavaCode("(new com.opendatagroup.hadrian.data.ComparisonOperator(%s, 1))", javaSchema(x, false))
+        JavaCode("(boolean)(new com.opendatagroup.hadrian.data.ComparisonOperator(%s, 1))", javaSchema(x, false))
       case _ =>
         throw new Exception  // should never be called
     }
